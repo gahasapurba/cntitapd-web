@@ -18,7 +18,8 @@ import {
   EyeOff,
   Edit2,
   AlertTriangle,
-  Users
+  Users,
+  Heart
 } from 'lucide-react';
 
 // Client-side SHA-256 hash helper using Web Crypto API
@@ -57,7 +58,10 @@ export default function AdminPortal({
   events = [],
   onAddEvent,
   onUpdateEvent,
-  onDeleteEvent
+  onDeleteEvent,
+  kudosList = [],
+  onUpdateKudos,
+  onDeleteKudos
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -518,6 +522,7 @@ export default function AdminPortal({
       }}>
         {[
           { id: 'members', label: `Pengurus & Anggota (${members.length})`, icon: Users },
+          { id: 'kudos', label: `Wall of Kudos (${kudosList.length})`, icon: Heart },
           { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
           { id: 'divisions', label: 'Kelola Divisi', icon: Layers },
           { id: 'tenure', label: 'Periode Kepengurusan', icon: Calendar },
@@ -1789,6 +1794,109 @@ export default function AdminPortal({
         </div>
       )}
 
+      {/* TAB CONTENT: KUDOS MANAGEMENT */}
+      {activeTab === 'kudos' && (
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                Kelola Kiriman Apresiasi & Kudos ({kudosList.length})
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                Seluruh apresiasi dari Wall of Kudos dapat diedit atau dihapus oleh Admin untuk menjaga ketertiban konten.
+              </p>
+            </div>
+            <span className="badge-gold" style={{ fontSize: '0.75rem' }}>
+              Moderasi Konten Aktif
+            </span>
+          </div>
+
+          {kudosList.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
+              Belum ada kiriman apresiasi di Wall of Kudos.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {kudosList.map((kudos) => (
+                <div key={kudos.id} style={{
+                  padding: '16px 20px',
+                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-card)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  flexWrap: 'wrap'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '260px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <span className="badge-gold" style={{ fontSize: '0.68rem' }}>{kudos.category}</span>
+                      <strong style={{ color: 'var(--neon-cyan)', fontSize: '0.92rem' }}>{kudos.sender}</strong>
+                      <span style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>kepada</span>
+                      <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{kudos.recipient}</strong>
+                    </div>
+
+                    <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
+                      "{kudos.message}"
+                    </p>
+
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
+                      <span>⏱️ {kudos.exactTimestamp || kudos.date}</span>
+                      <span>•</span>
+                      <span>❤️ {kudos.likes || 1} Apresiasi</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => setEditingItem({ type: 'kudos', item: { ...kudos } })}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'rgba(255,184,0,0.12)',
+                        border: '1px solid var(--mandiri-gold)',
+                        color: 'var(--mandiri-gold)',
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                      title="Edit kiriman apresiasi"
+                    >
+                      <Edit2 size={13} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm({ type: 'kudos', id: kudos.id, name: `Apresiasi dari ${kudos.sender} untuk ${kudos.recipient}` })}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'rgba(244,63,94,0.12)',
+                        border: '1px solid #f43f5e',
+                        color: '#f43f5e',
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                      title="Hapus kiriman apresiasi"
+                    >
+                      <Trash2 size={13} />
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* EDIT MODAL DIALOG */}
       {editingItem && (
         <div style={{
@@ -1967,6 +2075,53 @@ export default function AdminPortal({
               </div>
             )}
 
+            {/* Edit Kudos Form */}
+            {editingItem.type === 'kudos' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Pengirim</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.sender || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, sender: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Penerima</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.recipient || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, recipient: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Nilai Budaya</label>
+                  <select
+                    value={editingItem.item.category || 'Kolaboratif'}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  >
+                    <option value="Kolaboratif">Kolaboratif (Sinergi & Kerjasama Tim)</option>
+                    <option value="Inovatif">Inovatif & Solutif (Excellence & Agility)</option>
+                    <option value="Harmonis">Harmonis (Saling Peduli & Menghargai)</option>
+                    <option value="Integritas">Integritas (Komitmen & Tanggung Jawab)</option>
+                    <option value="Dedikasi">Dedikasi (Customer Centric & Prima)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Pesan Apresiasi</label>
+                  <textarea
+                    rows={4}
+                    value={editingItem.item.message || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, message: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
               <button
                 type="button"
@@ -1991,6 +2146,7 @@ export default function AdminPortal({
                   if (editingItem.type === 'division' && onUpdateDivision) onUpdateDivision(editingItem.item);
                   if (editingItem.type === 'gallery' && onUpdateGallery) onUpdateGallery(editingItem.item);
                   if (editingItem.type === 'tenure' && onUpdateTenure) onUpdateTenure(editingItem.item);
+                  if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
                   setEditingItem(null);
                   alert('Perubahan data berhasil disimpan!');
                 }}
@@ -2085,6 +2241,7 @@ export default function AdminPortal({
                   if (deleteConfirm.type === 'division' && onDeleteDivision) onDeleteDivision(deleteConfirm.id);
                   if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
                   if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
+                  if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
                   setDeleteConfirm(null);
                 }}
                 style={{

@@ -132,6 +132,12 @@ export default function App() {
   const handleAddKudos = (newKudos) => {
     setKudosList((prev) => [newKudos, ...prev]);
   };
+  const handleUpdateKudos = (updatedKudos) => {
+    setKudosList((prev) => prev.map(k => k.id === updatedKudos.id ? updatedKudos : k));
+  };
+  const handleDeleteKudos = (kudosId) => {
+    setKudosList((prev) => prev.filter(k => k.id !== kudosId));
+  };
 
   const handleSubmitApplication = (newApp) => {
     setApplications((prev) => [newApp, ...prev]);
@@ -238,6 +244,9 @@ export default function App() {
             onAddEvent={handleAddEvent}
             onUpdateEvent={handleUpdateEvent}
             onDeleteEvent={handleDeleteEvent}
+            kudosList={kudosList}
+            onUpdateKudos={handleUpdateKudos}
+            onDeleteKudos={handleDeleteKudos}
           />
         )}
       </main>

@@ -7,7 +7,10 @@ import {
   ThumbsUp, 
   Lightbulb, 
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  HelpCircle,
+  X,
+  Clock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -24,6 +27,7 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [kudosErrors, setKudosErrors] = useState({});
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   // Form State Aspirasi
   const [ideaTitle, setIdeaTitle] = useState('');
@@ -49,18 +53,35 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmitKudos = (e) => {
+  const handleOpenConfirm = (e) => {
     e.preventDefault();
     if (!validateKudos()) return;
+    setConfirmModalOpen(true);
+  };
 
+  const getExactTimestamp = () => {
+    const now = new Date();
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const dayName = days[now.getDay()];
+    const dateNum = String(now.getDate()).padStart(2, '0');
+    const monthName = months[now.getMonth()];
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${dayName}, ${dateNum} ${monthName} ${year} • ${hours}:${minutes} WIB`;
+  };
+
+  const handleFinalSubmitKudos = () => {
     onAddKudos({
       id: 'kd-' + Date.now(),
-      sender,
-      recipient,
+      sender: sender.trim(),
+      recipient: recipient.trim(),
       category,
-      message,
+      message: message.trim(),
       likes: 1,
-      date: 'Baru saja'
+      date: 'Baru saja',
+      exactTimestamp: getExactTimestamp()
     });
 
     confetti({
@@ -74,6 +95,7 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
     setRecipient('');
     setMessage('');
     setKudosErrors({});
+    setConfirmModalOpen(false);
     setTimeout(() => setIsSuccess(false), 4000);
   };
 
@@ -213,7 +235,7 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
               </div>
             )}
 
-            <form onSubmit={handleSubmitKudos} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleOpenConfirm} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                   Dari Siapa? (Nama / Squad Kamu) *
@@ -356,23 +378,36 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
                     border: '1px solid var(--border-card)'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: '0.85rem' }}>
-                      <strong style={{ color: 'var(--mandiri-blue)' }}>{kudos.sender}</strong>
-                      <span style={{ color: 'var(--text-dim)', margin: '0 6px' }}>apresiasi kepada</span>
-                      <strong style={{ color: 'var(--text-main)' }}>{kudos.recipient}</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                      <strong style={{ color: 'var(--neon-cyan)', fontWeight: 800, letterSpacing: '0.2px' }}>
+                        {kudos.sender}
+                      </strong>
+                      <span style={{ color: 'var(--text-dim)' }}>apresiasi kepada</span>
+                      <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>
+                        {kudos.recipient}
+                      </strong>
                     </div>
                     <span className="badge-gold" style={{ fontSize: '0.68rem' }}>
                       {kudos.category}
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.6, fontStyle: 'italic' }}>
+                  <p style={{ fontSize: '0.92rem', color: 'var(--text-main)', lineHeight: 1.6, fontStyle: 'italic', margin: 0 }}>
                     "{kudos.message}"
                   </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-dim)', paddingTop: '8px', borderTop: '1px solid var(--border-card)' }}>
-                    <span>⏱️ {kudos.date}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '0.74rem', color: 'var(--text-dim)', paddingTop: '10px', borderTop: '1px solid var(--border-card)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        <Clock size={12} color="var(--mandiri-gold)" />
+                        <span>{kudos.exactTimestamp || kudos.date}</span>
+                      </div>
+                      {kudos.exactTimestamp && kudos.date !== 'Baru saja' && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>({kudos.date})</span>
+                      )}
+                    </div>
+
                     <button
                       onClick={() => handleToggleLike(kudos.id)}
                       title="Beri like apresiasi"
@@ -383,7 +418,7 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
                         background: isLiked ? 'rgba(244, 63, 94, 0.15)' : 'transparent',
                         border: isLiked ? '1px solid #f43f5e' : '1px solid var(--border-card)',
                         color: isLiked ? '#f43f5e' : 'var(--text-muted)',
-                        padding: '4px 10px',
+                        padding: '4px 12px',
                         borderRadius: 'var(--radius-full)',
                         cursor: 'pointer',
                         fontSize: '0.74rem',
@@ -398,6 +433,144 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION PREVIEW MODAL SEBELUM KIRIM KUDOS */}
+      {confirmModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '520px',
+            width: '100%',
+            padding: '28px',
+            border: '1.5px solid var(--mandiri-gold)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 184, 0, 0.15)',
+                  color: 'var(--mandiri-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <HelpCircle size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    Konfirmasi Pengiriman Apresiasi
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                    Harap cek kembali pesan sebelum ditayangkan di Wall of Kudos
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-card)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Pengirim: </span>
+                <strong style={{ color: 'var(--neon-cyan)' }}>{sender}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Penerima: </span>
+                <strong style={{ color: 'var(--text-main)' }}>{recipient}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Kategori: </span>
+                <span className="badge-gold" style={{ fontSize: '0.7rem' }}>{category}</span>
+              </div>
+              <div style={{ fontSize: '0.84rem', borderTop: '1px solid var(--border-card)', paddingTop: '10px' }}>
+                <span style={{ color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>Pesan:</span>
+                <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                  "{message}"
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'rgba(255, 184, 0, 0.1)',
+              border: '1px solid rgba(255, 184, 0, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '10px 14px',
+              fontSize: '0.78rem',
+              color: 'var(--text-muted)',
+              lineHeight: 1.4
+            }}>
+              💡 <em>Catatan:</em> Setelah dikirim, apresiasi ini akan langsung muncul secara publik dan tidak dapat diedit sendiri (hanya dapat dikelola atau dihapus oleh Admin di Portal).
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmModalOpen(false)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Cek Ulang
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalSubmitKudos}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(255,184,0,0.3)'
+                }}
+              >
+                Ya, Kirim Sekarang
+              </button>
+            </div>
           </div>
         </div>
       )}

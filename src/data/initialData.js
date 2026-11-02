@@ -606,6 +606,7 @@ export const INITIAL_KUDOS = [
     message: 'Keren banget hasil video teaser dan template PPT-nya! Presentasi sprint review jadi kelihatan sangat profesional!',
     likes: 12,
     date: 'Baru saja',
+    exactTimestamp: 'Senin, 02 November 2026 • 21:15 WIB',
   },
   {
     id: 'kd-2',
@@ -615,6 +616,7 @@ export const INITIAL_KUDOS = [
     message: 'Event E-Sports kemarin seru banget! Jarang-jarang bisa mabar santai bareng tim tech lead dan squad lain.',
     likes: 24,
     date: '1 hari lalu',
+    exactTimestamp: 'Minggu, 01 November 2026 • 16:40 WIB',
   },
   {
     id: 'kd-3',
@@ -624,6 +626,7 @@ export const INITIAL_KUDOS = [
     message: 'Terima kasih atas ucapan dan souvenir ulang tahunnya, bener-bener bikin ngerasa diapresiasi di tengah deadline rilis!',
     likes: 18,
     date: '3 hari lalu',
+    exactTimestamp: 'Jumat, 30 Oktober 2026 • 10:20 WIB',
   },
 ];
 
