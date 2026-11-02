@@ -19,7 +19,8 @@ import {
   Edit2,
   AlertTriangle,
   Users,
-  Heart
+  Heart,
+  X
 } from 'lucide-react';
 
 // Client-side SHA-256 hash helper using Web Crypto API
@@ -1927,7 +1928,7 @@ export default function AdminPortal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Edit2 size={18} color="var(--mandiri-gold)" />
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  Edit {editingItem.type === 'member' ? 'Personel' : editingItem.type === 'division' ? 'Divisi' : editingItem.type === 'gallery' ? 'Galeri' : 'Periode'}
+                  Edit {editingItem.type === 'member' ? 'Personel' : editingItem.type === 'division' ? 'Divisi' : editingItem.type === 'gallery' ? 'Galeri' : editingItem.type === 'kudos' ? 'Apresiasi / Kudos' : 'Periode'}
                 </h3>
               </div>
               <button
