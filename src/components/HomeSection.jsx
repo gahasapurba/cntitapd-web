@@ -429,64 +429,164 @@ export default function HomeSection({
         </div>
       </section>
 
-      {/* 4. RECRUITMENT & FORMS BANNER (Theme-aware card) */}
-      {primaryForm && primaryForm.isOpen !== false && (
-        <section className="glass-panel-hover" style={{
-          background: isDark 
-            ? 'linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(4, 9, 20, 0.95) 60%, rgba(56, 189, 248, 0.15) 100%)'
-            : 'linear-gradient(135deg, #ffffff 0%, rgba(254, 243, 199, 0.45) 50%, rgba(224, 242, 254, 0.45) 100%)',
-          border: isDark ? '1px solid rgba(255, 184, 0, 0.5)' : '1px solid rgba(255, 184, 0, 0.4)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '36px 44px',
-          boxShadow: isDark 
-            ? '0 0 35px rgba(255, 184, 0, 0.2)' 
-            : '0 10px 30px -5px rgba(255, 184, 0, 0.15), 0 4px 18px -2px rgba(15, 23, 42, 0.05)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '32px',
-          flexWrap: 'wrap',
-        }}>
-          <div style={{ maxWidth: '680px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <span className="badge-gold">
-                <Flame size={14} /> {activeForms.length > 1 ? `${activeForms.length} Registrasi & Formulir Terbuka!` : 'Pendaftaran Sedang Dibuka!'}
+      {/* 4. RECRUITMENT & FORMS SECTION (Theme-aware dynamic cards) */}
+      {activeForms.length > 0 && (
+        <section style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <span className="badge-gold" style={{ marginBottom: '6px' }}>
+                <Flame size={14} /> Pendaftaran & Inisiatif Dibuka
               </span>
-              {primaryForm.deadline && (
-                <span style={{ fontSize: '0.78rem', color: 'var(--mandiri-gold)', fontFamily: 'monospace', fontWeight: 700 }}>
-                  Deadline: {primaryForm.deadline}
-                </span>
-              )}
+              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
+                {activeForms.length > 1 ? `${activeForms.length} Formulir Pendaftaran Sedang Dibuka` : 'Pendaftaran Sedang Dibuka'}
+              </h2>
             </div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '10px' }}>
-              {primaryForm.title}
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-              {primaryForm.subtitle || 'Panggilan pengabdian bagi seluruh Officer Group IT APD. Berdayakan ide kreatifmu, jalin koneksi berharga, dan cetak dampak nyata bagi lingkungan kerja kita.'}
-            </p>
+            {activeForms.length > 1 && (
+              <button
+                onClick={() => handleTabChange('oprec')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--mandiri-blue)',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <span>Buka Hub Registrasi</span>
+                <ChevronRight size={16} />
+              </button>
+            )}
           </div>
 
-          <button
-            onClick={() => handleTabChange('oprec')}
-            className="pulse-glow"
-            style={{
+          {/* If 1 active form: Display grand wide banner */}
+          {activeForms.length === 1 ? (
+            <div className="glass-panel-hover" style={{
+              background: isDark 
+                ? 'linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(4, 9, 20, 0.95) 60%, rgba(56, 189, 248, 0.15) 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, rgba(254, 243, 199, 0.45) 50%, rgba(224, 242, 254, 0.45) 100%)',
+              border: isDark ? '1px solid rgba(255, 184, 0, 0.5)' : '1px solid rgba(255, 184, 0, 0.4)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '36px 44px',
+              boxShadow: isDark 
+                ? '0 0 35px rgba(255, 184, 0, 0.2)' 
+                : '0 10px 30px -5px rgba(255, 184, 0, 0.15), 0 4px 18px -2px rgba(15, 23, 42, 0.05)',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              background: 'var(--mandiri-gold)',
-              color: '#040914',
-              padding: '16px 36px',
-              borderRadius: 'var(--radius-full)',
-              fontWeight: 900,
-              fontSize: '1rem',
-              border: 'none',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <span>{activeForms.length > 1 ? 'Lihat Semua Formulir' : 'Daftar Sekarang'}</span>
-            <ArrowRight size={18} />
-          </button>
+              justifyContent: 'space-between',
+              gap: '32px',
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ maxWidth: '680px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <span className="badge-cyan" style={{ fontSize: '0.72rem' }}>
+                    {activeForms[0].category || 'Pendaftaran'}
+                  </span>
+                  {activeForms[0].deadline && (
+                    <span style={{ fontSize: '0.78rem', color: 'var(--mandiri-gold)', fontFamily: 'monospace', fontWeight: 700 }}>
+                      Deadline: {activeForms[0].deadline}
+                    </span>
+                  )}
+                </div>
+                <h3 style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '10px' }}>
+                  {activeForms[0].title}
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                  {activeForms[0].subtitle || activeForms[0].description}
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleTabChange('oprec')}
+                className="pulse-glow"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  padding: '16px 36px',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 900,
+                  fontSize: '1rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <span>Daftar Sekarang</span>
+                <ArrowRight size={18} />
+              </button>
+            </div>
+          ) : (
+            /* If multiple active forms: Display rich interactive card grid showcasing EACH active form */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              {activeForms.map((f, fIdx) => (
+                <div
+                  key={f.id}
+                  className="glass-panel glass-panel-hover"
+                  style={{
+                    padding: '28px',
+                    borderRadius: 'var(--radius-lg)',
+                    border: '1.5px solid var(--border-card)',
+                    borderTop: `4px solid ${fIdx === 0 ? 'var(--mandiri-gold)' : 'var(--neon-cyan)'}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '18px',
+                    boxShadow: 'var(--shadow-card)'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <span className={fIdx === 0 ? 'badge-gold' : 'badge-cyan'} style={{ fontSize: '0.7rem' }}>
+                        {f.category || 'Formulir Aktif'}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+                        📅 {f.deadline}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px', lineHeight: 1.3 }}>
+                      {f.title}
+                    </h3>
+                    <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                      {f.subtitle || f.description}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 700 }}>
+                      ✓ Terbuka untuk Officer APD
+                    </span>
+                    <button
+                      onClick={() => handleTabChange('oprec')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: fIdx === 0 ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)',
+                        color: fIdx === 0 ? '#040914' : '#ffffff',
+                        padding: '10px 20px',
+                        borderRadius: 'var(--radius-full)',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'transform 0.15s ease'
+                      }}
+                    >
+                      <span>Isi Formulir</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
