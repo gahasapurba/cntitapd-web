@@ -40,6 +40,20 @@ export default function App() {
     localStorage.setItem('cnt_theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#admin' || window.location.pathname === '/admin') {
+        setCurrentTab('admin');
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', handleHash);
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('popstate', handleHash);
+    };
+  }, []);
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
