@@ -48,17 +48,17 @@ export default function AdminPortal({
   const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo.isOpen);
   const [recruitDeadline, setRecruitDeadline] = useState(recruitmentInfo.deadline);
 
-  // Single admin credential
+  // Single secure admin credential
   const handleLogin = (e) => {
     e.preventDefault();
     if (
-      (username.trim() === 'admin' || username.trim() === 'cntitapd') && 
-      password === '[REDACTED]'
+      username.trim() === '[REDACTED]' && 
+      password === '[REDACTED]!$'
     ) {
       setIsAuthenticated(true);
       setLoginError('');
     } else {
-      setLoginError('Username atau password admin salah!');
+      setLoginError('Username atau password salah');
     }
   };
 
@@ -180,12 +180,12 @@ export default function AdminPortal({
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Username Admin
+                Username
               </label>
               <input
                 type="text"
                 required
-                placeholder="admin"
+                placeholder="masukkan username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 style={{
@@ -203,12 +203,12 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Password Admin
+                Password
               </label>
               <input
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder="masukkan password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{
