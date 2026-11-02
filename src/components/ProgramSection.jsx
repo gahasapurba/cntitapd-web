@@ -23,6 +23,7 @@ export default function ProgramSection({ events = [], divisions = [], theme }) {
   const [rsvpModalEvent, setRsvpModalEvent] = useState(null);
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(2); // 2 = Maret (Q1 kick-off)
+  const [hoveredDate, setHoveredDate] = useState(null);
 
   const filteredEvents = events.filter((evt) => {
     const matchesDiv = filterDiv === 'all' || evt.divisionId === filterDiv;
@@ -507,35 +508,38 @@ export default function ProgramSection({ events = [], divisions = [], theme }) {
                         onClick={() => {
                           if (hasEvents) setRsvpModalEvent(dayEvents[0]);
                         }}
+                        onMouseEnter={() => {
+                          if (hasEvents) setHoveredDate(fullDateStr);
+                        }}
+                        onMouseLeave={() => setHoveredDate(null)}
                         style={{
-                          height: '108px',
+                          height: '68px',
                           borderRadius: 'var(--radius-sm)',
                           background: hasEvents 
-                            ? (isDark ? `${tagColor}18` : `${tagColor}15`) 
+                            ? (isDark ? `${tagColor}22` : `${tagColor}15`) 
                             : 'var(--bg-card)',
                           border: hasEvents 
                             ? `2px solid ${tagColor}` 
                             : '1px solid var(--border-card)',
-                          padding: '8px',
+                          padding: '6px 8px',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'space-between',
                           position: 'relative',
                           cursor: hasEvents ? 'pointer' : 'default',
-                          transition: 'all 0.2s ease',
-                          boxShadow: hasEvents ? `0 4px 14px ${tagColor}30` : 'none',
+                          transition: 'all 0.15s ease',
+                          boxShadow: hasEvents ? `0 2px 10px ${tagColor}25` : 'none',
                         }}
-                        title={hasEvents ? `${dayEvents.map(e => e.title).join(' | ')} (Klik untuk detail)` : ''}
                       >
                         {/* Date Number Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{
-                            fontSize: '0.85rem',
+                            fontSize: '0.82rem',
                             fontWeight: hasEvents ? 900 : 600,
                             color: hasEvents ? tagColor : 'var(--text-main)',
                             borderRadius: '50%',
-                            width: '24px',
-                            height: '24px',
+                            width: '22px',
+                            height: '22px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -543,53 +547,94 @@ export default function ProgramSection({ events = [], divisions = [], theme }) {
                           }}>
                             {dayNum}
                           </span>
-                          {hasEvents && (
+                          {hasEvents && dayEvents.length > 1 && (
                             <span style={{
-                              width: '7px',
-                              height: '7px',
-                              borderRadius: '50%',
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
                               background: tagColor,
-                              boxShadow: `0 0 8px ${tagColor}`
-                            }} />
+                              color: '#040914',
+                              padding: '1px 5px',
+                              borderRadius: '8px',
+                              lineHeight: 1
+                            }}>
+                              {dayEvents.length}
+                            </span>
                           )}
                         </div>
 
-                        {/* Interactive Event Chips & Tooltips on Hover */}
+                        {/* Event Indicator Pills / Dots (Tanpa teks panjang agar kotak tidak memanjang) */}
                         {hasEvents ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden' }}>
-                            {dayEvents.slice(0, 2).map((ev) => {
-                              const isStart = ev.startDate === fullDateStr;
-                              const isEnd = ev.endDate === fullDateStr;
-
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: 'auto', paddingBottom: '2px' }}>
+                            {dayEvents.map((ev, eIdx) => {
+                              const divObj = divisions.find(d => d.id === ev.divisionId);
+                              const col = divObj?.color || tagColor;
                               return (
                                 <div
-                                  key={ev.id}
+                                  key={eIdx}
                                   style={{
-                                    fontSize: '0.68rem',
-                                    fontWeight: 700,
-                                    background: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.85)',
-                                    color: tagColor,
-                                    padding: '2px 5px',
-                                    borderRadius: '4px',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    borderLeft: `3px solid ${tagColor}`
+                                    height: '5px',
+                                    flex: 1,
+                                    borderRadius: '3px',
+                                    background: col,
+                                    boxShadow: `0 0 6px ${col}`
                                   }}
-                                >
-                                  {isStart ? '▶ ' : (isEnd ? '🏁 ' : '• ')}
-                                  {ev.title}
+                                  title={ev.title}
+                                />
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ height: '5px' }} />
+                        )}
+
+                        {/* Interactive Floating Hover Popover (Jika ada 1 atau lebih event tumpang tindih) */}
+                        {hoveredDate === fullDateStr && hasEvents && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: 'calc(100% + 8px)',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              zIndex: 100,
+                              minWidth: '220px',
+                              maxWidth: '280px',
+                              background: isDark ? '#0b1329' : '#ffffff',
+                              border: `1.5px solid ${tagColor}`,
+                              borderRadius: 'var(--radius-md)',
+                              boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
+                              padding: '10px 12px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '6px',
+                              pointerEvents: 'none'
+                            }}
+                          >
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700, borderBottom: '1px solid var(--border-card)', paddingBottom: '4px' }}>
+                              📅 {dayNum} {monthNames[currentMonth]} {currentYear} • {dayEvents.length} Agenda
+                            </div>
+                            {dayEvents.map((ev, evIdx) => {
+                              const divObj = divisions.find(d => d.id === ev.divisionId);
+                              return (
+                                <div key={ev.id || evIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{
+                                      width: '6px',
+                                      height: '6px',
+                                      borderRadius: '50%',
+                                      background: divObj?.color || tagColor,
+                                      flexShrink: 0
+                                    }} />
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>
+                                      {ev.title}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', paddingLeft: '12px' }}>
+                                    {ev.divisionName || divObj?.name} • 📍 {ev.location}
+                                  </div>
                                 </div>
                               );
                             })}
-                            {dayEvents.length > 2 && (
-                              <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)', textAlign: 'right' }}>
-                                +{dayEvents.length - 2} lagi
-                              </span>
-                            )}
                           </div>
-                        ) : (
-                          <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.06)' }}>-</div>
                         )}
                       </div>
                     );

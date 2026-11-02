@@ -291,7 +291,7 @@ export default function HomeSection({
                 <Target size={20} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Visi Budaya {activeTenure.code}
+                Visi CNT IT {activeTenure.code}
               </h3>
             </div>
             <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', lineHeight: 1.7, fontStyle: 'italic' }}>
@@ -321,7 +321,7 @@ export default function HomeSection({
                 <ShieldCheck size={20} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Misi Utama {activeTenure.code}
+                Misi CNT IT {activeTenure.code}
               </h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
