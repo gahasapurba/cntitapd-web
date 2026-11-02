@@ -83,10 +83,13 @@ export default function Navbar({
         <nav style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '2px',
-          flexWrap: 'nowrap',
+          gap: '4px',
+          flex: 1,
+          justifyContent: 'center',
+          minWidth: 0,
           overflowX: 'auto',
-          scrollbarWidth: 'none'
+          scrollbarWidth: 'none',
+          padding: '2px 4px'
         }}>
           {[
             { id: 'home', label: 'Beranda', icon: Building2 },
@@ -106,14 +109,14 @@ export default function Navbar({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 11px',
+                  gap: '5px',
+                  padding: '7px 10px',
                   borderRadius: 'var(--radius-md)',
-                  background: isActive ? (isDark ? 'rgba(56, 189, 248, 0.14)' : 'rgba(0, 61, 121, 0.08)') : 'transparent',
+                  background: isActive ? (isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(0, 61, 121, 0.09)') : 'transparent',
                   color: isActive ? (isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)') : 'var(--text-muted)',
                   border: 'none',
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.84rem',
+                  fontWeight: isActive ? 700 : 600,
+                  fontSize: '0.82rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.15s ease',
@@ -133,8 +136,8 @@ export default function Navbar({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '7px 14px',
+              gap: '5px',
+              padding: '6px 12px',
               borderRadius: 'var(--radius-full)',
               background: currentTab === 'oprec' 
                 ? 'var(--mandiri-gold)' 
@@ -142,21 +145,21 @@ export default function Navbar({
               color: currentTab === 'oprec' ? '#040914' : '#b45309',
               border: '1px solid var(--mandiri-gold)',
               fontWeight: 800,
-              fontSize: '0.84rem',
+              fontSize: '0.8rem',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               marginLeft: '4px',
               flexShrink: 0
             }}
           >
-            <UserPlus size={14} />
-            <span>Open Recruitment</span>
+            <UserPlus size={13} />
+            <span>Oprec</span>
             <span style={{
-              fontSize: '0.6rem',
+              fontSize: '0.58rem',
               background: '#b45309',
-              color: 'var(--text-main)',
+              color: '#ffffff',
               padding: '1px 5px',
-              borderRadius: '5px',
+              borderRadius: '4px',
               fontWeight: 800
             }}>OPEN</span>
           </button>

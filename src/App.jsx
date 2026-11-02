@@ -172,7 +172,7 @@ export default function App() {
       </main>
 
       {/* Clean Footer */}
-      <Footer onNavigateAdmin={() => setCurrentTab('admin')} />
+      <Footer onNavigateAdmin={() => setCurrentTab('admin')} theme={theme} />
     </div>
   );
 }

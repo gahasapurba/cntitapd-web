@@ -131,14 +131,37 @@ export default function AdminPortal({
     alert(`Periode Kepengurusan "${newTenureCode}" berhasil dibuat!`);
   };
 
+  const [uploadedPhotos, setUploadedPhotos] = useState([]);
+
+  // Photos file selector handler
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setUploadedPhotos(prev => [...prev, event.target.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeUploadedPhoto = (idx) => {
+    setUploadedPhotos(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handleCreateGallery = (e) => {
     e.preventDefault();
     if (!galTitle.trim() || !galDesc.trim()) return;
 
-    // Photos split by comma or newline
-    const photoList = galPhotos.trim() 
+    // Photos from text URL input + locally uploaded photos
+    const urlPhotos = galPhotos.trim() 
       ? galPhotos.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-      : ['/images/pimpro-gahasa.png'];
+      : [];
+    
+    const combinedPhotos = [...uploadedPhotos, ...urlPhotos];
+    const photoList = combinedPhotos.length > 0 ? combinedPhotos : ['/images/pimpro-adjie.jpg'];
 
     onAddGallery({
       id: 'gal-' + Date.now(),
@@ -153,6 +176,7 @@ export default function AdminPortal({
     setGalDate('');
     setGalDesc('');
     setGalPhotos('');
+    setUploadedPhotos([]);
     alert(`Dokumentasi "${galTitle}" berhasil ditambahkan ke Galeri Kegiatan!`);
   };
 
@@ -508,11 +532,92 @@ export default function AdminPortal({
             </div>
 
             <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Link Foto-Foto Carousel (Pisahkan baris atau koma per URL)
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                Upload Foto Kegiatan (Pilih file langsung atau masukkan URL)
+              </label>
+
+              {/* File upload input */}
+              <div style={{
+                border: '2px dashed var(--border-card)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '16px',
+                textAlign: 'center',
+                background: 'var(--input-bg)',
+                marginBottom: '12px'
+              }}>
+                <input
+                  type="file"
+                  id="galFileInput"
+                  multiple
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  style={{ display: 'none' }}
+                />
+                <label 
+                  htmlFor="galFileInput" 
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'var(--mandiri-blue)',
+                    color: '#ffffff',
+                    padding: '8px 18px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <ImageIcon size={15} />
+                  <span>Pilih File Foto dari Komputer</span>
+                </label>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '6px' }}>
+                  Bisa memilih banyak foto sekaligus (JPG, PNG, WebP)
+                </div>
+              </div>
+
+              {/* Uploaded Photos Thumbnails Preview */}
+              {uploadedPhotos.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                  {uploadedPhotos.map((p, idx) => (
+                    <div key={idx} style={{ position: 'relative' }}>
+                      <img 
+                        src={p} 
+                        alt="Preview" 
+                        style={{ width: '64px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--mandiri-gold)' }} 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeUploadedPhoto(idx)}
+                        style={{
+                          position: 'absolute',
+                          top: '-6px',
+                          right: '-6px',
+                          background: '#f43f5e',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '18px',
+                          height: '18px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px'
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Atau masukkan Link Foto Web / Supabase (opsional):
               </label>
               <textarea
-                rows={3}
+                rows={2}
                 placeholder="https://...link-foto-1.jpg&#10;https://...link-foto-2.jpg"
                 value={galPhotos}
                 onChange={(e) => setGalPhotos(e.target.value)}
@@ -520,15 +625,12 @@ export default function AdminPortal({
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                * Bisa menggunakan URL foto web internal, Supabase storage URL, atau path lokal seperti <code>/images/pimpro-adjie.jpg</code>.
-              </span>
             </div>
 
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>

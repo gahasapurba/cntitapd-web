@@ -1,7 +1,9 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
 
-export default function Footer({ onNavigateAdmin }) {
+export default function Footer({ onNavigateAdmin, theme }) {
+  const isDark = theme === 'dark';
+
   return (
     <footer style={{
       borderTop: '1px solid var(--border-card)',
@@ -26,9 +28,9 @@ export default function Footer({ onNavigateAdmin }) {
           {/* Left Brand */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <img 
-              src="/assets/apd-logo-white.png" 
+              src={isDark ? "/assets/apd-logo-white.png" : "/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png"} 
               alt="CNT IT APD Logo"
-              style={{ height: '34px', objectFit: 'contain' }}
+              style={{ height: '36px', objectFit: 'contain' }}
               onError={(e) => {
                 e.currentTarget.src = "/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png";
               }}
@@ -44,7 +46,7 @@ export default function Footer({ onNavigateAdmin }) {
           </div>
 
           {/* Partner Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', opacity: 0.85 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', opacity: 0.9 }}>
             <img 
               src="/assets/mandiri-logo.png" 
               alt="Bank Mandiri" 
