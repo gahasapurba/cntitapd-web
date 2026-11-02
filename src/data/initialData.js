@@ -394,6 +394,10 @@ export const INITIAL_GALLERIES = [
       '/images/ketua-daffa.jpg',
       '/images/wakil-rizqi.jpg',
       '/images/sekben1-maurren.jpg'
+    ],
+    docLinks: [
+      { text: 'Dokumentasi Google Drive Full HD', url: 'https://bankmandiri.co.id' },
+      { text: 'Notulensi & Materi Presentasi Townhall', url: 'https://bankmandiri.co.id' }
     ]
   },
   {
@@ -407,6 +411,9 @@ export const INITIAL_GALLERIES = [
       '/images/pimpro-adjie.jpg',
       '/images/pimpro-irvin.jpg',
       '/images/pimpro-putra.jpg'
+    ],
+    docLinks: [
+      { text: 'Raw Footage & Video Rekaman Tim', url: 'https://bankmandiri.co.id' }
     ]
   }
 ];

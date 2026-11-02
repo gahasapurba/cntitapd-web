@@ -11,7 +11,9 @@ import {
   LogOut,
   Image as ImageIcon,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  Link2,
+  ExternalLink
 } from 'lucide-react';
 
 // Client-side SHA-256 hash helper using Web Crypto API
@@ -151,6 +153,23 @@ export default function AdminPortal({
     setUploadedPhotos(prev => prev.filter((_, i) => i !== idx));
   };
 
+  // Documentation Links (Dynamic multiple links with Link Text & URL)
+  const [galDocLinks, setGalDocLinks] = useState([
+    { text: 'Folder Dokumentasi Full HD (Google Drive)', url: '' }
+  ]);
+
+  const addDocLinkField = () => {
+    setGalDocLinks(prev => [...prev, { text: '', url: '' }]);
+  };
+
+  const removeDocLinkField = (index) => {
+    setGalDocLinks(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateDocLinkField = (index, field, value) => {
+    setGalDocLinks(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  };
+
   const handleCreateGallery = (e) => {
     e.preventDefault();
     if (!galTitle.trim() || !galDesc.trim()) return;
@@ -163,13 +182,17 @@ export default function AdminPortal({
     const combinedPhotos = [...uploadedPhotos, ...urlPhotos];
     const photoList = combinedPhotos.length > 0 ? combinedPhotos : ['/images/pimpro-adjie.jpg'];
 
+    // Cleaned valid doc links
+    const validDocLinks = galDocLinks.filter(l => l.url.trim() && l.text.trim());
+
     onAddGallery({
       id: 'gal-' + Date.now(),
       title: galTitle,
       date: galDate || '2026',
       division: galDivision,
       description: galDesc,
-      photos: photoList
+      photos: photoList,
+      docLinks: validDocLinks
     });
 
     setGalTitle('');
@@ -177,6 +200,7 @@ export default function AdminPortal({
     setGalDesc('');
     setGalPhotos('');
     setUploadedPhotos([]);
+    setGalDocLinks([{ text: 'Folder Dokumentasi Full HD (Google Drive)', url: '' }]);
     alert(`Dokumentasi "${galTitle}" berhasil ditambahkan ke Galeri Kegiatan!`);
   };
 
@@ -631,6 +655,117 @@ export default function AdminPortal({
                   fontSize: '0.85rem'
                 }}
               />
+            </div>
+
+            {/* DYNAMIC DOCUMENTATION LINKS (Link & Link Text) */}
+            <div style={{
+              gridColumn: 'span 2',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              padding: '16px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(0, 61, 121, 0.04)',
+              border: '1px solid var(--border-card)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Link2 size={16} color="var(--mandiri-blue)" />
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Link Dokumentasi Full (Google Drive / OneDrive / Teams)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={addDocLinkField}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'var(--badge-bg)',
+                    color: 'var(--mandiri-blue)',
+                    border: '1px solid var(--border-card)',
+                    padding: '4px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Plus size={13} />
+                  <span>Tambah Link Lain</span>
+                </button>
+              </div>
+
+              <p style={{ fontSize: '0.76rem', color: 'var(--text-dim)', margin: 0 }}>
+                Masukkan URL penyimpanan cloud beserta nama tombol (misal: "Download Foto HD GDrive" atau "Materi Presentasi & Notulensi").
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {galDocLinks.map((linkItem, lIdx) => (
+                  <div key={lIdx} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1.4fr auto',
+                    gap: '8px',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Nama Teks (misal: Dokumentasi GDrive)"
+                        value={linkItem.text}
+                        onChange={(e) => updateDocLinkField(lIdx, 'text', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--input-border)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.82rem'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="url"
+                        placeholder="https://drive.google.com/..."
+                        value={linkItem.url}
+                        onChange={(e) => updateDocLinkField(lIdx, 'url', e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--input-border)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.82rem'
+                        }}
+                      />
+                    </div>
+                    {galDocLinks.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeDocLinkField(lIdx)}
+                        title="Hapus Link"
+                        style={{
+                          background: 'rgba(244, 63, 94, 0.1)',
+                          border: '1px solid #f43f5e',
+                          color: '#f43f5e',
+                          borderRadius: '6px',
+                          padding: '8px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>

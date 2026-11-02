@@ -5,7 +5,9 @@ import {
   Calendar, 
   Image as ImageIcon,
   Sparkles,
-  Maximize2
+  Maximize2,
+  FolderDown,
+  ExternalLink
 } from 'lucide-react';
 
 export default function GallerySection({ galleries = [] }) {
@@ -165,6 +167,44 @@ export default function GallerySection({ galleries = [] }) {
           <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
             {activeEvent.description}
           </p>
+
+          {/* Full Documentation Links (Link Text, not raw URL) */}
+          {activeEvent.docLinks && activeEvent.docLinks.length > 0 && (
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '10px',
+              paddingTop: '8px',
+              marginTop: '4px'
+            }}>
+              {activeEvent.docLinks.map((doc, dIdx) => (
+                <a
+                  key={dIdx}
+                  href={doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'rgba(0, 61, 121, 0.08)',
+                    border: '1px solid var(--mandiri-blue)',
+                    color: 'var(--mandiri-blue)',
+                    padding: '8px 16px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <FolderDown size={15} />
+                  <span>{doc.text}</span>
+                  <ExternalLink size={13} style={{ opacity: 0.7 }} />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Thumbnail Selector */}
