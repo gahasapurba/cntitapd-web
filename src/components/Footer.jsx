@@ -46,17 +46,23 @@ export default function Footer({ onNavigateAdmin, theme }) {
           </div>
 
           {/* Partner Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', opacity: 0.9 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', opacity: 0.95 }}>
             <img 
-              src="/assets/mandiri-logo.png" 
+              src={isDark ? "/assets/Mandiri/04-Mandiri White Color Alternative Logo.png" : "/assets/mandiri-logo.png"} 
               alt="Bank Mandiri" 
               style={{ height: '22px', objectFit: 'contain' }}
+              onError={(e) => {
+                e.currentTarget.src = "/assets/mandiri-logo.png";
+              }}
             />
             <div style={{ height: '20px', width: '1px', background: 'var(--border-card)' }} />
             <img 
-              src="/assets/danantara-logo.png" 
+              src={isDark ? "/assets/Danantara/negative-danantara-indonesia-horizontal-logo.png" : "/assets/danantara-logo.png"} 
               alt="Danantara Indonesia" 
-              style={{ height: '20px', objectFit: 'contain' }}
+              style={{ height: '22px', objectFit: 'contain' }}
+              onError={(e) => {
+                e.currentTarget.src = "/assets/danantara-logo.png";
+              }}
             />
           </div>
         </div>

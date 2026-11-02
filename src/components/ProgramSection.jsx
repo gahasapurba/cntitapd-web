@@ -54,9 +54,9 @@ export default function ProgramSection({ events, divisions }) {
               borderRadius: 'var(--radius-full)',
               fontSize: '0.85rem',
               fontWeight: 700,
-              border: 'none',
-              background: activeTab === 'upcoming' ? 'var(--accent-gold)' : 'transparent',
-              color: activeTab === 'upcoming' ? '#0a1128' : 'var(--text-muted)',
+              border: activeTab === 'upcoming' ? 'none' : '1px solid var(--border-card)',
+              background: activeTab === 'upcoming' ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+              color: activeTab === 'upcoming' ? '#0a1128' : 'var(--text-main)',
               cursor: 'pointer'
             }}
           >
@@ -69,9 +69,9 @@ export default function ProgramSection({ events, divisions }) {
               borderRadius: 'var(--radius-full)',
               fontSize: '0.85rem',
               fontWeight: 700,
-              border: 'none',
-              background: activeTab === 'all' ? 'var(--accent-gold)' : 'transparent',
-              color: activeTab === 'all' ? '#0a1128' : 'var(--text-muted)',
+              border: activeTab === 'all' ? 'none' : '1px solid var(--border-card)',
+              background: activeTab === 'all' ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+              color: activeTab === 'all' ? '#0a1128' : 'var(--text-main)',
               cursor: 'pointer'
             }}
           >
@@ -86,8 +86,8 @@ export default function ProgramSection({ events, divisions }) {
             value={filterDiv}
             onChange={(e) => setFilterDiv(e.target.value)}
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.15)',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--input-border)',
               color: 'var(--text-main)',
               padding: '8px 16px',
               borderRadius: 'var(--radius-md)',
@@ -96,9 +96,9 @@ export default function ProgramSection({ events, divisions }) {
               cursor: 'pointer'
             }}
           >
-            <option value="all" style={{ background: '#0f1c3f' }}>Semua Divisi</option>
+            <option value="all">Semua Divisi</option>
             {divisions.map((d) => (
-              <option key={d.id} value={d.id} style={{ background: '#0f1c3f' }}>
+              <option key={d.id} value={d.id}>
                 {d.name}
               </option>
             ))}
@@ -125,7 +125,7 @@ export default function ProgramSection({ events, divisions }) {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '16px',
-                borderLeft: `5px solid ${divInfo?.color || 'var(--accent-gold)'}`,
+                borderLeft: `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
                 opacity: isCompleted ? 0.75 : 1,
               }}
             >
@@ -133,7 +133,7 @@ export default function ProgramSection({ events, divisions }) {
                 <span style={{
                   fontSize: '0.72rem',
                   fontWeight: 800,
-                  color: divInfo?.color || 'var(--accent-gold)',
+                  color: divInfo?.color || 'var(--mandiri-gold)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em'
                 }}>
@@ -144,8 +144,8 @@ export default function ProgramSection({ events, divisions }) {
                   fontSize: '0.75rem',
                   padding: '3px 10px',
                   borderRadius: '12px',
-                  background: isCompleted ? 'rgba(255,255,255,0.1)' : 'rgba(255, 184, 0, 0.15)',
-                  color: isCompleted ? 'var(--text-muted)' : 'var(--accent-gold)',
+                  background: isCompleted ? 'rgba(0,0,0,0.06)' : 'rgba(255, 184, 0, 0.15)',
+                  color: isCompleted ? 'var(--text-muted)' : 'var(--mandiri-gold)',
                   fontWeight: 700
                 }}>
                   {isCompleted ? '✓ Selesai' : evt.date}
@@ -165,15 +165,15 @@ export default function ProgramSection({ events, divisions }) {
                 flexDirection: 'column',
                 gap: '8px',
                 paddingTop: '16px',
-                borderTop: '1px solid rgba(255,255,255,0.08)',
+                borderTop: '1px solid var(--border-card)',
                 fontSize: '0.82rem',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
-                  <MapPin size={15} color="var(--accent-cyan)" />
+                  <MapPin size={15} color="var(--mandiri-blue)" />
                   <span>{evt.location}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
-                  <Target size={15} color="var(--accent-gold)" />
+                  <Target size={15} color="var(--mandiri-gold)" />
                   <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Target: {evt.kpi}</span>
                 </div>
               </div>
@@ -186,15 +186,15 @@ export default function ProgramSection({ events, divisions }) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    background: 'rgba(255,255,255,0.08)',
-                    color: 'var(--text-main)',
-                    border: '1px solid rgba(255,255,255,0.15)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--mandiri-blue)',
+                    border: '1px solid var(--mandiri-blue)',
                     padding: '10px 16px',
                     borderRadius: 'var(--radius-md)',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '0.85rem',
                     cursor: 'pointer',
-                    transition: 'var(--transition-fast)'
+                    transition: 'all 0.2s ease'
                   }}
                   onClick={() => alert(`Informasi RSVP untuk ${evt.title} akan dibuka mendekati jadwal kegiatan melalui channel MS Teams Group IT APD!`)}
                 >

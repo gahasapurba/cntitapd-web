@@ -150,18 +150,19 @@ export default function HomeSection({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              background: 'rgba(10, 18, 40, 0.8)',
+              background: 'var(--bg-card)',
               color: 'var(--text-main)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
+              border: '1.5px solid var(--mandiri-blue)',
               padding: '16px 28px',
               borderRadius: 'var(--radius-full)',
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: '0.95rem',
               cursor: 'pointer',
-              backdropFilter: 'blur(10px)'
+              boxShadow: 'var(--shadow-card)',
+              transition: 'all 0.2s ease'
             }}
           >
-            <Compass size={18} color="var(--neon-cyan)" />
+            <Compass size={18} color="var(--mandiri-blue)" />
             <span>Jelajahi Struktur Organisasi</span>
           </button>
         </div>

@@ -9,7 +9,9 @@ import {
   FileArchive
 } from 'lucide-react';
 
-export default function AssetKitSection() {
+export default function AssetKitSection({ theme }) {
+  const isDark = theme === 'dark';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '48px', paddingBottom: '80px' }}>
       
@@ -32,28 +34,39 @@ export default function AssetKitSection() {
           padding: '36px',
           display: 'flex',
           flexDirection: 'column',
+          alignItems: 'center',
           gap: '24px',
           border: '1px solid var(--border-card-hover)',
           textAlign: 'center'
         }}>
-          {/* Logo Showcase Preview */}
+          {/* Logo Showcase Preview - Centered with proper padding and background contrast */}
           <div style={{
-            height: '160px',
+            width: '100%',
+            height: '180px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(0, 0, 0, 0.05)',
+            background: isDark ? 'rgba(255, 255, 255, 0.04)' : '#ffffff',
             border: '1px solid var(--border-card)',
+            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.04)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '24px'
+            padding: '28px',
+            margin: '0 auto'
           }}>
             <img 
-              src="/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png" 
+              src={isDark ? "/assets/apd-logo-white.png" : "/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png"} 
               alt="Logo CNT IT APD"
               style={{
-                maxHeight: '100%',
-                maxWidth: '100%',
-                objectFit: 'contain'
+                maxHeight: '80px',
+                maxWidth: '280px',
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                margin: '0 auto',
+                display: 'block'
+              }}
+              onError={(e) => {
+                e.currentTarget.src = "/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png";
               }}
             />
           </div>
