@@ -196,7 +196,7 @@ export default function AdminPortal({
       themeTagline: newTenureTagline || 'Sinergi, Inovasi & Cultural Excellence',
       heroHeadline: newTenureHeadline || 'COMMITTED TO CULTIVATE',
       heroHighlight: newTenureHighlight || 'EXCELLENCE & SYNERGY',
-      visi: newTenureVisi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan berkarakter AKHLAK.',
+      visi: newTenureVisi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan profesional.',
       misi: newTenureMisi 
         ? newTenureMisi.split('\n').map(s => s.trim()).filter(Boolean)
         : [
@@ -1551,7 +1551,7 @@ export default function AdminPortal({
               </label>
               <textarea
                 rows={2}
-                placeholder="Menjadi akselerator budaya kerja kolaboratif, agile, dan berkarakter AKHLAK..."
+                placeholder="Menjadi akselerator budaya kerja kolaboratif, agile, dan profesional..."
                 value={newTenureVisi}
                 onChange={(e) => setNewTenureVisi(e.target.value)}
                 style={{

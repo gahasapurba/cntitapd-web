@@ -292,7 +292,7 @@ export default function HomeSection({
               </h3>
             </div>
             <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', lineHeight: 1.7, fontStyle: 'italic' }}>
-              "{activeTenure.visi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan berkarakter AKHLAK yang mendorong produktivitas engineering prima serta kebahagiaan insan IT Application Delivery.'}"
+              "{activeTenure.visi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan profesional yang mendorong produktivitas engineering prima serta kebahagiaan insan IT Application Delivery.'}"
             </p>
           </div>
 

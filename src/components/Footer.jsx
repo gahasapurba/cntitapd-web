@@ -80,7 +80,7 @@ export default function Footer({ onNavigateAdmin, theme }) {
           gap: '12px'
         }}>
           <div>
-            © {new Date().getFullYear()} Culture Network Team Group IT APD. Nilai Budaya <strong>AKHLAK</strong> BUMN.
+            © {new Date().getFullYear()} Culture Network Team Group IT APD. Satu Hati, Satu Mandiri.
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

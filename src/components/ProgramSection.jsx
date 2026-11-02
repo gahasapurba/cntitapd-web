@@ -251,26 +251,40 @@ export default function ProgramSection({ events = [], divisions = [] }) {
 
                 {!isCompleted && (
                   <button
+                    className="btn-rsvp-action"
                     style={{
-                      marginTop: '8px',
+                      marginTop: '10px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      background: 'var(--bg-card)',
-                      color: 'var(--mandiri-blue)',
-                      border: '1px solid var(--mandiri-blue)',
-                      padding: '10px 16px',
+                      background: 'rgba(14, 165, 233, 0.12)',
+                      color: 'var(--neon-cyan)',
+                      border: '1.5px solid var(--neon-cyan)',
+                      padding: '11px 18px',
                       borderRadius: 'var(--radius-md)',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.25s ease',
+                      boxShadow: '0 4px 15px rgba(14, 165, 233, 0.15)'
                     }}
                     onClick={() => setRsvpModalEvent(evt)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--neon-cyan)';
+                      e.currentTarget.style.color = '#040914';
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(14, 165, 233, 0.4)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(14, 165, 233, 0.12)';
+                      e.currentTarget.style.color = 'var(--neon-cyan)';
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(14, 165, 233, 0.15)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
                   >
                     <span>RSVP / Info Detail Kegiatan</span>
-                    <ChevronRight size={16} />
+                    <ChevronRight size={17} />
                   </button>
                 )}
               </div>
@@ -359,8 +373,22 @@ export default function ProgramSection({ events = [], divisions = [] }) {
                             {evt.title}
                           </h4>
                           <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <MapPin size={13} color="var(--mandiri-blue)" />
+                            <MapPin size={13} color="var(--neon-cyan)" />
                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{evt.location}</span>
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: '4px',
+                            paddingTop: '8px',
+                            borderTop: '1px dashed var(--border-card)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            color: 'var(--neon-cyan)'
+                          }}>
+                            <span>Lihat Detail Agenda</span>
+                            <ChevronRight size={14} />
                           </div>
                         </div>
                       );

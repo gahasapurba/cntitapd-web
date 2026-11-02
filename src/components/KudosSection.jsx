@@ -134,7 +134,7 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
           Wall of Kudos & Aspirasi
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
-          Apresiasi rekan kerjamu atas dedikasi dan sinerginya (Nilai Utama AKHLAK) atau sampaikan ide kreatif untuk memajukan budaya kerja Group IT APD.
+          Apresiasi rekan kerjamu atas dedikasi, sinergi, dan kontribusinya atau sampaikan ide kreatif untuk memajukan budaya kerja Group IT APD.
         </p>
       </div>
 
@@ -260,19 +260,18 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
 
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Nilai Utama (AKHLAK)
+                  Kategori Nilai Budaya
                 </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   style={inputStyle(false)}
                 >
-                  <option value="Amanah">Amanah (Integritas & Tanggung Jawab)</option>
-                  <option value="Kompeten">Kompeten (Solutif & Unggul)</option>
+                  <option value="Kolaboratif">Kolaboratif (Sinergi & Kerjasama Tim)</option>
+                  <option value="Inovatif">Inovatif & Solutif (Excellence & Agility)</option>
                   <option value="Harmonis">Harmonis (Saling Peduli & Menghargai)</option>
-                  <option value="Loyal">Loyal (Berdedikasi untuk Mandiri)</option>
-                  <option value="Adaptif">Adaptif (Agile & Inovatif)</option>
-                  <option value="Kolaboratif">Kolaboratif (Sinergi yang Membangun)</option>
+                  <option value="Integritas">Integritas (Komitmen & Tanggung Jawab)</option>
+                  <option value="Dedikasi">Dedikasi (Customer Centric & Prima)</option>
                 </select>
               </div>
 

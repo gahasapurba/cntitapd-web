@@ -620,7 +620,7 @@ export const INITIAL_KUDOS = [
     id: 'kd-3',
     sender: 'Siti Rahma (Wholesale APD)',
     recipient: 'Irvin (Wellbeing)',
-    category: 'Amanah',
+    category: 'Integritas',
     message: 'Terima kasih atas ucapan dan souvenir ulang tahunnya, bener-bener bikin ngerasa diapresiasi di tengah deadline rilis!',
     likes: 18,
     date: '3 hari lalu',
