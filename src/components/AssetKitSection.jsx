@@ -185,7 +185,7 @@ export default function AssetKitSection({ theme }) {
                 }}
               />
               <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                Logo Master Brand IT APD (Current 2026)
+                Logo IT APD (Since 2026)
               </span>
             </div>
           </div>
