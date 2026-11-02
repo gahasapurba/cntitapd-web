@@ -513,7 +513,8 @@ export default function ProgramSection({ events = [], divisions = [], theme }) {
                         }}
                         onMouseLeave={() => setHoveredDate(null)}
                         style={{
-                          height: '68px',
+                          minHeight: '78px',
+                          maxHeight: '78px',
                           borderRadius: 'var(--radius-sm)',
                           background: hasEvents 
                             ? (isDark ? `${tagColor}22` : `${tagColor}15`) 
@@ -529,10 +530,11 @@ export default function ProgramSection({ events = [], divisions = [], theme }) {
                           cursor: hasEvents ? 'pointer' : 'default',
                           transition: 'all 0.15s ease',
                           boxShadow: hasEvents ? `0 2px 10px ${tagColor}25` : 'none',
+                          overflow: 'visible'
                         }}
                       >
                         {/* Date Number Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
                           <span style={{
                             fontSize: '0.82rem',
                             fontWeight: hasEvents ? 900 : 600,
@@ -557,34 +559,44 @@ export default function ProgramSection({ events = [], divisions = [], theme }) {
                               borderRadius: '8px',
                               lineHeight: 1
                             }}>
-                              {dayEvents.length}
+                              +{dayEvents.length - 1}
                             </span>
                           )}
                         </div>
 
-                        {/* Event Indicator Pills / Dots (Tanpa teks panjang agar kotak tidak memanjang) */}
+                        {/* Single-line Truncated Event Label (e.g. "APD E-Sports Cha...") */}
                         {hasEvents ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: 'auto', paddingBottom: '2px' }}>
-                            {dayEvents.map((ev, eIdx) => {
+                          <div style={{ marginTop: 'auto', width: '100%' }}>
+                            {(() => {
+                              const ev = dayEvents[0];
                               const divObj = divisions.find(d => d.id === ev.divisionId);
                               const col = divObj?.color || tagColor;
+
                               return (
                                 <div
-                                  key={eIdx}
                                   style={{
-                                    height: '5px',
-                                    flex: 1,
-                                    borderRadius: '3px',
-                                    background: col,
-                                    boxShadow: `0 0 6px ${col}`
+                                    fontSize: '0.66rem',
+                                    fontWeight: 700,
+                                    background: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)',
+                                    color: col,
+                                    padding: '2px 5px',
+                                    borderRadius: '4px',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    borderLeft: `2.5px solid ${col}`,
+                                    lineHeight: 1.25,
+                                    width: '100%'
                                   }}
                                   title={ev.title}
-                                />
+                                >
+                                  {ev.title}
+                                </div>
                               );
-                            })}
+                            })()}
                           </div>
                         ) : (
-                          <div style={{ height: '5px' }} />
+                          <div style={{ height: '14px' }} />
                         )}
 
                         {/* Interactive Floating Hover Popover (Jika ada 1 atau lebih event tumpang tindih) */}
