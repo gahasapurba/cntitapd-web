@@ -79,7 +79,7 @@ export default function RecruitmentSection({
             Pendaftaran Dibuka s/d {recruitmentInfo.deadline}
           </span>
         </div>
-        <h1 style={{ fontSize: '3rem', fontWeight: 800, color: '#fff', marginBottom: '16px', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px', lineHeight: 1.2 }}>
           {recruitmentInfo.title}
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', lineHeight: 1.6 }}>
@@ -97,7 +97,7 @@ export default function RecruitmentSection({
         <div className="glass-panel" style={{ padding: '32px', border: '1px solid rgba(255, 184, 0, 0.3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <Clock size={20} color="var(--accent-gold)" />
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
               Tahapan & Timeline Seleksi
             </h3>
           </div>
@@ -123,7 +123,7 @@ export default function RecruitmentSection({
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#fff' }}>
+                    <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)' }}>
                       {item.step}
                     </h4>
                     <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
@@ -143,7 +143,7 @@ export default function RecruitmentSection({
         <div className="glass-panel" style={{ padding: '32px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <Award size={20} color="var(--accent-cyan)" />
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
               Benefit Bergabung di CNT IT APD
             </h3>
           </div>
@@ -164,7 +164,7 @@ export default function RecruitmentSection({
       {/* 3. DIVISI YANG DIBUKA (REQUIREMENTS) */}
       <section>
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff' }}>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>
             Kriteria & Kualifikasi Divisi
           </h2>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-dim)' }}>
@@ -189,7 +189,7 @@ export default function RecruitmentSection({
                 gap: '12px',
               }}
             >
-              <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+              <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
                 {div.name}
               </h4>
               <div style={{ fontSize: '0.75rem', color: div.color, fontWeight: 700 }}>
@@ -238,11 +238,11 @@ export default function RecruitmentSection({
               }}>
                 <CheckCircle2 size={36} />
               </div>
-              <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff', marginBottom: '10px' }}>
+              <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
                 Pendaftaran Berhasil Dikirim! 🎉
               </h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '520px', margin: '0 auto 24px auto', lineHeight: 1.6 }}>
-                Terima kasih, <strong style={{ color: '#fff' }}>{fullName}</strong>! Berkas pendaftaranmu telah masuk ke database panitia Oprec CNT IT APD. Tim seleksi akan menghubungi via WhatsApp/Email untuk tahap selanjutnya.
+                Terima kasih, <strong style={{ color: 'var(--text-main)' }}>{fullName}</strong>! Berkas pendaftaranmu telah masuk ke database panitia Oprec CNT IT APD. Tim seleksi akan menghubungi via WhatsApp/Email untuk tahap selanjutnya.
               </p>
               <button
                 onClick={() => setIsSubmitted(false)}
@@ -250,7 +250,7 @@ export default function RecruitmentSection({
                   padding: '10px 24px',
                   borderRadius: 'var(--radius-full)',
                   background: 'rgba(255,255,255,0.1)',
-                  color: '#fff',
+                  color: 'var(--text-main)',
                   border: '1px solid rgba(255,255,255,0.2)',
                   fontWeight: 600,
                   fontSize: '0.85rem',
@@ -266,7 +266,7 @@ export default function RecruitmentSection({
                 <span className="badge-gold" style={{ marginBottom: '8px' }}>
                   Formulir Resmi
                 </span>
-                <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#fff' }}>
+                <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
                   Formulir Pendaftaran Calon Pengurus
                 </h3>
                 <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
@@ -293,7 +293,7 @@ export default function RecruitmentSection({
                         borderRadius: 'var(--radius-md)',
                         background: 'rgba(255,255,255,0.06)',
                         border: '1px solid rgba(255,255,255,0.15)',
-                        color: '#fff',
+                        color: 'var(--text-main)',
                         outline: 'none',
                         fontSize: '0.88rem'
                       }}
@@ -316,7 +316,7 @@ export default function RecruitmentSection({
                         borderRadius: 'var(--radius-md)',
                         background: 'rgba(255,255,255,0.06)',
                         border: '1px solid rgba(255,255,255,0.15)',
-                        color: '#fff',
+                        color: 'var(--text-main)',
                         outline: 'none',
                         fontSize: '0.88rem'
                       }}
@@ -342,7 +342,7 @@ export default function RecruitmentSection({
                         borderRadius: 'var(--radius-md)',
                         background: 'rgba(255,255,255,0.06)',
                         border: '1px solid rgba(255,255,255,0.15)',
-                        color: '#fff',
+                        color: 'var(--text-main)',
                         outline: 'none',
                         fontSize: '0.88rem'
                       }}
@@ -365,7 +365,7 @@ export default function RecruitmentSection({
                         borderRadius: 'var(--radius-md)',
                         background: 'rgba(255,255,255,0.06)',
                         border: '1px solid rgba(255,255,255,0.15)',
-                        color: '#fff',
+                        color: 'var(--text-main)',
                         outline: 'none',
                         fontSize: '0.88rem'
                       }}
@@ -390,7 +390,7 @@ export default function RecruitmentSection({
                       borderRadius: 'var(--radius-md)',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       outline: 'none',
                       fontSize: '0.88rem'
                     }}
@@ -412,7 +412,7 @@ export default function RecruitmentSection({
                         borderRadius: 'var(--radius-md)',
                         background: '#0f1c3f',
                         border: '1px solid rgba(255,255,255,0.15)',
-                        color: '#fff',
+                        color: 'var(--text-main)',
                         outline: 'none',
                         fontSize: '0.88rem',
                         cursor: 'pointer'
@@ -439,7 +439,7 @@ export default function RecruitmentSection({
                         borderRadius: 'var(--radius-md)',
                         background: '#0f1c3f',
                         border: '1px solid rgba(255,255,255,0.15)',
-                        color: '#fff',
+                        color: 'var(--text-main)',
                         outline: 'none',
                         fontSize: '0.88rem',
                         cursor: 'pointer'
@@ -472,7 +472,7 @@ export default function RecruitmentSection({
                       borderRadius: 'var(--radius-md)',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       outline: 'none',
                       fontSize: '0.88rem',
                       resize: 'vertical'
@@ -496,7 +496,7 @@ export default function RecruitmentSection({
                       borderRadius: 'var(--radius-md)',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       outline: 'none',
                       fontSize: '0.88rem'
                     }}

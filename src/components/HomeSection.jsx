@@ -73,7 +73,7 @@ export default function HomeSection({
           fontSize: 'clamp(2.5rem, 5.5vw, 4.8rem)',
           lineHeight: 1.1,
           fontWeight: 900,
-          color: '#ffffff',
+          color: 'var(--text-main)',
           maxWidth: '1000px',
           margin: '0 auto 24px auto',
           letterSpacing: '-0.03em'
@@ -97,7 +97,7 @@ export default function HomeSection({
           margin: '0 auto 36px auto',
           lineHeight: 1.7,
         }}>
-          Pusat gerakan budaya kerja <strong style={{ color: '#fff' }}>Culture Network Team (CNT)</strong> Group IT Application Delivery, Direktorat IT Bank Mandiri. Mengobarkan semangat kolaborasi lintas squad, inovasi engineering, dan harmoni kerja.
+          Pusat gerakan budaya kerja <strong style={{ color: 'var(--text-main)' }}>Culture Network Team (CNT)</strong> Group IT Application Delivery, Direktorat IT Bank Mandiri. Mengobarkan semangat kolaborasi lintas squad, inovasi engineering, dan harmoni kerja.
         </p>
 
         {/* Quick Actions */}
@@ -131,7 +131,7 @@ export default function HomeSection({
               alignItems: 'center',
               gap: '8px',
               background: 'rgba(10, 18, 40, 0.8)',
-              color: '#fff',
+              color: 'var(--text-main)',
               border: '1px solid rgba(56, 189, 248, 0.4)',
               padding: '16px 28px',
               borderRadius: 'var(--radius-full)',
@@ -168,7 +168,7 @@ export default function HomeSection({
             }}>
               <Users size={22} />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
               8 Personel
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT</div>
@@ -188,7 +188,7 @@ export default function HomeSection({
             }}>
               <Zap size={22} />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
               {divisions.length} Divisi
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pilar Inisiatif Budaya</div>
@@ -228,7 +228,7 @@ export default function HomeSection({
             }}>
               <Award size={22} />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
               100%
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Insan APD Terkoneksi</div>
@@ -259,7 +259,7 @@ export default function HomeSection({
                 Deadline: {recruitmentInfo.deadline}
               </span>
             </div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#fff', marginBottom: '10px' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '10px' }}>
               {recruitmentInfo.title}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6 }}>
@@ -297,7 +297,7 @@ export default function HomeSection({
           <span className="badge-cyan" style={{ marginBottom: '10px' }}>
             4 Pilar Gerakan Budaya
           </span>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff', marginBottom: '10px' }}>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '10px' }}>
             Divisi & Ruang Lingkup CNT
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
@@ -351,7 +351,7 @@ export default function HomeSection({
                 </div>
 
                 <div>
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff', marginBottom: '4px' }}>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
                     {div.name}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700 }}>

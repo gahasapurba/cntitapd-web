@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import HomeSection from './components/HomeSection';
 import OrganizationSection from './components/OrganizationSection';
 import ProgramSection from './components/ProgramSection';
+import GallerySection from './components/GallerySection';
 import KudosSection from './components/KudosSection';
 import AssetKitSection from './components/AssetKitSection';
 import RecruitmentSection from './components/RecruitmentSection';
@@ -16,22 +17,22 @@ import {
   INITIAL_MEMBERS, 
   INITIAL_EVENTS, 
   INITIAL_KUDOS, 
-  RECRUITMENT_INFO 
+  RECRUITMENT_INFO,
+  INITIAL_GALLERIES
 } from './data/initialData';
 
 export default function App() {
-  // Navigation: 'home' | 'organisasi' | 'program' | 'kudos' | 'assets' | 'oprec' | 'admin'
+  // Navigation: 'home' | 'organisasi' | 'program' | 'galeri' | 'kudos' | 'assets' | 'oprec' | 'admin'
   const [currentTab, setCurrentTab] = useState(() => {
-    // Check if user accesses /admin via URL hash or query
     if (window.location.hash === '#admin' || window.location.pathname === '/admin') {
       return 'admin';
     }
     return 'home';
   });
 
-  // Dark / Light Theme state with LocalStorage persistence
+  // Default theme is LIGHT THEME as requested
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('cnt_theme') || 'dark';
+    return localStorage.getItem('cnt_theme') || 'light';
   });
 
   useEffect(() => {
@@ -43,23 +44,28 @@ export default function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  // Dynamic States
+  // Master Dynamic States
   const [tenures, setTenures] = useState(INITIAL_TENURES);
   const [activeTenure, setActiveTenure] = useState(INITIAL_TENURES[0]);
   const [divisions, setDivisions] = useState(INITIAL_DIVISIONS);
   const [members, setMembers] = useState(INITIAL_MEMBERS);
   const [events, setEvents] = useState(INITIAL_EVENTS);
+  const [galleries, setGalleries] = useState(INITIAL_GALLERIES);
   const [kudosList, setKudosList] = useState(INITIAL_KUDOS);
   const [recruitmentInfo, setRecruitmentInfo] = useState(RECRUITMENT_INFO);
   const [applications, setApplications] = useState([]);
 
-  // Admin dynamic updates
+  // Dynamic Add Handlers
   const handleAddDivision = (newDiv) => {
     setDivisions((prev) => [...prev, newDiv]);
   };
 
   const handleAddTenure = (newTenure) => {
     setTenures((prev) => [...prev, newTenure]);
+  };
+
+  const handleAddGallery = (newGal) => {
+    setGalleries((prev) => [newGal, ...prev]);
   };
 
   const handleUpdateRecruitment = (updatedInfo) => {
@@ -76,10 +82,10 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
-      {/* Dynamic Background Canvas */}
+      {/* Background Canvas */}
       <StarfieldBackground theme={theme} />
 
-      {/* Navigation Bar (Clean & Responsive) */}
+      {/* Responsive Navbar */}
       <Navbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
@@ -91,7 +97,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="container" style={{ flex: 1, paddingTop: '36px', position: 'relative', zIndex: 10 }}>
+      <main className="container" style={{ flex: 1, paddingTop: '32px', position: 'relative', zIndex: 10 }}>
         {currentTab === 'home' && (
           <HomeSection
             activeTenure={activeTenure}
@@ -117,6 +123,13 @@ export default function App() {
           <ProgramSection
             events={events}
             divisions={divisions}
+            theme={theme}
+          />
+        )}
+
+        {currentTab === 'galeri' && (
+          <GallerySection
+            galleries={galleries}
             theme={theme}
           />
         )}
@@ -152,11 +165,13 @@ export default function App() {
             recruitmentInfo={recruitmentInfo}
             onUpdateRecruitment={handleUpdateRecruitment}
             applications={applications}
+            galleries={galleries}
+            onAddGallery={handleAddGallery}
           />
         )}
       </main>
 
-      {/* Footer without admin button */}
+      {/* Clean Footer */}
       <Footer onNavigateAdmin={() => setCurrentTab('admin')} />
     </div>
   );

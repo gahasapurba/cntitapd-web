@@ -6,6 +6,7 @@ import {
   UserPlus, 
   MessageSquareHeart, 
   Download,
+  Image as ImageIcon,
   Sun,
   Moon,
   ChevronDown
@@ -39,8 +40,8 @@ export default function Navbar({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '76px',
-        gap: '16px'
+        height: '74px',
+        gap: '12px'
       }}>
         {/* 1. Left: Brand Logo & Title */}
         <div 
@@ -48,7 +49,7 @@ export default function Navbar({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             flexShrink: 0
           }}
@@ -56,42 +57,44 @@ export default function Navbar({
           <img 
             src={isDark ? "/assets/apd-logo-white.png" : "/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png"} 
             alt="CNT IT APD Logo"
-            style={{ height: '36px', maxWidth: '140px', objectFit: 'contain' }}
+            style={{ height: '34px', maxWidth: '120px', objectFit: 'contain' }}
             onError={(e) => {
               e.currentTarget.src = "/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png";
             }}
           />
-          <div style={{ height: '24px', width: '1px', background: 'var(--border-card)' }} />
+          <div style={{ height: '22px', width: '1px', background: 'var(--border-card)' }} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ 
               fontFamily: 'var(--font-display)', 
               fontWeight: 800, 
-              fontSize: '1rem',
+              fontSize: '0.96rem',
               color: 'var(--text-main)',
               lineHeight: 1.15
             }}>
               CNT IT APD
             </span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
               Direktorat IT Bank Mandiri
             </span>
           </div>
         </div>
 
-        {/* 2. Middle: Navigation Menu Tabs */}
+        {/* 2. Middle: Navigation Menu Tabs (with Galeri & Compact Spacing) */}
         <nav style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: '2px',
           flexWrap: 'nowrap',
-          overflowX: 'auto'
+          overflowX: 'auto',
+          scrollbarWidth: 'none'
         }}>
           {[
             { id: 'home', label: 'Beranda', icon: Building2 },
-            { id: 'organisasi', label: 'Organisasi & Divisi', icon: Users },
-            { id: 'program', label: 'Program & Event', icon: Calendar },
-            { id: 'kudos', label: 'Kudos & Aspirasi', icon: MessageSquareHeart },
-            { id: 'assets', label: 'Asset Kit', icon: Download },
+            { id: 'organisasi', label: 'Organisasi', icon: Users },
+            { id: 'program', label: 'Program', icon: Calendar },
+            { id: 'galeri', label: 'Galeri', icon: ImageIcon },
+            { id: 'kudos', label: 'Kudos', icon: MessageSquareHeart },
+            { id: 'assets', label: 'Asset Logo', icon: Download },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = currentTab === tab.id;
@@ -103,20 +106,21 @@ export default function Navbar({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '7px',
-                  padding: '8px 12px',
+                  gap: '6px',
+                  padding: '7px 11px',
                   borderRadius: 'var(--radius-md)',
-                  background: isActive ? (isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(0, 61, 121, 0.08)') : 'transparent',
+                  background: isActive ? (isDark ? 'rgba(56, 189, 248, 0.14)' : 'rgba(0, 61, 121, 0.08)') : 'transparent',
                   color: isActive ? (isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)') : 'var(--text-muted)',
                   border: 'none',
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.86rem',
+                  fontSize: '0.84rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  transition: 'all 0.2s ease',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0
                 }}
               >
-                <Icon size={15} />
+                <Icon size={14} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -129,8 +133,8 @@ export default function Navbar({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '7px',
-              padding: '8px 16px',
+              gap: '6px',
+              padding: '7px 14px',
               borderRadius: 'var(--radius-full)',
               background: currentTab === 'oprec' 
                 ? 'var(--mandiri-gold)' 
@@ -138,20 +142,21 @@ export default function Navbar({
               color: currentTab === 'oprec' ? '#040914' : '#b45309',
               border: '1px solid var(--mandiri-gold)',
               fontWeight: 800,
-              fontSize: '0.86rem',
+              fontSize: '0.84rem',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              marginLeft: '6px'
+              marginLeft: '4px',
+              flexShrink: 0
             }}
           >
-            <UserPlus size={15} />
+            <UserPlus size={14} />
             <span>Open Recruitment</span>
             <span style={{
-              fontSize: '0.62rem',
+              fontSize: '0.6rem',
               background: '#b45309',
-              color: '#fff',
-              padding: '2px 5px',
-              borderRadius: '6px',
+              color: 'var(--text-main)',
+              padding: '1px 5px',
+              borderRadius: '5px',
               fontWeight: 800
             }}>OPEN</span>
           </button>
@@ -159,7 +164,6 @@ export default function Navbar({
 
         {/* 3. Right: Tenure Selector & Theme Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          {/* Dynamic Tenure Selector */}
           <div style={{ position: 'relative' }}>
             <select
               value={activeTenure?.id || ''}
@@ -172,9 +176,9 @@ export default function Navbar({
                 background: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
                 border: '1px solid var(--border-card)',
                 color: 'var(--text-main)',
-                padding: '6px 28px 6px 12px',
+                padding: '6px 26px 6px 10px',
                 borderRadius: 'var(--radius-full)',
-                fontSize: '0.78rem',
+                fontSize: '0.76rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 outline: 'none',
@@ -182,15 +186,15 @@ export default function Navbar({
             >
               {tenures.map((t) => (
                 <option key={t.id} value={t.id} style={{ background: isDark ? '#070d1e' : '#fff', color: isDark ? '#fff' : '#000' }}>
-                  Periode {t.code} {t.isActive ? '● (Aktif)' : '(Arsip)'}
+                  {t.code} {t.isActive ? '●' : ''}
                 </option>
               ))}
             </select>
             <ChevronDown 
-              size={13} 
+              size={12} 
               style={{ 
                 position: 'absolute', 
-                right: '10px', 
+                right: '8px', 
                 top: '50%', 
                 transform: 'translateY(-50%)', 
                 pointerEvents: 'none',
@@ -199,13 +203,13 @@ export default function Navbar({
             />
           </div>
 
-          {/* Dark / Light Theme Toggle */}
+          {/* Theme Toggle Button */}
           <button
             onClick={onToggleTheme}
-            title={isDark ? "Beralih ke Light Theme" : "Beralih ke Dark Theme"}
+            title={isDark ? "Ganti ke Light Mode" : "Ganti ke Dark Mode"}
             style={{
-              width: '36px',
-              height: '36px',
+              width: '34px',
+              height: '34px',
               borderRadius: '50%',
               background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
               border: '1px solid var(--border-card)',
@@ -217,7 +221,7 @@ export default function Navbar({
               transition: 'all 0.2s ease'
             }}
           >
-            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
         </div>
       </div>

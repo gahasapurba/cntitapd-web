@@ -28,7 +28,7 @@ export default function ProgramSection({ events, divisions }) {
         <span className="badge-cyan" style={{ marginBottom: '12px' }}>
           Kalender & Program Budaya
         </span>
-        <h1 style={{ fontSize: '2.8rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
+        <h1 style={{ fontSize: '2.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
           Program Kerja & Event CNT IT APD
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
@@ -88,7 +88,7 @@ export default function ProgramSection({ events, divisions }) {
             style={{
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.15)',
-              color: '#fff',
+              color: 'var(--text-main)',
               padding: '8px 16px',
               borderRadius: 'var(--radius-md)',
               fontSize: '0.85rem',
@@ -152,7 +152,7 @@ export default function ProgramSection({ events, divisions }) {
                 </span>
               </div>
 
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.3 }}>
                 {evt.title}
               </h3>
 
@@ -174,7 +174,7 @@ export default function ProgramSection({ events, divisions }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
                   <Target size={15} color="var(--accent-gold)" />
-                  <span style={{ color: '#fff', fontWeight: 600 }}>Target: {evt.kpi}</span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Target: {evt.kpi}</span>
                 </div>
               </div>
 
@@ -187,7 +187,7 @@ export default function ProgramSection({ events, divisions }) {
                     justifyContent: 'center',
                     gap: '8px',
                     background: 'rgba(255,255,255,0.08)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     border: '1px solid rgba(255,255,255,0.15)',
                     padding: '10px 16px',
                     borderRadius: 'var(--radius-md)',

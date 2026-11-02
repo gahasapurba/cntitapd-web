@@ -111,7 +111,7 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
           <h3 style={{
             fontSize: compact ? '0.88rem' : '1.05rem',
             fontWeight: 800,
-            color: '#fff',
+            color: 'var(--text-main)',
             lineHeight: 1.25,
             whiteSpace: 'nowrap',
             overflow: 'hidden',

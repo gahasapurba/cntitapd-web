@@ -76,7 +76,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
         <span className="badge-gold" style={{ marginBottom: '12px' }}>
           Interaksi & Suara Insan APD
         </span>
-        <h1 style={{ fontSize: '2.8rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
+        <h1 style={{ fontSize: '2.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
           Wall of Kudos & Aspirasi
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
@@ -137,7 +137,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
         }}>
           {/* Send Form */}
           <div className="glass-panel" style={{ padding: '32px', border: '1px solid rgba(255,184,0,0.3)' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
               Beri Shoutout Apresiasi 🌟
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
@@ -179,7 +179,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
                     borderRadius: 'var(--radius-md)',
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     fontSize: '0.88rem'
                   }}
@@ -202,7 +202,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
                     borderRadius: 'var(--radius-md)',
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     fontSize: '0.88rem'
                   }}
@@ -222,7 +222,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
                     borderRadius: 'var(--radius-md)',
                     background: '#0f1c3f',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     fontSize: '0.88rem',
                     cursor: 'pointer'
@@ -253,7 +253,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
                     borderRadius: 'var(--radius-md)',
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     fontSize: '0.88rem',
                     resize: 'vertical'
@@ -288,7 +288,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
           {/* Kudos Feed */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 Wall of Appreciation ({kudosList.length})
               </h3>
               <span className="badge-cyan" style={{ fontSize: '0.72rem' }}>Live Feed</span>
@@ -310,7 +310,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
                   <div style={{ fontSize: '0.85rem' }}>
                     <strong style={{ color: 'var(--accent-gold)' }}>{kudos.sender}</strong>
                     <span style={{ color: 'var(--text-dim)', margin: '0 6px' }}>apresiasi kepada</span>
-                    <strong style={{ color: '#fff' }}>{kudos.recipient}</strong>
+                    <strong style={{ color: 'var(--text-main)' }}>{kudos.recipient}</strong>
                   </div>
                   <span className="badge-gold" style={{ fontSize: '0.68rem' }}>
                     {kudos.category}
@@ -340,7 +340,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
           <div className="glass-panel" style={{ padding: '36px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <Lightbulb size={24} color="var(--accent-cyan)" />
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)' }}>
                 Kotak Ide & Aspirasi Budaya (Anonim)
               </h3>
             </div>
@@ -383,7 +383,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
                     borderRadius: 'var(--radius-md)',
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     fontSize: '0.9rem'
                   }}
@@ -406,7 +406,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
                     borderRadius: 'var(--radius-md)',
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     fontSize: '0.9rem',
                     resize: 'vertical'

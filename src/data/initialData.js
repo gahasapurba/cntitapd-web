@@ -381,3 +381,33 @@ export const RECRUITMENT_INFO = {
     'Akses ke gear multimedia (kamera Nikon Z50, software kreatif pro) dan networking luas',
   ],
 };
+
+export const INITIAL_GALLERIES = [
+  {
+    id: 'gal-1',
+    title: 'Townhall & Kick-Off Budaya Group IT APD 2026',
+    date: 'Januari 2026',
+    division: 'Experience & Activity',
+    description: 'Sesi perkenalan kepengurusan baru CNT IT APD 2026 dan sosialisasi program kerja budaya kerja tahunan bersama seluruh Officer & Management.',
+    photos: [
+      '/images/pembina-allexander.png',
+      '/images/ketua-daffa.jpg',
+      '/images/wakil-rizqi.jpg',
+      '/images/sekben1-maurren.jpg'
+    ]
+  },
+  {
+    id: 'gal-2',
+    title: 'Setup Creative Media Studio & Production Gear',
+    date: 'Februari 2026',
+    division: 'Creative Media',
+    description: 'Uji coba gear kamera Nikon Z50 dan pengambilan video profil resmi kepengurusan CNT IT APD 2026.',
+    photos: [
+      '/images/pimpro-gahasa.png',
+      '/images/pimpro-adjie.jpg',
+      '/images/pimpro-irvin.jpg',
+      '/images/pimpro-putra.jpg'
+    ]
+  }
+];
+

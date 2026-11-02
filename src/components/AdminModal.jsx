@@ -133,7 +133,7 @@ export default function AdminModal({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Settings size={20} color="var(--accent-gold)" />
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
               Admin Panel — Kelola Dinamis CNT IT APD
             </h3>
           </div>
@@ -198,7 +198,7 @@ export default function AdminModal({
           {activeTab === 'divisions' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
                   Tambah Divisi / Bidang Baru
                 </h4>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -231,7 +231,7 @@ export default function AdminModal({
                       borderRadius: 'var(--radius-sm)',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -252,7 +252,7 @@ export default function AdminModal({
                       borderRadius: 'var(--radius-sm)',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -273,7 +273,7 @@ export default function AdminModal({
                       borderRadius: 'var(--radius-sm)',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -294,7 +294,7 @@ export default function AdminModal({
                       borderRadius: 'var(--radius-sm)',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -340,7 +340,7 @@ export default function AdminModal({
                       borderLeft: `4px solid ${d.color}`
                     }}>
                       <div>
-                        <strong style={{ color: '#fff', fontSize: '0.9rem' }}>{d.name}</strong>
+                        <strong style={{ color: 'var(--text-main)', fontSize: '0.9rem' }}>{d.name}</strong>
                         <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem', marginLeft: '10px' }}>
                           PIC: {d.leadName}
                         </span>
@@ -359,7 +359,7 @@ export default function AdminModal({
           {activeTab === 'tenure' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
                   Manajemen Periode / Arsip Kepengurusan
                 </h4>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -386,7 +386,7 @@ export default function AdminModal({
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     fontSize: '0.85rem'
                   }}
                 />
@@ -400,7 +400,7 @@ export default function AdminModal({
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     fontSize: '0.85rem'
                   }}
                 />
@@ -433,7 +433,7 @@ export default function AdminModal({
                     borderRadius: 'var(--radius-sm)'
                   }}>
                     <div>
-                      <strong style={{ color: '#fff' }}>{t.title}</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>{t.title}</strong>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>"{t.themeTagline}"</div>
                     </div>
                     <span className={t.isActive ? "badge-gold" : "badge-cyan"}>
@@ -449,7 +449,7 @@ export default function AdminModal({
           {activeTab === 'recruitment' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
                   Pengaturan Pendaftaran Open Recruitment
                 </h4>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -473,7 +473,7 @@ export default function AdminModal({
                     onChange={(e) => setIsRecruitOpen(e.target.checked)}
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
-                  <label htmlFor="recruitStatus" style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+                  <label htmlFor="recruitStatus" style={{ fontSize: '0.9rem', color: 'var(--text-main)', fontWeight: 600, cursor: 'pointer' }}>
                     Buka Pendaftaran Open Recruitment di Website
                   </label>
                 </div>
@@ -492,7 +492,7 @@ export default function AdminModal({
                       borderRadius: 'var(--radius-sm)',
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -522,7 +522,7 @@ export default function AdminModal({
           {activeTab === 'applicants' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                   Daftar Pendaftar Masuk ({applications.length})
                 </h4>
               </div>
@@ -545,7 +545,7 @@ export default function AdminModal({
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                          <strong style={{ color: '#fff', fontSize: '0.95rem' }}>{app.fullName}</strong>
+                          <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{app.fullName}</strong>
                           <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginLeft: '8px' }}>
                             (NIP: {app.nip} • {app.unitSquad})
                           </span>

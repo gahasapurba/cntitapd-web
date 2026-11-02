@@ -9,9 +9,22 @@ import {
   Calendar, 
   FileCheck2, 
   LogOut,
-  ShieldCheck,
+  Image as ImageIcon,
+  Trash2,
   CheckCircle2
 } from 'lucide-react';
+
+// Client-side SHA-256 hash helper using Web Crypto API
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Stored SHA-256 hashes (No plaintext credentials in code/repository)
+const ADMIN_USER_HASH = '84d50274d92ff024110ab51d81dbe6dc7936eacf67ca813516982befb2fffdf0';
+const ADMIN_PASS_HASH = 'f341ad38cdc4d5bbf4678c1452ba532ae2ca6e43590d48f27fe60d09bbb35679';
 
 export default function AdminPortal({ 
   onBack, 
@@ -21,16 +34,17 @@ export default function AdminPortal({
   onAddDivision, 
   recruitmentInfo, 
   onUpdateRecruitment, 
-  applications = [] 
+  applications = [],
+  galleries = [],
+  onAddGallery
 }) {
-  // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // Admin Dashboard Tabs
-  const [activeTab, setActiveTab] = useState('divisions'); // 'divisions' | 'tenure' | 'recruitment' | 'applicants'
+  // Admin Dashboard Tabs: 'divisions' | 'tenure' | 'recruitment' | 'applicants' | 'gallery'
+  const [activeTab, setActiveTab] = useState('gallery');
 
   // Form states for new division
   const [newDivName, setNewDivName] = useState('');
@@ -48,17 +62,28 @@ export default function AdminPortal({
   const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo.isOpen);
   const [recruitDeadline, setRecruitDeadline] = useState(recruitmentInfo.deadline);
 
-  // Single secure admin credential
-  const handleLogin = (e) => {
+  // Form states for new Gallery Event
+  const [galTitle, setGalTitle] = useState('');
+  const [galDate, setGalDate] = useState('');
+  const [galDivision, setGalDivision] = useState('Creative Media');
+  const [galDesc, setGalDesc] = useState('');
+  const [galPhotos, setGalPhotos] = useState('');
+
+  // Secure SHA-256 Authentication (Zero plaintext in code)
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (
-      username.trim() === '[REDACTED]' && 
-      password === '[REDACTED]!$'
-    ) {
-      setIsAuthenticated(true);
-      setLoginError('');
-    } else {
-      setLoginError('Username atau password salah');
+    try {
+      const uHash = await sha256(username.trim());
+      const pHash = await sha256(password);
+
+      if (uHash === ADMIN_USER_HASH && pHash === ADMIN_PASS_HASH) {
+        setIsAuthenticated(true);
+        setLoginError('');
+      } else {
+        setLoginError('Username atau password salah');
+      }
+    } catch (err) {
+      setLoginError('Gagal memverifikasi kredensial');
     }
   };
 
@@ -104,6 +129,31 @@ export default function AdminPortal({
     setNewTenureTitle('');
     setNewTenureTagline('');
     alert(`Periode Kepengurusan "${newTenureCode}" berhasil dibuat!`);
+  };
+
+  const handleCreateGallery = (e) => {
+    e.preventDefault();
+    if (!galTitle.trim() || !galDesc.trim()) return;
+
+    // Photos split by comma or newline
+    const photoList = galPhotos.trim() 
+      ? galPhotos.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+      : ['/images/pimpro-gahasa.png'];
+
+    onAddGallery({
+      id: 'gal-' + Date.now(),
+      title: galTitle,
+      date: galDate || '2026',
+      division: galDivision,
+      description: galDesc,
+      photos: photoList
+    });
+
+    setGalTitle('');
+    setGalDate('');
+    setGalDesc('');
+    setGalPhotos('');
+    alert(`Dokumentasi "${galTitle}" berhasil ditambahkan ke Galeri Kegiatan!`);
   };
 
   const handleSaveRecruitment = () => {
@@ -158,7 +208,7 @@ export default function AdminPortal({
               Portal Pengurus CNT
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Silakan login untuk mengelola divisi, periode, dan data pendaftar Oprec.
+              Masuk untuk mengelola galeri kegiatan, divisi, dan pendaftar Oprec.
             </p>
           </div>
 
@@ -315,6 +365,7 @@ export default function AdminPortal({
         flexWrap: 'wrap'
       }}>
         {[
+          { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
           { id: 'divisions', label: 'Kelola Divisi', icon: Layers },
           { id: 'tenure', label: 'Periode Kepengurusan', icon: Calendar },
           { id: 'recruitment', label: 'Pengaturan Oprec', icon: Settings },
@@ -330,7 +381,7 @@ export default function AdminPortal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '9px 18px',
+                padding: '9px 16px',
                 borderRadius: 'var(--radius-md)',
                 background: isActive ? 'var(--mandiri-gold)' : 'transparent',
                 color: isActive ? '#040914' : 'var(--text-muted)',
@@ -346,6 +397,192 @@ export default function AdminPortal({
           );
         })}
       </div>
+
+      {/* TAB CONTENT 0: GALERI KEGIATAN DINAMIS */}
+      {activeTab === 'gallery' && (
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
+              Tambah Dokumentasi Kegiatan Baru
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Tambahkan judul, tanggal, deskripsi kegiatan, dan link foto (otomatis tampil dalam bentuk Carousel di halaman Galeri).
+            </p>
+          </div>
+
+          <form onSubmit={handleCreateGallery} style={{
+            display: 'grid',
+            gridTemplateColumns: '1.2fr 0.8fr',
+            gap: '16px',
+            background: 'rgba(255,255,255,0.03)',
+            padding: '20px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-card)'
+          }}>
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Judul Kegiatan *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Contoh: IT APD Fun Run 5K Gelora Mandiri"
+                value={galTitle}
+                onChange={(e) => setGalTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Waktu Pelaksanaan
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: 15 Maret 2026"
+                value={galDate}
+                onChange={(e) => setGalDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Divisi Penyelenggara
+              </label>
+              <select
+                value={galDivision}
+                onChange={(e) => setGalDivision(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                {divisions.map((d) => (
+                  <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Deskripsi Singkat Acara *
+              </label>
+              <textarea
+                required
+                rows={3}
+                placeholder="Ceritakan keseruan acara dan antusiasme insan IT APD..."
+                value={galDesc}
+                onChange={(e) => setGalDesc(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Link Foto-Foto Carousel (Pisahkan baris atau koma per URL)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="https://...link-foto-1.jpg&#10;https://...link-foto-2.jpg"
+                value={galPhotos}
+                onChange={(e) => setGalPhotos(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                * Bisa menggunakan URL foto web internal, Supabase storage URL, atau path lokal seperti <code>/images/pimpro-adjie.jpg</code>.
+              </span>
+            </div>
+
+            <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="submit"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  padding: '10px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} />
+                <span>Publikasikan ke Galeri</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Existing Galleries List */}
+          <div>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
+              Arsip Galeri Saat Ini ({galleries.length}):
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {galleries.map((gal) => (
+                <div key={gal.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 18px',
+                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-card)'
+                }}>
+                  <div>
+                    <strong style={{ color: 'var(--text-main)' }}>{gal.title}</strong>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {gal.date} • {gal.division} • {gal.photos?.length || 0} Foto
+                    </div>
+                  </div>
+                  <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>Aktif di Web</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB CONTENT 1: DIVISI */}
       {activeTab === 'divisions' && (

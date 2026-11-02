@@ -36,7 +36,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
           <Sparkles size={14} />
           <span>Struktur Hirarki Organigram • {activeTenure.title}</span>
         </div>
-        <h1 style={{ fontSize: 'clamp(2.4rem, 4.5vw, 3.8rem)', fontWeight: 900, color: '#fff', marginBottom: '14px', letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 'clamp(2.4rem, 4.5vw, 3.8rem)', fontWeight: 900, color: 'var(--text-main)', marginBottom: '14px', letterSpacing: '-0.02em' }}>
           ORGANIGRAM <span style={{
             background: 'linear-gradient(135deg, #34d399 0%, #38bdf8 50%, #c084fc 100%)',
             WebkitBackgroundClip: 'text',
@@ -198,7 +198,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
                 right: '20px',
                 background: 'rgba(255,255,255,0.08)',
                 border: 'none',
-                color: '#fff',
+                color: 'var(--text-main)',
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
@@ -227,7 +227,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
                 <span className="badge-gold" style={{ fontSize: '0.7rem', marginBottom: '4px' }}>
                   {selectedMember.role}
                 </span>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginTop: '4px' }}>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>
                   {selectedMember.name}
                 </h3>
                 <div style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
