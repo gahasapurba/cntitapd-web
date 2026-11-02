@@ -370,7 +370,7 @@ export default function HomeSection({
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '16px'
         }}>
-          {members.slice(0, 4).map((person) => (
+          {members.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').map((person) => (
             <div
               key={person.id}
               onClick={() => handleTabChange('organisasi')}
@@ -391,7 +391,7 @@ export default function HomeSection({
                 height: '64px',
                 borderRadius: '50%',
                 overflow: 'hidden',
-                border: '2px solid var(--mandiri-gold)',
+                border: `2px solid ${person.color || 'var(--mandiri-gold)'}`,
                 background: '#040914'
               }}>
                 <img

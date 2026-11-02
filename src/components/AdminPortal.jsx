@@ -40,7 +40,9 @@ export default function AdminPortal({
   onUpdateRecruitment, 
   applications = [],
   galleries = [],
-  onAddGallery
+  onAddGallery,
+  members = [],
+  onAddMember
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -48,8 +50,17 @@ export default function AdminPortal({
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Admin Dashboard Tabs: 'divisions' | 'tenure' | 'recruitment' | 'applicants' | 'gallery'
-  const [activeTab, setActiveTab] = useState('gallery');
+  // Admin Dashboard Tabs: 'members' | 'gallery' | 'divisions' | 'tenure' | 'recruitment' | 'applicants'
+  const [activeTab, setActiveTab] = useState('members');
+
+  // Form states for new member
+  const [memName, setMemName] = useState('');
+  const [memCategory, setMemCategory] = useState('anggota'); // 'pembina' | 'inti' | 'pimpro' | 'anggota'
+  const [memRole, setMemRole] = useState('');
+  const [memDivisionId, setMemDivisionId] = useState(divisions[0]?.id || 'div-exp');
+  const [memWhatsapp, setMemWhatsapp] = useState('');
+  const [memMotto, setMemMotto] = useState('');
+  const [memImage, setMemImage] = useState('');
 
   // Form states for new division
   const [newDivName, setNewDivName] = useState('');
@@ -94,6 +105,37 @@ export default function AdminPortal({
     } catch (err) {
       setLoginError('Gagal memverifikasi kredensial');
     }
+  };
+
+  const handleCreateMember = (e) => {
+    e.preventDefault();
+    if (!memName.trim()) return;
+
+    const divObj = divisions.find(d => d.id === memDivisionId);
+    const color = divObj?.color || '#FFB800';
+
+    onAddMember({
+      id: 'mem-' + Date.now(),
+      tenureId: 'tenure-2026',
+      divisionId: memCategory === 'anggota' || memCategory === 'pimpro' ? memDivisionId : undefined,
+      category: memCategory,
+      name: memName,
+      shortName: memName.split(' ')[0],
+      role: memRole || (memCategory === 'anggota' ? 'Anggota Divisi' : 'Pengurus'),
+      title: memCategory === 'anggota' ? `Anggota ${divObj?.name || 'CNT'}` : memRole,
+      image: memImage || '',
+      color: color,
+      whatsapp: memWhatsapp.trim(),
+      motto: memMotto || 'Dedikasi & Semangat untuk Insan IT APD',
+      responsibilities: ['Kontribusi aktif dalam pelaksanaan program kerja budaya CNT IT APD']
+    });
+
+    setMemName('');
+    setMemRole('');
+    setMemWhatsapp('');
+    setMemMotto('');
+    setMemImage('');
+    alert(`Pengurus/Anggota "${memName}" berhasil ditambahkan!`);
   };
 
   const handleCreateDivision = (e) => {
@@ -454,6 +496,7 @@ export default function AdminPortal({
         flexWrap: 'wrap'
       }}>
         {[
+          { id: 'members', label: `Pengurus & Anggota (${members.length})`, icon: Users },
           { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
           { id: 'divisions', label: 'Kelola Divisi', icon: Layers },
           { id: 'tenure', label: 'Periode Kepengurusan', icon: Calendar },
@@ -486,6 +529,221 @@ export default function AdminPortal({
           );
         })}
       </div>
+
+      {/* TAB CONTENT: PENGURUS & ANGGOTA (DENGAN NOMOR WA OPSIONAL) */}
+      {activeTab === 'members' && (
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
+              Tambah Pengurus & Anggota Divisi Dinamis
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Tambahkan jajaran pimpinan, pembina, pimpro, maupun anggota divisi ke dalam struktur hierarki organigram lengkap dengan nomor WhatsApp untuk kemudahan koordinasi.
+            </p>
+          </div>
+
+          <form onSubmit={handleCreateMember} className="admin-form-two-col" style={{
+            background: 'rgba(255,255,255,0.03)',
+            padding: '20px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-card)'
+          }}>
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Nama Lengkap *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Contoh: Raden Bagus Prakoso"
+                value={memName}
+                onChange={(e) => setMemName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Nomor WhatsApp (Opsional) 💬
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: 08123456789 atau 628123456789"
+                value={memWhatsapp}
+                onChange={(e) => setMemWhatsapp(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Kategori Posisi *
+              </label>
+              <select
+                value={memCategory}
+                onChange={(e) => setMemCategory(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <option value="anggota">Anggota Divisi</option>
+                <option value="pimpro">Pimpro / Ketua Divisi</option>
+                <option value="inti">Pengurus Inti (Ketua / Wakil / Sekben)</option>
+                <option value="pembina">Pembina / Advisor</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Jabatan / Role Spesifik
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Officer Creative Designer / Turnamen Lead"
+                value={memRole}
+                onChange={(e) => setMemRole(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            {(memCategory === 'anggota' || memCategory === 'pimpro') && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Divisi / Squad
+                </label>
+                <select
+                  value={memDivisionId}
+                  onChange={(e) => setMemDivisionId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {divisions.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Motto / Pesan Semangat
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Siap berkontribusi aktif memajukan budaya kolaborasi IT APD"
+                value={memMotto}
+                onChange={(e) => setMemMotto(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="submit"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  padding: '10px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} />
+                <span>Simpan ke Database Organisasi</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Members List */}
+          <div>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
+              Personel Terdaftar Saat Ini ({members.length}):
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+              {members.map((m) => (
+                <div key={m.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-card)'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                      {m.name}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {m.role} {m.title ? `• ${m.title}` : ''}
+                    </div>
+                  </div>
+                  {m.whatsapp ? (
+                    <span style={{ fontSize: '0.72rem', background: 'rgba(37, 211, 102, 0.15)', color: '#25d366', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                      WA: Aktif
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                      Tanpa WA
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB CONTENT 0: GALERI KEGIATAN DINAMIS */}
       {activeTab === 'gallery' && (

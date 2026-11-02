@@ -181,6 +181,8 @@ export default function App() {
             applications={applications}
             galleries={galleries}
             onAddGallery={handleAddGallery}
+            members={members}
+            onAddMember={(newMember) => setMembers(prev => [...prev, newMember])}
           />
         )}
       </main>

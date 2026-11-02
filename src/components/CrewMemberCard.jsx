@@ -143,6 +143,35 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
               "{member.motto}"
             </p>
           )}
+
+          {/* Optional WhatsApp Quick Contact Button */}
+          {member.whatsapp && (
+            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center' }}>
+              <a
+                href={`https://wa.me/${member.whatsapp.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: 'rgba(37, 211, 102, 0.15)',
+                  border: '1px solid rgba(37, 211, 102, 0.4)',
+                  color: '#25d366',
+                  padding: '3px 9px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <span style={{ fontSize: '0.78rem' }}>💬</span>
+                <span>Hubungi WA</span>
+              </a>
+            </div>
+          )}
         </div>
 
       </div>
