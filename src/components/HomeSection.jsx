@@ -25,8 +25,10 @@ export default function HomeSection({
   events, 
   members, 
   setCurrentTab,
-  recruitmentInfo
+  recruitmentInfo,
+  theme
 }) {
+  const isDark = theme === 'dark';
   const pembina = members.find(m => m.category === 'pembina');
   const ketua = members.find(m => m.role === 'Ketua');
   const wakil = members.find(m => m.role === 'Wakil Ketua');
@@ -424,14 +426,18 @@ export default function HomeSection({
         </div>
       </section>
 
-      {/* 4. RECRUITMENT BANNER (Cosmic Cyber Card) */}
+      {/* 4. RECRUITMENT BANNER (Theme-aware card) */}
       {recruitmentInfo.isOpen && (
         <section className="glass-panel-hover" style={{
-          background: 'linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(4, 9, 20, 0.95) 60%, rgba(56, 189, 248, 0.15) 100%)',
-          border: '1px solid rgba(255, 184, 0, 0.5)',
+          background: isDark 
+            ? 'linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(4, 9, 20, 0.95) 60%, rgba(56, 189, 248, 0.15) 100%)'
+            : 'linear-gradient(135deg, #ffffff 0%, rgba(254, 243, 199, 0.45) 50%, rgba(224, 242, 254, 0.45) 100%)',
+          border: isDark ? '1px solid rgba(255, 184, 0, 0.5)' : '1px solid rgba(255, 184, 0, 0.4)',
           borderRadius: 'var(--radius-lg)',
           padding: '36px 44px',
-          boxShadow: '0 0 35px rgba(255, 184, 0, 0.2)',
+          boxShadow: isDark 
+            ? '0 0 35px rgba(255, 184, 0, 0.2)' 
+            : '0 10px 30px -5px rgba(255, 184, 0, 0.15), 0 4px 18px -2px rgba(15, 23, 42, 0.05)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
