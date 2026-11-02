@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StarfieldBackground from './components/StarfieldBackground';
 import Navbar from './components/Navbar';
 import HomeSection from './components/HomeSection';
@@ -7,7 +7,7 @@ import ProgramSection from './components/ProgramSection';
 import KudosSection from './components/KudosSection';
 import AssetKitSection from './components/AssetKitSection';
 import RecruitmentSection from './components/RecruitmentSection';
-import AdminModal from './components/AdminModal';
+import AdminPortal from './components/AdminPortal';
 import Footer from './components/Footer';
 
 import { 
@@ -20,9 +20,28 @@ import {
 } from './data/initialData';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState('home');
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [warpSpeed, setWarpSpeed] = useState(false);
+  // Navigation: 'home' | 'organisasi' | 'program' | 'kudos' | 'assets' | 'oprec' | 'admin'
+  const [currentTab, setCurrentTab] = useState(() => {
+    // Check if user accesses /admin via URL hash or query
+    if (window.location.hash === '#admin' || window.location.pathname === '/admin') {
+      return 'admin';
+    }
+    return 'home';
+  });
+
+  // Dark / Light Theme state with LocalStorage persistence
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('cnt_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('cnt_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   // Dynamic States
   const [tenures, setTenures] = useState(INITIAL_TENURES);
@@ -34,7 +53,7 @@ export default function App() {
   const [recruitmentInfo, setRecruitmentInfo] = useState(RECRUITMENT_INFO);
   const [applications, setApplications] = useState([]);
 
-  // Handlers for dynamic admin updates
+  // Admin dynamic updates
   const handleAddDivision = (newDiv) => {
     setDivisions((prev) => [...prev, newDiv]);
   };
@@ -57,21 +76,22 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
-      {/* 3D Cosmic Starfield & Nebula Canvas Background */}
-      <StarfieldBackground warpSpeed={warpSpeed} />
+      {/* Dynamic Background Canvas */}
+      <StarfieldBackground theme={theme} />
 
-      {/* Sticky Navigation */}
+      {/* Navigation Bar (Clean & Responsive) */}
       <Navbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         tenures={tenures}
         activeTenure={activeTenure}
         onSelectTenure={setActiveTenure}
-        onOpenAdminModal={() => setIsAdminOpen(true)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
-      {/* Main Page Content */}
-      <main className="container" style={{ flex: 1, paddingTop: '32px', position: 'relative', zIndex: 10 }}>
+      {/* Main Content Area */}
+      <main className="container" style={{ flex: 1, paddingTop: '36px', position: 'relative', zIndex: 10 }}>
         {currentTab === 'home' && (
           <HomeSection
             activeTenure={activeTenure}
@@ -80,6 +100,7 @@ export default function App() {
             members={members}
             setCurrentTab={setCurrentTab}
             recruitmentInfo={recruitmentInfo}
+            theme={theme}
           />
         )}
 
@@ -88,6 +109,7 @@ export default function App() {
             activeTenure={activeTenure}
             divisions={divisions}
             members={members}
+            theme={theme}
           />
         )}
 
@@ -95,6 +117,7 @@ export default function App() {
           <ProgramSection
             events={events}
             divisions={divisions}
+            theme={theme}
           />
         )}
 
@@ -102,11 +125,12 @@ export default function App() {
           <KudosSection
             kudosList={kudosList}
             onAddKudos={handleAddKudos}
+            theme={theme}
           />
         )}
 
         {currentTab === 'assets' && (
-          <AssetKitSection />
+          <AssetKitSection theme={theme} />
         )}
 
         {currentTab === 'oprec' && (
@@ -114,25 +138,26 @@ export default function App() {
             recruitmentInfo={recruitmentInfo}
             divisions={divisions}
             onSubmitApplication={handleSubmitApplication}
+            theme={theme}
+          />
+        )}
+
+        {currentTab === 'admin' && (
+          <AdminPortal
+            onBack={() => setCurrentTab('home')}
+            tenures={tenures}
+            onAddTenure={handleAddTenure}
+            divisions={divisions}
+            onAddDivision={handleAddDivision}
+            recruitmentInfo={recruitmentInfo}
+            onUpdateRecruitment={handleUpdateRecruitment}
+            applications={applications}
           />
         )}
       </main>
 
-      {/* Admin Panel Modal */}
-      <AdminModal
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-        tenures={tenures}
-        onAddTenure={handleAddTenure}
-        divisions={divisions}
-        onAddDivision={handleAddDivision}
-        recruitmentInfo={recruitmentInfo}
-        onUpdateRecruitment={handleUpdateRecruitment}
-        applications={applications}
-      />
-
-      {/* Footer */}
-      <Footer onOpenAdminModal={() => setIsAdminOpen(true)} />
+      {/* Footer without admin button */}
+      <Footer onNavigateAdmin={() => setCurrentTab('admin')} />
     </div>
   );
 }

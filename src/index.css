@@ -1,29 +1,65 @@
-/* CNT IT APD 2026 Cosmic Futuristic Visual Design System */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap');
+/* CNT IT APD Web Theme Design System (Dark & Light Theme) */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;800&display=swap');
 
 :root {
-  --bg-dark: #040914;
-  --card-bg: rgba(13, 22, 45, 0.75);
-  --border-glow: rgba(56, 189, 248, 0.3);
-  --mandiri-gold: #FFB800;
-  --mandiri-gold-glow: rgba(255, 184, 0, 0.35);
-  --mandiri-blue: #003D79;
-  --neon-cyan: #38bdf8;
-  --neon-purple: #c084fc;
-  --neon-emerald: #34d399;
-  --neon-rose: #f43f5e;
-
-  --text-main: #f3f4f6;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
-
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
+
+  /* Mandiri Master Brand Tokens */
+  --mandiri-blue: #003d79;
+  --mandiri-gold: #ffb800;
+  --mandiri-gold-hover: #e6a500;
+  --neon-cyan: #0ea5e9;
+  --neon-purple: #a855f7;
+  --neon-emerald: #10b981;
+  --neon-rose: #f43f5e;
 
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-full: 9999px;
+}
+
+/* DARK THEME (Default) - Sophisticated deep navy (not pitch black) */
+[data-theme='dark'] {
+  --bg-page: #070d1e;
+  --bg-nav: rgba(7, 13, 30, 0.88);
+  --bg-card: rgba(14, 25, 55, 0.72);
+  --bg-card-hover: rgba(20, 36, 78, 0.85);
+  --border-card: rgba(56, 189, 248, 0.22);
+  --border-card-hover: rgba(56, 189, 248, 0.55);
+  
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  
+  --badge-bg: rgba(255, 184, 0, 0.15);
+  --badge-text: #ffb800;
+  --badge-border: rgba(255, 184, 0, 0.35);
+
+  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 25px rgba(255, 184, 0, 0.3);
+}
+
+/* LIGHT THEME - Professional enterprise Mandiri corporate feel */
+[data-theme='light'] {
+  --bg-page: #f1f5f9;
+  --bg-nav: rgba(255, 255, 255, 0.92);
+  --bg-card: #ffffff;
+  --bg-card-hover: #ffffff;
+  --border-card: rgba(0, 61, 121, 0.14);
+  --border-card-hover: rgba(0, 61, 121, 0.35);
+
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+
+  --badge-bg: rgba(0, 61, 121, 0.08);
+  --badge-text: #003d79;
+  --badge-border: rgba(0, 61, 121, 0.25);
+
+  --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+  --shadow-glow: 0 0 20px rgba(0, 61, 121, 0.15);
 }
 
 * {
@@ -33,13 +69,13 @@
 }
 
 body {
-  background-color: var(--bg-dark);
+  background-color: var(--bg-page);
   color: var(--text-main);
   font-family: var(--font-sans);
   min-height: 100vh;
   line-height: 1.6;
   overflow-x: hidden;
-  margin: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3, h4, .font-display {
@@ -56,52 +92,39 @@ button, input, select, textarea {
   font-family: inherit;
 }
 
-/* Glassmorphism Classes matching presentation */
+/* Glass Card */
 .glass-panel {
-  background: rgba(10, 18, 40, 0.75);
+  background: var(--bg-card);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-lg);
-}
-
-.glass-panel-gold {
-  background: rgba(30, 24, 8, 0.75);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 184, 0, 0.45);
-  box-shadow: 0 8px 32px 0 rgba(255, 184, 0, 0.15);
-  border-radius: var(--radius-lg);
-}
-
-.glass-panel-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .glass-panel-hover:hover {
-  transform: translateY(-4px) scale(1.01);
-  border-color: rgba(56, 189, 248, 0.6);
-  box-shadow: 0 12px 40px rgba(56, 189, 248, 0.25);
+  transform: translateY(-4px);
+  border-color: var(--border-card-hover);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.25);
 }
 
 /* Container */
 .container {
   width: 100%;
-  max-width: 1280px;
+  max-width: 1260px;
   margin: 0 auto;
   padding: 0 24px;
 }
 
 /* Badges */
 .badge-gold {
-  background: rgba(255, 184, 0, 0.15);
-  color: var(--mandiri-gold);
-  border: 1px solid rgba(255, 184, 0, 0.4);
-  padding: 4px 12px;
+  background: var(--badge-bg);
+  color: var(--badge-text);
+  border: 1px solid var(--badge-border);
+  padding: 5px 14px;
   border-radius: var(--radius-full);
   font-size: 0.76rem;
-  font-family: monospace;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -111,77 +134,36 @@ button, input, select, textarea {
 }
 
 .badge-cyan {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+[data-theme='dark'] .badge-cyan {
+  color: #38bdf8;
   background: rgba(56, 189, 248, 0.15);
-  color: var(--neon-cyan);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.76rem;
-  font-family: monospace;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
-.badge-emerald {
-  background: rgba(52, 211, 153, 0.15);
-  color: var(--neon-emerald);
-  border: 1px solid rgba(52, 211, 153, 0.4);
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.76rem;
-  font-family: monospace;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #040914;
-}
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--neon-cyan);
-}
-
-/* Cosmic Animations */
+/* Animations */
 @keyframes pulseGlow {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2);
+    box-shadow: 0 0 15px rgba(255, 184, 0, 0.3);
   }
   50% {
-    box-shadow: 0 0 30px rgba(192, 132, 252, 0.6), inset 0 0 25px rgba(192, 132, 252, 0.3);
+    box-shadow: 0 0 28px rgba(255, 184, 0, 0.6);
   }
 }
 
 .pulse-glow {
-  animation: pulseGlow 4s infinite ease-in-out;
-}
-
-@keyframes floatSlow {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-8px) rotate(1deg);
-  }
-}
-
-.float-item {
-  animation: floatSlow 6s ease-in-out infinite;
+  animation: pulseGlow 3s infinite ease-in-out;
 }
