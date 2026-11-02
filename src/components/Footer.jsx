@@ -24,9 +24,9 @@ export default function Footer({ onOpenAdminModal }) {
           {/* Left Brand */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <img 
-              src="/assets/CNT_IT_APD_LOGO_SUITE/04-APD White Color Alternative Logo (Transparent).png" 
+              src="/assets/apd-logo-white.png" 
               alt="CNT IT APD Logo"
-              style={{ height: '40px', objectFit: 'contain' }}
+              style={{ height: '36px', objectFit: 'contain' }}
               onError={(e) => {
                 e.currentTarget.src = "/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png";
               }}
@@ -42,17 +42,17 @@ export default function Footer({ onOpenAdminModal }) {
           </div>
 
           {/* Partner Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', opacity: 0.8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', opacity: 0.85 }}>
             <img 
-              src="/assets/Mandiri/01-Mandiri Master Brand Logo.png" 
+              src="/assets/mandiri-logo.png" 
               alt="Bank Mandiri" 
-              style={{ height: '24px', objectFit: 'contain' }}
+              style={{ height: '22px', objectFit: 'contain' }}
             />
             <div style={{ height: '20px', width: '1px', background: 'rgba(255,255,255,0.2)' }} />
             <img 
-              src="/assets/Danantara/main-danantara-indonesia-horizontal-logo.png" 
+              src="/assets/danantara-logo.png" 
               alt="Danantara Indonesia" 
-              style={{ height: '22px', objectFit: 'contain' }}
+              style={{ height: '20px', objectFit: 'contain' }}
             />
           </div>
         </div>

@@ -44,11 +44,10 @@ export default function Navbar({
           }}
         >
           <img 
-            src="/assets/CNT_IT_APD_LOGO_SUITE/04-APD White Color Alternative Logo (Transparent).png" 
+            src="/assets/apd-logo-white.png" 
             alt="CNT IT APD Logo"
-            style={{ height: '42px', objectFit: 'contain' }}
+            style={{ height: '38px', objectFit: 'contain' }}
             onError={(e) => {
-              // Fallback jika transparent logo butuh path lain
               e.currentTarget.src = "/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png";
             }}
           />
