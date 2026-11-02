@@ -130,6 +130,68 @@ export default function AdminPortal({
   const [galDesc, setGalDesc] = useState('');
   const [galPhotos, setGalPhotos] = useState('');
 
+  // Form states for Proker / Event
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDivId, setEventDivId] = useState(divisions[0]?.id || 'div-exp');
+  const [eventStartDate, setEventStartDate] = useState('');
+  const [eventEndDate, setEventEndDate] = useState('');
+  const [eventLocation, setEventLocation] = useState('');
+  const [eventKpi, setEventKpi] = useState('');
+  const [eventDesc, setEventDesc] = useState('');
+  const [eventStatus, setEventStatus] = useState('Upcoming');
+
+  const handleCreateEvent = (e) => {
+    e.preventDefault();
+    if (!eventTitle.trim()) return;
+
+    const divObj = divisions.find(d => d.id === eventDivId);
+
+    const sDate = eventStartDate || new Date().toISOString().split('T')[0];
+    const eDate = eventEndDate || sDate;
+
+    // Helper format display string: e.g. "10 - 24 Maret 2026"
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const sParts = sDate.split('-');
+    const eParts = eDate.split('-');
+    const sMonth = months[parseInt(sParts[1], 10) - 1];
+    const eMonth = months[parseInt(eParts[1], 10) - 1];
+
+    let dateLabel = '';
+    if (sDate === eDate) {
+      dateLabel = `${parseInt(sParts[2], 10)} ${sMonth} ${sParts[0]}`;
+    } else if (sParts[1] === eParts[1]) {
+      dateLabel = `${parseInt(sParts[2], 10)} - ${parseInt(eParts[2], 10)} ${sMonth} ${sParts[0]}`;
+    } else {
+      dateLabel = `${parseInt(sParts[2], 10)} ${sMonth} - ${parseInt(eParts[2], 10)} ${eMonth} ${sParts[0]}`;
+    }
+
+    if (onAddEvent) {
+      onAddEvent({
+        id: 'evt-' + Date.now(),
+        divisionId: eventDivId,
+        divisionName: divObj?.name || 'CNT IT APD',
+        title: eventTitle.trim(),
+        date: dateLabel,
+        startDate: sDate,
+        endDate: eDate,
+        badge: 'Program Budaya',
+        location: eventLocation.trim() || 'Plaza Mandiri',
+        kpi: eventKpi.trim() || 'Officer IT APD',
+        description: eventDesc.trim(),
+        status: eventStatus,
+        totalRab: 10000000
+      });
+    }
+
+    setEventTitle('');
+    setEventStartDate('');
+    setEventEndDate('');
+    setEventLocation('');
+    setEventKpi('');
+    setEventDesc('');
+    alert(`Program Kerja "${eventTitle}" berhasil ditambahkan!`);
+  };
+
   // Secure SHA-256 Authentication (Zero plaintext in code)
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -538,6 +600,7 @@ export default function AdminPortal({
       }}>
         {[
           { id: 'members', label: `Pengurus & Anggota (${members.length})`, icon: Users },
+          { id: 'events', label: `Agenda & Proker (${events.length})`, icon: CalendarDays },
           { id: 'forms', label: `Kelola Formulir (${forms.length})`, icon: ClipboardList },
           { id: 'submissions', label: `Berkas Masuk (${submissions.length + applications.length})`, icon: FileCheck2 },
           { id: 'kudos', label: `Wall of Kudos (${kudosList.length})`, icon: Heart },
@@ -822,6 +885,296 @@ export default function AdminPortal({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: AGENDA & PROKER (DENGAN TANGGAL MULAI & BERAKHIR) */}
+      {activeTab === 'events' && (
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
+              Tambah Program Kerja & Event Budaya Baru
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Setiap agenda dilengkapi <strong>Tanggal Mulai</strong> dan <strong>Tanggal Berakhir</strong> agar tersorot rapi dalam Kalender Budaya bulanan dan menampilkan popup interaktif saat di-hover.
+            </p>
+          </div>
+
+          <form onSubmit={handleCreateEvent} className="admin-form-two-col" style={{
+            background: 'rgba(255,255,255,0.03)',
+            padding: '20px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-card)'
+          }}>
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Nama Program / Event *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Contoh: APD E-Sports Championship"
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Divisi Penyelenggara *
+              </label>
+              <select
+                value={eventDivId}
+                onChange={(e) => setEventDivId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                {divisions.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                📅 Tanggal Mulai *
+              </label>
+              <input
+                type="date"
+                required
+                value={eventStartDate}
+                onChange={(e) => setEventStartDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                📅 Tanggal Berakhir *
+              </label>
+              <input
+                type="date"
+                required
+                value={eventEndDate}
+                onChange={(e) => setEventEndDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Lokasi / Venue
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Plaza Mandiri Lt. 3 / Online Server"
+                value={eventLocation}
+                onChange={(e) => setEventLocation(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Target KPI / Peserta
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: 150+ Peserta Officer IT APD"
+                value={eventKpi}
+                onChange={(e) => setEventKpi(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Deskripsi Program Kerja *
+              </label>
+              <textarea
+                rows={3}
+                required
+                placeholder="Jelaskan tujuan dan gambaran pelaksanaan program kerja..."
+                value={eventDesc}
+                onChange={(e) => setEventDesc(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button
+                type="submit"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  padding: '10px 24px',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 800,
+                  fontSize: '0.88rem',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} />
+                <span>Simpan Program Kerja</span>
+              </button>
+            </div>
+          </form>
+
+          {/* List Program Kerja */}
+          <div>
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px' }}>
+              Daftar Program Kerja Aktif ({events.length})
+            </h4>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+              {events.map((evt) => {
+                const divObj = divisions.find(d => d.id === evt.divisionId);
+                return (
+                  <div
+                    key={evt.id}
+                    style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      padding: '16px',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-card)',
+                      borderLeft: `4px solid ${divObj?.color || 'var(--mandiri-gold)'}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '10px'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '0.7rem', color: divObj?.color || 'var(--mandiri-gold)', fontWeight: 800, textTransform: 'uppercase' }}>
+                          {evt.divisionName || divObj?.name}
+                        </span>
+                        <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
+                          {evt.status}
+                        </span>
+                      </div>
+                      <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '4px' }}>
+                        {evt.title}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                        📅 {evt.startDate} s/d {evt.endDate}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        📍 {evt.location}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-card)', paddingTop: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem({ type: 'event', item: { ...evt } })}
+                        title="Edit Proker"
+                        style={{
+                          padding: '6px 12px',
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          border: '1px solid var(--mandiri-blue)',
+                          color: 'var(--neon-cyan)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700
+                        }}
+                      >
+                        <Edit2 size={13} />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirm({ type: 'event', id: evt.id, name: evt.title })}
+                        title="Hapus Proker"
+                        style={{
+                          padding: '6px 12px',
+                          background: 'rgba(244, 63, 94, 0.1)',
+                          border: '1px solid #f43f5e',
+                          color: '#f43f5e',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700
+                        }}
+                      >
+                        <Trash2 size={13} />
+                        <span>Hapus</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -2521,6 +2874,71 @@ export default function AdminPortal({
               </div>
             )}
 
+            {/* Edit Event Form */}
+            {editingItem.type === 'event' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Program Kerja</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.title || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal Mulai</label>
+                    <input
+                      type="date"
+                      value={editingItem.item.startDate || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, startDate: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal Berakhir</label>
+                    <input
+                      type="date"
+                      value={editingItem.item.endDate || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, endDate: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Pelaksanaan</label>
+                  <select
+                    value={editingItem.item.status || 'Upcoming'}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, status: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  >
+                    <option value="Upcoming">Upcoming (Akan Datang)</option>
+                    <option value="Ongoing">Ongoing (Sedang Berjalan)</option>
+                    <option value="Completed">Completed (Selesai)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Lokasi Kegiatan</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.location || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, location: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Kegiatan</label>
+                  <textarea
+                    rows={3}
+                    value={editingItem.item.description || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, description: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
               <button
                 type="button"
@@ -2547,6 +2965,7 @@ export default function AdminPortal({
                   if (editingItem.type === 'tenure' && onUpdateTenure) onUpdateTenure(editingItem.item);
                   if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
                   if (editingItem.type === 'form' && onUpdateForm) onUpdateForm(editingItem.item);
+                  if (editingItem.type === 'event' && onUpdateEvent) onUpdateEvent(editingItem.item);
                   setEditingItem(null);
                   alert('Perubahan data berhasil disimpan!');
                 }}
@@ -2705,6 +3124,7 @@ export default function AdminPortal({
                     if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
                     if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
                     if (deleteConfirm.type === 'form' && onDeleteForm) onDeleteForm(deleteConfirm.id, true);
+                    if (deleteConfirm.type === 'event' && onDeleteEvent) onDeleteEvent(deleteConfirm.id);
                     setDeleteConfirm(null);
                   }}
                   style={{
