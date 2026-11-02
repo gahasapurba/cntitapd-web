@@ -125,29 +125,57 @@ export default function HomeSection({
           )}
         </p>
 
-        {/* Quick Actions */}
+        {/* Quick Actions (Cerdas & Dinamis Mengikuti Form Aktif) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '48px' }}>
-          <button
-            onClick={() => handleTabChange('oprec')}
-            className="pulse-glow"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              background: 'linear-gradient(135deg, #FFB800 0%, #e0a300 100%)',
-              color: '#040914',
-              padding: '16px 36px',
-              borderRadius: 'var(--radius-full)',
-              fontWeight: 800,
-              fontSize: '1rem',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 0 25px rgba(255, 184, 0, 0.4)'
-            }}
-          >
-            <span>Daftar Open Recruitment {activeTenure.code}</span>
-            <ArrowRight size={18} />
-          </button>
+          {activeForms.length > 0 ? (
+            <button
+              onClick={() => handleTabChange('oprec')}
+              className="pulse-glow"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'linear-gradient(135deg, #FFB800 0%, #e0a300 100%)',
+                color: '#040914',
+                padding: '16px 36px',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 800,
+                fontSize: '1rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 0 25px rgba(255, 184, 0, 0.4)'
+              }}
+            >
+              <span>
+                {activeForms.length > 1 
+                  ? `Registrasi & Inisiatif Terbuka (${activeForms.length} Formulir)` 
+                  : (activeForms[0].title.length > 30 ? `Daftar ${activeForms[0].title.slice(0, 28)}...` : `Daftar ${activeForms[0].title}`)}
+              </span>
+              <ArrowRight size={18} />
+            </button>
+          ) : (
+            <button
+              onClick={() => handleTabChange('program')}
+              className="pulse-glow"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'linear-gradient(135deg, #FFB800 0%, #e0a300 100%)',
+                color: '#040914',
+                padding: '16px 36px',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 800,
+                fontSize: '1rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 0 25px rgba(255, 184, 0, 0.4)'
+              }}
+            >
+              <span>Jelajahi Program & Kalender</span>
+              <ArrowRight size={18} />
+            </button>
+          )}
 
           <button
             onClick={() => handleTabChange('organisasi')}
