@@ -98,6 +98,17 @@ button, input, select, textarea {
   font-family: inherit;
 }
 
+select {
+  background-color: var(--input-bg);
+  color: var(--text-main);
+  border-color: var(--input-border);
+}
+
+select option {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+}
+
 /* Glass Card */
 .glass-panel {
   background: var(--bg-card);

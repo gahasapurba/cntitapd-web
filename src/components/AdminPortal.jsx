@@ -13,7 +13,9 @@ import {
   Trash2,
   CheckCircle2,
   Link2,
-  ExternalLink
+  ExternalLink,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 // Client-side SHA-256 hash helper using Web Crypto API
@@ -43,6 +45,7 @@ export default function AdminPortal({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
 
   // Admin Dashboard Tabs: 'divisions' | 'tenure' | 'recruitment' | 'applicants' | 'gallery'
@@ -300,14 +303,14 @@ export default function AdminPortal({
               <input
                 type="text"
                 required
-                placeholder="masukkan username"
+                placeholder="Masukkan Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '11px 14px',
                   borderRadius: 'var(--radius-md)',
-                  background: 'rgba(255, 255, 255, 0.05)',
+                  background: 'var(--input-bg)',
                   border: '1px solid var(--border-card)',
                   color: 'var(--text-main)',
                   outline: 'none',
@@ -320,23 +323,44 @@ export default function AdminPortal({
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Password
               </label>
-              <input
-                type="password"
-                required
-                placeholder="masukkan password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  outline: 'none',
-                  fontSize: '0.9rem'
-                }}
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Masukkan Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '11px 44px 11px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    outline: 'none',
+                    fontSize: '0.9rem'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px'
+                  }}
+                  title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <button
