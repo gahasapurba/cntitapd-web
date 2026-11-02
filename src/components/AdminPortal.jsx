@@ -15,7 +15,10 @@ import {
   Link2,
   ExternalLink,
   Eye,
-  EyeOff
+  EyeOff,
+  Edit2,
+  AlertTriangle,
+  Users
 } from 'lucide-react';
 
 // Client-side SHA-256 hash helper using Web Crypto API
@@ -32,17 +35,29 @@ const ADMIN_PASS_HASH = 'f341ad38cdc4d5bbf4678c1452ba532ae2ca6e43590d48f27fe60d0
 
 export default function AdminPortal({ 
   onBack, 
-  tenures, 
+  tenures = [], 
   onAddTenure, 
-  divisions, 
+  onUpdateTenure,
+  onDeleteTenure,
+  divisions = [], 
   onAddDivision, 
+  onUpdateDivision,
+  onDeleteDivision,
   recruitmentInfo, 
   onUpdateRecruitment, 
   applications = [],
   galleries = [],
   onAddGallery,
+  onUpdateGallery,
+  onDeleteGallery,
   members = [],
-  onAddMember
+  onAddMember,
+  onUpdateMember,
+  onDeleteMember,
+  events = [],
+  onAddEvent,
+  onUpdateEvent,
+  onDeleteEvent
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -52,6 +67,12 @@ export default function AdminPortal({
 
   // Admin Dashboard Tabs: 'members' | 'gallery' | 'divisions' | 'tenure' | 'recruitment' | 'applicants'
   const [activeTab, setActiveTab] = useState('members');
+
+  // Generic Edit Modal State: { type: 'member'|'division'|'tenure'|'gallery', item: {...} }
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Generic Delete Confirmation Modal State: { type: 'member'|'division'|'tenure'|'gallery', id: string, name: string }
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Form states for new member
   const [memName, setMemName] = useState('');
@@ -729,15 +750,55 @@ export default function AdminPortal({
                       {m.role} {m.title ? `• ${m.title}` : ''}
                     </div>
                   </div>
-                  {m.whatsapp ? (
-                    <span style={{ fontSize: '0.72rem', background: 'rgba(37, 211, 102, 0.15)', color: '#25d366', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                      WA: Aktif
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                      Tanpa WA
-                    </span>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {m.whatsapp ? (
+                      <span style={{ fontSize: '0.72rem', background: 'rgba(37, 211, 102, 0.15)', color: '#25d366', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                        WA: Aktif
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                        Tanpa WA
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem({ type: 'member', item: { ...m } })}
+                      title="Edit Data Personel"
+                      style={{
+                        padding: '6px',
+                        background: 'rgba(14, 165, 233, 0.1)',
+                        border: '1px solid #0284c7',
+                        color: '#0284c7',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Edit2 size={13} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm({ type: 'member', id: m.id, name: m.name })}
+                      title="Hapus Personel"
+                      style={{
+                        padding: '6px',
+                        background: 'rgba(244, 63, 94, 0.1)',
+                        border: '1px solid #f43f5e',
+                        color: '#f43f5e',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1109,7 +1170,47 @@ export default function AdminPortal({
                       {gal.date} • {gal.division} • {gal.photos?.length || 0} Foto
                     </div>
                   </div>
-                  <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>Aktif di Web</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>Aktif di Web</span>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem({ type: 'gallery', item: { ...gal } })}
+                      title="Edit Galeri Kegiatan"
+                      style={{
+                        padding: '6px',
+                        background: 'rgba(14, 165, 233, 0.1)',
+                        border: '1px solid #0284c7',
+                        color: '#0284c7',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Edit2 size={13} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm({ type: 'gallery', id: gal.id, name: gal.title })}
+                      title="Hapus Galeri"
+                      style={{
+                        padding: '6px',
+                        background: 'rgba(244, 63, 94, 0.1)',
+                        border: '1px solid #f43f5e',
+                        color: '#f43f5e',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1267,9 +1368,49 @@ export default function AdminPortal({
                       Pimpro: {d.leadName}
                     </span>
                   </div>
-                  <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>
-                    {d.isRecruiting ? 'Oprec Buka' : 'Oprec Tutup'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>
+                      {d.isRecruiting ? 'Oprec Buka' : 'Oprec Tutup'}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem({ type: 'division', item: { ...d } })}
+                      title="Edit Data Divisi"
+                      style={{
+                        padding: '6px',
+                        background: 'rgba(14, 165, 233, 0.1)',
+                        border: '1px solid #0284c7',
+                        color: '#0284c7',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Edit2 size={13} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm({ type: 'division', id: d.id, name: d.name })}
+                      title="Hapus Divisi"
+                      style={{
+                        padding: '6px',
+                        background: 'rgba(244, 63, 94, 0.1)',
+                        border: '1px solid #f43f5e',
+                        color: '#f43f5e',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1480,9 +1621,49 @@ export default function AdminPortal({
                   <strong style={{ color: 'var(--text-main)' }}>{t.title}</strong>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>"{t.themeTagline}"</div>
                 </div>
-                <span className={t.isActive ? "badge-gold" : "badge-cyan"}>
-                  {t.isActive ? 'Periode Aktif' : 'Arsip'}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className={t.isActive ? "badge-gold" : "badge-cyan"}>
+                    {t.isActive ? 'Periode Aktif' : 'Arsip'}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem({ type: 'tenure', item: { ...t } })}
+                    title="Edit Periode Kepengurusan"
+                    style={{
+                      padding: '6px',
+                      background: 'rgba(14, 165, 233, 0.1)',
+                      border: '1px solid #0284c7',
+                      color: '#0284c7',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Edit2 size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirm({ type: 'tenure', id: t.id, name: t.title })}
+                    title="Hapus Periode"
+                    style={{
+                      padding: '6px',
+                      background: 'rgba(244, 63, 94, 0.1)',
+                      border: '1px solid #f43f5e',
+                      color: '#f43f5e',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1607,6 +1788,323 @@ export default function AdminPortal({
           )}
         </div>
       )}
+
+      {/* EDIT MODAL DIALOG */}
+      {editingItem && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '560px',
+            width: '100%',
+            padding: '30px',
+            border: '1.5px solid var(--mandiri-gold)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit2 size={18} color="var(--mandiri-gold)" />
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  Edit {editingItem.type === 'member' ? 'Personel' : editingItem.type === 'division' ? 'Divisi' : editingItem.type === 'gallery' ? 'Galeri' : 'Periode'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Edit Member Form */}
+            {editingItem.type === 'member' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Lengkap</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.name || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Jabatan / Role</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.role || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, role: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nomor WhatsApp (Opsional)</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.whatsapp || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, whatsapp: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Motto</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.motto || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, motto: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Edit Division Form */}
+            {editingItem.type === 'division' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Divisi</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.name || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Pimpro / PIC</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.leadName || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, leadName: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Peran</label>
+                  <textarea
+                    rows={3}
+                    value={editingItem.item.description || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, description: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Edit Gallery Form */}
+            {editingItem.type === 'gallery' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Acara</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.title || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal / Jadwal</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.date || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Kegiatan</label>
+                  <textarea
+                    rows={3}
+                    value={editingItem.item.description || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, description: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Edit Tenure Form */}
+            {editingItem.type === 'tenure' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Kepengurusan</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.title || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tagline Budaya</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.themeTagline || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, themeTagline: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (editingItem.type === 'member' && onUpdateMember) onUpdateMember(editingItem.item);
+                  if (editingItem.type === 'division' && onUpdateDivision) onUpdateDivision(editingItem.item);
+                  if (editingItem.type === 'gallery' && onUpdateGallery) onUpdateGallery(editingItem.item);
+                  if (editingItem.type === 'tenure' && onUpdateTenure) onUpdateTenure(editingItem.item);
+                  setEditingItem(null);
+                  alert('Perubahan data berhasil disimpan!');
+                }}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION DELETE DIALOG */}
+      {deleteConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '440px',
+            width: '100%',
+            padding: '28px',
+            border: '1.5px solid #f43f5e',
+            boxShadow: '0 10px 40px rgba(244, 63, 94, 0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: 'rgba(244, 63, 94, 0.15)',
+              color: '#f43f5e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto'
+            }}>
+              <AlertTriangle size={28} />
+            </div>
+
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              Konfirmasi Penghapusan Data
+            </h3>
+
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+              Apakah Anda yakin ingin menghapus <strong>"{deleteConfirm.name}"</strong> secara permanen dari sistem? Tindakan ini tidak dapat dibatalkan.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Batalkan
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleteConfirm.type === 'member' && onDeleteMember) onDeleteMember(deleteConfirm.id);
+                  if (deleteConfirm.type === 'division' && onDeleteDivision) onDeleteDivision(deleteConfirm.id);
+                  if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
+                  if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
+                  setDeleteConfirm(null);
+                }}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  background: '#f43f5e',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Ya, Hapus Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

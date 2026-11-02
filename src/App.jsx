@@ -69,17 +69,60 @@ export default function App() {
   const [recruitmentInfo, setRecruitmentInfo] = useState(RECRUITMENT_INFO);
   const [applications, setApplications] = useState([]);
 
-  // Dynamic Add Handlers
+  // Dynamic Add, Edit & Delete Handlers
   const handleAddDivision = (newDiv) => {
     setDivisions((prev) => [...prev, newDiv]);
+  };
+  const handleUpdateDivision = (updatedDiv) => {
+    setDivisions((prev) => prev.map(d => d.id === updatedDiv.id ? updatedDiv : d));
+  };
+  const handleDeleteDivision = (divId) => {
+    setDivisions((prev) => prev.filter(d => d.id !== divId));
+    setEvents((prev) => prev.filter(e => e.divisionId !== divId));
   };
 
   const handleAddTenure = (newTenure) => {
     setTenures((prev) => [...prev, newTenure]);
   };
+  const handleUpdateTenure = (updatedTenure) => {
+    setTenures((prev) => prev.map(t => t.id === updatedTenure.id ? updatedTenure : t));
+    if (activeTenure.id === updatedTenure.id) setActiveTenure(updatedTenure);
+  };
+  const handleDeleteTenure = (tenureId) => {
+    setTenures((prev) => prev.filter(t => t.id !== tenureId));
+    if (activeTenure.id === tenureId && tenures.length > 1) {
+      setActiveTenure(tenures.find(t => t.id !== tenureId));
+    }
+  };
 
   const handleAddGallery = (newGal) => {
     setGalleries((prev) => [newGal, ...prev]);
+  };
+  const handleUpdateGallery = (updatedGal) => {
+    setGalleries((prev) => prev.map(g => g.id === updatedGal.id ? updatedGal : g));
+  };
+  const handleDeleteGallery = (galId) => {
+    setGalleries((prev) => prev.filter(g => g.id !== galId));
+  };
+
+  const handleAddMember = (newMem) => {
+    setMembers((prev) => [...prev, newMem]);
+  };
+  const handleUpdateMember = (updatedMem) => {
+    setMembers((prev) => prev.map(m => m.id === updatedMem.id ? updatedMem : m));
+  };
+  const handleDeleteMember = (memId) => {
+    setMembers((prev) => prev.filter(m => m.id !== memId));
+  };
+
+  const handleAddEvent = (newEvt) => {
+    setEvents((prev) => [...prev, newEvt]);
+  };
+  const handleUpdateEvent = (updatedEvt) => {
+    setEvents((prev) => prev.map(e => e.id === updatedEvt.id ? updatedEvt : e));
+  };
+  const handleDeleteEvent = (evtId) => {
+    setEvents((prev) => prev.filter(e => e.id !== evtId));
   };
 
   const handleUpdateRecruitment = (updatedInfo) => {
@@ -174,15 +217,27 @@ export default function App() {
             onBack={() => setCurrentTab('home')}
             tenures={tenures}
             onAddTenure={handleAddTenure}
+            onUpdateTenure={handleUpdateTenure}
+            onDeleteTenure={handleDeleteTenure}
             divisions={divisions}
             onAddDivision={handleAddDivision}
+            onUpdateDivision={handleUpdateDivision}
+            onDeleteDivision={handleDeleteDivision}
             recruitmentInfo={recruitmentInfo}
             onUpdateRecruitment={handleUpdateRecruitment}
             applications={applications}
             galleries={galleries}
             onAddGallery={handleAddGallery}
+            onUpdateGallery={handleUpdateGallery}
+            onDeleteGallery={handleDeleteGallery}
             members={members}
-            onAddMember={(newMember) => setMembers(prev => [...prev, newMember])}
+            onAddMember={handleAddMember}
+            onUpdateMember={handleUpdateMember}
+            onDeleteMember={handleDeleteMember}
+            events={events}
+            onAddEvent={handleAddEvent}
+            onUpdateEvent={handleUpdateEvent}
+            onDeleteEvent={handleDeleteEvent}
           />
         )}
       </main>

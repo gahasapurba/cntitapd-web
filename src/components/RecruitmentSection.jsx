@@ -1,39 +1,58 @@
 import React, { useState } from 'react';
 import { 
-  UserPlus, 
-  Sparkles, 
+  Users, 
+  Calendar, 
   Clock, 
-  CheckCircle2, 
   Send, 
-  FileText, 
-  HelpCircle,
-  Briefcase,
-  Flame,
-  Award
+  CheckCircle2, 
+  Briefcase, 
+  Star, 
+  ArrowRight,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function RecruitmentSection({ 
   recruitmentInfo, 
-  divisions, 
-  onSubmitApplication 
+  divisions = [], 
+  onSubmitApplication, 
+  theme 
 }) {
-  const [selectedDiv1, setSelectedDiv1] = useState(divisions[0]?.id || '');
-  const [selectedDiv2, setSelectedDiv2] = useState('');
-  
-  // Form fields
+  const isDark = theme === 'dark';
+
+  // Form states
   const [fullName, setFullName] = useState('');
   const [nip, setNip] = useState('');
   const [unitSquad, setUnitSquad] = useState('');
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [selectedDiv1, setSelectedDiv1] = useState(divisions[0]?.id || 'div-exp');
+  const [selectedDiv2, setSelectedDiv2] = useState('');
   const [motivation, setMotivation] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!fullName.trim()) newErrors.fullName = 'Nama lengkap wajib diisi sesuai HCM Mandiri';
+    if (!nip.trim()) newErrors.nip = 'NIP / Employee ID wajib diisi';
+    if (!unitSquad.trim()) newErrors.unitSquad = 'Departemen atau squad wajib diisi';
+    if (!email.trim()) {
+      newErrors.email = 'Alamat email wajib diisi';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Format email tidak valid (gunakan format user@bankmandiri.co.id)';
+    }
+    if (!motivation.trim() || motivation.trim().length < 15) {
+      newErrors.motivation = 'Harap tuliskan motivasi dan kontribusi minimal 15 karakter';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!fullName || !nip || !email || !motivation) return;
+    if (!validateForm()) return;
 
     const div1Obj = divisions.find(d => d.id === selectedDiv1);
     const div2Obj = divisions.find(d => d.id === selectedDiv2);
@@ -62,9 +81,23 @@ export default function RecruitmentSection({
     });
 
     setIsSubmitted(true);
+    setErrors({});
   };
 
   const recruitingDivisions = divisions.filter(d => d.isRecruiting !== false);
+
+  const inputStyle = (hasError) => ({
+    width: '100%',
+    padding: '11px 14px',
+    borderRadius: 'var(--radius-md)',
+    background: 'var(--input-bg)',
+    border: `1.5px solid ${hasError ? '#f43f5e' : 'var(--input-border)'}`,
+    color: 'var(--text-main)',
+    outline: 'none',
+    fontSize: '0.88rem',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+    boxShadow: hasError ? '0 0 8px rgba(244, 63, 94, 0.25)' : 'none'
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '60px', paddingBottom: '80px' }}>
@@ -73,10 +106,10 @@ export default function RecruitmentSection({
       <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '14px' }}>
           <span className="badge-gold">
-            <Flame size={14} /> {recruitmentInfo.batch}
+            {recruitmentInfo.badge || 'OPEN RECRUITMENT 2026'}
           </span>
           <span className="badge-cyan">
-            Pendaftaran Dibuka s/d {recruitmentInfo.deadline}
+            Deadline: {recruitmentInfo.deadline}
           </span>
         </div>
         <h1 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px', lineHeight: 1.2 }}>
@@ -92,22 +125,22 @@ export default function RecruitmentSection({
         {/* Timeline */}
         <div className="glass-panel" style={{ padding: '32px', border: '1px solid rgba(255, 184, 0, 0.3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <Clock size={20} color="var(--accent-gold)" />
+            <Clock size={20} color="var(--mandiri-gold)" />
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
               Tahapan & Timeline Seleksi
             </h3>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {recruitmentInfo.timeline.map((item, idx) => (
+            {recruitmentInfo.timeline?.map((item, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                 <div style={{
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
                   background: 'rgba(255, 184, 0, 0.15)',
-                  border: '1px solid var(--accent-gold)',
-                  color: 'var(--accent-gold)',
+                  border: '1px solid var(--mandiri-gold)',
+                  color: 'var(--mandiri-gold)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -122,7 +155,7 @@ export default function RecruitmentSection({
                     <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)' }}>
                       {item.step}
                     </h4>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--mandiri-gold)', fontWeight: 600 }}>
                       ({item.date})
                     </span>
                   </div>
@@ -136,35 +169,43 @@ export default function RecruitmentSection({
         </div>
 
         {/* Benefits */}
-        <div className="glass-panel" style={{ padding: '32px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+        <div className="glass-panel" style={{ padding: '32px', border: '1px solid var(--border-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <Award size={20} color="var(--accent-cyan)" />
+            <Star size={20} color="var(--neon-cyan)" />
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              Benefit Bergabung di CNT IT APD
+              Keuntungan Bergabung
             </h3>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {recruitmentInfo.benefits.map((benefit, idx) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {recruitmentInfo.benefits?.map((benefit, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <CheckCircle2 size={18} color="var(--accent-cyan)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <span style={{ fontSize: '0.88rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                  {benefit}
-                </span>
+                <CheckCircle2 size={18} color="var(--neon-emerald)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    {benefit.title}
+                  </h4>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {benefit.desc}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* 3. DIVISI YANG DIBUKA (REQUIREMENTS) */}
+      {/* 3. OPEN POSITIONS / DIVISIONS */}
       <section>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>
-            Kriteria & Kualifikasi Divisi
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <span className="badge-cyan" style={{ marginBottom: '8px' }}>
+            Bidang Tersedia
+          </span>
+          <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)' }}>
+            Divisi yang Sedang Membuka Rekrutmen
           </h2>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-dim)' }}>
-            Pilih divisi yang paling sesuai dengan minat dan keterampilan yang ingin kamu kembangkan
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem' }}>
+            Pilih divisi yang paling sesuai dengan passion, bakat, dan kontribusi yang ingin kamu berikan.
           </p>
         </div>
 
@@ -176,16 +217,16 @@ export default function RecruitmentSection({
           {recruitingDivisions.map((div) => (
             <div 
               key={div.id}
-              className="glass-panel"
+              className="glass-panel glass-panel-hover"
               style={{
                 padding: '24px',
-                borderTop: `4px solid ${div.color}`,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
+                borderTop: `4px solid ${div.color}`,
               }}
             >
-              <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
                 {div.name}
               </h4>
               <div style={{ fontSize: '0.75rem', color: div.color, fontWeight: 700 }}>
@@ -195,7 +236,7 @@ export default function RecruitmentSection({
                 {div.description}
               </p>
               
-              <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border-card)' }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px' }}>
                   Kriteria yang Dicari:
                 </div>
@@ -211,12 +252,12 @@ export default function RecruitmentSection({
         </div>
       </section>
 
-      {/* 4. APPLICATION FORM */}
+      {/* 4. APPLICATION FORM (Dengan Border Bersih Sesuai Kudos & Validasi Elegan) */}
       <section style={{ maxWidth: '780px', margin: '0 auto', width: '100%' }}>
         <div className="glass-panel" style={{
           padding: '40px',
-          border: '1px solid rgba(255, 184, 0, 0.4)',
-          boxShadow: 'var(--shadow-lg)'
+          border: '1.5px solid var(--border-card)',
+          boxShadow: 'var(--shadow-card)'
         }}>
           {isSubmitted ? (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -245,9 +286,9 @@ export default function RecruitmentSection({
                 style={{
                   padding: '10px 24px',
                   borderRadius: 'var(--radius-full)',
-                  background: 'rgba(255,255,255,0.1)',
+                  background: 'var(--input-bg)',
                   color: 'var(--text-main)',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  border: '1px solid var(--border-card)',
                   fontWeight: 600,
                   fontSize: '0.85rem',
                   cursor: 'pointer'
@@ -270,7 +311,7 @@ export default function RecruitmentSection({
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {/* Row 1: Name & NIP */}
                 <div className="mobile-two-col">
                   <div>
@@ -279,21 +320,20 @@ export default function RecruitmentSection({
                     </label>
                     <input
                       type="text"
-                      required
                       placeholder="Nama lengkap sesuai HCM Mandiri"
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        color: 'var(--text-main)',
-                        outline: 'none',
-                        fontSize: '0.88rem'
+                      onChange={(e) => {
+                        setFullName(e.target.value);
+                        if (errors.fullName) setErrors(prev => ({ ...prev, fullName: null }));
                       }}
+                      style={inputStyle(errors.fullName)}
                     />
+                    {errors.fullName && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                        <AlertCircle size={12} />
+                        <span>{errors.fullName}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -302,21 +342,20 @@ export default function RecruitmentSection({
                     </label>
                     <input
                       type="text"
-                      required
                       placeholder="Contoh: 1890283"
                       value={nip}
-                      onChange={(e) => setNip(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        color: 'var(--text-main)',
-                        outline: 'none',
-                        fontSize: '0.88rem'
+                      onChange={(e) => {
+                        setNip(e.target.value);
+                        if (errors.nip) setErrors(prev => ({ ...prev, nip: null }));
                       }}
+                      style={inputStyle(errors.nip)}
                     />
+                    {errors.nip && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                        <AlertCircle size={12} />
+                        <span>{errors.nip}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -328,68 +367,56 @@ export default function RecruitmentSection({
                     </label>
                     <input
                       type="text"
-                      required
                       placeholder="Contoh: Core APD / Wholesale / Wealth"
                       value={unitSquad}
-                      onChange={(e) => setUnitSquad(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        color: 'var(--text-main)',
-                        outline: 'none',
-                        fontSize: '0.88rem'
+                      onChange={(e) => {
+                        setUnitSquad(e.target.value);
+                        if (errors.unitSquad) setErrors(prev => ({ ...prev, unitSquad: null }));
                       }}
+                      style={inputStyle(errors.unitSquad)}
                     />
+                    {errors.unitSquad && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                        <AlertCircle size={12} />
+                        <span>{errors.unitSquad}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                      Email Mandiri *
+                      Email Mandiri / Personal *
                     </label>
                     <input
                       type="email"
-                      required
-                      placeholder="nama@bankmandiri.co.id"
+                      placeholder="nama.depan@bankmandiri.co.id"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        color: 'var(--text-main)',
-                        outline: 'none',
-                        fontSize: '0.88rem'
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (errors.email) setErrors(prev => ({ ...prev, email: null }));
                       }}
+                      style={inputStyle(errors.email)}
                     />
+                    {errors.email && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                        <AlertCircle size={12} />
+                        <span>{errors.email}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* WhatsApp */}
+                {/* Row 3: WhatsApp */}
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                    Nomor WhatsApp Aktif *
+                    Nomor WhatsApp Aktif
                   </label>
                   <input
                     type="tel"
-                    required
-                    placeholder="0812-xxxx-xxxx (untuk koordinasi jadwal wawancara)"
+                    placeholder="0812-xxxx-xxxx (untuk koordinasi jadwal seleksi)"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      color: 'var(--text-main)',
-                      outline: 'none',
-                      fontSize: '0.88rem'
-                    }}
+                    style={inputStyle(false)}
                   />
                 </div>
 
@@ -402,17 +429,7 @@ export default function RecruitmentSection({
                     <select
                       value={selectedDiv1}
                       onChange={(e) => setSelectedDiv1(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--input-border)',
-                        color: 'var(--text-main)',
-                        outline: 'none',
-                        fontSize: '0.88rem',
-                        cursor: 'pointer'
-                      }}
+                      style={inputStyle(false)}
                     >
                       {recruitingDivisions.map((d) => (
                         <option key={d.id} value={d.id}>
@@ -429,17 +446,7 @@ export default function RecruitmentSection({
                     <select
                       value={selectedDiv2}
                       onChange={(e) => setSelectedDiv2(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--input-border)',
-                        color: 'var(--text-main)',
-                        outline: 'none',
-                        fontSize: '0.88rem',
-                        cursor: 'pointer'
-                      }}
+                      style={inputStyle(false)}
                     >
                       <option value="">-- Tidak Ada / Opsional --</option>
                       {recruitingDivisions.map((d) => (
@@ -457,23 +464,24 @@ export default function RecruitmentSection({
                     Motivasi & Ide yang Ingin Kamu Bawa ke CNT IT APD *
                   </label>
                   <textarea
-                    required
                     rows={4}
                     placeholder="Ceritakan alasanmu ingin bergabung dan program atau kontribusi apa yang ingin kamu jalankan..."
                     value={motivation}
-                    onChange={(e) => setMotivation(e.target.value)}
+                    onChange={(e) => {
+                      setMotivation(e.target.value);
+                      if (errors.motivation) setErrors(prev => ({ ...prev, motivation: null }));
+                    }}
                     style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      color: 'var(--text-main)',
-                      outline: 'none',
-                      fontSize: '0.88rem',
+                      ...inputStyle(errors.motivation),
                       resize: 'vertical'
                     }}
                   />
+                  {errors.motivation && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                      <AlertCircle size={12} />
+                      <span>{errors.motivation}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Portfolio URL */}
@@ -486,16 +494,7 @@ export default function RecruitmentSection({
                     placeholder="Link Google Drive, LinkedIn, Behance, atau Instagram"
                     value={portfolioUrl}
                     onChange={(e) => setPortfolioUrl(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      color: 'var(--text-main)',
-                      outline: 'none',
-                      fontSize: '0.88rem'
-                    }}
+                    style={inputStyle(false)}
                   />
                 </div>
 
@@ -507,7 +506,7 @@ export default function RecruitmentSection({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '10px',
-                    background: 'var(--accent-gold)',
+                    background: 'var(--mandiri-gold)',
                     color: '#0a1128',
                     padding: '16px',
                     borderRadius: 'var(--radius-full)',
@@ -515,7 +514,8 @@ export default function RecruitmentSection({
                     fontSize: '1rem',
                     border: 'none',
                     cursor: 'pointer',
-                    marginTop: '12px'
+                    marginTop: '12px',
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   <Send size={18} />
