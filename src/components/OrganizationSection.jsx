@@ -70,7 +70,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
         {/* LEVEL 2: KETUA & WAKIL (Side by Side) */}
         <div style={{ position: 'relative', width: '100%', maxWidth: '820px' }}>
           {/* Horizontal Bridge between Ketua & Wakil */}
-          <div style={{
+          <div className="org-tree-line" style={{
             position: 'absolute',
             top: 0,
             left: '25%',
@@ -81,16 +81,10 @@ export default function OrganizationSection({ activeTenure, divisions, members }
             zIndex: 1
           }} />
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '24px',
-            position: 'relative',
-            zIndex: 10
-          }}>
+          <div className="org-level-2">
             {inti.slice(0, 2).map((person) => (
               <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ width: '5px', height: '16px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
+                <div className="org-tree-line" style={{ width: '5px', height: '16px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
                 <div style={{ width: '100%' }}>
                   <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
                 </div>
@@ -100,7 +94,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
         </div>
 
         {/* CONNECTING LINE 2 (Ketua & Wakil down to Sekben) */}
-        <div style={{ position: 'relative', width: '100%', maxWidth: '820px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+        <div className="org-tree-line" style={{ position: 'relative', width: '100%', maxWidth: '820px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
           <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div style={{ width: '5px', height: '24px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
@@ -115,10 +109,10 @@ export default function OrganizationSection({ activeTenure, divisions, members }
 
         {/* LEVEL 3: SEKBEN 1 & SEKBEN 2 */}
         <div style={{ position: 'relative', width: '100%', maxWidth: '820px', zIndex: 10 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
+          <div className="org-level-3">
             {inti.slice(2, 4).map((person) => (
               <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ width: '5px', height: '16px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
+                <div className="org-tree-line" style={{ width: '5px', height: '16px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
                 <div style={{ width: '100%' }}>
                   <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
                 </div>
@@ -128,7 +122,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
         </div>
 
         {/* 4-WAY DISTRIBUTOR TREE LINE (Sekben down to 4 Pimpro) */}
-        <div style={{ width: '100%', maxWidth: '1040px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+        <div className="org-tree-line" style={{ width: '100%', maxWidth: '1040px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
           <div style={{ width: '75%', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />

@@ -58,16 +58,7 @@ export default function GallerySection({ galleries = [] }) {
         gap: '20px'
       }}>
         {/* Photo Display Window */}
-        <div style={{
-          position: 'relative',
-          height: '460px',
-          borderRadius: 'var(--radius-md)',
-          overflow: 'hidden',
-          background: '#040914',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
+        <div className="gallery-window">
           <img 
             src={activeEvent.photos[currentPhotoIdx] || activeEvent.photos[0]} 
             alt={activeEvent.title}

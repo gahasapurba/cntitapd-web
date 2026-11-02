@@ -184,3 +184,173 @@ select option {
 .pulse-glow {
   animation: pulseGlow 3s infinite ease-in-out;
 }
+
+/* ==========================================================
+   MOBILE RESPONSIVENESS & SAFARI IPHONE 17 PRO MAX ADAPTATIONS
+   ========================================================== */
+
+/* 1. Header & Navigation Mobile Queries */
+.desktop-nav {
+  display: flex !important;
+}
+
+.mobile-burger-btn {
+  display: none !important;
+}
+
+/* 2. Responsive Layout Utilities */
+.mobile-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.mobile-stack-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 32px;
+}
+
+.kudos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.gallery-window {
+  position: relative;
+  height: 460px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #040914;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.org-level-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  position: relative;
+  z-index: 10;
+}
+
+.org-level-3 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.org-tree-line {
+  display: block;
+}
+
+.admin-form-two-col {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+}
+
+/* TABLET & MOBILE (< 868px) */
+@media screen and (max-width: 868px) {
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .mobile-burger-btn {
+    display: flex !important;
+  }
+
+  .container {
+    padding: 0 16px !important;
+  }
+
+  .kudos-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  .mobile-stack-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .gallery-window {
+    height: 300px !important;
+  }
+
+  .admin-form-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* MOBILE SCREEN OPTIMIZATION (iPhone 17 Pro Max ~ 440px viewport & smaller) */
+@media screen and (max-width: 640px) {
+  :root {
+    --radius-lg: 16px;
+  }
+
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  .container {
+    padding-left: max(14px, env(safe-area-inset-left)) !important;
+    padding-right: max(14px, env(safe-area-inset-right)) !important;
+  }
+
+  /* Safe Area insets for Safari iPhone notch & home indicator */
+  header {
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+
+  footer {
+    padding-bottom: max(24px, calc(16px + env(safe-area-inset-bottom))) !important;
+  }
+
+  /* Organigram Hierarchy tree adjustments on mobile */
+  .org-level-2, .org-level-3 {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .org-tree-line {
+    display: none !important;
+  }
+
+  /* Form two-column inputs stack gracefully */
+  .mobile-two-col {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Carousel size adjust for vertical mobile screens */
+  .gallery-window {
+    height: 240px !important;
+  }
+
+  /* Typography adjustments to prevent awkward wraps */
+  h1 {
+    font-size: clamp(1.8rem, 8vw, 2.6rem) !important;
+    line-height: 1.18 !important;
+  }
+
+  h2 {
+    font-size: clamp(1.4rem, 6vw, 1.8rem) !important;
+  }
+
+  /* General glass panel mobile padding */
+  .glass-panel {
+    padding: 20px 16px !important;
+  }
+
+  /* Make sure modal fits screen comfortably with margins */
+  .modal-container {
+    padding: 16px 12px !important;
+    max-height: 94vh !important;
+  }
+}
+

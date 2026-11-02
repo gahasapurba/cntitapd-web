@@ -499,10 +499,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          <form onSubmit={handleCreateGallery} style={{
-            display: 'grid',
-            gridTemplateColumns: '1.2fr 0.8fr',
-            gap: '16px',
+          <form onSubmit={handleCreateGallery} className="admin-form-two-col" style={{
             background: 'rgba(255,255,255,0.03)',
             padding: '20px',
             borderRadius: 'var(--radius-md)',

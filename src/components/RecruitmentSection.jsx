@@ -88,11 +88,7 @@ export default function RecruitmentSection({
       </div>
 
       {/* 2. TIMELINE & BENEFITS */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1.1fr 0.9fr',
-        gap: '32px',
-      }}>
+      <div className="mobile-stack-grid">
         {/* Timeline */}
         <div className="glass-panel" style={{ padding: '32px', border: '1px solid rgba(255, 184, 0, 0.3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
@@ -276,7 +272,7 @@ export default function RecruitmentSection({
 
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {/* Row 1: Name & NIP */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
+                <div className="mobile-two-col">
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                       Nama Lengkap *
@@ -325,7 +321,7 @@ export default function RecruitmentSection({
                 </div>
 
                 {/* Row 2: Unit Squad & Email */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="mobile-two-col">
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                       Departemen / Squad di IT APD *
@@ -398,7 +394,7 @@ export default function RecruitmentSection({
                 </div>
 
                 {/* Division Choices */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="mobile-two-col">
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                       Pilihan Divisi Utama (Prioritas 1) *

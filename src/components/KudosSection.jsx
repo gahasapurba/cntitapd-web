@@ -129,12 +129,7 @@ export default function KudosSection({ kudosList, onAddKudos }) {
 
       {/* CONTENT: KUDOS */}
       {activeSubTab === 'kudos' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1.3fr',
-          gap: '36px',
-          alignItems: 'start',
-        }}>
+        <div className="kudos-grid">
           {/* Send Form */}
           <div className="glass-panel" style={{ padding: '32px', border: '1px solid rgba(255,184,0,0.3)' }}>
             <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>

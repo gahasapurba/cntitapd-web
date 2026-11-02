@@ -9,7 +9,9 @@ import {
   Image as ImageIcon,
   Sun,
   Moon,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -21,7 +23,22 @@ export default function Navbar({
   theme,
   onToggleTheme
 }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const isDark = theme === 'dark';
+
+  const navItems = [
+    { id: 'home', label: 'Beranda', icon: Building2 },
+    { id: 'organisasi', label: 'Organisasi', icon: Users },
+    { id: 'program', label: 'Program', icon: Calendar },
+    { id: 'galeri', label: 'Galeri', icon: ImageIcon },
+    { id: 'kudos', label: 'Kudos', icon: MessageSquareHeart },
+    { id: 'assets', label: 'Asset Logo', icon: Download },
+  ];
+
+  const handleSelectTab = (tabId) => {
+    setCurrentTab(tabId);
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <header style={{
@@ -79,33 +96,24 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* 2. Middle: Navigation Menu Tabs (with Galeri & Compact Spacing) */}
-        <nav style={{
+        {/* 2. Middle: Navigation Menu Tabs (Desktop only) */}
+        <nav className="desktop-nav" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
           flex: 1,
           justifyContent: 'center',
           minWidth: 0,
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
           padding: '2px 4px'
         }}>
-          {[
-            { id: 'home', label: 'Beranda', icon: Building2 },
-            { id: 'organisasi', label: 'Organisasi', icon: Users },
-            { id: 'program', label: 'Program', icon: Calendar },
-            { id: 'galeri', label: 'Galeri', icon: ImageIcon },
-            { id: 'kudos', label: 'Kudos', icon: MessageSquareHeart },
-            { id: 'assets', label: 'Asset Logo', icon: Download },
-          ].map((tab) => {
+          {navItems.map((tab) => {
             const Icon = tab.icon;
             const isActive = currentTab === tab.id;
 
             return (
               <button
                 key={tab.id}
-                onClick={() => setCurrentTab(tab.id)}
+                onClick={() => handleSelectTab(tab.id)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -131,7 +139,7 @@ export default function Navbar({
 
           {/* Highlighted Oprec Button */}
           <button
-            onClick={() => setCurrentTab('oprec')}
+            onClick={() => handleSelectTab('oprec')}
             className={currentTab === 'oprec' ? '' : 'pulse-glow'}
             style={{
               display: 'flex',
@@ -165,7 +173,7 @@ export default function Navbar({
           </button>
         </nav>
 
-        {/* 3. Right: Tenure Selector & Theme Toggle */}
+        {/* 3. Right: Tenure Selector, Theme Toggle & Mobile Burger Button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <div style={{ position: 'relative' }}>
             <select
@@ -226,8 +234,119 @@ export default function Navbar({
           >
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
+
+          {/* Mobile Burger Toggle (Hidden on desktop) */}
+          <button
+            className="mobile-burger-btn"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Buka Menu"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--radius-sm)',
+              background: isMobileMenuOpen 
+                ? (isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0, 61, 121, 0.12)')
+                : (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'),
+              border: '1px solid var(--border-card)',
+              color: 'var(--text-main)',
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Drawer Menu */}
+      {isMobileMenuOpen && (
+        <div className="mobile-nav-drawer" style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          background: 'var(--bg-nav)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '2px solid var(--mandiri-gold)',
+          boxShadow: '0 20px 30px rgba(0, 0, 0, 0.25)',
+          padding: '16px 20px 24px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          maxHeight: 'calc(100vh - 80px)',
+          overflowY: 'auto'
+        }}>
+          {navItems.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = currentTab === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleSelectTab(tab.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  background: isActive ? (isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0, 61, 121, 0.1)') : 'transparent',
+                  color: isActive ? (isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)') : 'var(--text-main)',
+                  border: isActive ? '1px solid var(--border-card-hover)' : '1px solid transparent',
+                  fontWeight: isActive ? 800 : 600,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%'
+                }}
+              >
+                <Icon size={18} color={isActive ? (isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)') : 'var(--text-muted)'} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+
+          {/* Oprec in Mobile Menu */}
+          <button
+            onClick={() => handleSelectTab('oprec')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              padding: '13px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: currentTab === 'oprec' 
+                ? 'var(--mandiri-gold)' 
+                : (isDark ? 'rgba(255, 184, 0, 0.2)' : '#fef3c7'),
+              color: currentTab === 'oprec' ? '#040914' : '#b45309',
+              border: '1.5px solid var(--mandiri-gold)',
+              fontWeight: 800,
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              marginTop: '4px',
+              width: '100%'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <UserPlus size={18} />
+              <span>Open Recruitment {activeTenure.code}</span>
+            </div>
+            <span style={{
+              fontSize: '0.68rem',
+              background: '#b45309',
+              color: '#ffffff',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontWeight: 800
+            }}>OPEN</span>
+          </button>
+        </div>
+      )}
     </header>
   );
 }
