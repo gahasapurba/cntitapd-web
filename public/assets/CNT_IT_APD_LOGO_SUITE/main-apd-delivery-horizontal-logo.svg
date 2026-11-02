@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 650" width="2500" height="650">
+  <g transform="translate(130, 145) scale(1.48)">
+    <polygon points="0,24 154,61 83,167" fill="#2A378D" />
+    <polygon points="154,61 83,167 32,243 189,210" fill="#3273C3" />
+    <polygon points="199,0 154,61 270,43" fill="#FCB614" />
+  </g>
+  <text x="630" y="335" font-family="'Trebuchet MS', sans-serif" font-weight="bold" font-size="140" fill="#2A378D">IT APPLICATION</text>
+  <text x="633" y="460" font-family="'Trebuchet MS', sans-serif" font-weight="normal" font-size="76" letter-spacing="76" fill="#2A378D">DELIVERY</text>
+</svg>
