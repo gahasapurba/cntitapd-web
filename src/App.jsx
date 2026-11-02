@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import StarfieldBackground from './components/StarfieldBackground';
 import Navbar from './components/Navbar';
 import HomeSection from './components/HomeSection';
 import OrganizationSection from './components/OrganizationSection';
@@ -21,6 +22,7 @@ import {
 export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [warpSpeed, setWarpSpeed] = useState(false);
 
   // Dynamic States
   const [tenures, setTenures] = useState(INITIAL_TENURES);
@@ -54,7 +56,10 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
+      {/* 3D Cosmic Starfield & Nebula Canvas Background */}
+      <StarfieldBackground warpSpeed={warpSpeed} />
+
       {/* Sticky Navigation */}
       <Navbar
         currentTab={currentTab}
@@ -66,7 +71,7 @@ export default function App() {
       />
 
       {/* Main Page Content */}
-      <main className="container" style={{ flex: 1, paddingTop: '32px' }}>
+      <main className="container" style={{ flex: 1, paddingTop: '32px', position: 'relative', zIndex: 10 }}>
         {currentTab === 'home' && (
           <HomeSection
             activeTenure={activeTenure}

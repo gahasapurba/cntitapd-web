@@ -1,335 +1,268 @@
 import React, { useState } from 'react';
 import { 
-  Users, 
-  Crown, 
   Sparkles, 
-  Activity, 
-  Heart, 
-  Video, 
+  Crown, 
+  ChevronRight, 
+  X, 
   CheckCircle2, 
-  ShieldCheck, 
-  Target,
-  Mail,
-  ChevronRight
+  Info 
 } from 'lucide-react';
+import CrewMemberCard from './CrewMemberCard';
+import { soundFx } from '../utils/audio';
 
 export default function OrganizationSection({ activeTenure, divisions, members }) {
-  const [selectedDivision, setSelectedDivision] = useState(divisions[0]?.id || 'all');
+  const [selectedMember, setSelectedMember] = useState(null);
 
-  const pembina = members.filter(m => m.category === 'pembina');
+  const pembina = members.find(m => m.category === 'pembina');
   const inti = members.filter(m => m.category === 'inti');
   const pimpro = members.filter(m => m.category === 'pimpro');
 
-  const filteredPimpro = selectedDivision === 'all' 
-    ? pimpro 
-    : pimpro.filter(p => p.divisionId === selectedDivision);
+  const handleMemberClick = (member) => {
+    soundFx.playClick();
+    setSelectedMember(member);
+  };
+
+  const handleCloseModal = () => {
+    soundFx.playClick();
+    setSelectedMember(null);
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '60px', paddingBottom: '80px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '60px', paddingBottom: '80px', position: 'relative', zIndex: 10 }}>
       
-      {/* Header */}
-      <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto' }}>
-        <span className="badge-gold" style={{ marginBottom: '12px' }}>
-          Struktur & Kepengurusan
-        </span>
-        <h1 style={{ fontSize: '2.8rem', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>
-          Organigram CNT IT APD
+      {/* Section Header */}
+      <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(52, 211, 153, 0.15)', border: '1px solid rgba(52, 211, 153, 0.4)', color: 'var(--neon-emerald)', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', marginBottom: '16px' }}>
+          <Sparkles size={14} />
+          <span>Struktur Hirarki Organigram • {activeTenure.title}</span>
+        </div>
+        <h1 style={{ fontSize: 'clamp(2.4rem, 4.5vw, 3.8rem)', fontWeight: 900, color: '#fff', marginBottom: '14px', letterSpacing: '-0.02em' }}>
+          ORGANIGRAM <span style={{
+            background: 'linear-gradient(135deg, #34d399 0%, #38bdf8 50%, #c084fc 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>CNT IT APD</span>
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
-          Sinergi kepengurusan <strong style={{ color: '#fff' }}>{activeTenure.title}</strong> yang berdedikasi mengabdi untuk menciptakan ekosistem kerja yang harmonis, produktif, dan penuh apresiasi.
+        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6 }}>
+          Struktur organisasi Culture Network Team Group IT APD Direktorat IT Bank Mandiri. Klik pada setiap personel untuk melihat detail tanggung jawab & profil lengkap.
         </p>
       </div>
 
-      {/* 1. PEMBINA & EXECUTIVE ADVISOR */}
-      <section>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '24px' }}>
-          <Crown size={22} color="var(--accent-gold)" />
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Pembina & Senior Executive Advisor
-          </h2>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          {pembina.map((advisor) => (
-            <div 
-              key={advisor.id} 
-              className="glass-panel"
-              style={{
-                maxWidth: '680px',
-                width: '100%',
-                padding: '32px',
-                display: 'flex',
-                gap: '28px',
-                alignItems: 'center',
-                border: '1px solid rgba(255, 184, 0, 0.4)',
-                background: 'linear-gradient(135deg, rgba(255, 184, 0, 0.08) 0%, rgba(10, 17, 40, 0.9) 100%)',
-                boxShadow: 'var(--shadow-gold)'
-              }}
-            >
-              <img 
-                src={advisor.image} 
-                alt={advisor.name}
-                style={{
-                  width: '110px',
-                  height: '110px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '3px solid var(--accent-gold)',
-                  boxShadow: '0 0 20px rgba(255,184,0,0.3)',
-                  flexShrink: 0
-                }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span className="badge-gold" style={{ alignSelf: 'flex-start' }}>
-                  {advisor.badge}
-                </span>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>
-                  {advisor.name}
-                </h3>
-                <div style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 600 }}>
-                  {advisor.title}
-                </div>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  "{advisor.motto}"
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-                  {advisor.responsibilities?.map((resp, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-                      <CheckCircle2 size={13} color="var(--accent-gold)" />
-                      <span>{resp}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 2. TIM INTI (KETUA, WAKIL, SEKBEN) */}
-      <section>
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Tim Inti CNT IT APD
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-            Nakhoda operasional, strategi penganggaran (RAB), dan tata kelola organisasi
-          </p>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '20px',
-        }}>
-          {inti.map((member) => (
-            <div 
-              key={member.id} 
-              className="glass-panel"
-              style={{
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                gap: '12px',
-                borderTop: `3px solid ${member.color || 'var(--accent-gold)'}`,
-                transition: 'var(--transition-fast)'
-              }}
-            >
-              <img 
-                src={member.image} 
-                alt={member.name}
-                style={{
-                  width: '84px',
-                  height: '84px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: `2px solid ${member.color || 'var(--accent-gold)'}`,
-                  marginBottom: '4px'
-                }}
-              />
-              <div>
-                <span style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: member.color || 'var(--accent-gold)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  {member.role}
-                </span>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', marginTop: '4px' }}>
-                  {member.name}
-                </h4>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  {member.title}
-                </div>
-              </div>
-
-              <div style={{
-                background: 'rgba(255,255,255,0.03)',
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.8rem',
-                color: 'var(--text-muted)',
-                fontStyle: 'italic',
-                width: '100%'
-              }}>
-                "{member.motto}"
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 3. PIMPRO & DIVISI DETAIL */}
-      <section>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '24px',
-          flexWrap: 'wrap',
-          gap: '16px'
-        }}>
-          <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Pimpinan Proyek (Pimpro) Divisi
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-              Penyusun inisiatif spesifik dan motor eksekusi lapangan per divisi
-            </p>
+      {/* HIERARCHICAL TREE CONTAINER WITH SEAMLESS CONNECTING NEON LINES (IDENTIK DENGAN PRESENTASI) */}
+      <div style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        
+        {/* LEVEL 1: PEMBINA (Top Center) */}
+        {pembina && (
+          <div style={{ width: '100%', maxWidth: '440px', zIndex: 10 }}>
+            <CrewMemberCard member={pembina} onClick={() => handleMemberClick(pembina)} />
           </div>
+        )}
 
-          {/* Division Filter Tabs */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setSelectedDivision('all')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                border: '1px solid rgba(255,255,255,0.15)',
-                background: selectedDivision === 'all' ? 'var(--accent-gold)' : 'transparent',
-                color: selectedDivision === 'all' ? '#0a1128' : 'var(--text-muted)',
-                cursor: 'pointer'
-              }}
-            >
-              Semua Divisi
-            </button>
-            {divisions.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => setSelectedDivision(d.id)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  border: `1px solid ${selectedDivision === d.id ? d.color : 'rgba(255,255,255,0.15)'}`,
-                  background: selectedDivision === d.id ? d.color : 'transparent',
-                  color: selectedDivision === d.id ? '#fff' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                {d.name}
-              </button>
+        {/* CONNECTING LINE 1 (Pembina down to Level 2) */}
+        <div style={{
+          width: '5px',
+          height: '28px',
+          background: 'linear-gradient(to bottom, #FFB800, #34d399)',
+          boxShadow: '0 0 15px #34d399',
+          zIndex: 1
+        }} />
+
+        {/* LEVEL 2: KETUA & WAKIL (Side by Side) */}
+        <div style={{ position: 'relative', width: '100%', maxWidth: '820px' }}>
+          {/* Horizontal Bridge between Ketua & Wakil */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: '25%',
+            right: '25%',
+            height: '5px',
+            background: '#34d399',
+            boxShadow: '0 0 15px #34d399',
+            zIndex: 1
+          }} />
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '24px',
+            position: 'relative',
+            zIndex: 10
+          }}>
+            {inti.slice(0, 2).map((person) => (
+              <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ width: '5px', height: '16px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
+                <div style={{ width: '100%' }}>
+                  <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Pimpro Cards Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '24px',
-        }}>
-          {filteredPimpro.map((lead) => {
-            const divInfo = divisions.find(d => d.id === lead.divisionId);
-            return (
-              <div 
-                key={lead.id}
-                className="glass-panel"
-                style={{
-                  padding: '28px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  borderTop: `4px solid ${lead.color || '#00529b'}`,
-                  position: 'relative'
-                }}
-              >
-                <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
-                  <img 
-                    src={lead.image} 
-                    alt={lead.name}
-                    style={{
-                      width: '76px',
-                      height: '76px',
-                      borderRadius: 'var(--radius-md)',
-                      objectFit: 'cover',
-                      border: `2px solid ${lead.color || 'var(--accent-gold)'}`,
-                      flexShrink: 0
-                    }}
-                  />
-                  <div>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: lead.color,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em'
-                    }}>
-                      {lead.badge}
-                    </span>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', marginTop: '2px' }}>
-                      {lead.name}
-                    </h3>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {lead.role}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  padding: '12px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.82rem',
-                  color: 'var(--text-main)',
-                  fontStyle: 'italic',
-                  borderLeft: `2px solid ${lead.color}`
-                }}>
-                  "{lead.motto}"
-                </div>
-
-                {divInfo && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                      Fokus Ruang Lingkup Divisi:
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {divInfo.focusAreas?.map((area, idx) => (
-                        <span key={idx} style={{
-                          fontSize: '0.72rem',
-                          background: 'rgba(255,255,255,0.06)',
-                          color: '#fff',
-                          padding: '3px 8px',
-                          borderRadius: '4px'
-                        }}>
-                          • {area}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        {/* CONNECTING LINE 2 (Ketua & Wakil down to Sekben) */}
+        <div style={{ position: 'relative', width: '100%', maxWidth: '820px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '5px', height: '24px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '5px', height: '24px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
+            </div>
+          </div>
+          {/* Horizontal Bridge between Sekben 1 & 2 */}
+          <div style={{ width: '50%', height: '5px', background: '#c084fc', boxShadow: '0 0 15px #c084fc', marginTop: '-5px' }} />
         </div>
-      </section>
+
+        {/* LEVEL 3: SEKBEN 1 & SEKBEN 2 */}
+        <div style={{ position: 'relative', width: '100%', maxWidth: '820px', zIndex: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
+            {inti.slice(2, 4).map((person) => (
+              <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ width: '5px', height: '16px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
+                <div style={{ width: '100%' }}>
+                  <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 4-WAY DISTRIBUTOR TREE LINE (Sekben down to 4 Pimpro) */}
+        <div style={{ width: '100%', maxWidth: '1040px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+          <div style={{ width: '75%', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
+            </div>
+          </div>
+          {/* Continuous Horizontal bar spanning 4 columns */}
+          <div style={{
+            width: '75%',
+            height: '5px',
+            background: 'linear-gradient(to right, #38bdf8, #c084fc, #FFB800)',
+            boxShadow: '0 0 15px #38bdf8',
+            marginTop: '-5px'
+          }} />
+        </div>
+
+        {/* LEVEL 4: PIMPRO 1 - 4 (Bottom 4 Columns) */}
+        <div style={{ width: '100%', maxWidth: '1080px', zIndex: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            {pimpro.map((lead, idx) => {
+              const lineColor = idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800';
+              return (
+                <div key={lead.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ width: '5px', height: '20px', background: lineColor, boxShadow: `0 0 10px ${lineColor}` }} />
+                  <div style={{ width: '100%' }}>
+                    <CrewMemberCard member={lead} onClick={() => handleMemberClick(lead)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+
+      {/* MEMBER DETAIL MODAL */}
+      {selectedMember && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '560px',
+            width: '100%',
+            padding: '32px',
+            position: 'relative',
+            border: `1px solid ${selectedMember.color || 'var(--mandiri-gold)'}`,
+            boxShadow: '0 0 40px rgba(0,0,0,0.8)'
+          }}>
+            <button
+              onClick={handleCloseModal}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255,255,255,0.08)',
+                border: 'none',
+                color: '#fff',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '20px' }}>
+              <img 
+                src={selectedMember.image} 
+                alt={selectedMember.name}
+                style={{
+                  width: '90px',
+                  height: '90px',
+                  borderRadius: '16px',
+                  objectFit: 'cover',
+                  border: `3px solid ${selectedMember.color || 'var(--mandiri-gold)'}`
+                }}
+              />
+              <div>
+                <span className="badge-gold" style={{ fontSize: '0.7rem', marginBottom: '4px' }}>
+                  {selectedMember.role}
+                </span>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginTop: '4px' }}>
+                  {selectedMember.name}
+                </h3>
+                <div style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                  {selectedMember.title}
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'rgba(255,255,255,0.04)',
+              borderLeft: `3px solid ${selectedMember.color || 'var(--mandiri-gold)'}`,
+              padding: '12px 16px',
+              borderRadius: '0 8px 8px 0',
+              fontStyle: 'italic',
+              fontSize: '0.88rem',
+              color: 'var(--text-main)',
+              marginBottom: '20px'
+            }}>
+              "{selectedMember.motto}"
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '0.78rem', fontFamily: 'monospace', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 700 }}>
+                Tanggung Jawab Utama:
+              </div>
+              {selectedMember.responsibilities?.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '10px', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                  <CheckCircle2 size={16} color={selectedMember.color || 'var(--mandiri-gold)'} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
