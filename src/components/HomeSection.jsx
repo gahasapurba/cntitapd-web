@@ -12,7 +12,10 @@ import {
   Activity,
   Heart,
   Video,
-  Rocket
+  Rocket,
+  Target,
+  ShieldCheck,
+  Crown
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 
@@ -68,36 +71,53 @@ export default function HomeSection({
           </div>
         </div>
 
-        {/* Main Cosmic Title */}
+        {/* Main Cosmic Title - Dynamic per Tenure */}
         <h1 style={{
           fontSize: 'clamp(2.5rem, 5.5vw, 4.8rem)',
           lineHeight: 1.1,
           fontWeight: 900,
           color: 'var(--text-main)',
           maxWidth: '1000px',
-          margin: '0 auto 24px auto',
+          margin: '0 auto 20px auto',
           letterSpacing: '-0.03em'
         }}>
-          COMMITTED TO CULTIVATE{' '}
+          {activeTenure.heroHeadline || 'COMMITTED TO CULTIVATE'}{' '}
           <span style={{
             background: 'linear-gradient(135deg, #FFB800 0%, #38bdf8 50%, #c084fc 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             textShadow: '0 0 35px rgba(56, 189, 248, 0.3)'
           }}>
-            EXCELLENCE & SYNERGY
+            {activeTenure.heroHighlight || 'EXCELLENCE & SYNERGY'}
           </span>
         </h1>
 
+        {/* Dynamic Tagline & Motto per Tenure */}
+        <div style={{
+          fontSize: 'clamp(1.05rem, 2vw, 1.35rem)',
+          fontWeight: 700,
+          color: 'var(--mandiri-gold)',
+          maxWidth: '860px',
+          margin: '0 auto 16px auto',
+          lineHeight: 1.5,
+          fontStyle: 'italic'
+        }}>
+          "{activeTenure.themeTagline || 'Sinergi, Inovasi & Cultural Excellence'}"
+        </div>
+
         {/* Subtitle */}
         <p style={{
-          fontSize: '1.15rem',
+          fontSize: '1.05rem',
           color: 'var(--text-muted)',
           maxWidth: '820px',
           margin: '0 auto 36px auto',
           lineHeight: 1.7,
         }}>
-          Pusat gerakan budaya kerja <strong style={{ color: 'var(--text-main)' }}>Culture Network Team (CNT)</strong> Group IT Application Delivery, Direktorat IT Bank Mandiri. Mengobarkan semangat kolaborasi lintas squad, inovasi engineering, dan harmoni kerja.
+          {activeTenure.description || (
+            <>
+              Pusat gerakan budaya kerja <strong style={{ color: 'var(--text-main)' }}>Culture Network Team (CNT)</strong> Group IT Application Delivery, Direktorat IT Bank Mandiri. Mengobarkan semangat kolaborasi lintas squad, inovasi engineering, dan harmoni kerja.
+            </>
+          )}
         </p>
 
         {/* Quick Actions */}
@@ -169,7 +189,7 @@ export default function HomeSection({
               <Users size={22} />
             </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
-              8 Personel
+              {members.length} Personel
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT</div>
           </div>
@@ -236,7 +256,174 @@ export default function HomeSection({
         </div>
       </section>
 
-      {/* 2. RECRUITMENT BANNER (Cosmic Cyber Card) */}
+      {/* 2. VISI & MISI KEBUDAYAAN PERIODE INI (Dinamis per Kepengurusan) */}
+      <section style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '24px'
+        }}>
+          {/* Visi Card */}
+          <div className="glass-panel" style={{
+            padding: '32px',
+            borderTop: '4px solid var(--mandiri-gold)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'rgba(255, 184, 0, 0.15)',
+                color: 'var(--mandiri-gold)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Target size={20} />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                Visi Budaya {activeTenure.code}
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', lineHeight: 1.7, fontStyle: 'italic' }}>
+              "{activeTenure.visi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan berkarakter AKHLAK yang mendorong produktivitas engineering prima serta kebahagiaan insan IT Application Delivery.'}"
+            </p>
+          </div>
+
+          {/* Misi Card */}
+          <div className="glass-panel" style={{
+            padding: '32px',
+            borderTop: '4px solid var(--neon-cyan)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'rgba(14, 165, 233, 0.15)',
+                color: 'var(--neon-cyan)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <ShieldCheck size={20} />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                Misi Utama {activeTenure.code}
+              </h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              {(activeTenure.misi || [
+                'Memperkuat sinergi dan komunikasi terbuka antar squad delivery.',
+                'Menumbuhkan wellbeing jasmani dan rohani insan IT APD.',
+                'Menyediakan panggung kreativitas dan apresiasi prestasi (Kudos).'
+              ]).map((m, mIdx) => (
+                <div key={mIdx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <span style={{ color: 'var(--neon-cyan)', fontWeight: 800 }}>•</span>
+                  <span>{m}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. LEADERSHIP HIGHLIGHT (Pembina, Ketua, Wakil, BPH) */}
+      <section style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <span className="badge-gold" style={{ marginBottom: '6px' }}>Leadership & BPH</span>
+            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>
+              Pimpinan & Pengurus Inti CNT {activeTenure.code}
+            </h2>
+          </div>
+          <button
+            onClick={() => handleTabChange('organisasi')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--mandiri-blue)',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              cursor: 'pointer'
+            }}
+          >
+            <span>Lihat Organigram Lengkap</span>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '16px'
+        }}>
+          {members.slice(0, 4).map((person) => (
+            <div
+              key={person.id}
+              onClick={() => handleTabChange('organisasi')}
+              className="glass-panel glass-panel-hover"
+              style={{
+                padding: '20px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px',
+                borderTop: `3px solid ${person.color || 'var(--mandiri-gold)'}`
+              }}
+            >
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '2px solid var(--mandiri-gold)',
+                background: '#040914'
+              }}>
+                <img
+                  src={person.image}
+                  alt={person.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+
+              <div>
+                <span style={{
+                  fontSize: '0.68rem',
+                  textTransform: 'uppercase',
+                  fontWeight: 800,
+                  color: person.color || 'var(--mandiri-gold)',
+                  fontFamily: 'monospace'
+                }}>
+                  {person.role}
+                </span>
+                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
+                  {person.name}
+                </h4>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  {person.title}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 4. RECRUITMENT BANNER (Cosmic Cyber Card) */}
       {recruitmentInfo.isOpen && (
         <section className="glass-panel-hover" style={{
           background: 'linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(4, 9, 20, 0.95) 60%, rgba(56, 189, 248, 0.15) 100%)',

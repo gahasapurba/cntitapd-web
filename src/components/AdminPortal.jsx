@@ -59,6 +59,10 @@ export default function AdminPortal({
   const [newTenureCode, setNewTenureCode] = useState('');
   const [newTenureTitle, setNewTenureTitle] = useState('');
   const [newTenureTagline, setNewTenureTagline] = useState('');
+  const [newTenureHeadline, setNewTenureHeadline] = useState('');
+  const [newTenureHighlight, setNewTenureHighlight] = useState('');
+  const [newTenureVisi, setNewTenureVisi] = useState('');
+  const [newTenureMisi, setNewTenureMisi] = useState('');
 
   // Recruitment controls
   const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo.isOpen);
@@ -124,13 +128,26 @@ export default function AdminPortal({
       code: newTenureCode,
       title: newTenureTitle || `Kepengurusan CNT IT APD ${newTenureCode}`,
       themeTagline: newTenureTagline || 'Sinergi, Inovasi & Cultural Excellence',
+      heroHeadline: newTenureHeadline || 'COMMITTED TO CULTIVATE',
+      heroHighlight: newTenureHighlight || 'EXCELLENCE & SYNERGY',
+      visi: newTenureVisi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan berkarakter AKHLAK.',
+      misi: newTenureMisi 
+        ? newTenureMisi.split('\n').map(s => s.trim()).filter(Boolean)
+        : [
+            'Memperkuat sinergi dan komunikasi terbuka antar squad delivery.',
+            'Menumbuhkan wellbeing jasmani dan rohani insan IT APD.'
+          ],
       isActive: false
     });
 
     setNewTenureCode('');
     setNewTenureTitle('');
     setNewTenureTagline('');
-    alert(`Periode Kepengurusan "${newTenureCode}" berhasil dibuat!`);
+    setNewTenureHeadline('');
+    setNewTenureHighlight('');
+    setNewTenureVisi('');
+    setNewTenureMisi('');
+    alert(`Periode Kepengurusan "${newTenureCode}" beserta Visi Misi berhasil dibuat!`);
   };
 
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
@@ -995,58 +1012,178 @@ export default function AdminPortal({
 
           <form onSubmit={handleCreateTenure} style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 2fr',
+            gridTemplateColumns: '1fr 1fr',
             gap: '12px',
             background: 'rgba(255,255,255,0.03)',
-            padding: '18px',
+            padding: '20px',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-card)'
           }}>
-            <input
-              type="text"
-              required
-              placeholder="Kode Tahun (misal: 2027)"
-              value={newTenureCode}
-              onChange={(e) => setNewTenureCode(e.target.value)}
-              style={{
-                padding: '9px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid var(--border-card)',
-                color: 'var(--text-main)',
-                fontSize: '0.85rem'
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Tagline Tema Budaya Periode Ini"
-              value={newTenureTagline}
-              onChange={(e) => setNewTenureTagline(e.target.value)}
-              style={{
-                padding: '9px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid var(--border-card)',
-                color: 'var(--text-main)',
-                fontSize: '0.85rem'
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                gridColumn: 'span 2',
-                padding: '9px 20px',
-                borderRadius: 'var(--radius-full)',
-                background: 'var(--mandiri-gold)',
-                color: '#040914',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Tambah Periode Baru
-            </button>
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Kode Tahun *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="misal: 2027"
+                value={newTenureCode}
+                onChange={(e) => setNewTenureCode(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Nama Periode *
+              </label>
+              <input
+                type="text"
+                placeholder="misal: Kepengurusan CNT IT APD 2027"
+                value={newTenureTitle}
+                onChange={(e) => setNewTenureTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Motto / Tagline Tema Budaya
+              </label>
+              <input
+                type="text"
+                placeholder="misal: Elevating Culture, Tech Synergy & Human Excellence"
+                value={newTenureTagline}
+                onChange={(e) => setNewTenureTagline(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Headline Beranda
+              </label>
+              <input
+                type="text"
+                placeholder="misal: COMMITTED TO CULTIVATE"
+                value={newTenureHeadline}
+                onChange={(e) => setNewTenureHeadline(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Highlight Berwarna Neon
+              </label>
+              <input
+                type="text"
+                placeholder="misal: EXCELLENCE & SYNERGY"
+                value={newTenureHighlight}
+                onChange={(e) => setNewTenureHighlight(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Visi Budaya Periode Ini
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Menjadi akselerator budaya kerja kolaboratif, agile, dan berkarakter AKHLAK..."
+                value={newTenureVisi}
+                onChange={(e) => setNewTenureVisi(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Misi Budaya (Pisahkan baris per butir misi)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Memperkuat sinergi dan komunikasi terbuka&#10;Menumbuhkan wellbeing jasmani dan rohani&#10;Menyediakan panggung apresiasi prestasi"
+                value={newTenureMisi}
+                onChange={(e) => setNewTenureMisi(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="submit"
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Simpan & Tambah Periode
+              </button>
+            </div>
           </form>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
