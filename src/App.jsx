@@ -17,9 +17,11 @@ import {
   INITIAL_MEMBERS, 
   INITIAL_EVENTS, 
   INITIAL_KUDOS, 
-  RECRUITMENT_INFO,
-  INITIAL_GALLERIES
+  INITIAL_GALLERIES,
+  INITIAL_FORMS,
+  INITIAL_SUBMISSIONS
 } from './data/initialData';
+import DynamicFormSection from './components/DynamicFormSection';
 
 export default function App() {
   // Navigation: 'home' | 'organisasi' | 'program' | 'galeri' | 'kudos' | 'assets' | 'oprec' | 'admin'
@@ -66,8 +68,8 @@ export default function App() {
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [galleries, setGalleries] = useState(INITIAL_GALLERIES);
   const [kudosList, setKudosList] = useState(INITIAL_KUDOS);
-  const [recruitmentInfo, setRecruitmentInfo] = useState(RECRUITMENT_INFO);
-  const [applications, setApplications] = useState([]);
+  const [forms, setForms] = useState(INITIAL_FORMS);
+  const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
 
   // Dynamic Add, Edit & Delete Handlers
   const handleAddDivision = (newDiv) => {
@@ -125,8 +127,26 @@ export default function App() {
     setEvents((prev) => prev.filter(e => e.id !== evtId));
   };
 
-  const handleUpdateRecruitment = (updatedInfo) => {
-    setRecruitmentInfo(updatedInfo);
+  // Dynamic Forms Lifecycle Handlers
+  const handleAddForm = (newForm) => {
+    setForms((prev) => [newForm, ...prev]);
+  };
+  const handleUpdateForm = (updatedForm) => {
+    setForms((prev) => prev.map(f => f.id === updatedForm.id ? updatedForm : f));
+  };
+  const handleDeleteForm = (formId, deleteSubmissions = false) => {
+    setForms((prev) => prev.filter(f => f.id !== formId));
+    if (deleteSubmissions) {
+      setSubmissions((prev) => prev.filter(s => s.formId !== formId));
+    }
+  };
+
+  // Submissions Lifecycle Handlers
+  const handleSubmitSubmission = (newSub) => {
+    setSubmissions((prev) => [newSub, ...prev]);
+  };
+  const handleDeleteSubmission = (subId) => {
+    setSubmissions((prev) => prev.filter(s => s.id !== subId));
   };
 
   const handleAddKudos = (newKudos) => {
@@ -137,10 +157,6 @@ export default function App() {
   };
   const handleDeleteKudos = (kudosId) => {
     setKudosList((prev) => prev.filter(k => k.id !== kudosId));
-  };
-
-  const handleSubmitApplication = (newApp) => {
-    setApplications((prev) => [newApp, ...prev]);
   };
 
   return (
@@ -157,6 +173,7 @@ export default function App() {
         onSelectTenure={setActiveTenure}
         theme={theme}
         onToggleTheme={toggleTheme}
+        forms={forms}
       />
 
       {/* Main Content Area */}
@@ -168,7 +185,7 @@ export default function App() {
             events={events}
             members={members}
             setCurrentTab={setCurrentTab}
-            recruitmentInfo={recruitmentInfo}
+            forms={forms}
             theme={theme}
           />
         )}
@@ -210,10 +227,11 @@ export default function App() {
         )}
 
         {currentTab === 'oprec' && (
-          <RecruitmentSection
-            recruitmentInfo={recruitmentInfo}
+          <DynamicFormSection
+            forms={forms}
             divisions={divisions}
-            onSubmitApplication={handleSubmitApplication}
+            events={events}
+            onSubmitSubmission={handleSubmitSubmission}
             theme={theme}
           />
         )}
@@ -229,9 +247,12 @@ export default function App() {
             onAddDivision={handleAddDivision}
             onUpdateDivision={handleUpdateDivision}
             onDeleteDivision={handleDeleteDivision}
-            recruitmentInfo={recruitmentInfo}
-            onUpdateRecruitment={handleUpdateRecruitment}
-            applications={applications}
+            forms={forms}
+            onAddForm={handleAddForm}
+            onUpdateForm={handleUpdateForm}
+            onDeleteForm={handleDeleteForm}
+            submissions={submissions}
+            onDeleteSubmission={handleDeleteSubmission}
             galleries={galleries}
             onAddGallery={handleAddGallery}
             onUpdateGallery={handleUpdateGallery}

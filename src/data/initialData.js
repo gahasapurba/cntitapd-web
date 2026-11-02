@@ -630,6 +630,99 @@ export const INITIAL_KUDOS = [
   },
 ];
 
+export const INITIAL_FORMS = [
+  {
+    id: 'form-oprec-2026',
+    title: 'Open Recruitment Kepengurusan CNT IT APD 2026',
+    subtitle: 'Jadilah Agen Perubahan Budaya di Lingkungan Group IT Application Delivery!',
+    category: 'Rekrutmen',
+    batch: 'Gelombang 1 — Periode 2026',
+    deadline: '28 Februari 2026',
+    isOpen: true,
+    bannerImage: '',
+    description: 'Pendaftaran terbuka bagi seluruh Officer, Specialist, dan Insan IT APD yang berkomitmen menciptakan lingkungan kerja agile, kolaboratif, dan fun.',
+    fields: [
+      { id: 'f-fullName', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Contoh: Gahasa Timothius', required: true },
+      { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'Contoh: 1994082120', required: true },
+      { id: 'f-unitSquad', label: 'Departemen / Squad Saat Ini', type: 'text', placeholder: 'Contoh: Squad Retail APD / Core Banking', required: true },
+      { id: 'f-email', label: 'Email Bank Mandiri', type: 'email', placeholder: 'user@bankmandiri.co.id', required: true },
+      { id: 'f-whatsapp', label: 'Nomor WhatsApp Aktif', type: 'text', placeholder: '0812xxxxxxxx', required: true },
+      { 
+        id: 'f-div1', 
+        label: 'Pilihan Divisi Utama (Pilihan 1)', 
+        type: 'select', 
+        source: 'divisions', 
+        required: true 
+      },
+      { 
+        id: 'f-div2', 
+        label: 'Pilihan Divisi Alternatif (Pilihan 2)', 
+        type: 'select', 
+        source: 'divisions', 
+        required: false 
+      },
+      { id: 'f-motivation', label: 'Motivasi & Komitmen Kontribusi', type: 'textarea', placeholder: 'Ceritakan apa yang membuatmu tertarik bergabung...', required: true },
+      { id: 'f-cv', label: 'Upload CV / Dokumen Portofolio', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false },
+      { id: 'f-portfolioUrl', label: 'Link Portofolio / LinkedIn / Drive (Opsional)', type: 'text', placeholder: 'https://...', required: false }
+    ],
+    timeline: [
+      { step: 'Pendaftaran Online', date: '01 - 28 Feb 2026', desc: 'Pengisian form dan portofolio singkat di web ini' },
+      { step: 'Review & Screening', date: '01 - 04 Mar 2026', desc: 'Seleksi berkas dan minat per divisi oleh Tim Inti' },
+      { step: 'Interview & Sinergi', date: '05 - 08 Mar 2026', desc: 'Bincang santai dan pendalaman komitmen' },
+      { step: 'Pengumuman Resmi', date: '10 Mar 2026', desc: 'Welcome session & pelantikan pengurus baru' },
+    ],
+    benefits: [
+      'Mengasah soft skills leadership, event management, dan communication lintas squad',
+      'Menjadi pionir dalam membentuk lingkungan kerja yang suportif, seru, dan inovatif',
+      'Apresiasi sertifikat kontribusi resmi dari Manajemen Group IT APD',
+      'Akses ke gear multimedia (kamera Nikon Z50, software kreatif pro) dan networking luas',
+    ]
+  },
+  {
+    id: 'form-turnamen-esports',
+    title: 'Pendaftaran Turnamen E-Sports APD Championship 2026',
+    subtitle: 'Ajang Solidaritas & Ketangkasan Gaming Insan IT Application Delivery',
+    category: 'Kegiatan & Event',
+    batch: 'Season 1',
+    deadline: '15 Maret 2026',
+    isOpen: true,
+    bannerImage: '',
+    description: 'Daftarkan squad/tim kamu dalam kompetisi Mobile Legends: Bang Bang & FIFA Tournament IT APD.',
+    fields: [
+      { id: 'f-teamName', label: 'Nama Tim / Squad Gaming', type: 'text', placeholder: 'Contoh: Core Slayer APD', required: true },
+      { id: 'f-captainName', label: 'Nama Lengkap Kapten', type: 'text', placeholder: 'Contoh: Budi Santoso', required: true },
+      { id: 'f-captainNip', label: 'NIP Kapten Tim', type: 'text', placeholder: '1987xxxx', required: true },
+      { id: 'f-captainWa', label: 'Nomor WhatsApp Kapten (Koordinasi Slot)', type: 'text', placeholder: '0813xxxxxxxx', required: true },
+      { 
+        id: 'f-gameCategory', 
+        label: 'Cabang Game yang Diikuti', 
+        type: 'select', 
+        options: ['Mobile Legends: Bang Bang (5 vs 5)', 'EA Sports FC 24 / FIFA (1 vs 1)'], 
+        required: true 
+      },
+      { 
+        id: 'f-eventRef', 
+        label: 'Terkait Agenda Program Kerja', 
+        type: 'select', 
+        source: 'events', 
+        required: false 
+      },
+      { id: 'f-roster', label: 'Daftar Anggota Tim (Nama, NIP, In-Game Nickname)', type: 'textarea', placeholder: '1. Nama (NIP) - Nickname...', required: true },
+      { id: 'f-screenshot', label: 'Upload Bukti Screenshot Profil Akun Game', type: 'file', accept: '.jpg,.png,.jpeg', required: false }
+    ],
+    timeline: [
+      { step: 'Registrasi Tim', date: '01 - 15 Mar 2026', desc: 'Pendaftaran nama tim dan nomor kapten' },
+      { step: 'Technical Meeting', date: '18 Mar 2026', desc: 'Drawing bracket & sosialisasi rulebook via MS Teams' },
+      { step: 'Match Day & Final', date: '21 - 22 Mar 2026', desc: 'Pertandingan live streaming & trophy award' }
+    ],
+    benefits: [
+      'Piala Bergilir & Hadiah Merchandise Eksklusif CNT IT APD',
+      'Networking seru dengan sesama gamers dari seluruh squad IT',
+      'Masuk dalam Highlight Reel Video Liputan Dokumentasi Tahunan'
+    ]
+  }
+];
+
 export const RECRUITMENT_INFO = {
   isOpen: true,
   title: 'Open Recruitment Kepengurusan CNT IT APD 2026',
@@ -686,3 +779,25 @@ export const INITIAL_GALLERIES = [
   }
 ];
 
+export const INITIAL_SUBMISSIONS = [
+  {
+    id: 'sub-sample-1',
+    formId: 'form-oprec-2026',
+    formTitle: 'Open Recruitment Kepengurusan CNT IT APD 2026',
+    submittedAt: '2026-03-01 14:30:25',
+    data: {
+      fullName: 'Ahmad Fauzi',
+      nip: '199508122019031002',
+      email: 'ahmad.fauzi@bankmandiri.co.id',
+      phone: '081234567890',
+      division: 'Creative Media',
+      experience: 'Pernah mengelola konten internal squad dan memiliki hobi videografi.',
+      cvFile: {
+        name: 'CV_Ahmad_Fauzi_Mandiri.pdf',
+        size: '1.2 MB',
+        type: 'application/pdf',
+        dataUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...'
+      }
+    }
+  }
+];

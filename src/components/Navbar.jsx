@@ -21,10 +21,12 @@ export default function Navbar({
   activeTenure, 
   onSelectTenure,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  forms = []
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const isDark = theme === 'dark';
+  const activeFormsCount = forms.filter(f => f.isOpen !== false).length;
 
   const navItems = [
     { id: 'home', label: 'Beranda', icon: Building2 },
@@ -137,39 +139,59 @@ export default function Navbar({
             );
           })}
 
-          {/* Highlighted Oprec Button */}
+          {/* Highlighted Dynamic Registration / Forms Button */}
           <button
             onClick={() => handleSelectTab('oprec')}
-            className={currentTab === 'oprec' ? '' : 'pulse-glow'}
+            className={currentTab === 'oprec' ? '' : (activeFormsCount > 0 ? 'pulse-glow' : '')}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '6px',
               padding: '6px 12px',
               borderRadius: 'var(--radius-full)',
               background: currentTab === 'oprec' 
                 ? 'var(--mandiri-gold)' 
-                : (isDark ? 'rgba(255, 184, 0, 0.18)' : '#fef3c7'),
-              color: currentTab === 'oprec' ? '#040914' : '#b45309',
-              border: '1px solid var(--mandiri-gold)',
+                : (activeFormsCount > 0 
+                    ? (isDark ? 'rgba(255, 184, 0, 0.18)' : '#fef3c7')
+                    : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9')),
+              color: currentTab === 'oprec' 
+                ? '#040914' 
+                : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
+              border: `1px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,
               fontWeight: 800,
               fontSize: '0.8rem',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               marginLeft: '4px',
-              flexShrink: 0
+              flexShrink: 0,
+              transition: 'all 0.2s ease'
             }}
           >
             <UserPlus size={13} />
-            <span>Oprec</span>
-            <span style={{
-              fontSize: '0.58rem',
-              background: '#b45309',
-              color: '#ffffff',
-              padding: '1px 5px',
-              borderRadius: '4px',
-              fontWeight: 800
-            }}>OPEN</span>
+            <span>Registrasi & Form</span>
+            {activeFormsCount > 0 ? (
+              <span style={{
+                fontSize: '0.58rem',
+                background: '#b45309',
+                color: '#ffffff',
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontWeight: 800
+              }}>
+                {activeFormsCount} AKTIF
+              </span>
+            ) : (
+              <span style={{
+                fontSize: '0.58rem',
+                background: 'var(--border-card)',
+                color: 'var(--text-muted)',
+                padding: '1px 5px',
+                borderRadius: '4px',
+                fontWeight: 700
+              }}>
+                CLOSED
+              </span>
+            )}
           </button>
         </nav>
 
@@ -310,7 +332,7 @@ export default function Navbar({
             );
           })}
 
-          {/* Oprec in Mobile Menu */}
+          {/* Dynamic Registration in Mobile Menu */}
           <button
             onClick={() => handleSelectTab('oprec')}
             style={{
@@ -322,9 +344,13 @@ export default function Navbar({
               borderRadius: 'var(--radius-md)',
               background: currentTab === 'oprec' 
                 ? 'var(--mandiri-gold)' 
-                : (isDark ? 'rgba(255, 184, 0, 0.2)' : '#fef3c7'),
-              color: currentTab === 'oprec' ? '#040914' : '#b45309',
-              border: '1.5px solid var(--mandiri-gold)',
+                : (activeFormsCount > 0 
+                    ? (isDark ? 'rgba(255, 184, 0, 0.2)' : '#fef3c7')
+                    : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9')),
+              color: currentTab === 'oprec' 
+                ? '#040914' 
+                : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
+              border: `1.5px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,
               fontWeight: 800,
               fontSize: '0.95rem',
               cursor: 'pointer',
@@ -334,16 +360,31 @@ export default function Navbar({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <UserPlus size={18} />
-              <span>Open Recruitment {activeTenure.code}</span>
+              <span>Registrasi & Formulir</span>
             </div>
-            <span style={{
-              fontSize: '0.68rem',
-              background: '#b45309',
-              color: '#ffffff',
-              padding: '2px 8px',
-              borderRadius: '4px',
-              fontWeight: 800
-            }}>OPEN</span>
+            {activeFormsCount > 0 ? (
+              <span style={{
+                fontSize: '0.68rem',
+                background: '#b45309',
+                color: '#ffffff',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontWeight: 800
+              }}>
+                {activeFormsCount} AKTIF
+              </span>
+            ) : (
+              <span style={{
+                fontSize: '0.68rem',
+                background: 'var(--border-card)',
+                color: 'var(--text-muted)',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontWeight: 700
+              }}>
+                CLOSED
+              </span>
+            )}
           </button>
         </div>
       )}

@@ -26,9 +26,12 @@ export default function HomeSection({
   members, 
   setCurrentTab,
   recruitmentInfo,
+  forms = [],
   theme
 }) {
   const isDark = theme === 'dark';
+  const activeForms = forms.filter(f => f.isOpen !== false);
+  const primaryForm = activeForms[0] || recruitmentInfo || null;
   const pembina = members.find(m => m.category === 'pembina');
   const ketua = members.find(m => m.role === 'Ketua');
   const wakil = members.find(m => m.role === 'Wakil Ketua');
@@ -426,8 +429,8 @@ export default function HomeSection({
         </div>
       </section>
 
-      {/* 4. RECRUITMENT BANNER (Theme-aware card) */}
-      {recruitmentInfo.isOpen && (
+      {/* 4. RECRUITMENT & FORMS BANNER (Theme-aware card) */}
+      {primaryForm && primaryForm.isOpen !== false && (
         <section className="glass-panel-hover" style={{
           background: isDark 
             ? 'linear-gradient(135deg, rgba(255, 184, 0, 0.15) 0%, rgba(4, 9, 20, 0.95) 60%, rgba(56, 189, 248, 0.15) 100%)'
@@ -447,17 +450,19 @@ export default function HomeSection({
           <div style={{ maxWidth: '680px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
               <span className="badge-gold">
-                <Flame size={14} /> Open Recruitment Sedang Berlangsung!
+                <Flame size={14} /> {activeForms.length > 1 ? `${activeForms.length} Registrasi & Formulir Terbuka!` : 'Pendaftaran Sedang Dibuka!'}
               </span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--mandiri-gold)', fontFamily: 'monospace', fontWeight: 700 }}>
-                Deadline: {recruitmentInfo.deadline}
-              </span>
+              {primaryForm.deadline && (
+                <span style={{ fontSize: '0.78rem', color: 'var(--mandiri-gold)', fontFamily: 'monospace', fontWeight: 700 }}>
+                  Deadline: {primaryForm.deadline}
+                </span>
+              )}
             </div>
             <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '10px' }}>
-              {recruitmentInfo.title}
+              {primaryForm.title}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-              Panggilan pengabdian bagi seluruh Officer Group IT APD. Berdayakan ide kreatifmu, jalin koneksi berharga, dan cetak dampak nyata bagi lingkungan kerja kita.
+              {primaryForm.subtitle || 'Panggilan pengabdian bagi seluruh Officer Group IT APD. Berdayakan ide kreatifmu, jalin koneksi berharga, dan cetak dampak nyata bagi lingkungan kerja kita.'}
             </p>
           </div>
 
@@ -479,7 +484,7 @@ export default function HomeSection({
               whiteSpace: 'nowrap'
             }}
           >
-            <span>Daftar Sekarang</span>
+            <span>{activeForms.length > 1 ? 'Lihat Semua Formulir' : 'Daftar Sekarang'}</span>
             <ArrowRight size={18} />
           </button>
         </section>

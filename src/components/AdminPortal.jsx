@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   Users,
   Heart,
-  X
+  X,
+  ClipboardList,
+  Download
 } from 'lucide-react';
 
 // Client-side SHA-256 hash helper using Web Crypto API
@@ -62,7 +64,13 @@ export default function AdminPortal({
   onDeleteEvent,
   kudosList = [],
   onUpdateKudos,
-  onDeleteKudos
+  onDeleteKudos,
+  forms = [],
+  onAddForm,
+  onUpdateForm,
+  onDeleteForm,
+  submissions = [],
+  onDeleteSubmission
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -107,6 +115,13 @@ export default function AdminPortal({
   // Recruitment controls
   const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo.isOpen);
   const [recruitDeadline, setRecruitDeadline] = useState(recruitmentInfo.deadline);
+
+  // New Form Creator State
+  const [newFormTitle, setNewFormTitle] = useState('');
+  const [newFormCategory, setNewFormCategory] = useState('Kegiatan & Event');
+  const [newFormDeadline, setNewFormDeadline] = useState('');
+  const [newFormSubtitle, setNewFormSubtitle] = useState('');
+  const [selectedSubFilter, setSelectedSubFilter] = useState('all');
 
   // Form states for new Gallery Event
   const [galTitle, setGalTitle] = useState('');
@@ -523,12 +538,12 @@ export default function AdminPortal({
       }}>
         {[
           { id: 'members', label: `Pengurus & Anggota (${members.length})`, icon: Users },
+          { id: 'forms', label: `Kelola Formulir (${forms.length})`, icon: ClipboardList },
+          { id: 'submissions', label: `Berkas Masuk (${submissions.length + applications.length})`, icon: FileCheck2 },
           { id: 'kudos', label: `Wall of Kudos (${kudosList.length})`, icon: Heart },
           { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
           { id: 'divisions', label: 'Kelola Divisi', icon: Layers },
           { id: 'tenure', label: 'Periode Kepengurusan', icon: Calendar },
-          { id: 'recruitment', label: 'Pengaturan Oprec', icon: Settings },
-          { id: 'applicants', label: `Pendaftar Masuk (${applications.length})`, icon: FileCheck2 },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1676,86 +1691,424 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* TAB CONTENT 3: SETTING OPREC */}
-      {activeTab === 'recruitment' && (
-        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
-              Kontrol Buka / Tutup Pendaftaran Open Recruitment
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Atur status ketersediaan form registrasi calon pengurus
-            </p>
+      {/* TAB CONTENT: DYNAMIC FORM ENGINE */}
+      {activeTab === 'forms' && (
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                Manajemen Formulir & Pendaftaran Dinamis ({forms.length})
+              </h3>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                Buat formulir registrasi baru, atur deadline, aktifkan/tutup form dari website, serta kelola pertanyaan.
+              </p>
+            </div>
+            <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
+              Form Engine V2
+            </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <input
-                type="checkbox"
-                id="recruitStatus"
-                checked={isRecruitOpen}
-                onChange={(e) => setIsRecruitOpen(e.target.checked)}
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-              />
-              <label htmlFor="recruitStatus" style={{ fontSize: '0.92rem', color: 'var(--text-main)', fontWeight: 600, cursor: 'pointer' }}>
-                Buka Pendaftaran Open Recruitment di Website
-              </label>
+          {/* Form Creator */}
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!newFormTitle.trim()) return;
+
+              const newForm = {
+                id: 'form-' + Date.now(),
+                title: newFormTitle.trim(),
+                subtitle: newFormSubtitle.trim() || 'Silakan lengkapi formulir di bawah ini.',
+                category: newFormCategory,
+                deadline: newFormDeadline.trim() || 'Menyesuaikan',
+                isOpen: true,
+                fields: [
+                  { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true },
+                  { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true },
+                  { id: 'f-squad', label: 'Squad / Unit Kerja', type: 'text', placeholder: 'Squad asal', required: true },
+                  { id: 'f-wa', label: 'Nomor WhatsApp Aktif', type: 'text', placeholder: '0812xxxxxxxx', required: true },
+                  { id: 'f-divisi', label: 'Pilihan Divisi Terkait', type: 'select', source: 'divisions', required: true },
+                  { id: 'f-notes', label: 'Catatan / Alasan Pendaftaran', type: 'textarea', placeholder: 'Tuliskan keterangan pendukung...', required: true },
+                  { id: 'f-doc', label: 'Upload Dokumen / File Pendukung', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false }
+                ]
+              };
+
+              if (onAddForm) onAddForm(newForm);
+              setNewFormTitle('');
+              setNewFormSubtitle('');
+              setNewFormDeadline('');
+              alert(`Formulir "${newForm.title}" berhasil dibuat dengan template field lengkap (termasuk upload file & opsi divisi dinamis)!`);
+            }}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '12px',
+              background: 'rgba(255,255,255,0.03)',
+              padding: '20px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-card)'
+            }}
+          >
+            <div style={{ gridColumn: 'span 2' }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--mandiri-gold)', marginBottom: '4px' }}>
+                + Buat Formulir Registrasi Baru
+              </div>
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Batas Akhir / Tanggal Deadline Pendaftaran
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Judul Formulir *
               </label>
               <input
                 type="text"
-                value={recruitDeadline}
-                onChange={(e) => setRecruitDeadline(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.88rem'
-                }}
+                required
+                placeholder="Contoh: Pendaftaran Workshop AI Agent Mandiri"
+                value={newFormTitle}
+                onChange={(e) => setNewFormTitle(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
               />
             </div>
 
-            <button
-              onClick={handleSaveRecruitment}
-              style={{
-                alignSelf: 'flex-start',
-                padding: '10px 24px',
-                borderRadius: 'var(--radius-full)',
-                background: 'var(--mandiri-gold)',
-                color: '#040914',
-                fontWeight: 700,
-                fontSize: '0.88rem',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Simpan Pengaturan
-            </button>
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Kategori Formulir
+              </label>
+              <select
+                value={newFormCategory}
+                onChange={(e) => setNewFormCategory(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              >
+                <option value="Kegiatan & Event">Kegiatan & Event</option>
+                <option value="Rekrutmen">Rekrutmen & Oprec</option>
+                <option value="Turnamen & Olahraga">Turnamen & Olahraga</option>
+                <option value="Survei & Aspirasi">Survei & Aspirasi</option>
+                <option value="Workshop & Sharing">Workshop & Sharing</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Batas Akhir / Deadline Pendaftaran
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: 31 Maret 2026"
+                value={newFormDeadline}
+                onChange={(e) => setNewFormDeadline(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Deskripsi Singkat / Subtitle
+              </label>
+              <input
+                type="text"
+                placeholder="Penjelasan singkat tujuan pendaftaran"
+                value={newFormSubtitle}
+                onChange={(e) => setNewFormSubtitle(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button
+                type="submit"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  padding: '9px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} />
+                <span>Publikasikan Form</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Existing Forms List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+              Daftar Formulir Terdaftar:
+            </div>
+            {forms.map((f) => {
+              const subCount = submissions.filter(s => s.formId === f.id).length;
+              return (
+                <div key={f.id} style={{
+                  padding: '16px 20px',
+                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-card)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  flexWrap: 'wrap'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '240px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{f.category || 'Formulir'}</span>
+                      <strong style={{ color: 'var(--text-main)', fontSize: '0.96rem' }}>{f.title}</strong>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Deadline: {f.deadline} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Berkas Masuk</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Switch Buka/Tutup */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onUpdateForm) {
+                          onUpdateForm({ ...f, isOpen: !f.isOpen });
+                        }
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: f.isOpen ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                        color: f.isOpen ? '#10b981' : '#f43f5e'
+                      }}
+                    >
+                      {f.isOpen ? '● Dibuka di Web' : '○ Ditutup'}
+                    </button>
+
+                    {/* Edit Form */}
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem({ type: 'form', item: { ...f } })}
+                      style={{
+                        padding: '6px 10px',
+                        background: 'rgba(255,184,0,0.12)',
+                        border: '1px solid var(--mandiri-gold)',
+                        color: 'var(--mandiri-gold)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Edit2 size={13} />
+                      <span>Edit</span>
+                    </button>
+
+                    {/* Delete Form */}
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm({ 
+                        type: 'form', 
+                        id: f.id, 
+                        name: f.title,
+                        submissionCount: subCount 
+                      })}
+                      style={{
+                        padding: '6px 10px',
+                        background: 'rgba(244,63,94,0.12)',
+                        border: '1px solid #f43f5e',
+                        color: '#f43f5e',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Trash2 size={13} />
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* TAB CONTENT 4: APPLICANTS */}
-      {activeTab === 'applicants' && (
-        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
-            Daftar Berkas Pendaftar Masuk ({applications.length})
-          </h3>
+      {/* TAB CONTENT: SUBMISSIONS (BERKAS MASUK DINAMIS PER FORM) */}
+      {activeTab === 'submissions' && (
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                Kotak Masuk Berkas & Pendaftar ({submissions.length + applications.length})
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                Filter hasil isian formulir berdasarkan judul event pendaftaran dan unduh data.
+              </p>
+            </div>
 
-          {applications.length === 0 ? (
+            {/* Filter Dropdown & Export Button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <select
+                value={selectedSubFilter}
+                onChange={(e) => setSelectedSubFilter(e.target.value)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600
+                }}
+              >
+                <option value="all">Semua Formulir ({submissions.length + applications.length})</option>
+                {forms.map(f => (
+                  <option key={f.id} value={f.id}>{f.title}</option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const itemsToExport = selectedSubFilter === 'all' 
+                    ? [...submissions, ...applications]
+                    : submissions.filter(s => s.formId === selectedSubFilter);
+                  
+                  if (itemsToExport.length === 0) {
+                    alert('Tidak ada data untuk diexport.');
+                    return;
+                  }
+
+                  const csvContent = "data:text/csv;charset=utf-8," 
+                    + "ID,Form,Waktu Submit,Data Lengkap\n"
+                    + itemsToExport.map(s => {
+                        const summary = s.data 
+                          ? Object.entries(s.data).map(([k, v]) => `${k}: ${v}`).join(' | ') 
+                          : `${s.fullName} (${s.nip}) - ${s.unitSquad} - ${s.div1}`;
+                        return `"${s.id}","${s.formTitle || 'Oprec 2026'}","${s.submittedAt || ''}","${summary.replace(/"/g, '""')}"`;
+                      }).join("\n");
+
+                  const encodedUri = encodeURI(csvContent);
+                  const link = document.createElement("a");
+                  link.setAttribute("href", encodedUri);
+                  link.setAttribute("download", `pendaftar_cnt_it_apd_${Date.now()}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(14, 165, 233, 0.15)',
+                  border: '1px solid #0ea5e9',
+                  color: '#0ea5e9',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Download size={14} />
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Submissions List */}
+          {submissions.length === 0 && applications.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
-              Belum ada formulir baru yang disubmit pendaftar.
+              Belum ada berkas pendaftaran yang masuk.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {applications.map((app) => (
+              {/* Dynamic Submissions */}
+              {submissions
+                .filter(s => selectedSubFilter === 'all' || s.formId === selectedSubFilter)
+                .map((sub) => (
+                  <div key={sub.id} style={{
+                    padding: '16px 20px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-card)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{sub.formTitle || 'Formulir'}</span>
+                        <strong style={{ color: 'var(--text-main)', fontSize: '0.96rem' }}>
+                          {sub.data['f-fullName'] || sub.data['f-teamName'] || sub.data['f-name'] || 'Peserta'}
+                        </strong>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          • {sub.submittedAt}
+                        </span>
+                      </div>
+                      {onDeleteSubmission && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteSubmission(sub.id)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#f43f5e',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          Hapus Berkas
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Data Fields Preview */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '8px',
+                      background: 'var(--input-bg)',
+                      padding: '12px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.8rem'
+                    }}>
+                      {Object.entries(sub.data || {}).map(([key, val]) => (
+                        <div key={key}>
+                          <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.72rem' }}>{key.replace('f-', '').toUpperCase()}</span>
+                          <strong style={{ color: 'var(--text-main)' }}>{String(val)}</strong>
+                        </div>
+                      ))}
+                      {/* Attached File Preview */}
+                      {sub.files && Object.entries(sub.files).map(([key, fileObj]) => (
+                        <div key={key} style={{ gridColumn: 'span 2' }}>
+                          <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.72rem' }}>DOKUMEN TERLAMPIR</span>
+                          <a 
+                            href={fileObj.dataUrl} 
+                            download={fileObj.name} 
+                            style={{ color: 'var(--mandiri-gold)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
+                          >
+                            <Download size={13} />
+                            <span>Download {fileObj.name} ({fileObj.size})</span>
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+              {/* Legacy Applications (if any) */}
+              {(selectedSubFilter === 'all' || selectedSubFilter === 'form-oprec-2026') && applications.map((app) => (
                 <div key={app.id} style={{
                   padding: '16px 20px',
                   background: 'rgba(255,255,255,0.03)',
@@ -1767,26 +2120,22 @@ export default function AdminPortal({
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <strong style={{ color: 'var(--text-main)', fontSize: '1rem' }}>{app.fullName}</strong>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                      <span className="badge-gold" style={{ fontSize: '0.65rem', marginRight: '6px' }}>Oprec 2026</span>
+                      <strong style={{ color: 'var(--text-main)', fontSize: '0.96rem' }}>{app.fullName}</strong>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: '8px' }}>
                         (NIP: {app.nip} • {app.unitSquad})
                       </span>
                     </div>
-                    <span className="badge-gold" style={{ fontSize: '0.68rem' }}>
-                      {app.status}
-                    </span>
+                    <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{app.status || 'Submitted'}</span>
                   </div>
-
-                  <div style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--neon-cyan)' }}>
                     Pilihan 1: <strong>{app.div1}</strong> | Pilihan 2: <strong>{app.div2}</strong>
                   </div>
-
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
                     "{app.motivation}"
                   </p>
-
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-                    Kontak: {app.whatsapp} | {app.email}
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
+                    Kontak: {app.whatsapp} | {app.email} • {app.submittedAt}
                   </div>
                 </div>
               ))}
@@ -2123,6 +2472,53 @@ export default function AdminPortal({
               </div>
             )}
 
+            {/* Edit Form Fields */}
+            {editingItem.type === 'form' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Formulir</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.title || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Formulir</label>
+                  <select
+                    value={editingItem.item.category || 'Kegiatan & Event'}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  >
+                    <option value="Kegiatan & Event">Kegiatan & Event</option>
+                    <option value="Rekrutmen">Rekrutmen & Oprec</option>
+                    <option value="Turnamen & Olahraga">Turnamen & Olahraga</option>
+                    <option value="Survei & Aspirasi">Survei & Aspirasi</option>
+                    <option value="Workshop & Sharing">Workshop & Sharing</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Batas Akhir / Deadline</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.deadline || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Singkat / Subtitle</label>
+                  <textarea
+                    rows={3}
+                    value={editingItem.item.subtitle || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, subtitle: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
               <button
                 type="button"
@@ -2148,6 +2544,7 @@ export default function AdminPortal({
                   if (editingItem.type === 'gallery' && onUpdateGallery) onUpdateGallery(editingItem.item);
                   if (editingItem.type === 'tenure' && onUpdateTenure) onUpdateTenure(editingItem.item);
                   if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
+                  if (editingItem.type === 'form' && onUpdateForm) onUpdateForm(editingItem.item);
                   setEditingItem(null);
                   alert('Perubahan data berhasil disimpan!');
                 }}
@@ -2215,10 +2612,25 @@ export default function AdminPortal({
             </h3>
 
             <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-              Apakah Anda yakin ingin menghapus <strong>"{deleteConfirm.name}"</strong> secara permanen dari sistem? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus <strong>"{deleteConfirm.name}"</strong>?
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '8px' }}>
+            {deleteConfirm.submissionCount > 0 && (
+              <div style={{
+                background: 'rgba(255, 184, 0, 0.12)',
+                border: '1px solid rgba(255, 184, 0, 0.35)',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.78rem',
+                color: 'var(--mandiri-gold)',
+                textAlign: 'left',
+                lineHeight: 1.4
+              }}>
+                ⚠️ <strong>Perhatian:</strong> Formulir ini sudah memiliki <strong>{deleteConfirm.submissionCount} berkas masuk</strong> dari peserta!
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setDeleteConfirm(null)}
@@ -2235,29 +2647,76 @@ export default function AdminPortal({
               >
                 Batalkan
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (deleteConfirm.type === 'member' && onDeleteMember) onDeleteMember(deleteConfirm.id);
-                  if (deleteConfirm.type === 'division' && onDeleteDivision) onDeleteDivision(deleteConfirm.id);
-                  if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
-                  if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
-                  if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
-                  setDeleteConfirm(null);
-                }}
-                style={{
-                  padding: '9px 20px',
-                  borderRadius: 'var(--radius-full)',
-                  background: '#f43f5e',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Ya, Hapus Data
-              </button>
+
+              {deleteConfirm.type === 'form' && deleteConfirm.submissionCount > 0 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onDeleteForm) onDeleteForm(deleteConfirm.id, false); // preserve submissions
+                      setDeleteConfirm(null);
+                    }}
+                    style={{
+                      padding: '9px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--mandiri-blue)',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
+                    title="Hapus form dari website, tapi berkas peserta tetap tersimpan di riwayat"
+                  >
+                    Hapus Form Saja (Arsipkan Data)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onDeleteForm) onDeleteForm(deleteConfirm.id, true); // delete submissions too
+                      setDeleteConfirm(null);
+                    }}
+                    style={{
+                      padding: '9px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      background: '#f43f5e',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Hapus Permanen + Berkas
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (deleteConfirm.type === 'member' && onDeleteMember) onDeleteMember(deleteConfirm.id);
+                    if (deleteConfirm.type === 'division' && onDeleteDivision) onDeleteDivision(deleteConfirm.id);
+                    if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
+                    if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
+                    if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
+                    if (deleteConfirm.type === 'form' && onDeleteForm) onDeleteForm(deleteConfirm.id, true);
+                    setDeleteConfirm(null);
+                  }}
+                  style={{
+                    padding: '9px 20px',
+                    borderRadius: 'var(--radius-full)',
+                    background: '#f43f5e',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ya, Hapus Data
+                </button>
+              )}
             </div>
           </div>
         </div>
