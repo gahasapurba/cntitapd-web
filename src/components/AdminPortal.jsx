@@ -2263,10 +2263,12 @@ export default function AdminPortal({
           justifyContent: 'center',
           padding: '20px'
         }}>
-          <div className="glass-panel" style={{
+          <div className="glass-panel modal-container" style={{
             maxWidth: '560px',
             width: '100%',
-            padding: '30px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px',
             border: '1.5px solid var(--mandiri-gold)',
             boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
             display: 'flex',
@@ -2582,10 +2584,12 @@ export default function AdminPortal({
           justifyContent: 'center',
           padding: '20px'
         }}>
-          <div className="glass-panel" style={{
+          <div className="glass-panel modal-container" style={{
             maxWidth: '440px',
             width: '100%',
-            padding: '28px',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            padding: '24px',
             border: '1.5px solid #f43f5e',
             boxShadow: '0 10px 40px rgba(244, 63, 94, 0.3)',
             display: 'flex',
