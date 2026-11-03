@@ -258,13 +258,11 @@ export default function AssetKitSection({ theme }) {
           </div>
 
           {/* Included Files Checklist */}
-          <div style={{
+          <div className="mobile-two-col" style={{
             background: 'rgba(255, 255, 255, 0.03)',
             padding: '16px 20px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-card)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
             gap: '10px',
             textAlign: 'left',
             width: '100%'

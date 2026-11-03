@@ -303,7 +303,7 @@ export default function HomeSection({
       <section style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))',
           gap: '24px'
         }}>
           {/* Visi Card */}
@@ -560,7 +560,7 @@ export default function HomeSection({
             </div>
           ) : (
             /* If multiple active forms: Display rich interactive card grid showcasing EACH active form */
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))', gap: '20px' }}>
               {activeForms.map((f, fIdx) => (
                 <div
                   key={f.id}

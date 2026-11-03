@@ -186,7 +186,7 @@ export default function ProgramSection({ events = [], divisions = [], theme, onN
       {viewMode === 'grid' && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))',
           gap: '24px',
         }}>
           {filteredEvents.map((evt) => {

@@ -2035,12 +2035,12 @@ export default function AdminPortal({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {galDocLinks.map((linkItem, lIdx) => (
                   <div key={lIdx} style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1.4fr auto',
+                    display: 'flex',
+                    flexWrap: 'wrap',
                     gap: '8px',
                     alignItems: 'center'
                   }}>
-                    <div>
+                    <div style={{ flex: '1 1 180px' }}>
                       <input
                         type="text"
                         placeholder="Nama Teks (misal: Dokumentasi GDrive)"
@@ -2057,7 +2057,7 @@ export default function AdminPortal({
                         }}
                       />
                     </div>
-                    <div>
+                    <div style={{ flex: '1.4 1 220px' }}>
                       <input
                         type="url"
                         placeholder="https://drive.google.com/..."
@@ -2204,10 +2204,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          <form onSubmit={handleCreateDivision} noValidate style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px',
+          <form onSubmit={handleCreateDivision} noValidate className="admin-form-two-col" style={{
             background: 'rgba(255,255,255,0.03)',
             padding: '20px',
             borderRadius: 'var(--radius-md)',
@@ -2407,9 +2404,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          <form onSubmit={handleCreateTenure} noValidate style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+          <form onSubmit={handleCreateTenure} noValidate className="admin-form-two-col" style={{
             gap: '12px',
             background: 'rgba(255,255,255,0.03)',
             padding: '20px',
@@ -2702,9 +2697,8 @@ export default function AdminPortal({
               setNewFormDeadline('');
               showToast(`Formulir "${newForm.title}" berhasil dibuat & dipublikasikan!`);
             }}
+            className="admin-form-two-col"
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
               gap: '12px',
               background: 'rgba(255,255,255,0.03)',
               padding: '20px',
@@ -3641,7 +3635,7 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Formulir</label>
                     <select
@@ -3730,7 +3724,7 @@ export default function AdminPortal({
                           gap: '8px'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <input
                             type="text"
                             value={fld.label || ''}
@@ -3741,7 +3735,7 @@ export default function AdminPortal({
                               );
                               setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
                             }}
-                            style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
+                            style={{ flex: '1 1 160px', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
                           <select
                             value={fld.type || 'text'}
@@ -3819,7 +3813,7 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal Mulai</label>
                     <input
