@@ -85,6 +85,14 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
   const safePhotoIdx = activeEvent.photos && currentPhotoIdx < activeEvent.photos.length ? currentPhotoIdx : 0;
   const currentPhotoUrl = activeEvent.photos[safePhotoIdx] || activeEvent.photos[0];
 
+  const getDownloadPhotoUrl = (url) => {
+    if (!url || typeof url !== 'string') return '';
+    if (url.includes('supabase.co/storage/v1/')) {
+      return url.replace(/https:\/\/[^/]+\.supabase\.co\/storage\/v1\//, '/storage-proxy/');
+    }
+    return url;
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px' }}>
       
@@ -160,7 +168,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
             </button>
 
             <a
-              href={currentPhotoUrl}
+              href={getDownloadPhotoUrl(currentPhotoUrl)}
               download={`${(activeEvent.title || 'dokumentasi').replace(/\s+/g, '_')}_${currentPhotoIdx + 1}.jpg`}
               target="_blank"
               rel="noopener noreferrer"
@@ -557,7 +565,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <a
-                href={currentPhotoUrl}
+                href={getDownloadPhotoUrl(currentPhotoUrl)}
                 download={`${(activeEvent.title || 'dokumentasi').replace(/\s+/g, '_')}_${currentPhotoIdx + 1}.jpg`}
                 target="_blank"
                 rel="noopener noreferrer"

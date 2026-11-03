@@ -19,55 +19,27 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
-  const [downloadingId, setDownloadingId] = useState(null);
 
-  const handleDownloadAsset = async (e, item) => {
-    e.preventDefault();
-    const downloadUrl = (item.fileUrl || item.previewUrl || '').trim();
-    if (!downloadUrl) {
-      alert('Tautan berkas download untuk asset ini belum tersedia.');
-      return;
+  // Generate safe same-origin download / view URL (using Netlify / local reverse proxy for Supabase Storage)
+  const getAssetDownloadUrl = (item) => {
+    const rawUrl = (item.fileUrl || item.previewUrl || '').trim();
+    if (!rawUrl) return '#';
+    if (rawUrl.includes('supabase.co/storage/v1/')) {
+      return rawUrl.replace(/https:\/\/[^/]+\.supabase\.co\/storage\/v1\//, '/storage-proxy/');
     }
+    return rawUrl;
+  };
 
-    const triggerDownload = (url, filename) => {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    };
-
-    setDownloadingId(item.id);
-    try {
-      // Local or blob URLs
-      if (downloadUrl.startsWith('/') || downloadUrl.startsWith('blob:') || downloadUrl.startsWith(window.location.origin)) {
-        const cleanName = downloadUrl.split('/').pop()?.split('?')[0] || `${item.title || 'asset'}.${(item.fileType || 'zip').toLowerCase()}`;
-        triggerDownload(downloadUrl, cleanName);
-        setDownloadingId(null);
-        return;
-      }
-
-      // Remote CDN (Supabase) - fetch as blob to enforce local file download
-      const res = await fetch(downloadUrl);
-      if (!res.ok) throw new Error('Fetch failed');
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const urlExt = (downloadUrl.split('.').pop() || '').split('?')[0];
-      const fallbackExt = (item.fileType || urlExt || 'file').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const rawName = downloadUrl.split('/').pop()?.split('?')[0];
-      const filename = rawName && rawName.includes('.')
-        ? rawName
-        : `${(item.title || 'asset').replace(/[^a-zA-Z0-9_-]/g, '_')}.${fallbackExt || 'bin'}`;
-
-      triggerDownload(blobUrl, filename);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-    } catch (err) {
-      console.warn('Direct blob download failed, opening in new tab:', err);
-      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
-    } finally {
-      setDownloadingId(null);
+  // Generate clean filename for browser download
+  const getAssetFilename = (item) => {
+    const rawUrl = (item.fileUrl || item.previewUrl || '').trim();
+    const rawFilePart = rawUrl.split('/').pop()?.split('?')[0] || '';
+    if (rawFilePart && rawFilePart.includes('.')) {
+      return decodeURIComponent(rawFilePart);
     }
+    const cleanBase = (item.title || 'asset').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_');
+    const ext = (item.fileType || 'file').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `${cleanBase}.${ext || 'png'}`;
   };
 
   const categories = ['Semua', ...Array.from(new Set(brandAssets.map(a => a.category || 'Logo & Brand')))];
@@ -411,10 +383,18 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', paddingTop: '10px', borderTop: '1px solid var(--border-card)' }}>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDownloadAsset(e, item)}
-                      disabled={downloadingId === item.id}
+                    <a
+                      href={getAssetDownloadUrl(item)}
+                      download={getAssetFilename(item)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        const target = getAssetDownloadUrl(item);
+                        if (!target || target === '#') {
+                          e.preventDefault();
+                          alert('Tautan berkas download untuk asset ini belum tersedia.');
+                        }
+                      }}
                       style={{
                         flex: 1,
                         display: 'inline-flex',
@@ -423,18 +403,19 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
                         gap: '7px',
                         padding: '10px 14px',
                         borderRadius: 'var(--radius-md)',
-                        background: downloadingId === item.id ? 'var(--input-bg)' : 'var(--mandiri-gold)',
-                        color: downloadingId === item.id ? 'var(--text-muted)' : '#040914',
+                        background: 'var(--mandiri-gold)',
+                        color: '#040914',
                         fontWeight: 800,
                         fontSize: '0.8rem',
                         border: 'none',
-                        cursor: downloadingId === item.id ? 'wait' : 'pointer',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
                         transition: 'all 0.2s ease'
                       }}
                     >
                       <Download size={14} />
-                      <span>{downloadingId === item.id ? 'Mengunduh...' : 'Download / Buka'}</span>
-                    </button>
+                      <span>Download / Buka</span>
+                    </a>
                   </div>
                 </div>
               );
