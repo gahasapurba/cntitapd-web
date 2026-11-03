@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Lock, 
   KeyRound, 
@@ -267,6 +267,19 @@ export default function AdminPortal({
       item: { ...editingItem.item, fields: currentFields }
     });
   };
+
+  // Close modals on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (editingItem) setEditingItem(null);
+        else if (deleteConfirm) setDeleteConfirm(null);
+        else if (showExecutiveReportModal) setShowExecutiveReportModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingItem, deleteConfirm, showExecutiveReportModal]);
 
   // Form states for new Gallery Event
   const [galTitle, setGalTitle] = useState('');
@@ -5059,36 +5072,53 @@ export default function AdminPortal({
 
       {/* EDIT MODAL DIALOG */}
       {editingItem && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div className="glass-panel modal-container" style={{
-            maxWidth: '560px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '24px',
-            border: '1.5px solid var(--mandiri-gold)',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+        <div 
+          onClick={() => setEditingItem(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.78)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            zIndex: 99999,
             display: 'flex',
-            flexDirection: 'column',
-            gap: '16px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel modal-container modal-structured" 
+            style={{
+              maxWidth: editingItem.type === 'form' ? '680px' : '580px',
+              width: '100%',
+              maxHeight: 'min(90vh, 780px)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              padding: 0,
+              border: '1.5px solid var(--mandiri-gold)',
+              boxShadow: '0 25px 65px rgba(0, 0, 0, 0.75)',
+              borderRadius: 'var(--radius-lg)'
+            }}
+          >
+            {/* Pinned Sticky Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 22px',
+              borderBottom: '1px solid var(--border-card)',
+              background: 'var(--bg-card)',
+              flexShrink: 0
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Edit2 size={18} color="var(--mandiri-gold)" />
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                   Edit {
                     editingItem.type === 'member' ? 'Data Personel' :
                     editingItem.type === 'division' ? 'Data Divisi' :
@@ -5103,17 +5133,36 @@ export default function AdminPortal({
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setEditingItem(null)}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--border-card)',
                   color: 'var(--text-muted)',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s ease'
                 }}
+                title="Tutup (ESC)"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
+
+            {/* Scrollable Modal Content */}
+            <div style={{
+              padding: '20px 22px',
+              overflowY: 'auto',
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}>
 
             {/* Edit Member Form (Complete Fields) */}
             {editingItem.type === 'member' && (
@@ -6259,7 +6308,19 @@ export default function AdminPortal({
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+            </div>
+
+            {/* Pinned Sticky Footer Buttons */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '14px 22px',
+              borderTop: '1px solid var(--border-card)',
+              background: 'var(--bg-card)',
+              flexShrink: 0
+            }}>
               <button
                 type="button"
                 onClick={() => setEditingItem(null)}
@@ -6318,14 +6379,15 @@ export default function AdminPortal({
                   showToast('Perubahan data berhasil disimpan & disinkronkan ke Cloud!');
                 }}
                 style={{
-                  padding: '9px 20px',
+                  padding: '9px 24px',
                   borderRadius: 'var(--radius-full)',
                   background: 'var(--mandiri-gold)',
                   border: 'none',
                   color: '#040914',
                   fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
+                  fontSize: '0.86rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(255, 184, 0, 0.35)'
                 }}
               >
                 Simpan Perubahan
@@ -6345,7 +6407,7 @@ export default function AdminPortal({
           bottom: 0,
           background: 'rgba(0, 0, 0, 0.8)',
           backdropFilter: 'blur(8px)',
-          zIndex: 1000,
+          zIndex: 99999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -6517,7 +6579,7 @@ export default function AdminPortal({
             background: 'rgba(0, 0, 0, 0.82)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            zIndex: 10000,
+            zIndex: 99999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

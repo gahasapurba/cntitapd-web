@@ -383,8 +383,10 @@ select option {
 
   /* Make sure modal fits screen comfortably with margins */
   .modal-container {
-    padding: 16px 12px !important;
     max-height: 94vh !important;
+  }
+  .modal-container:not(.modal-structured) {
+    padding: 16px 12px !important;
   }
 }
 

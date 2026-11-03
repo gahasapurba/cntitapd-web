@@ -522,7 +522,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
             background: 'rgba(2, 6, 20, 0.92)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            zIndex: 9999,
+            zIndex: 99999,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',

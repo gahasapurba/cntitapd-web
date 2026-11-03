@@ -839,7 +839,7 @@ export default function KudosSection({
           bottom: 0,
           background: 'rgba(0, 0, 0, 0.75)',
           backdropFilter: 'blur(8px)',
-          zIndex: 9999,
+          zIndex: 99999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

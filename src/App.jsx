@@ -922,7 +922,7 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className="container" style={{ flex: 1, paddingTop: '32px', position: 'relative', zIndex: 10 }}>
+      <main className="container" style={{ flex: 1, paddingTop: '32px', position: 'relative' }}>
         {effectiveTab === 'all-hidden' && (
           <div style={{ maxWidth: '620px', margin: '60px auto 80px auto', textAlign: 'center', padding: '0 16px' }}>
             <div className="glass-panel" style={{

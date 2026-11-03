@@ -11,7 +11,7 @@ export default function Footer({ onNavigateAdmin, theme }) {
       padding: '40px 0 28px 0',
       marginTop: 'auto',
       position: 'relative',
-      zIndex: 10
+      zIndex: 5
     }}>
       <div className="container" style={{
         display: 'flex',
