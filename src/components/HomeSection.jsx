@@ -798,7 +798,7 @@ export default function HomeSection({
                     Fokus Inisiatif:
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {div.focusAreas?.slice(0, 2).map((fa, idx) => (
+                    {(div.focusAreas || []).map((fa, idx) => (
                       <span key={idx} style={{
                         fontSize: '0.72rem',
                         background: 'rgba(255,255,255,0.06)',
