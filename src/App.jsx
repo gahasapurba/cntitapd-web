@@ -160,7 +160,7 @@ export default function App() {
     try {
       channel = supabase
         .channel('cnt-cloud-sync-live')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kudos' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
           syncFromCloud();
         })
         .subscribe();
