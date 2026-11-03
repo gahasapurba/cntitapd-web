@@ -204,8 +204,8 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'rgba(0,0,0,0.6)',
-                  color: 'var(--text-main)',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255,255,255,0.25)',
                   width: '42px',
                   height: '42px',
                   borderRadius: '50%',
@@ -228,8 +228,8 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'rgba(0,0,0,0.6)',
-                  color: 'var(--text-main)',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255,255,255,0.25)',
                   width: '42px',
                   height: '42px',
                   borderRadius: '50%',
@@ -251,13 +251,17 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
             position: 'absolute',
             bottom: '16px',
             right: '16px',
-            background: 'rgba(0,0,0,0.7)',
-            color: 'var(--text-main)',
+            background: 'rgba(0,0,0,0.72)',
+            color: '#ffffff',
+            border: '1px solid rgba(255,255,255,0.25)',
             fontSize: '0.78rem',
             padding: '4px 12px',
             borderRadius: 'var(--radius-full)',
             fontFamily: 'monospace',
-            fontWeight: 700
+            fontWeight: 700,
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
           }}>
             {safePhotoIdx + 1} / {activeEvent.photos.length} Foto
           </div>
