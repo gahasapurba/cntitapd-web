@@ -36,9 +36,11 @@ export default function HomeSection({
   const isProgramVisible = pageVisibility.program !== false;
   const activeForms = isOprecVisible ? forms.filter(f => f.isOpen !== false) : [];
   const primaryForm = activeForms[0] || recruitmentInfo || null;
-  const pembina = members.find(m => m.category === 'pembina');
-  const ketua = members.find(m => m.role === 'Ketua');
-  const wakil = members.find(m => m.role === 'Wakil Ketua');
+  const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
+  const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
+  const pembina = activeMembers.find(m => m.category === 'pembina');
+  const ketua = activeMembers.find(m => m.role === 'Ketua');
+  const wakil = activeMembers.find(m => m.role === 'Wakil Ketua');
 
   const handleTabChange = (tabId) => {
     if (pageVisibility[tabId] === false) return;

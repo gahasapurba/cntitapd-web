@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Lock, EyeOff, Sun, Moon } from 'lucide-react';
 import StarfieldBackground from './components/StarfieldBackground';
 import Navbar from './components/Navbar';
@@ -23,6 +23,14 @@ import {
   INITIAL_SUBMISSIONS
 } from './data/initialData';
 import DynamicFormSection from './components/DynamicFormSection';
+import {
+  supabase,
+  loadLocalCache,
+  saveLocalCache,
+  fetchAllCloudState,
+  pushCloudState,
+  mergeAndPushCloudList
+} from './lib/supabase';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'program', 'galeri', 'kudos', 'assets', 'oprec'];
 
@@ -47,21 +55,19 @@ export default function App() {
   });
 
   // Page & Navbar Visibility State (View / Hide per page & navbar)
-  const [pageVisibility, setPageVisibility] = useState(() => {
+  const [pageVisibility, setPageVisibilityState] = useState(() => {
+    const cached = loadLocalCache('pageVisibility', null);
+    if (cached && typeof cached === 'object') {
+      return { ...DEFAULT_PAGE_VISIBILITY, ...cached };
+    }
     try {
-      const saved = localStorage.getItem('cnt_page_visibility');
-      if (saved) {
-        return { ...DEFAULT_PAGE_VISIBILITY, ...JSON.parse(saved) };
+      const legacy = localStorage.getItem('cnt_page_visibility');
+      if (legacy) {
+        return { ...DEFAULT_PAGE_VISIBILITY, ...JSON.parse(legacy) };
       }
     } catch (e) {}
     return DEFAULT_PAGE_VISIBILITY;
   });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cnt_page_visibility', JSON.stringify(pageVisibility));
-    } catch (e) {}
-  }, [pageVisibility]);
 
   // Default theme is LIGHT THEME as requested
   const [theme, setTheme] = useState(() => {
@@ -91,103 +97,338 @@ export default function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  // Master Dynamic States
-  const [tenures, setTenures] = useState(INITIAL_TENURES);
-  const [activeTenure, setActiveTenure] = useState(INITIAL_TENURES[0]);
-  const [divisions, setDivisions] = useState(INITIAL_DIVISIONS);
-  const [members, setMembers] = useState(INITIAL_MEMBERS);
-  const [events, setEvents] = useState(INITIAL_EVENTS);
-  const [galleries, setGalleries] = useState(INITIAL_GALLERIES);
-  const [kudosList, setKudosList] = useState(INITIAL_KUDOS);
-  const [forms, setForms] = useState(INITIAL_FORMS);
-  const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
+  // Master Dynamic States (Loaded from LocalCache immediately + Synced with Supabase Cloud)
+  const [tenures, setTenures] = useState(() => loadLocalCache('tenures', INITIAL_TENURES));
+  const [activeTenure, setActiveTenure] = useState(() => {
+    const savedTenures = loadLocalCache('tenures', INITIAL_TENURES);
+    const savedActiveId = loadLocalCache('activeTenureId', null);
+    if (savedActiveId) {
+      const found = savedTenures.find(t => t.id === savedActiveId);
+      if (found) return found;
+    }
+    return savedTenures.find(t => t.isActive) || savedTenures[0] || INITIAL_TENURES[0];
+  });
+  const [divisions, setDivisions] = useState(() => loadLocalCache('divisions', INITIAL_DIVISIONS));
+  const [members, setMembers] = useState(() => loadLocalCache('members', INITIAL_MEMBERS));
+  const [events, setEvents] = useState(() => loadLocalCache('events', INITIAL_EVENTS));
+  const [galleries, setGalleries] = useState(() => loadLocalCache('galleries', INITIAL_GALLERIES));
+  const [kudosList, setKudosList] = useState(() => loadLocalCache('kudosList', INITIAL_KUDOS));
+  const [forms, setForms] = useState(() => loadLocalCache('forms', INITIAL_FORMS));
+  const [submissions, setSubmissions] = useState(() => loadLocalCache('submissions', INITIAL_SUBMISSIONS));
+  const [aspirasiList, setAspirasiList] = useState(() => loadLocalCache('aspirasiList', []));
+  const [syncStatus, setSyncStatus] = useState('synced');
 
-  // Dynamic Add, Edit & Delete Handlers
+  // Pull & Reconcile Cloud State across devices
+  const syncFromCloud = useCallback(async () => {
+    setSyncStatus('syncing');
+    const cloud = await fetchAllCloudState();
+    if (cloud) {
+      if (Array.isArray(cloud.tenures) && cloud.tenures.length > 0) {
+        setTenures(cloud.tenures);
+        const targetId = cloud.activeTenureId || loadLocalCache('activeTenureId', null);
+        const found = cloud.tenures.find(t => t.id === targetId) || cloud.tenures.find(t => t.isActive) || cloud.tenures[0];
+        if (found) setActiveTenure(found);
+      }
+      if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) setDivisions(cloud.divisions);
+      if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
+      if (Array.isArray(cloud.events) && cloud.events.length > 0) setEvents(cloud.events);
+      if (Array.isArray(cloud.galleries) && cloud.galleries.length > 0) setGalleries(cloud.galleries);
+      if (Array.isArray(cloud.kudosList)) setKudosList(cloud.kudosList);
+      if (Array.isArray(cloud.forms) && cloud.forms.length > 0) setForms(cloud.forms);
+      if (Array.isArray(cloud.submissions)) setSubmissions(cloud.submissions);
+      if (Array.isArray(cloud.aspirasiList)) setAspirasiList(cloud.aspirasiList);
+      if (cloud.pageVisibility && typeof cloud.pageVisibility === 'object') {
+        const mergedVis = { ...DEFAULT_PAGE_VISIBILITY, ...cloud.pageVisibility };
+        setPageVisibilityState(mergedVis);
+        try { localStorage.setItem('cnt_page_visibility', JSON.stringify(mergedVis)); } catch (e) {}
+      }
+    }
+    setSyncStatus('synced');
+  }, []);
+
+  useEffect(() => {
+    syncFromCloud();
+
+    const onFocus = () => syncFromCloud();
+    window.addEventListener('focus', onFocus);
+
+    const intervalId = setInterval(() => {
+      syncFromCloud();
+    }, 12000);
+
+    let channel;
+    try {
+      channel = supabase
+        .channel('cnt-cloud-sync-live')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kudos' }, () => {
+          syncFromCloud();
+        })
+        .subscribe();
+    } catch (e) {}
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      clearInterval(intervalId);
+      if (channel) {
+        try { supabase.removeChannel(channel); } catch (e) {}
+      }
+    };
+  }, [syncFromCloud]);
+
+  const setPageVisibility = (nextVis) => {
+    const resolved = typeof nextVis === 'function' ? nextVis(pageVisibility) : nextVis;
+    const merged = { ...DEFAULT_PAGE_VISIBILITY, ...resolved };
+    setPageVisibilityState(merged);
+    try { localStorage.setItem('cnt_page_visibility', JSON.stringify(merged)); } catch (e) {}
+    pushCloudState('pageVisibility', merged);
+  };
+
+  const handleSelectTenure = (tenureObj) => {
+    setActiveTenure(tenureObj);
+    pushCloudState('activeTenureId', tenureObj.id);
+  };
+
+  // Dynamic Add, Edit & Delete Handlers (Persisted to LocalStorage + Supabase Cloud)
   const handleAddDivision = (newDiv) => {
-    setDivisions((prev) => [...prev, newDiv]);
+    setDivisions((prev) => {
+      const next = [...prev, newDiv];
+      pushCloudState('divisions', next);
+      return next;
+    });
   };
   const handleUpdateDivision = (updatedDiv) => {
-    setDivisions((prev) => prev.map(d => d.id === updatedDiv.id ? updatedDiv : d));
+    setDivisions((prev) => {
+      const next = prev.map(d => d.id === updatedDiv.id ? updatedDiv : d);
+      pushCloudState('divisions', next);
+      return next;
+    });
   };
   const handleDeleteDivision = (divId) => {
-    setDivisions((prev) => prev.filter(d => d.id !== divId));
-    setEvents((prev) => prev.filter(e => e.divisionId !== divId));
+    setDivisions((prev) => {
+      const next = prev.filter(d => d.id !== divId);
+      pushCloudState('divisions', next);
+      return next;
+    });
+    setEvents((prev) => {
+      const next = prev.filter(e => e.divisionId !== divId);
+      pushCloudState('events', next);
+      return next;
+    });
   };
 
   const handleAddTenure = (newTenure) => {
-    setTenures((prev) => [...prev, newTenure]);
+    setTenures((prev) => {
+      const next = [...prev, newTenure];
+      pushCloudState('tenures', next);
+      return next;
+    });
   };
   const handleUpdateTenure = (updatedTenure) => {
-    setTenures((prev) => prev.map(t => t.id === updatedTenure.id ? updatedTenure : t));
-    if (activeTenure.id === updatedTenure.id) setActiveTenure(updatedTenure);
+    setTenures((prev) => {
+      const next = prev.map(t => t.id === updatedTenure.id ? updatedTenure : t);
+      pushCloudState('tenures', next);
+      return next;
+    });
+    if (activeTenure.id === updatedTenure.id) {
+      setActiveTenure(updatedTenure);
+    }
   };
   const handleDeleteTenure = (tenureId) => {
-    setTenures((prev) => prev.filter(t => t.id !== tenureId));
-    if (activeTenure.id === tenureId && tenures.length > 1) {
-      setActiveTenure(tenures.find(t => t.id !== tenureId));
-    }
+    setTenures((prev) => {
+      const next = prev.filter(t => t.id !== tenureId);
+      pushCloudState('tenures', next);
+      if (activeTenure.id === tenureId && next.length > 0) {
+        setActiveTenure(next[0]);
+        pushCloudState('activeTenureId', next[0].id);
+      }
+      return next;
+    });
   };
 
   const handleAddGallery = (newGal) => {
-    setGalleries((prev) => [newGal, ...prev]);
+    setGalleries((prev) => {
+      const next = [newGal, ...prev];
+      pushCloudState('galleries', next);
+      return next;
+    });
   };
   const handleUpdateGallery = (updatedGal) => {
-    setGalleries((prev) => prev.map(g => g.id === updatedGal.id ? updatedGal : g));
+    setGalleries((prev) => {
+      const next = prev.map(g => g.id === updatedGal.id ? updatedGal : g);
+      pushCloudState('galleries', next);
+      return next;
+    });
   };
   const handleDeleteGallery = (galId) => {
-    setGalleries((prev) => prev.filter(g => g.id !== galId));
+    setGalleries((prev) => {
+      const next = prev.filter(g => g.id !== galId);
+      pushCloudState('galleries', next);
+      return next;
+    });
   };
 
   const handleAddMember = (newMem) => {
-    setMembers((prev) => [...prev, newMem]);
+    setMembers((prev) => {
+      const next = [...prev, newMem];
+      pushCloudState('members', next);
+      return next;
+    });
   };
   const handleUpdateMember = (updatedMem) => {
-    setMembers((prev) => prev.map(m => m.id === updatedMem.id ? updatedMem : m));
+    setMembers((prev) => {
+      const next = prev.map(m => m.id === updatedMem.id ? updatedMem : m);
+      pushCloudState('members', next);
+      return next;
+    });
   };
   const handleDeleteMember = (memId) => {
-    setMembers((prev) => prev.filter(m => m.id !== memId));
+    setMembers((prev) => {
+      const next = prev.filter(m => m.id !== memId);
+      pushCloudState('members', next);
+      return next;
+    });
   };
 
   const handleAddEvent = (newEvt) => {
-    setEvents((prev) => [...prev, newEvt]);
+    setEvents((prev) => {
+      const next = [...prev, newEvt];
+      pushCloudState('events', next);
+      return next;
+    });
   };
   const handleUpdateEvent = (updatedEvt) => {
-    setEvents((prev) => prev.map(e => e.id === updatedEvt.id ? updatedEvt : e));
+    setEvents((prev) => {
+      const next = prev.map(e => e.id === updatedEvt.id ? updatedEvt : e);
+      pushCloudState('events', next);
+      return next;
+    });
   };
   const handleDeleteEvent = (evtId) => {
-    setEvents((prev) => prev.filter(e => e.id !== evtId));
+    setEvents((prev) => {
+      const next = prev.filter(e => e.id !== evtId);
+      pushCloudState('events', next);
+      return next;
+    });
   };
 
   // Dynamic Forms Lifecycle Handlers
   const handleAddForm = (newForm) => {
-    setForms((prev) => [newForm, ...prev]);
+    setForms((prev) => {
+      const next = [newForm, ...prev];
+      pushCloudState('forms', next);
+      return next;
+    });
   };
   const handleUpdateForm = (updatedForm) => {
-    setForms((prev) => prev.map(f => f.id === updatedForm.id ? updatedForm : f));
+    setForms((prev) => {
+      const next = prev.map(f => f.id === updatedForm.id ? updatedForm : f);
+      pushCloudState('forms', next);
+      return next;
+    });
   };
   const handleDeleteForm = (formId, deleteSubmissions = false) => {
-    setForms((prev) => prev.filter(f => f.id !== formId));
+    setForms((prev) => {
+      const next = prev.filter(f => f.id !== formId);
+      pushCloudState('forms', next);
+      return next;
+    });
     if (deleteSubmissions) {
-      setSubmissions((prev) => prev.filter(s => s.formId !== formId));
+      setSubmissions((prev) => {
+        const next = prev.filter(s => s.formId !== formId);
+        pushCloudState('submissions', next);
+        return next;
+      });
     }
   };
 
-  // Submissions Lifecycle Handlers
-  const handleSubmitSubmission = (newSub) => {
-    setSubmissions((prev) => [newSub, ...prev]);
+  // Submissions Lifecycle Handlers (Atomic merge across devices)
+  const handleSubmitSubmission = async (newSub) => {
+    setSubmissions((prev) => {
+      const next = [newSub, ...prev];
+      saveLocalCache('submissions', next);
+      return next;
+    });
+    const merged = await mergeAndPushCloudList('submissions', newSub, submissions);
+    if (Array.isArray(merged)) setSubmissions(merged);
   };
   const handleDeleteSubmission = (subId) => {
-    setSubmissions((prev) => prev.filter(s => s.id !== subId));
+    setSubmissions((prev) => {
+      const next = prev.filter(s => s.id !== subId);
+      pushCloudState('submissions', next);
+      return next;
+    });
   };
 
-  const handleAddKudos = (newKudos) => {
-    setKudosList((prev) => [newKudos, ...prev]);
+  const handleAddKudos = async (newKudos) => {
+    setKudosList((prev) => {
+      const next = [newKudos, ...prev];
+      saveLocalCache('kudosList', next);
+      return next;
+    });
+    const merged = await mergeAndPushCloudList('kudosList', newKudos, kudosList);
+    if (Array.isArray(merged)) setKudosList(merged);
   };
   const handleUpdateKudos = (updatedKudos) => {
-    setKudosList((prev) => prev.map(k => k.id === updatedKudos.id ? updatedKudos : k));
+    setKudosList((prev) => {
+      const next = prev.map(k => k.id === updatedKudos.id ? updatedKudos : k);
+      pushCloudState('kudosList', next);
+      return next;
+    });
   };
   const handleDeleteKudos = (kudosId) => {
-    setKudosList((prev) => prev.filter(k => k.id !== kudosId));
+    setKudosList((prev) => {
+      const next = prev.filter(k => k.id !== kudosId);
+      pushCloudState('kudosList', next);
+      return next;
+    });
+  };
+
+  // Aspirasi Lifecycle Handlers
+  const handleAddAspirasi = async (newAsp) => {
+    setAspirasiList((prev) => {
+      const next = [newAsp, ...prev];
+      saveLocalCache('aspirasiList', next);
+      return next;
+    });
+    const merged = await mergeAndPushCloudList('aspirasiList', newAsp, aspirasiList);
+    if (Array.isArray(merged)) setAspirasiList(merged);
+  };
+  const handleDeleteAspirasi = (aspId) => {
+    setAspirasiList((prev) => {
+      const next = prev.filter(a => a.id !== aspId);
+      pushCloudState('aspirasiList', next);
+      return next;
+    });
+  };
+
+  // Reset all collections back to initial defaults
+  const handleResetDefault = async () => {
+    setTenures(INITIAL_TENURES);
+    setActiveTenure(INITIAL_TENURES[0]);
+    setDivisions(INITIAL_DIVISIONS);
+    setMembers(INITIAL_MEMBERS);
+    setEvents(INITIAL_EVENTS);
+    setGalleries(INITIAL_GALLERIES);
+    setKudosList(INITIAL_KUDOS);
+    setForms(INITIAL_FORMS);
+    setSubmissions(INITIAL_SUBMISSIONS);
+    setAspirasiList([]);
+    setPageVisibilityState(DEFAULT_PAGE_VISIBILITY);
+    try { localStorage.setItem('cnt_page_visibility', JSON.stringify(DEFAULT_PAGE_VISIBILITY)); } catch (e) {}
+
+    await Promise.all([
+      pushCloudState('tenures', INITIAL_TENURES),
+      pushCloudState('activeTenureId', INITIAL_TENURES[0].id),
+      pushCloudState('divisions', INITIAL_DIVISIONS),
+      pushCloudState('members', INITIAL_MEMBERS),
+      pushCloudState('events', INITIAL_EVENTS),
+      pushCloudState('galleries', INITIAL_GALLERIES),
+      pushCloudState('kudosList', INITIAL_KUDOS),
+      pushCloudState('forms', INITIAL_FORMS),
+      pushCloudState('submissions', INITIAL_SUBMISSIONS),
+      pushCloudState('aspirasiList', []),
+      pushCloudState('pageVisibility', DEFAULT_PAGE_VISIBILITY)
+    ]);
   };
 
   // Determine visible public pages and effective active tab
@@ -215,7 +456,7 @@ export default function App() {
           setCurrentTab={setCurrentTab}
           tenures={tenures}
           activeTenure={activeTenure}
-          onSelectTenure={setActiveTenure}
+          onSelectTenure={handleSelectTenure}
           theme={theme}
           onToggleTheme={toggleTheme}
           forms={forms}
@@ -382,12 +623,14 @@ export default function App() {
             events={events}
             divisions={divisions}
             theme={theme}
+            onNavigateOprec={pageVisibility.oprec !== false ? () => setCurrentTab('oprec') : undefined}
           />
         )}
 
         {effectiveTab === 'galeri' && (
           <GallerySection
             galleries={galleries}
+            divisions={divisions}
             theme={theme}
           />
         )}
@@ -396,6 +639,9 @@ export default function App() {
           <KudosSection
             kudosList={kudosList}
             onAddKudos={handleAddKudos}
+            onUpdateKudos={handleUpdateKudos}
+            aspirasiList={aspirasiList}
+            onAddAspirasi={handleAddAspirasi}
             theme={theme}
           />
         )}
@@ -418,6 +664,7 @@ export default function App() {
           <AdminPortal
             onBack={() => setCurrentTab(visiblePublicPages[0] || 'home')}
             tenures={tenures}
+            activeTenure={activeTenure}
             onAddTenure={handleAddTenure}
             onUpdateTenure={handleUpdateTenure}
             onDeleteTenure={handleDeleteTenure}
@@ -446,8 +693,13 @@ export default function App() {
             kudosList={kudosList}
             onUpdateKudos={handleUpdateKudos}
             onDeleteKudos={handleDeleteKudos}
+            aspirasiList={aspirasiList}
+            onDeleteAspirasi={handleDeleteAspirasi}
             pageVisibility={pageVisibility}
             onUpdatePageVisibility={setPageVisibility}
+            syncStatus={syncStatus}
+            onForceSync={syncFromCloud}
+            onResetDefault={handleResetDefault}
           />
         )}
       </main>

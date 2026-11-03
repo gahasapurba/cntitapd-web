@@ -13,9 +13,12 @@ import { soundFx } from '../utils/audio';
 export default function OrganizationSection({ activeTenure, divisions, members }) {
   const [selectedMember, setSelectedMember] = useState(null);
 
-  const pembina = members.find(m => m.category === 'pembina');
-  const inti = members.filter(m => m.category === 'inti');
-  const pimpro = members.filter(m => m.category === 'pimpro');
+  const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
+  const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
+
+  const pembina = activeMembers.find(m => m.category === 'pembina');
+  const inti = activeMembers.filter(m => m.category === 'inti');
+  const pimpro = activeMembers.filter(m => m.category === 'pimpro');
 
   const handleMemberClick = (member) => {
     soundFx.playClick();
@@ -147,7 +150,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
             {pimpro.map((lead, idx) => {
               const lineColor = idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800';
               // Find all squad members in this division
-              const divisionMembers = members.filter(m => m.category === 'anggota' && m.divisionId === lead.divisionId);
+              const divisionMembers = activeMembers.filter(m => m.category === 'anggota' && m.divisionId === lead.divisionId);
 
               return (
                 <div key={lead.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

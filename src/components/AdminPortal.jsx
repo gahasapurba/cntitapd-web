@@ -25,7 +25,11 @@ import {
   Download,
   CalendarDays,
   Layout,
-  Globe
+  Globe,
+  RefreshCw,
+  Upload,
+  MessageSquare,
+  RotateCcw
 } from 'lucide-react';
 
 // Client-side SHA-256 hash helper using Web Crypto API
@@ -84,13 +88,28 @@ export default function AdminPortal({
     assets: true,
     oprec: true
   },
-  onUpdatePageVisibility
+  onUpdatePageVisibility,
+  activeTenure,
+  aspirasiList = [],
+  onDeleteAspirasi,
+  syncStatus = 'synced',
+  onForceSync,
+  onResetDefault
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+
+  // Modern Toast Notification State (replaces native browser alert)
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type, id: Date.now() });
+    setTimeout(() => {
+      setToast((prev) => (prev && prev.message === message ? null : prev));
+    }, 3800);
+  };
 
   // Admin Dashboard Tabs: 'members' | 'gallery' | 'divisions' | 'tenure' | 'recruitment' | 'applicants'
   const [activeTab, setActiveTab] = useState('members');
@@ -182,6 +201,7 @@ export default function AdminPortal({
     if (onAddEvent) {
       onAddEvent({
         id: 'evt-' + Date.now(),
+        tenureId: activeTenure?.id || 'tenure-2026',
         divisionId: eventDivId,
         divisionName: divObj?.name || 'CNT IT APD',
         title: eventTitle.trim(),
@@ -197,13 +217,14 @@ export default function AdminPortal({
       });
     }
 
+    const savedTitle = eventTitle.trim();
     setEventTitle('');
     setEventStartDate('');
     setEventEndDate('');
     setEventLocation('');
     setEventKpi('');
     setEventDesc('');
-    alert(`Program Kerja "${eventTitle}" berhasil ditambahkan!`);
+    showToast(`Program Kerja "${savedTitle}" berhasil ditambahkan & disinkronkan!`);
   };
 
   // Secure SHA-256 Authentication (Zero plaintext in code)
@@ -224,6 +245,23 @@ export default function AdminPortal({
     }
   };
 
+  // Upload photo for Member (New or Edit)
+  const handleMemberPhotoUpload = (e, isEdit = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      if (isEdit) {
+        setEditingItem(prev => prev ? { ...prev, item: { ...prev.item, image: dataUrl } } : null);
+      } else {
+        setMemImage(dataUrl);
+      }
+      showToast('Foto profil berhasil dimuat!');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleCreateMember = (e) => {
     e.preventDefault();
     if (!memName.trim()) return;
@@ -233,7 +271,7 @@ export default function AdminPortal({
 
     onAddMember({
       id: 'mem-' + Date.now(),
-      tenureId: 'tenure-2026',
+      tenureId: activeTenure?.id || 'tenure-2026',
       divisionId: memCategory === 'anggota' || memCategory === 'pimpro' ? memDivisionId : undefined,
       category: memCategory,
       name: memName,
@@ -247,12 +285,13 @@ export default function AdminPortal({
       responsibilities: ['Kontribusi aktif dalam pelaksanaan program kerja budaya CNT IT APD']
     });
 
+    const savedName = memName;
     setMemName('');
     setMemRole('');
     setMemWhatsapp('');
     setMemMotto('');
     setMemImage('');
-    alert(`Pengurus/Anggota "${memName}" berhasil ditambahkan!`);
+    showToast(`Pengurus/Anggota "${savedName}" berhasil ditambahkan & tersimpan di Cloud!`);
   };
 
   const handleCreateDivision = (e) => {
@@ -274,11 +313,12 @@ export default function AdminPortal({
       requirements: ['Memiliki komitmen tinggi', 'Aktif dan kolaboratif']
     });
 
+    const savedDiv = newDivName;
     setNewDivName('');
     setNewDivLead('');
     setNewDivDesc('');
     setNewDivFocus('');
-    alert(`Divisi "${newDivName}" berhasil ditambahkan!`);
+    showToast(`Divisi "${savedDiv}" berhasil ditambahkan & disinkronkan!`);
   };
 
   const handleCreateTenure = (e) => {
@@ -302,6 +342,7 @@ export default function AdminPortal({
       isActive: false
     });
 
+    const savedCode = newTenureCode;
     setNewTenureCode('');
     setNewTenureTitle('');
     setNewTenureTagline('');
@@ -309,7 +350,7 @@ export default function AdminPortal({
     setNewTenureHighlight('');
     setNewTenureVisi('');
     setNewTenureMisi('');
-    alert(`Periode Kepengurusan "${newTenureCode}" beserta Visi Misi berhasil dibuat!`);
+    showToast(`Periode Kepengurusan "${savedCode}" beserta Visi Misi berhasil dibuat!`);
   };
 
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
@@ -374,22 +415,25 @@ export default function AdminPortal({
       docLinks: validDocLinks
     });
 
+    const savedGalTitle = galTitle;
     setGalTitle('');
     setGalDate('');
     setGalDesc('');
     setGalPhotos('');
     setUploadedPhotos([]);
     setGalDocLinks([{ text: 'Folder Dokumentasi Full HD (Google Drive)', url: '' }]);
-    alert(`Dokumentasi "${galTitle}" berhasil ditambahkan ke Galeri Kegiatan!`);
+    showToast(`Dokumentasi "${savedGalTitle}" berhasil ditambahkan ke Galeri Kegiatan!`);
   };
 
   const handleSaveRecruitment = () => {
-    onUpdateRecruitment({
-      ...recruitmentInfo,
-      isOpen: isRecruitOpen,
-      deadline: recruitDeadline
-    });
-    alert('Pengaturan Open Recruitment berhasil disimpan!');
+    if (onUpdateRecruitment) {
+      onUpdateRecruitment({
+        ...recruitmentInfo,
+        isOpen: isRecruitOpen,
+        deadline: recruitDeadline
+      });
+    }
+    showToast('Pengaturan Open Recruitment berhasil disimpan!');
   };
 
   // IF NOT AUTHENTICATED: SHOW LOGIN FORM
@@ -551,7 +595,41 @@ export default function AdminPortal({
 
   // IF AUTHENTICATED: SHOW ADMIN DASHBOARD
   return (
-    <div style={{ maxWidth: '1000px', margin: '20px auto 80px auto', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+    <div style={{ maxWidth: '1000px', margin: '20px auto 80px auto', display: 'flex', flexDirection: 'column', gap: '28px', position: 'relative' }}>
+      {/* Floating Toast Notification Banner */}
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 2500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '13px 20px',
+            borderRadius: 'var(--radius-full)',
+            background: toast.type === 'error' ? 'rgba(244, 63, 94, 0.96)' : 'rgba(16, 185, 129, 0.96)',
+            color: '#ffffff',
+            fontWeight: 800,
+            fontSize: '0.86rem',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.45)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            backdropFilter: 'blur(12px)'
+          }}
+        >
+          <CheckCircle2 size={18} />
+          <span>{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', padding: '2px' }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
       {/* Admin Top Bar */}
       <div style={{
         display: 'flex',
@@ -560,7 +638,7 @@ export default function AdminPortal({
         flexWrap: 'wrap',
         gap: '16px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <button
             onClick={onBack}
             style={{
@@ -579,30 +657,102 @@ export default function AdminPortal({
             <span>Kembali ke Web</span>
           </button>
           <div style={{ height: '20px', width: '1px', background: 'var(--border-card)' }} />
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
             Admin Dashboard CNT IT APD
           </h2>
+          {/* Cloud Sync Badge */}
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.73rem',
+              fontWeight: 800,
+              background: syncStatus === 'syncing' ? 'rgba(255, 184, 0, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              border: `1px solid ${syncStatus === 'syncing' ? 'var(--mandiri-gold)' : '#10b981'}`,
+              color: syncStatus === 'syncing' ? 'var(--mandiri-gold)' : '#10b981'
+            }}
+            title="Seluruh perubahan otomatis disimpan di Cloud Database & LocalStorage agar tersinkronisasi di semua perangkat"
+          >
+            <Globe size={13} />
+            <span>{syncStatus === 'syncing' ? 'Menyinkronkan Cloud...' : 'Cloud Sync Aktif (Multi-Device)'}</span>
+          </span>
         </div>
 
-        <button
-          onClick={() => setIsAuthenticated(false)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: 'rgba(244, 63, 94, 0.15)',
-            color: '#f43f5e',
-            border: '1px solid rgba(244, 63, 94, 0.3)',
-            padding: '7px 14px',
-            borderRadius: 'var(--radius-full)',
-            fontWeight: 700,
-            fontSize: '0.8rem',
-            cursor: 'pointer'
-          }}
-        >
-          <LogOut size={14} />
-          <span>Logout Admin</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {onForceSync && (
+            <button
+              type="button"
+              onClick={async () => {
+                await onForceSync();
+                showToast('Data berhasil disinkronkan dari Cloud!');
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                color: 'var(--neon-cyan)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                padding: '7px 13px',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer'
+              }}
+              title="Tarik & sinkronkan data terbaru dari Cloud"
+            >
+              <RefreshCw size={13} />
+              <span>Sync Cloud</span>
+            </button>
+          )}
+
+          {onResetDefault && (
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm({ type: 'reset_all', id: 'reset', name: 'Reset Seluruh Data ke Default Awal' })}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(255, 184, 0, 0.12)',
+                color: 'var(--mandiri-gold)',
+                border: '1px solid rgba(255, 184, 0, 0.35)',
+                padding: '7px 13px',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer'
+              }}
+              title="Kembalikan data ke bawaan awal"
+            >
+              <RotateCcw size={13} />
+              <span>Reset Default</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsAuthenticated(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(244, 63, 94, 0.15)',
+              color: '#f43f5e',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              padding: '7px 14px',
+              borderRadius: 'var(--radius-full)',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: 'pointer'
+            }}
+          >
+            <LogOut size={14} />
+            <span>Logout Admin</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -1092,6 +1242,65 @@ export default function AdminPortal({
                   fontSize: '0.85rem'
                 }}
               />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Foto Profil Pengurus (Upload File atau URL Gambar Opsional)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                {memImage && (
+                  <img
+                    src={memImage}
+                    alt="Preview"
+                    style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--mandiri-gold)' }}
+                  />
+                )}
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid var(--neon-cyan)',
+                    color: 'var(--neon-cyan)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Upload size={14} />
+                  <span>Upload Foto</span>
+                  <input type="file" accept="image/*" onChange={(e) => handleMemberPhotoUpload(e, false)} style={{ display: 'none' }} />
+                </label>
+                <input
+                  type="text"
+                  placeholder="Atau tempel URL foto (/images/... atau https://...)"
+                  value={memImage}
+                  onChange={(e) => setMemImage(e.target.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: '200px',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.83rem'
+                  }}
+                />
+                {memImage && (
+                  <button
+                    type="button"
+                    onClick={() => setMemImage('')}
+                    style={{ background: 'transparent', border: 'none', color: '#f43f5e', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Hapus Foto
+                  </button>
+                )}
+              </div>
             </div>
 
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
@@ -2396,7 +2605,7 @@ export default function AdminPortal({
               setNewFormTitle('');
               setNewFormSubtitle('');
               setNewFormDeadline('');
-              alert(`Formulir "${newForm.title}" berhasil dibuat dengan template field lengkap (termasuk upload file & opsi divisi dinamis)!`);
+              showToast(`Formulir "${newForm.title}" berhasil dibuat & dipublikasikan!`);
             }}
             style={{
               display: 'grid',
@@ -2644,26 +2853,45 @@ export default function AdminPortal({
                     : submissions.filter(s => s.formId === selectedSubFilter);
                   
                   if (itemsToExport.length === 0) {
-                    alert('Tidak ada data untuk diexport.');
+                    showToast('Tidak ada data berkas untuk diexport.', 'error');
                     return;
                   }
 
-                  const csvContent = "data:text/csv;charset=utf-8," 
-                    + "ID,Form,Waktu Submit,Data Lengkap\n"
-                    + itemsToExport.map(s => {
-                        const summary = s.data 
-                          ? Object.entries(s.data).map(([k, v]) => `${k}: ${v}`).join(' | ') 
-                          : `${s.fullName} (${s.nip}) - ${s.unitSquad} - ${s.div1}`;
-                        return `"${s.id}","${s.formTitle || 'Oprec 2026'}","${s.submittedAt || ''}","${summary.replace(/"/g, '""')}"`;
-                      }).join("\n");
+                  // Collect dynamic field columns across exported submissions
+                  const dynamicKeys = Array.from(
+                    new Set(
+                      itemsToExport.flatMap(s => s.data ? Object.keys(s.data) : ['fullName', 'nip', 'unitSquad', 'div1', 'div2', 'whatsapp', 'email', 'motivation'])
+                    )
+                  );
 
-                  const encodedUri = encodeURI(csvContent);
+                  const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                  const headerRow = ['ID Berkas', 'Judul Formulir', 'Waktu Submit', ...dynamicKeys.map(k => k.replace(/^f-/, '').toUpperCase()), 'Lampiran File'].map(escapeCsv).join(',');
+
+                  const dataRows = itemsToExport.map(s => {
+                    const baseCols = [
+                      s.id,
+                      s.formTitle || 'Oprec 2026',
+                      s.submittedAt || ''
+                    ];
+                    const fieldCols = dynamicKeys.map(k => {
+                      if (s.data) return s.data[k] ?? '';
+                      return s[k] ?? '';
+                    });
+                    const fileCol = s.files ? Object.values(s.files).map(f => f.name).join('; ') : '';
+                    return [...baseCols, ...fieldCols, fileCol].map(escapeCsv).join(',');
+                  });
+
+                  const csvString = '\uFEFF' + [headerRow, ...dataRows].join('\n');
+                  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
                   const link = document.createElement("a");
-                  link.setAttribute("href", encodedUri);
-                  link.setAttribute("download", `pendaftar_cnt_it_apd_${Date.now()}.csv`);
+                  link.setAttribute("href", url);
+                  link.setAttribute("download", `berkas_cnt_it_apd_${Date.now()}.csv`);
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  showToast(`Berhasil mengunduh ${itemsToExport.length} berkas dalam format CSV!`);
                 }}
                 style={{
                   display: 'flex',
@@ -2804,21 +3032,70 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* TAB CONTENT: KUDOS MANAGEMENT */}
+      {/* TAB CONTENT: KUDOS & ASPIRASI MANAGEMENT */}
       {activeTab === 'kudos' && (
-        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Kelola Kiriman Apresiasi & Kudos ({kudosList.length})
+                Kelola Kiriman Apresiasi Kudos ({kudosList.length}) & Kotak Aspirasi ({aspirasiList.length})
               </h3>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                Seluruh apresiasi dari Wall of Kudos dapat diedit atau dihapus oleh Admin untuk menjaga ketertiban konten.
+                Seluruh apresiasi dari Wall of Kudos dan ide dari Kotak Aspirasi tersimpan di Cloud dan dapat diunduh sebagai laporan CSV.
               </p>
             </div>
-            <span className="badge-gold" style={{ fontSize: '0.75rem' }}>
-              Moderasi Konten Aktif
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (kudosList.length === 0) {
+                    showToast('Belum ada data Kudos untuk diexport.', 'error');
+                    return;
+                  }
+                  const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                  const header = ['ID', 'Kategori Nilai Budaya', 'Pengirim', 'Penerima', 'Pesan Apresiasi', 'Likes', 'Waktu Kirim'].map(escapeCsv).join(',');
+                  const rows = kudosList.map(k => [
+                    k.id,
+                    k.category,
+                    k.sender,
+                    k.recipient,
+                    k.message,
+                    k.likes || 1,
+                    k.exactTimestamp || k.date || ''
+                  ].map(escapeCsv).join(','));
+                  const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `laporan_kudos_cnt_it_apd_${Date.now()}.csv`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  showToast(`Berhasil mengunduh ${kudosList.length} kiriman Kudos ke CSV!`);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(14, 165, 233, 0.15)',
+                  border: '1px solid #0ea5e9',
+                  color: '#0ea5e9',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Download size={14} />
+                <span>Export CSV Kudos</span>
+              </button>
+              <span className="badge-gold" style={{ fontSize: '0.75rem' }}>
+                Moderasi Konten Aktif
+              </span>
+            </div>
           </div>
 
           {kudosList.length === 0 ? (
@@ -2904,6 +3181,70 @@ export default function AdminPortal({
               ))}
             </div>
           )}
+
+          {/* Kotak Ide & Aspirasi Masuk */}
+          <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <MessageSquare size={18} color="var(--neon-cyan)" />
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                Kotak Ide & Aspirasi Masuk ({aspirasiList.length})
+              </h4>
+            </div>
+            {aspirasiList.length === 0 ? (
+              <div style={{ fontSize: '0.84rem', color: 'var(--text-dim)', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)' }}>
+                Belum ada kiriman ide atau aspirasi program budaya dari pengunjung.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {aspirasiList.map((asp) => (
+                  <div
+                    key={asp.id}
+                    style={{
+                      padding: '14px 18px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(56, 189, 248, 0.05)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.88rem', color: 'var(--text-main)', fontWeight: 600 }}>
+                        "{asp.text}"
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        📅 {asp.submittedAt}
+                      </div>
+                    </div>
+                    {onDeleteAspirasi && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDeleteAspirasi(asp.id);
+                          showToast('Aspirasi berhasil dihapus.');
+                        }}
+                        style={{
+                          padding: '6px 10px',
+                          background: 'rgba(244,63,94,0.12)',
+                          border: '1px solid #f43f5e',
+                          color: '#f43f5e',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -2993,6 +3334,44 @@ export default function AdminPortal({
                     onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, motto: e.target.value } })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Foto Profil Personel</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {editingItem.item.image && (
+                      <img
+                        src={editingItem.item.image}
+                        alt="Avatar"
+                        style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--mandiri-gold)' }}
+                      />
+                    )}
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '7px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(56, 189, 248, 0.12)',
+                        border: '1px solid var(--neon-cyan)',
+                        color: 'var(--neon-cyan)',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Upload size={13} />
+                      <span>Upload Foto</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleMemberPhotoUpload(e, true)} style={{ display: 'none' }} />
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="URL Foto (/images/...)"
+                      value={editingItem.item.image || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, image: e.target.value } })}
+                      style={{ flex: 1, minWidth: '150px', padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -3152,7 +3531,7 @@ export default function AdminPortal({
               </div>
             )}
 
-            {/* Edit Form Fields */}
+            {/* Edit Form Fields (With Custom Field Builder) */}
             {editingItem.type === 'form' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
@@ -3164,37 +3543,168 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Formulir</label>
-                  <select
-                    value={editingItem.item.category || 'Kegiatan & Event'}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  >
-                    <option value="Kegiatan & Event">Kegiatan & Event</option>
-                    <option value="Rekrutmen">Rekrutmen & Oprec</option>
-                    <option value="Turnamen & Olahraga">Turnamen & Olahraga</option>
-                    <option value="Survei & Aspirasi">Survei & Aspirasi</option>
-                    <option value="Workshop & Sharing">Workshop & Sharing</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Batas Akhir / Deadline</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.deadline || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Formulir</label>
+                    <select
+                      value={editingItem.item.category || 'Kegiatan & Event'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      <option value="Kegiatan & Event">Kegiatan & Event</option>
+                      <option value="Rekrutmen">Rekrutmen & Oprec</option>
+                      <option value="Turnamen & Olahraga">Turnamen & Olahraga</option>
+                      <option value="Survei & Aspirasi">Survei & Aspirasi</option>
+                      <option value="Workshop & Sharing">Workshop & Sharing</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Batas Akhir / Deadline</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.deadline || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Singkat / Subtitle</label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={editingItem.item.subtitle || ''}
                     onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, subtitle: e.target.value } })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
                   />
+                </div>
+
+                {/* Custom Field Builder */}
+                <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                      Daftar Pertanyaan / Field ({(editingItem.item.fields || []).length})
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextFields = [
+                          ...(editingItem.item.fields || []),
+                          {
+                            id: 'f-custom-' + Date.now(),
+                            label: 'Pertanyaan Baru',
+                            type: 'text',
+                            placeholder: 'Masukkan jawaban...',
+                            required: false
+                          }
+                        ];
+                        setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid #10b981',
+                        color: '#10b981',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={12} />
+                      <span>Tambah Pertanyaan</span>
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {(editingItem.item.fields || []).map((fld, idx) => (
+                      <div
+                        key={fld.id || idx}
+                        style={{
+                          padding: '10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-card)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="text"
+                            value={fld.label || ''}
+                            placeholder="Label pertanyaan"
+                            onChange={(e) => {
+                              const nextFields = editingItem.item.fields.map((item, i) =>
+                                i === idx ? { ...item, label: e.target.value } : item
+                              );
+                              setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                            }}
+                            style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
+                          />
+                          <select
+                            value={fld.type || 'text'}
+                            onChange={(e) => {
+                              const nextFields = editingItem.item.fields.map((item, i) =>
+                                i === idx ? { ...item, type: e.target.value } : item
+                              );
+                              setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                            }}
+                            style={{ padding: '6px 8px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                          >
+                            <option value="text">Teks Singkat</option>
+                            <option value="textarea">Paragraf</option>
+                            <option value="email">Email</option>
+                            <option value="number">Angka</option>
+                            <option value="select">Dropdown Pilihan</option>
+                            <option value="file">Upload File</option>
+                          </select>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(fld.required)}
+                              onChange={(e) => {
+                                const nextFields = editingItem.item.fields.map((item, i) =>
+                                  i === idx ? { ...item, required: e.target.checked } : item
+                                );
+                                setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                              }}
+                            />
+                            <span>Wajib</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextFields = editingItem.item.fields.filter((_, i) => i !== idx);
+                              setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                            }}
+                            style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '2px' }}
+                            title="Hapus pertanyaan"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        {fld.type === 'select' && fld.source !== 'divisions' && (
+                          <input
+                            type="text"
+                            placeholder="Opsi pilihan (pisahkan dengan koma, misal: Tim A, Tim B, Tim C)"
+                            value={Array.isArray(fld.options) ? fld.options.join(', ') : ''}
+                            onChange={(e) => {
+                              const opts = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                              const nextFields = editingItem.item.fields.map((item, i) =>
+                                i === idx ? { ...item, options: opts } : item
+                              );
+                              setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                            }}
+                            style={{ width: '100%', padding: '5px 8px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-muted)', fontSize: '0.75rem' }}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -3292,7 +3802,7 @@ export default function AdminPortal({
                   if (editingItem.type === 'form' && onUpdateForm) onUpdateForm(editingItem.item);
                   if (editingItem.type === 'event' && onUpdateEvent) onUpdateEvent(editingItem.item);
                   setEditingItem(null);
-                  alert('Perubahan data berhasil disimpan!');
+                  showToast('Perubahan data berhasil disimpan & disinkronkan ke Cloud!');
                 }}
                 style={{
                   padding: '9px 20px',
@@ -3450,7 +3960,9 @@ export default function AdminPortal({
                     if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
                     if (deleteConfirm.type === 'form' && onDeleteForm) onDeleteForm(deleteConfirm.id, true);
                     if (deleteConfirm.type === 'event' && onDeleteEvent) onDeleteEvent(deleteConfirm.id);
+                    if (deleteConfirm.type === 'reset_all' && onResetDefault) onResetDefault();
                     setDeleteConfirm(null);
+                    showToast(deleteConfirm.type === 'reset_all' ? 'Data berhasil dikembalikan ke bawaan awal!' : 'Data berhasil dihapus & disinkronkan!');
                   }}
                   style={{
                     padding: '9px 20px',

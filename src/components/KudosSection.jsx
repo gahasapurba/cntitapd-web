@@ -10,15 +10,33 @@ import {
   AlertCircle,
   HelpCircle,
   X,
-  Clock
+  Clock,
+  Search,
+  Filter
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function KudosSection({ kudosList = [], onAddKudos }) {
+export default function KudosSection({ 
+  kudosList = [], 
+  onAddKudos, 
+  onUpdateKudos,
+  aspirasiList = [],
+  onAddAspirasi
+}) {
   const [activeSubTab, setActiveSubTab] = useState('kudos'); // 'kudos' | 'aspirasi'
   
-  // Interactive likes tracked by item ID
-  const [likedMap, setLikedMap] = useState({});
+  // Search & Category Filter for Kudos Wall
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+
+  // Interactive likes tracked locally to prevent double-clicking on same session, while syncing count to parent/cloud
+  const [likedMap, setLikedMap] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('cnt_liked_kudos') || '{}');
+    } catch (e) {
+      return {};
+    }
+  });
 
   // Form State Kudos
   const [sender, setSender] = useState('');
@@ -31,15 +49,25 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
 
   // Form State Aspirasi
   const [ideaTitle, setIdeaTitle] = useState('');
+  const [ideaCategory, setIdeaCategory] = useState('Kegiatan & Event');
   const [ideaDesc, setIdeaDesc] = useState('');
   const [ideaSuccess, setIdeaSuccess] = useState(false);
   const [ideaErrors, setIdeaErrors] = useState({});
 
-  const handleToggleLike = (kudosId) => {
-    setLikedMap(prev => {
-      const current = prev[kudosId] || false;
-      return { ...prev, [kudosId]: !current };
-    });
+  const handleToggleLike = (kudosItem) => {
+    const kudosId = kudosItem.id;
+    const alreadyLiked = Boolean(likedMap[kudosId]);
+    const nextLikedMap = { ...likedMap, [kudosId]: !alreadyLiked };
+    setLikedMap(nextLikedMap);
+    try {
+      localStorage.setItem('cnt_liked_kudos', JSON.stringify(nextLikedMap));
+    } catch (e) {}
+
+    if (onUpdateKudos) {
+      const currentLikes = kudosItem.likes || 1;
+      const updatedLikes = alreadyLiked ? Math.max(1, currentLikes - 1) : currentLikes + 1;
+      onUpdateKudos({ ...kudosItem, likes: updatedLikes });
+    }
   };
 
   const validateKudos = () => {
@@ -113,6 +141,16 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
     e.preventDefault();
     if (!validateIdea()) return;
 
+    if (onAddAspirasi) {
+      onAddAspirasi({
+        id: 'asp-' + Date.now(),
+        title: ideaTitle.trim(),
+        category: ideaCategory,
+        description: ideaDesc.trim(),
+        submittedAt: getExactTimestamp()
+      });
+    }
+
     confetti({
       particleCount: 60,
       spread: 60,
@@ -127,9 +165,18 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
   };
 
   const totalApresiasi = kudosList.reduce((sum, item) => {
-    const isExtraLiked = likedMap[item.id] ? 1 : 0;
-    return sum + (item.likes || 1) + isExtraLiked;
+    return sum + (item.likes || 1);
   }, 0);
+
+  const filteredKudos = kudosList.filter((item) => {
+    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q ||
+      (item.sender || '').toLowerCase().includes(q) ||
+      (item.recipient || '').toLowerCase().includes(q) ||
+      (item.message || '').toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
 
   const inputStyle = (hasError) => ({
     width: '100%',
@@ -349,7 +396,7 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
 
           {/* Wall List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={18} color="var(--mandiri-gold)" />
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
@@ -361,9 +408,69 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
               </span>
             </div>
 
-            {kudosList.map((kudos) => {
+            {/* Search & Category Filter Bar */}
+            <div className="glass-panel" style={{
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              border: '1px solid var(--border-card)'
+            }}>
+              <div style={{ position: 'relative', flex: '1 1 180px' }}>
+                <Search size={15} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  placeholder="Cari nama penerima, pengirim, atau isi apresiasi..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 34px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.82rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Filter size={14} color="var(--text-dim)" />
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="all">Semua Kategori ({kudosList.length})</option>
+                  <option value="Kolaboratif">Kolaboratif</option>
+                  <option value="Inovatif">Inovatif</option>
+                  <option value="Harmonis">Harmonis</option>
+                  <option value="Integritas">Integritas</option>
+                  <option value="Dedikasi">Dedikasi</option>
+                </select>
+              </div>
+            </div>
+
+            {filteredKudos.length === 0 ? (
+              <div className="glass-panel" style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                Tidak ada kiriman apresiasi yang cocok dengan pencarian atau filter kategori.
+              </div>
+            ) : filteredKudos.map((kudos) => {
               const isLiked = likedMap[kudos.id] || false;
-              const currentLikes = (kudos.likes || 1) + (isLiked ? 1 : 0);
+              const currentLikes = kudos.likes || 1;
 
               return (
                 <div
@@ -409,7 +516,7 @@ export default function KudosSection({ kudosList = [], onAddKudos }) {
                     </div>
 
                     <button
-                      onClick={() => handleToggleLike(kudos.id)}
+                      onClick={() => handleToggleLike(kudos)}
                       title="Beri like apresiasi"
                       style={{
                         display: 'flex',

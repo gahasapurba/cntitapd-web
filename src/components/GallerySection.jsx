@@ -7,19 +7,43 @@ import {
   Sparkles,
   Maximize2,
   FolderDown,
-  ExternalLink
+  ExternalLink,
+  Search,
+  Filter
 } from 'lucide-react';
 
-export default function GallerySection({ galleries = [] }) {
-  const [selectedGallery, setSelectedGallery] = useState(0);
+export default function GallerySection({ galleries = [], divisions = [] }) {
+  const [selectedGalleryId, setSelectedGalleryId] = useState(null);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [divFilter, setDivFilter] = useState('all');
 
-  const activeEvent = galleries[selectedGallery] || {
-    title: 'Belum Ada Dokumentasi Kegiatan',
-    date: '-',
-    description: 'Dokumentasi kegiatan dapat ditambahkan oleh admin melalui portal pengurus.',
-    photos: ['/images/pimpro-adjie.jpg']
-  };
+  const uniqueDivisions = Array.from(
+    new Set([
+      ...divisions.map(d => d.name),
+      ...galleries.map(g => g.division).filter(Boolean)
+    ])
+  );
+
+  const filteredGalleries = galleries.filter(g => {
+    const matchesDiv = divFilter === 'all' || g.division === divFilter;
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q ||
+      (g.title || '').toLowerCase().includes(q) ||
+      (g.description || '').toLowerCase().includes(q) ||
+      (g.date || '').toLowerCase().includes(q);
+    return matchesDiv && matchesSearch;
+  });
+
+  const activeEvent =
+    filteredGalleries.find(g => g.id === selectedGalleryId) ||
+    filteredGalleries[0] ||
+    galleries[0] || {
+      title: 'Belum Ada Dokumentasi Kegiatan',
+      date: '-',
+      description: 'Dokumentasi kegiatan dapat ditambahkan oleh admin melalui portal pengurus.',
+      photos: ['/images/pimpro-adjie.jpg']
+    };
 
   const nextPhoto = () => {
     if (!activeEvent.photos || activeEvent.photos.length <= 1) return;
@@ -232,45 +256,117 @@ export default function GallerySection({ galleries = [] }) {
 
       {/* Event List Tabs (Choose which event documentation to view) */}
       <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
-          Daftar Arsip Dokumentasi Kegiatan:
-        </h3>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '16px'
-        }}>
-          {galleries.map((item, gIdx) => (
-            <div 
-              key={item.id || gIdx}
-              onClick={() => {
-                setSelectedGallery(gIdx);
-                setCurrentPhotoIdx(0);
-              }}
-              className="glass-panel"
-              style={{
-                padding: '16px 20px',
-                cursor: 'pointer',
-                borderLeft: selectedGallery === gIdx ? '4px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
-                background: selectedGallery === gIdx ? 'var(--bg-card-hover)' : 'var(--bg-card)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', color: 'var(--mandiri-gold)', fontWeight: 700, marginBottom: '4px' }}>
-                {item.date}
-              </div>
-              <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
-                {item.title}
-              </h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {item.description}
-              </p>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '8px' }}>
-                📷 {item.photos?.length || 0} Dokumentasi Foto
-              </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+            Daftar Arsip Dokumentasi Kegiatan ({filteredGalleries.length}):
+          </h3>
+
+          {/* Search & Division Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', minWidth: '210px' }}>
+              <Search size={14} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder="Cari judul atau deskripsi..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPhotoIdx(0);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '7px 12px 7px 32px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.8rem',
+                  outline: 'none'
+                }}
+              />
             </div>
-          ))}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Filter size={14} color="var(--text-dim)" />
+              <select
+                value={divFilter}
+                onChange={(e) => {
+                  setDivFilter(e.target.value);
+                  setCurrentPhotoIdx(0);
+                }}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">Semua Divisi</option>
+                {uniqueDivisions.map((dName) => (
+                  <option key={dName} value={dName}>{dName}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
+
+        {filteredGalleries.length === 0 ? (
+          <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Tidak ada dokumentasi kegiatan yang cocok dengan filter pencarian.
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '16px'
+          }}>
+            {filteredGalleries.map((item, gIdx) => {
+              const isSelected = activeEvent.id === item.id;
+              return (
+                <div 
+                  key={item.id || gIdx}
+                  onClick={() => {
+                    setSelectedGalleryId(item.id);
+                    setCurrentPhotoIdx(0);
+                  }}
+                  className="glass-panel glass-panel-hover"
+                  style={{
+                    padding: '16px 20px',
+                    cursor: 'pointer',
+                    borderLeft: isSelected ? '4px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                    background: isSelected ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--mandiri-gold)', fontWeight: 700 }}>
+                      {item.date}
+                    </span>
+                    {item.division && (
+                      <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
+                        {item.division}
+                      </span>
+                    )}
+                  </div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
+                    {item.title}
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {item.description}
+                  </p>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '8px' }}>
+                    📷 {item.photos?.length || 0} Dokumentasi Foto
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
     </div>

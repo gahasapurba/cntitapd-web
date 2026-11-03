@@ -12,10 +12,12 @@ import {
   CalendarDays,
   Info,
   X,
-  Users
+  Users,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 
-export default function ProgramSection({ events = [], divisions = [], theme }) {
+export default function ProgramSection({ events = [], divisions = [], theme, onNavigateOprec }) {
   const isDark = theme === 'dark';
   const [filterDiv, setFilterDiv] = useState('all');
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'all'
@@ -821,25 +823,143 @@ export default function ProgramSection({ events = [], divisions = [], theme }) {
               color: 'var(--text-main)',
               lineHeight: 1.5
             }}>
-              📢 <strong>Informasi Pembukaan RSVP:</strong> Pendaftaran dan konfirmasi kehadiran akan dibuka H-14 sebelum kegiatan melalui pengumuman resmi di <strong>Channel MS Teams Group IT APD</strong>.
+              📢 <strong>Informasi Pembukaan RSVP:</strong> Pendaftaran dan konfirmasi kehadiran dibuka melalui Hub Registrasi atau pengumuman resmi di <strong>Channel MS Teams Group IT APD</strong>.
             </div>
 
-            <button
-              onClick={() => setRsvpModalEvent(null)}
-              style={{
-                background: 'var(--mandiri-blue)',
-                color: '#ffffff',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: 'var(--radius-full)',
-                fontWeight: 700,
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                marginTop: '4px'
-              }}
-            >
-              Mengerti & Tutup
-            </button>
+            {/* Add to Calendar Actions (Outlook .ics & Google Calendar) */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const sRaw = (rsvpModalEvent.startDate || '2026-03-10').replace(/-/g, '');
+                  const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || '2026-03-10');
+                  eDateObj.setDate(eDateObj.getDate() + 1);
+                  const eRaw = eDateObj.toISOString().split('T')[0].replace(/-/g, '');
+                  const icsContent = [
+                    'BEGIN:VCALENDAR',
+                    'VERSION:2.0',
+                    'PRODID:-//CNT IT APD Bank Mandiri//ID',
+                    'BEGIN:VEVENT',
+                    `UID:${rsvpModalEvent.id}@cntitapd.netlify.app`,
+                    `DTSTAMP:${sRaw}T010000Z`,
+                    `DTSTART;VALUE=DATE:${sRaw}`,
+                    `DTEND;VALUE=DATE:${eRaw}`,
+                    `SUMMARY:${rsvpModalEvent.title} - CNT IT APD`,
+                    `DESCRIPTION:${(rsvpModalEvent.description || '').replace(/\n/g, '\\n')}`,
+                    `LOCATION:${rsvpModalEvent.location || 'Plaza Mandiri'}`,
+                    'END:VEVENT',
+                    'END:VCALENDAR'
+                  ].join('\r\n');
+
+                  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.setAttribute('download', `${rsvpModalEvent.title.replace(/\s+/g, '_')}.ics`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }}
+                style={{
+                  flex: '1 1 200px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '9px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(14, 165, 233, 0.12)',
+                  border: '1px solid var(--neon-cyan)',
+                  color: 'var(--neon-cyan)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Download size={14} />
+                <span>Simpan ke Outlook / Kalender (.ics)</span>
+              </button>
+
+              <a
+                href={(() => {
+                  const sRaw = (rsvpModalEvent.startDate || '2026-03-10').replace(/-/g, '');
+                  const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || '2026-03-10');
+                  eDateObj.setDate(eDateObj.getDate() + 1);
+                  const eRaw = eDateObj.toISOString().split('T')[0].replace(/-/g, '');
+                  const params = new URLSearchParams({
+                    action: 'TEMPLATE',
+                    text: `${rsvpModalEvent.title} (CNT IT APD)`,
+                    dates: `${sRaw}/${eRaw}`,
+                    details: rsvpModalEvent.description || '',
+                    location: rsvpModalEvent.location || 'Plaza Mandiri'
+                  });
+                  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+                })()}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  flex: '1 1 180px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '9px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textDecoration: 'none'
+                }}
+              >
+                <ExternalLink size={14} />
+                <span>Google Calendar</span>
+              </a>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              {onNavigateOprec && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRsvpModalEvent(null);
+                    onNavigateOprec();
+                  }}
+                  style={{
+                    flex: 1,
+                    background: 'var(--mandiri-gold)',
+                    color: '#040914',
+                    border: 'none',
+                    padding: '10px 18px',
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ke Hub Registrasi
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setRsvpModalEvent(null)}
+                style={{
+                  flex: 1,
+                  background: 'var(--mandiri-blue)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Mengerti & Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}
