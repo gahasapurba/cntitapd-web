@@ -1,4 +1,5 @@
 import React from 'react';
+import { getDeadlineStatus } from '../utils/dateUtils';
 import { 
   Building2, 
   Users, 
@@ -29,7 +30,7 @@ export default function Navbar({
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const isDark = theme === 'dark';
-  const activeFormsCount = forms.filter(f => f.isOpen !== false).length;
+  const activeFormsCount = forms.filter(f => f.isOpen !== false && !getDeadlineStatus(f.deadline).isExpired).length;
 
   const allNavItems = [
     { id: 'home', label: 'Beranda', icon: Building2 },
@@ -37,7 +38,7 @@ export default function Navbar({
     { id: 'program', label: 'Program', icon: Calendar },
     { id: 'galeri', label: 'Galeri', icon: ImageIcon },
     { id: 'kudos', label: 'Kudos', icon: MessageSquareHeart },
-    { id: 'assets', label: 'Asset Logo', icon: Download },
+    { id: 'assets', label: 'Asset', icon: Download },
   ];
 
   const navItems = allNavItems.filter(tab => pageVisibility[tab.id] !== false);
@@ -119,7 +120,7 @@ export default function Navbar({
         <nav className="desktop-nav" style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: '3px',
           flex: 1,
           justifyContent: 'center',
           minWidth: 0,
@@ -137,13 +138,13 @@ export default function Navbar({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '5px',
-                  padding: '7px 10px',
+                  padding: '6px 9px',
                   borderRadius: 'var(--radius-md)',
                   background: isActive ? (isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(0, 61, 121, 0.09)') : 'transparent',
                   color: isActive ? (isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)') : 'var(--text-muted)',
                   border: 'none',
                   fontWeight: isActive ? 700 : 600,
-                  fontSize: '0.82rem',
+                  fontSize: '0.81rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.15s ease',
@@ -180,7 +181,7 @@ export default function Navbar({
                 fontSize: '0.8rem',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                marginLeft: '4px',
+                margin: '0 4px 0 10px',
                 flexShrink: 0,
                 transition: 'all 0.2s ease'
               }}
@@ -215,7 +216,7 @@ export default function Navbar({
         </nav>
 
         {/* 3. Right: Tenure Selector, Theme Toggle & Mobile Burger Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '12px' }}>
           <div style={{ position: 'relative' }}>
             <select
               value={activeTenure?.id || ''}

@@ -26,6 +26,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
+import { getDeadlineStatus } from '../utils/dateUtils';
 
 export default function HomeSection({ 
   activeTenure, 
@@ -91,7 +92,9 @@ export default function HomeSection({
   const isOrganisasiVisible = pageVisibility.organisasi !== false;
   const isProgramVisible = pageVisibility.program !== false;
   const isKudosVisible = pageVisibility.kudos !== false;
-  const activeForms = isOprecVisible ? forms.filter(f => f.isOpen !== false) : [];
+  const activeForms = isOprecVisible 
+    ? forms.filter(f => f.isOpen !== false && !getDeadlineStatus(f.deadline).isExpired) 
+    : [];
   const primaryForm = activeForms[0] || recruitmentInfo || null;
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
   const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
@@ -583,7 +586,9 @@ export default function HomeSection({
                   </span>
                   {activeForms[0].deadline && (
                     <span style={{ fontSize: '0.78rem', color: 'var(--mandiri-gold)', fontFamily: 'monospace', fontWeight: 700 }}>
-                      Deadline: {activeForms[0].deadline}
+                      {getDeadlineStatus(activeForms[0].deadline).isToday 
+                        ? '⚠️ Hari Terakhir Pendaftaran!' 
+                        : `Deadline: ${activeForms[0].deadline}`}
                     </span>
                   )}
                 </div>
@@ -641,9 +646,17 @@ export default function HomeSection({
                       <span className={fIdx === 0 ? 'badge-gold' : 'badge-cyan'} style={{ fontSize: '0.7rem' }}>
                         {f.category || 'Formulir Aktif'}
                       </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 600 }}>
-                        📅 {f.deadline}
-                      </span>
+                      {(() => {
+                        const dl = getDeadlineStatus(f.deadline);
+                        if (dl.isToday) {
+                          return <span className="badge-gold" style={{ fontSize: '0.68rem' }}>⚠️ Hari Terakhir!</span>;
+                        }
+                        return (
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+                            📅 {f.deadline}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px', lineHeight: 1.3 }}>

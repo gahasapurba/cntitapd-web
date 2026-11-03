@@ -48,13 +48,13 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto' }}>
         <span className="badge-gold" style={{ marginBottom: '12px' }}>
-          Official Brand Guidelines & Evolusi
+          Official Brand Guidelines & Katalog Digital
         </span>
         <h1 style={{ fontSize: 'clamp(2.2rem, 4vw, 3.2rem)', fontWeight: 900, color: 'var(--text-main)', marginBottom: '16px' }}>
-          Asset Logo CNT IT APD
+          Daftar Asset CNT IT APD
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.02rem', lineHeight: 1.6 }}>
-          Paket logo resmi Culture Network Team Group IT Application Delivery untuk materi presentasi, banner kegiatan squad, dan dokumen resmi.
+          Katalog asset resmi Culture Network Team Group IT Application Delivery: paket logo resmi, template PowerPoint Townhall, virtual background, dan panduan identitas brand.
         </p>
       </div>
 
@@ -347,7 +347,7 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
                 Katalog Digital & Template Resmi
               </span>
               <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Daftar Asset Logo, Template & Media Kit ({filteredAssets.length})
+                Daftar Asset CNT IT APD ({filteredAssets.length})
               </h2>
             </div>
 

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadMediaToCloud } from '../lib/supabase';
+import { getDeadlineStatus } from '../utils/dateUtils';
 
 export default function DynamicFormSection({ 
   forms = [], 
@@ -310,13 +311,32 @@ export default function DynamicFormSection({
                     boxShadow: isSelected ? '0 8px 24px rgba(255,184,0,0.2)' : 'none'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
                     <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
                       {f.category || 'Formulir'}
                     </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                      Deadline: {f.deadline}
-                    </span>
+                    {(() => {
+                      const dl = getDeadlineStatus(f.deadline);
+                      if (dl.isExpired) {
+                        return (
+                          <span className="badge-red" style={{ fontSize: '0.66rem' }}>
+                            Ditutup ({dl.formatted})
+                          </span>
+                        );
+                      }
+                      if (dl.isToday) {
+                        return (
+                          <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
+                            ⚠️ Hari Terakhir!
+                          </span>
+                        );
+                      }
+                      return (
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                          Deadline: {f.deadline}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, lineHeight: 1.3 }}>
                     {f.title}
@@ -435,9 +455,72 @@ export default function DynamicFormSection({
                   <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', maxWidth: '580px', margin: '0 auto' }}>
                     {currentForm.subtitle || currentForm.description}
                   </p>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', marginTop: '8px', fontWeight: 600 }}>
-                    📅 Batas Akhir: {currentForm.deadline}
-                  </div>
+                  {(() => {
+                    const dl = getDeadlineStatus(currentForm.deadline);
+                    return (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                            📅 Batas Akhir: {currentForm.deadline}
+                          </span>
+                          {dl.isToday && (
+                            <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
+                              ⚠️ Hari Terakhir Pendaftaran!
+                            </span>
+                          )}
+                          {dl.isExpired && (
+                            <span className="badge-red" style={{ fontSize: '0.72rem' }}>
+                              Ditutup (Batas Waktu Berakhir)
+                            </span>
+                          )}
+                        </div>
+
+                        {dl.isExpired && (
+                          <div style={{
+                            margin: '16px auto 0 auto',
+                            maxWidth: '620px',
+                            padding: '12px 18px',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'rgba(244, 63, 94, 0.12)',
+                            border: '1.5px solid rgba(244, 63, 94, 0.4)',
+                            color: '#f43f5e',
+                            fontSize: '0.86rem',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            justifyContent: 'center',
+                            lineHeight: 1.5
+                          }}>
+                            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                            <span>Batas waktu pendaftaran untuk formulir ini telah berakhir pada {dl.formatted}. Formulir ini sudah tidak menerima pengiriman berkas baru.</span>
+                          </div>
+                        )}
+
+                        {dl.isToday && (
+                          <div style={{
+                            margin: '16px auto 0 auto',
+                            maxWidth: '620px',
+                            padding: '12px 18px',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'rgba(255, 184, 0, 0.14)',
+                            border: '1.5px solid var(--mandiri-gold)',
+                            color: 'var(--mandiri-gold)',
+                            fontSize: '0.86rem',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            justifyContent: 'center',
+                            lineHeight: 1.5
+                          }}>
+                            <Clock size={18} style={{ flexShrink: 0 }} />
+                            <span>Perhatian: Hari ini adalah hari terakhir pendaftaran ({dl.formatted}). Segera lengkapi dan kirim berkas sebelum pukul 23:59 WIB!</span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
                     <button
                       type="button"
@@ -587,30 +670,53 @@ export default function DynamicFormSection({
                     );
                   })}
 
-                  <button
-                    type="submit"
-                    className="pulse-glow"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      background: 'var(--mandiri-gold)',
-                      color: '#0a1128',
-                      padding: '15px',
-                      borderRadius: 'var(--radius-full)',
-                      fontWeight: 800,
-                      fontSize: '0.96rem',
-                      border: 'none',
-                      cursor: 'pointer',
-                      marginTop: '12px',
-                      transition: 'all 0.2s ease',
-                      boxShadow: '0 4px 15px rgba(255, 184, 0, 0.35)'
-                    }}
-                  >
-                    <Send size={18} />
-                    <span>Kirim Formulir Pendaftaran</span>
-                  </button>
+                  {getDeadlineStatus(currentForm.deadline).isExpired ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-muted)',
+                        padding: '14px',
+                        borderRadius: 'var(--radius-full)',
+                        fontWeight: 700,
+                        fontSize: '0.92rem',
+                        border: '1px solid var(--border-card)',
+                        marginTop: '12px',
+                        cursor: 'not-allowed'
+                      }}
+                    >
+                      <AlertCircle size={18} color="#f43f5e" />
+                      <span>Pendaftaran Ditutup (Batas Waktu Berakhir)</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="pulse-glow"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        background: 'var(--mandiri-gold)',
+                        color: '#0a1128',
+                        padding: '15px',
+                        borderRadius: 'var(--radius-full)',
+                        fontWeight: 800,
+                        fontSize: '0.96rem',
+                        border: 'none',
+                        cursor: 'pointer',
+                        marginTop: '12px',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 4px 15px rgba(255, 184, 0, 0.35)'
+                      }}
+                    >
+                      <Send size={18} />
+                      <span>Kirim Formulir Pendaftaran</span>
+                    </button>
+                  )}
                 </form>
               </>
             )}

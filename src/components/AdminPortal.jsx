@@ -36,6 +36,7 @@ import {
   Share2
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
+import { parseDateToIso, formatToIndonesianDate, getDeadlineStatus } from '../utils/dateUtils';
 
 function formatWaPhone(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -612,7 +613,7 @@ export default function AdminPortal({
     setAssetPreviewUrl('');
     setAssetFileSize('');
     setAssetDesc('');
-    showToast(`Asset "${saved}" berhasil ditambahkan ke Katalog Asset Logo!`);
+    showToast(`Asset "${saved}" berhasil ditambahkan ke Katalog Asset!`);
   };
 
   const removeUploadedPhoto = (idx) => {
@@ -1283,7 +1284,7 @@ export default function AdminPortal({
           { id: 'program', label: 'Program & Kalender', desc: 'Halaman daftar program kerja divisi & kalender budaya bulanan interaktif' },
           { id: 'galeri', label: 'Galeri Kegiatan', desc: 'Halaman dokumentasi foto carousel kegiatan & tautan folder dokumentasi' },
           { id: 'kudos', label: 'Wall of Kudos', desc: 'Halaman papan apresiasi & pengiriman pesan terima kasih antar insan IT APD' },
-          { id: 'assets', label: 'Asset Logo', desc: 'Halaman transformasi logo & pengunduhan paket logo resmi CNT IT APD' },
+          { id: 'assets', label: 'Asset', desc: 'Halaman transformasi logo & pengunduhan paket asset resmi CNT IT APD' },
           { id: 'oprec', label: 'Registrasi & Formulir', desc: 'Halaman pusat pendaftaran event, open recruitment & survei dinamis' },
         ];
 
@@ -1589,7 +1590,7 @@ export default function AdminPortal({
                       <option value="organisasi">Struktur Organisasi</option>
                       <option value="galeri">Galeri Kegiatan</option>
                       <option value="kudos">Wall of Kudos & Aspirasi</option>
-                      <option value="assets">Asset Logo & Template</option>
+                      <option value="assets">Asset</option>
                     </select>
                   </div>
                 </div>
@@ -3512,15 +3513,66 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Batas Akhir / Deadline Pendaftaran
+                📅 Batas Akhir / Deadline Pendaftaran
               </label>
-              <input
-                type="text"
-                placeholder="Contoh: 31 Maret 2026"
-                value={newFormDeadline}
-                onChange={(e) => setNewFormDeadline(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
-              />
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input
+                    type="date"
+                    value={parseDateToIso(newFormDeadline)}
+                    onChange={(e) => {
+                      if (!e.target.value) {
+                        setNewFormDeadline('');
+                      } else {
+                        setNewFormDeadline(formatToIndonesianDate(e.target.value));
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px 9px 36px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--input-border)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <Calendar 
+                    size={16} 
+                    style={{ 
+                      position: 'absolute', 
+                      left: '10px', 
+                      top: '50%', 
+                      transform: 'translateY(-50%)', 
+                      color: 'var(--mandiri-gold)',
+                      pointerEvents: 'none' 
+                    }} 
+                  />
+                </div>
+                {newFormDeadline && (
+                  <button
+                    type="button"
+                    onClick={() => setNewFormDeadline('')}
+                    title="Hapus deadline / Tanpa batas waktu"
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--mandiri-gold)', marginTop: '4px', fontWeight: 600 }}>
+                {newFormDeadline ? `Format: ${newFormDeadline}` : 'Pilih tanggal dari kalender di atas'}
+              </div>
             </div>
 
             <div>
@@ -3579,9 +3631,19 @@ export default function AdminPortal({
                   flexWrap: 'wrap'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '240px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{f.category || 'Formulir'}</span>
                       <strong style={{ color: 'var(--text-main)', fontSize: '0.96rem' }}>{f.title}</strong>
+                      {(() => {
+                        const dl = getDeadlineStatus(f.deadline);
+                        if (dl.isExpired) {
+                          return <span className="badge-red" style={{ fontSize: '0.65rem' }}>Expired (Lewat Batas)</span>;
+                        }
+                        if (dl.isToday) {
+                          return <span className="badge-gold" style={{ fontSize: '0.65rem' }}>⚠️ Hari Terakhir!</span>;
+                        }
+                        return null;
+                      })()}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       Deadline: {f.deadline} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Berkas Masuk</strong>
@@ -4458,10 +4520,10 @@ export default function AdminPortal({
         <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
-              Kelola Katalog Asset Logo, Template & Media Kit ({brandAssets.length})
+              Kelola Katalog Asset CNT IT APD ({brandAssets.length})
             </h3>
             <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
-              Unggah file logo, template PowerPoint Townhall, Virtual Background MS Teams/Zoom, atau dokumen panduan brand langsung ke Supabase Storage agar dapat diunduh di halaman Asset Logo.
+              Unggah file logo, template PowerPoint Townhall, Virtual Background MS Teams/Zoom, atau dokumen panduan brand langsung ke Supabase Storage agar dapat diunduh di halaman Asset.
             </p>
           </div>
 
@@ -5607,13 +5669,64 @@ export default function AdminPortal({
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Batas Akhir / Deadline</label>
-                    <input
-                      type="text"
-                      value={editingItem.item.deadline || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: e.target.value } })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    />
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      📅 Batas Akhir / Deadline
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <input
+                          type="date"
+                          value={parseDateToIso(editingItem.item.deadline || '')}
+                          onChange={(e) => {
+                            const val = e.target.value ? formatToIndonesianDate(e.target.value) : '';
+                            setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: val } });
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px 9px 36px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--input-border)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.86rem',
+                            cursor: 'pointer'
+                          }}
+                        />
+                        <Calendar 
+                          size={16} 
+                          style={{ 
+                            position: 'absolute', 
+                            left: '10px', 
+                            top: '50%', 
+                            transform: 'translateY(-50%)', 
+                            color: 'var(--mandiri-gold)',
+                            pointerEvents: 'none' 
+                          }} 
+                        />
+                      </div>
+                      {editingItem.item.deadline && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: '' } })}
+                          title="Hapus deadline / Tanpa batas waktu"
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-muted)',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--mandiri-gold)', marginTop: '4px', fontWeight: 600 }}>
+                      {editingItem.item.deadline ? `Format: ${editingItem.item.deadline}` : 'Pilih tanggal dari kalender di atas'}
+                    </div>
                   </div>
                 </div>
                 <div>
