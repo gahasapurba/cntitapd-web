@@ -470,9 +470,9 @@ export default function DynamicFormSection({
                     // Options logic (database source or static)
                     let options = field.options || [];
                     if (field.source === 'divisions') {
-                      options = divisions.map(d => d.name);
+                      options = (divisions || []).map(d => d.name);
                     } else if (field.source === 'events') {
-                      options = events.map(e => `${e.title} (${e.date})`);
+                      options = (events || []).map(e => `${e.title} (${e.date})`);
                     }
 
                     return (
