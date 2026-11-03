@@ -808,7 +808,7 @@ export default function App() {
         : (pageVisibility[currentTab] !== false ? currentTab : visiblePublicPages[0]));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
       {/* Background Canvas */}
       <StarfieldBackground theme={theme} />
 

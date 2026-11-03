@@ -71,14 +71,20 @@ export default function Navbar({
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       borderBottom: '1px solid var(--border-card)',
-      transition: 'background 0.3s ease, border-color 0.3s ease'
+      transition: 'background 0.3s ease, border-color 0.3s ease',
+      width: '100%',
+      maxWidth: '100vw',
+      boxSizing: 'border-box'
     }}>
       <div className="container" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         height: '74px',
-        gap: '12px'
+        gap: '8px',
+        width: '100%',
+        maxWidth: '1260px',
+        boxSizing: 'border-box'
       }}>
         {/* 1. Left: Brand Logo & Title */}
         <div 
@@ -86,31 +92,26 @@ export default function Navbar({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
             cursor: 'pointer',
-            flexShrink: 0
+            flexShrink: 1,
+            minWidth: 0
           }}
         >
           <img 
+            className="navbar-brand-logo"
             src={isDark ? "/assets/apd-logo-white.png" : "/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png"} 
             alt="CNT IT APD Logo"
-            style={{ height: '34px', maxWidth: '120px', objectFit: 'contain' }}
             onError={(e) => {
               e.currentTarget.src = "/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png";
             }}
           />
-          <div style={{ height: '22px', width: '1px', background: 'var(--border-card)' }} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ 
-              fontFamily: 'var(--font-display)', 
-              fontWeight: 800, 
-              fontSize: '0.96rem',
-              color: 'var(--text-main)',
-              lineHeight: 1.15
-            }}>
+          <div className="desktop-nav" style={{ height: '22px', width: '1px', background: 'var(--border-card)', flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <span className="navbar-brand-title">
               CNT IT APD
             </span>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            <span className="desktop-nav" style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
               Direktorat IT Bank Mandiri
             </span>
           </div>
@@ -216,25 +217,17 @@ export default function Navbar({
         </nav>
 
         {/* 3. Right: Tenure Selector, Theme Toggle & Mobile Burger Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '12px' }}>
-          <div style={{ position: 'relative' }}>
+        <div className="navbar-right-actions">
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             <select
               value={activeTenure?.id || ''}
               onChange={(e) => {
                 const selected = tenures.find(t => t.id === e.target.value);
                 if (selected) onSelectTenure(selected);
               }}
+              className="navbar-tenure-select"
               style={{
-                appearance: 'none',
                 background: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
-                border: '1px solid var(--border-card)',
-                color: 'var(--text-main)',
-                padding: '6px 26px 6px 10px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.76rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                outline: 'none',
               }}
             >
               {tenures.map((t) => (
@@ -247,7 +240,7 @@ export default function Navbar({
               size={12} 
               style={{ 
                 position: 'absolute', 
-                right: '8px', 
+                right: '7px', 
                 top: '50%', 
                 transform: 'translateY(-50%)', 
                 pointerEvents: 'none',
@@ -264,18 +257,19 @@ export default function Navbar({
               title="Pencarian Cepat Lintas Halaman (Ctrl+K)"
               style={{
                 height: '34px',
-                padding: '0 10px',
+                padding: '0 8px',
                 borderRadius: 'var(--radius-full)',
                 background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
                 border: '1px solid var(--border-card)',
                 color: 'var(--text-main)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '5px',
                 cursor: 'pointer',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                flexShrink: 0
               }}
             >
               <Search size={14} color={isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)'} />
@@ -298,10 +292,11 @@ export default function Navbar({
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              flexShrink: 0
             }}
           >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
 
           {/* Mobile Burger Toggle (Hidden on desktop) */}
@@ -310,8 +305,8 @@ export default function Navbar({
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Buka Menu"
             style={{
-              width: '36px',
-              height: '36px',
+              width: '34px',
+              height: '34px',
               borderRadius: 'var(--radius-sm)',
               background: isMobileMenuOpen 
                 ? (isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0, 61, 121, 0.12)')
@@ -322,10 +317,11 @@ export default function Navbar({
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              flexShrink: 0
             }}
           >
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {isMobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
           </button>
         </div>
       </div>
@@ -349,6 +345,44 @@ export default function Navbar({
           maxHeight: 'calc(100vh - 80px)',
           overflowY: 'auto'
         }}>
+          {/* Active Tenure Selector inside Mobile Drawer */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-md)',
+            background: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+            border: '1px solid var(--border-card)',
+            marginBottom: '6px'
+          }}>
+            <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+              Periode Kepengurusan:
+            </span>
+            <select
+              value={activeTenure?.id || ''}
+              onChange={(e) => {
+                const selected = tenures.find(t => t.id === e.target.value);
+                if (selected) onSelectTenure(selected);
+              }}
+              style={{
+                background: isDark ? '#070d1e' : '#ffffff',
+                border: '1px solid var(--border-card)',
+                color: 'var(--text-main)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {tenures.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name || t.code} {t.isActive ? '(Aktif)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
           {navItems.map((tab) => {
             const Icon = tab.icon;
             const isActive = currentTab === tab.id;
