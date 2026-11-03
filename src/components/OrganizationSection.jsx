@@ -7,7 +7,10 @@ import {
   CheckCircle2, 
   Info,
   Search,
-  Users
+  Users,
+  Download,
+  Copy,
+  Calendar
 } from 'lucide-react';
 import CrewMemberCard from './CrewMemberCard';
 import { soundFx } from '../utils/audio';
@@ -19,11 +22,47 @@ function formatWaNumber(raw = '') {
   return digits;
 }
 
-export default function OrganizationSection({ activeTenure, divisions, members }) {
+export default function OrganizationSection({ activeTenure, divisions, members, events = [], onNavigateProgram }) {
   const [selectedMember, setSelectedMember] = useState(null);
+  const [copiedPhone, setCopiedPhone] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [divisionFilter, setDivisionFilter] = useState('all');
+
+  const handleDownloadVCard = (member) => {
+    if (!member) return;
+    const phone = formatWaNumber(member.whatsapp || '');
+    const vcardLines = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${member.name || 'Pengurus CNT IT APD'}`,
+      'ORG:Bank Mandiri - Culture Network Team (CNT) IT Application Delivery',
+      `TITLE:${member.role || ''} (${member.title || 'CNT IT APD'})`,
+      phone ? `TEL;TYPE=CELL,VOICE:+${phone}` : '',
+      `NOTE:${member.motto || 'Pengurus Culture Network Team (CNT) Group IT APD'}`,
+      'END:VCARD'
+    ].filter(Boolean).join('\r\n');
+
+    const blob = new Blob([vcardLines], { type: 'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = String(member.name || 'cnt-apd').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    a.href = url;
+    a.download = `kontak-${safeName}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+
+  const handleCopyPhone = (rawPhone) => {
+    if (!rawPhone) return;
+    try {
+      navigator.clipboard.writeText(rawPhone);
+      setCopiedPhone(true);
+      setTimeout(() => setCopiedPhone(false), 2200);
+    } catch (e) {}
+  };
 
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
   const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
@@ -496,9 +535,9 @@ export default function OrganizationSection({ activeTenure, divisions, members }
                   {selectedMember.title}
                 </div>
 
-                {/* Direct WhatsApp Action in Modal */}
-                {selectedMember.whatsapp && (
-                  <div style={{ marginTop: '10px' }}>
+                {/* Direct WhatsApp, vCard & Copy Actions in Modal */}
+                <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {selectedMember.whatsapp && (
                     <a
                       href={`https://wa.me/${formatWaNumber(selectedMember.whatsapp)}`}
                       target="_blank"
@@ -509,18 +548,63 @@ export default function OrganizationSection({ activeTenure, divisions, members }
                         gap: '6px',
                         background: '#25d366',
                         color: '#040914',
-                        padding: '6px 14px',
+                        padding: '6px 13px',
                         borderRadius: 'var(--radius-full)',
-                        fontSize: '0.8rem',
+                        fontSize: '0.76rem',
                         fontWeight: 800,
                         textDecoration: 'none',
-                        boxShadow: '0 2px 10px rgba(37, 211, 102, 0.4)'
+                        boxShadow: '0 2px 10px rgba(37, 211, 102, 0.35)'
                       }}
                     >
-                      <span>💬 Chat WhatsApp</span>
+                      <span>💬 Chat WA</span>
                     </a>
-                  </div>
-                )}
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadVCard(selectedMember)}
+                    title="Simpan kontak pengurus ke buku telepon HP / Outlook (.vcf)"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'rgba(255, 184, 0, 0.14)',
+                      border: '1px solid rgba(255, 184, 0, 0.45)',
+                      color: 'var(--mandiri-gold)',
+                      padding: '6px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Download size={12} />
+                    <span>Simpan Kontak (.vcf)</span>
+                  </button>
+
+                  {selectedMember.whatsapp && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPhone(selectedMember.whatsapp)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: copiedPhone ? '#10b981' : 'var(--text-muted)',
+                        padding: '6px 11px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.73rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Copy size={12} />
+                      <span>{copiedPhone ? '✓ Nomor Tersalin' : 'Salin Nomor'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -548,6 +632,64 @@ export default function OrganizationSection({ activeTenure, divisions, members }
                 </div>
               ))}
             </div>
+
+            {/* Related Division Programs in Member Detail Modal */}
+            {(() => {
+              const relatedEvents = (events || []).filter(e =>
+                (!e.tenureId || e.tenureId === activeTenure?.id) &&
+                (selectedMember.divisionId ? e.divisionId === selectedMember.divisionId : true)
+              ).slice(0, 3);
+              if (relatedEvents.length === 0) return null;
+              return (
+                <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--border-card)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', textTransform: 'uppercase', color: 'var(--neon-cyan)', fontWeight: 800 }}>
+                      📅 Program Kerja & Agenda Terkait ({relatedEvents.length}):
+                    </span>
+                    {onNavigateProgram && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMember(null);
+                          onNavigateProgram();
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--mandiri-gold)',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Lihat Kalender →
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {relatedEvents.map(ev => (
+                      <div
+                        key={ev.id}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          fontSize: '0.78rem'
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{ev.title}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', flexShrink: 0 }}>{ev.date}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

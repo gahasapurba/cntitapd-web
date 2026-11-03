@@ -208,6 +208,18 @@ CREATE TABLE public.event_rsvps (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 13. Tabel Pusat Panduan & Tanya Jawab (faqs)
+CREATE TABLE public.faqs (
+    id TEXT PRIMARY KEY,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    category TEXT DEFAULT 'Umum',
+    sort_order INT DEFAULT 0,
+    is_published BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.tenures ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.divisions ENABLE ROW LEVEL SECURITY;
@@ -221,6 +233,7 @@ ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.page_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.brand_assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_rsvps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
 
 -- Policies for full client-side sync across devices
 CREATE POLICY "Public full access tenures" ON public.tenures FOR ALL USING (true) WITH CHECK (true);
@@ -235,6 +248,7 @@ CREATE POLICY "Public full access submissions" ON public.submissions FOR ALL USI
 CREATE POLICY "Public full access page_settings" ON public.page_settings FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access brand_assets" ON public.brand_assets FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access event_rsvps" ON public.event_rsvps FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public full access faqs" ON public.faqs FOR ALL USING (true) WITH CHECK (true);
 
 -- Storage Bucket for Media & Document Uploads (cnt-media)
 INSERT INTO storage.buckets (id, name, public, file_size_limit)

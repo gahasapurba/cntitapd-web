@@ -8,6 +8,7 @@ import {
   DollarSign, 
   Award, 
   ChevronRight,
+  ChevronDown,
   Flame,
   Activity,
   Heart,
@@ -15,7 +16,11 @@ import {
   Rocket,
   Target,
   ShieldCheck,
-  Crown
+  Crown,
+  Calendar,
+  MapPin,
+  HelpCircle,
+  Search
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 
@@ -27,13 +32,20 @@ export default function HomeSection({
   setCurrentTab,
   recruitmentInfo,
   forms = [],
+  eventRsvps = [],
+  kudosList = [],
+  faqs = [],
   theme,
   pageVisibility = {}
 }) {
   const isDark = theme === 'dark';
+  const [openFaqId, setOpenFaqId] = useState('faq-1');
+  const [faqCategory, setFaqCategory] = useState('Semua');
+  const [faqSearch, setFaqSearch] = useState('');
   const isOprecVisible = pageVisibility.oprec !== false;
   const isOrganisasiVisible = pageVisibility.organisasi !== false;
   const isProgramVisible = pageVisibility.program !== false;
+  const isKudosVisible = pageVisibility.kudos !== false;
   const activeForms = isOprecVisible ? forms.filter(f => f.isOpen !== false) : [];
   const primaryForm = activeForms[0] || recruitmentInfo || null;
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
@@ -44,10 +56,10 @@ export default function HomeSection({
   const ketua = activeMembers.find(m => m.role === 'Ketua');
   const wakil = activeMembers.find(m => m.role === 'Wakil Ketua');
 
-  const handleTabChange = (tabId) => {
+  const handleTabChange = (tabId, formIdParam = null) => {
     if (pageVisibility[tabId] === false) return;
     soundFx.playClick();
-    setCurrentTab(tabId);
+    setCurrentTab(tabId, formIdParam);
   };
 
   return (
@@ -412,7 +424,7 @@ export default function HomeSection({
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '16px'
         }}>
-          {members.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').map((person) => (
+          {activeMembers.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').map((person) => (
             <div
               key={person.id}
               onClick={() => handleTabChange('organisasi')}
@@ -539,7 +551,7 @@ export default function HomeSection({
               </div>
 
               <button
-                onClick={() => handleTabChange('oprec')}
+                onClick={() => handleTabChange('oprec', activeForms[0].id)}
                 className="pulse-glow"
                 style={{
                   display: 'flex',
@@ -602,7 +614,7 @@ export default function HomeSection({
                       ✓ Terbuka untuk Officer APD
                     </span>
                     <button
-                      onClick={() => handleTabChange('oprec')}
+                      onClick={() => handleTabChange('oprec', f.id)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -730,6 +742,348 @@ export default function HomeSection({
           })}
         </div>
       </section>
+
+      {/* 5. AGENDA TERDEKAT & SPOTLIGHT KUDOS TERBARU (Dynamic Activity Hub) */}
+      {(isProgramVisible || isKudosVisible) && (
+        <section style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '36px' }}>
+          {/* 5A. Agenda Kegiatan Terdekat */}
+          {isProgramVisible && activeEvents.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <span className="badge-cyan" style={{ marginBottom: '6px' }}>
+                    📅 Kalender & Agenda Budaya
+                  </span>
+                  <h2 style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
+                    Program Kerja & Kegiatan Terdekat ({activeTenure?.code || '2026'})
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('program')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--mandiri-blue)',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>Buka Semua Program & RSVP</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))', gap: '18px' }}>
+                {activeEvents.slice(0, 3).map((evt) => {
+                  const rsvpCount = eventRsvps.filter(r => r.eventId === evt.id).length;
+                  const statusColor = evt.status === 'Ongoing' ? '#10b981' : evt.status === 'Completed' ? '#64748b' : 'var(--mandiri-gold)';
+                  const statusLabel = evt.status === 'Ongoing' ? 'Sedang Berjalan' : evt.status === 'Completed' ? 'Selesai' : 'Segera Hadir';
+                  return (
+                    <div
+                      key={evt.id}
+                      onClick={() => handleTabChange('program')}
+                      className="glass-panel glass-panel-hover"
+                      style={{
+                        padding: '22px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '14px',
+                        cursor: 'pointer',
+                        borderTop: `3px solid ${statusColor}`
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '3px 10px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'rgba(255, 184, 0, 0.14)',
+                            color: statusColor
+                          }}>
+                            ● {statusLabel}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>
+                            {evt.divisionName || evt.badge}
+                          </span>
+                        </div>
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 8px 0', lineHeight: 1.35 }}>
+                          {evt.title}
+                        </h4>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
+                          {(evt.description || '').slice(0, 110)}{(evt.description || '').length > 110 ? '...' : ''}
+                        </p>
+                      </div>
+
+                      <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', fontSize: '0.75rem' }}>
+                        <span style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
+                          <Calendar size={13} color="var(--neon-cyan)" />
+                          <span>{evt.date}</span>
+                        </span>
+                        <span style={{
+                          padding: '3px 9px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'rgba(16, 185, 129, 0.14)',
+                          color: '#10b981',
+                          fontWeight: 800,
+                          fontSize: '0.7rem'
+                        }}>
+                          ✋ {rsvpCount} Peserta RSVP
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 5B. Spotlight Apresiasi & Wall of Kudos Terbaru */}
+          {isKudosVisible && kudosList.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <span className="badge-gold" style={{ marginBottom: '6px' }}>
+                    🏆 Wall of Kudos & Apresiasi
+                  </span>
+                  <h2 style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
+                    Spotlight Apresiasi Insan IT APD Terbaru
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('kudos')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--mandiri-blue)',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>Kirim Kudos & Lihat Semua</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))', gap: '18px' }}>
+                {kudosList.slice(0, 3).map((k) => (
+                  <div
+                    key={k.id}
+                    onClick={() => handleTabChange('kudos')}
+                    className="glass-panel glass-panel-hover"
+                    style={{
+                      padding: '22px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '14px',
+                      cursor: 'pointer',
+                      borderLeft: '4px solid var(--mandiri-gold)'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                        <span className="badge-gold" style={{ fontSize: '0.66rem', padding: '2px 9px' }}>
+                          {k.category || 'Kolaboratif'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: '#f43f5e', fontWeight: 800 }}>
+                          ❤️ {k.likes || 1} Apresiasi
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>
+                        Untuk: <span style={{ color: 'var(--neon-cyan)' }}>{k.recipient}</span>
+                      </div>
+                      <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0, lineHeight: 1.55 }}>
+                        "{(k.message || '').slice(0, 120)}{(k.message || '').length > 120 ? '...' : ''}"
+                      </p>
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', borderTop: '1px solid var(--border-card)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Dari: <strong>{k.sender}</strong></span>
+                      <span>{k.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 6. PUSAT PANDUAN & TANYA JAWAB INTERAKTIF (FAQ BUDAYA & OPERASIONAL CNT) */}
+      {(() => {
+        const publishedFaqs = (faqs || []).filter(f => f.isPublished !== false);
+        if (publishedFaqs.length === 0) return null;
+
+        const categories = ['Semua', ...Array.from(new Set(publishedFaqs.map(f => f.category || 'Umum')))];
+        const q = faqSearch.trim().toLowerCase();
+        const filteredFaqs = publishedFaqs.filter(f => {
+          const matchCat = faqCategory === 'Semua' || (f.category || 'Umum') === faqCategory;
+          const matchQuery = !q ||
+            (f.question || '').toLowerCase().includes(q) ||
+            (f.answer || '').toLowerCase().includes(q) ||
+            (f.category || '').toLowerCase().includes(q);
+          return matchCat && matchQuery;
+        });
+
+        return (
+          <section style={{ maxWidth: '920px', margin: '0 auto', width: '100%' }}>
+            <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+              <span className="badge-gold" style={{ marginBottom: '10px' }}>
+                <HelpCircle size={13} style={{ display: 'inline', marginRight: '5px', verticalAlign: 'middle' }} />
+                Pusat Panduan & FAQ Budaya CNT
+              </span>
+              <h2 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.3rem)', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px' }}>
+                Tanya Jawab Seputar Kegiatan & Operasional CNT IT APD
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', maxWidth: '640px', margin: '0 auto' }}>
+                Informasi praktis seputar keikutsertaan olahraga/komunitas, mekanisme usulan kegiatan baru, dukungan Sekben, hingga alur seleksi Oprec.
+              </p>
+            </div>
+
+            {/* Search & Category Filter for FAQ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ position: 'relative', maxWidth: '480px', width: '100%', margin: '0 auto' }}>
+                <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <input
+                  type="text"
+                  placeholder="Cari pertanyaan (misal: olahraga, dana, sekben, oprec)..."
+                  value={faqSearch}
+                  onChange={(e) => setFaqSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px 10px 38px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.84rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {categories.map(cat => {
+                  const active = faqCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setFaqCategory(cat)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 'var(--radius-full)',
+                        border: active ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                        background: active ? 'rgba(255, 184, 0, 0.16)' : 'var(--bg-card)',
+                        color: active ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Accordion List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {filteredFaqs.length === 0 ? (
+                <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.86rem' }}>
+                  Tidak ditemukan pertanyaan yang cocok dengan kata kunci <strong>"{faqSearch}"</strong>.
+                </div>
+              ) : (
+                filteredFaqs.map((item) => {
+                  const isOpen = openFaqId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      className="glass-panel"
+                      style={{
+                        borderRadius: 'var(--radius-md)',
+                        border: isOpen ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                        overflow: 'hidden',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setOpenFaqId(isOpen ? null : item.id)}
+                        style={{
+                          width: '100%',
+                          padding: '16px 20px',
+                          background: 'transparent',
+                          border: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          color: 'var(--text-main)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: '0.66rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'rgba(14, 165, 233, 0.14)',
+                            color: 'var(--neon-cyan)',
+                            textTransform: 'uppercase'
+                          }}>
+                            {item.category || 'Umum'}
+                          </span>
+                          <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.4 }}>
+                            {item.question}
+                          </span>
+                        </div>
+                        <ChevronDown
+                          size={18}
+                          color="var(--mandiri-gold)"
+                          style={{
+                            flexShrink: 0,
+                            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s ease'
+                          }}
+                        />
+                      </button>
+
+                      {isOpen && (
+                        <div style={{
+                          padding: '0 20px 18px 20px',
+                          borderTop: '1px solid var(--border-card)',
+                          paddingTop: '14px',
+                          fontSize: '0.88rem',
+                          color: 'var(--text-muted)',
+                          lineHeight: 1.65
+                        }}>
+                          {item.answer}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
     </div>
   );

@@ -113,6 +113,10 @@ export default function AdminPortal({
   onDeleteAspirasi,
   eventRsvps = [],
   onDeleteEventRsvp,
+  faqs = [],
+  onAddFaq,
+  onUpdateFaq,
+  onDeleteFaq,
   announcementBar = {
     isActive: true,
     badge: 'INFO TERBARU',
@@ -260,6 +264,37 @@ export default function AdminPortal({
   const [eventKpi, setEventKpi] = useState('');
   const [eventDesc, setEventDesc] = useState('');
   const [eventStatus, setEventStatus] = useState('Upcoming');
+
+  // Form State: New FAQ
+  const [faqCategory, setFaqCategory] = useState('Tentang CNT');
+  const [faqQuestion, setFaqQuestion] = useState('');
+  const [faqAnswer, setFaqAnswer] = useState('');
+
+  const handleCreateFaq = (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (!faqQuestion.trim()) errs.faqQuestion = 'Pertanyaan FAQ wajib diisi';
+    if (!faqAnswer.trim()) errs.faqAnswer = 'Jawaban / penjelasan FAQ wajib diisi';
+    if (Object.keys(errs).length > 0) {
+      setFormErrors((prev) => ({ ...prev, ...errs }));
+      showToast('Mohon lengkapi Pertanyaan dan Jawaban FAQ', 'error');
+      return;
+    }
+
+    if (onAddFaq) {
+      onAddFaq({
+        id: 'faq-' + Date.now(),
+        category: faqCategory || 'Umum',
+        question: faqQuestion.trim(),
+        answer: faqAnswer.trim(),
+        isPublished: true
+      });
+    }
+
+    setFaqQuestion('');
+    setFaqAnswer('');
+    showToast('Pertanyaan FAQ baru berhasil ditambahkan & disinkronkan!');
+  };
 
   const handleCreateEvent = (e) => {
     e.preventDefault();
@@ -1107,6 +1142,7 @@ export default function AdminPortal({
           { id: 'kudos', label: `Wall of Kudos (${kudosList.length})`, icon: Heart },
           { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
           { id: 'assets', label: `Asset & Template (${brandAssets.length})`, icon: Download },
+          { id: 'faqs', label: `Panduan & FAQ (${faqs.length})`, icon: MessageSquare },
           { id: 'divisions', label: 'Kelola Divisi', icon: Layers },
           { id: 'tenure', label: 'Periode Kepengurusan', icon: Calendar },
         ].map((tab) => {
@@ -4601,6 +4637,231 @@ export default function AdminPortal({
         </div>
       )}
 
+      {/* TAB CONTENT: PUSAT PANDUAN & TANYA JAWAB (FAQ) */}
+      {activeTab === 'faqs' && (
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
+              Kelola Pusat Panduan & Tanya Jawab (FAQ) Budaya CNT
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Tambahkan atau perbarui daftar pertanyaan umum seputar kegiatan olahraga/komunitas, pengajuan dana Sekben, aspirasi, hingga alur seleksi Oprec. Tersinkronisasi langsung dengan tabel <code>public.faqs</code> di Supabase.
+            </p>
+          </div>
+
+          <form onSubmit={handleCreateFaq} noValidate style={{
+            background: 'rgba(255,255,255,0.03)',
+            padding: '20px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-card)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}>
+            <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Kategori Topik
+                </label>
+                <select
+                  value={faqCategory}
+                  onChange={(e) => setFaqCategory(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  <option value="Tentang CNT">Tentang CNT</option>
+                  <option value="Kegiatan & Event">Kegiatan & Event</option>
+                  <option value="Operasional & Sekben">Operasional & Sekben</option>
+                  <option value="Aspirasi & Usulan">Aspirasi & Usulan</option>
+                  <option value="Pendaftaran & Oprec">Pendaftaran & Oprec</option>
+                  <option value="Umum">Umum</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Pertanyaan (Question) <span style={{ color: '#f43f5e' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Bagaimana cara mengusulkan turnamen atau komunitas olahraga baru?"
+                  value={faqQuestion}
+                  onChange={(e) => {
+                    setFaqQuestion(e.target.value);
+                    clearFieldError('faqQuestion');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: `1.5px solid ${formErrors.faqQuestion ? '#f43f5e' : 'var(--border-card)'}`,
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                />
+                {renderFieldError('faqQuestion')}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Jawaban & Penjelasan Lengkap (Answer) <span style={{ color: '#f43f5e' }}>*</span>
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Tuliskan penjelasan lengkap yang jelas dan membantu insan IT APD..."
+                value={faqAnswer}
+                onChange={(e) => {
+                  setFaqAnswer(e.target.value);
+                  clearFieldError('faqAnswer');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: `1.5px solid ${formErrors.faqAnswer ? '#f43f5e' : 'var(--border-card)'}`,
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem',
+                  resize: 'vertical'
+                }}
+              />
+              {renderFieldError('faqAnswer')}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="submit"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} />
+                <span>Tambah Pertanyaan FAQ</span>
+              </button>
+            </div>
+          </form>
+
+          {/* List of FAQs */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {faqs.map((f) => (
+              <div
+                key={f.id}
+                style={{
+                  padding: '16px 20px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid var(--border-card)',
+                  borderLeft: `4px solid ${f.isPublished !== false ? 'var(--mandiri-gold)' : '#64748b'}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 300px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                      <span className="badge-cyan" style={{ fontSize: '0.66rem', padding: '2px 8px' }}>
+                        {f.category || 'Umum'}
+                      </span>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        color: f.isPublished !== false ? '#10b981' : '#94a3b8'
+                      }}>
+                        {f.isPublished !== false ? '● Ditampilkan di Publik' : '○ Disembunyikan'}
+                      </span>
+                    </div>
+                    <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0' }}>
+                      {f.question}
+                    </h4>
+                    <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
+                      {f.answer}
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateFaq && onUpdateFaq({ ...f, isPublished: f.isPublished === false ? true : false })}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-muted)',
+                        fontSize: '0.73rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {f.isPublished === false ? 'Tampilkan' : 'Sembunyikan'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem({ type: 'faq', item: { ...f } })}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(14, 165, 233, 0.12)',
+                        border: '1px solid #0284c7',
+                        color: '#0284c7',
+                        fontSize: '0.73rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Edit2 size={12} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm({ type: 'faq', id: f.id, name: f.question })}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(244, 63, 94, 0.12)',
+                        border: '1px solid #f43f5e',
+                        color: '#f43f5e',
+                        fontSize: '0.73rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Trash2 size={12} />
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* EDIT MODAL DIALOG */}
       {editingItem && (
         <div style={{
@@ -4641,6 +4902,7 @@ export default function AdminPortal({
                     editingItem.type === 'form' ? 'Formulir Pendaftaran' :
                     editingItem.type === 'event' ? 'Program Kerja & Agenda' :
                     editingItem.type === 'brand_asset' ? 'Asset & Template' :
+                    editingItem.type === 'faq' ? 'Pertanyaan FAQ' :
                     'Periode Kepengurusan'
                   }
                 </h3>
@@ -5575,6 +5837,45 @@ export default function AdminPortal({
               </div>
             )}
 
+            {/* Edit FAQ Form */}
+            {editingItem.type === 'faq' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Topik</label>
+                  <select
+                    value={editingItem.item.category || 'Umum'}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  >
+                    <option value="Tentang CNT">Tentang CNT</option>
+                    <option value="Kegiatan & Event">Kegiatan & Event</option>
+                    <option value="Operasional & Sekben">Operasional & Sekben</option>
+                    <option value="Aspirasi & Usulan">Aspirasi & Usulan</option>
+                    <option value="Pendaftaran & Oprec">Pendaftaran & Oprec</option>
+                    <option value="Umum">Umum</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Pertanyaan (Question)</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.question || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, question: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Jawaban Lengkap (Answer)</label>
+                  <textarea
+                    rows={4}
+                    value={editingItem.item.answer || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, answer: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
               <button
                 type="button"
@@ -5604,6 +5905,10 @@ export default function AdminPortal({
                     showToast('Judul wajib diisi sebelum menyimpan perubahan', 'error');
                     return;
                   }
+                  if (editingItem.type === 'faq' && (!(it.question || '').trim() || !(it.answer || '').trim())) {
+                    showToast('Pertanyaan dan jawaban FAQ wajib diisi', 'error');
+                    return;
+                  }
                   if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {
                     showToast('Pengirim, penerima, dan pesan apresiasi wajib diisi', 'error');
                     return;
@@ -5617,6 +5922,7 @@ export default function AdminPortal({
                   if (editingItem.type === 'form' && onUpdateForm) onUpdateForm(editingItem.item);
                   if (editingItem.type === 'event' && onUpdateEvent) onUpdateEvent(editingItem.item);
                   if (editingItem.type === 'brand_asset' && onUpdateBrandAsset) onUpdateBrandAsset(editingItem.item);
+                  if (editingItem.type === 'faq' && onUpdateFaq) onUpdateFaq(editingItem.item);
                   setEditingItem(null);
                   showToast('Perubahan data berhasil disimpan & disinkronkan ke Cloud!');
                 }}
@@ -5778,6 +6084,7 @@ export default function AdminPortal({
                     if (deleteConfirm.type === 'event' && onDeleteEvent) onDeleteEvent(deleteConfirm.id);
                     if (deleteConfirm.type === 'submission' && onDeleteSubmission) onDeleteSubmission(deleteConfirm.id);
                     if (deleteConfirm.type === 'brand_asset' && onDeleteBrandAsset) onDeleteBrandAsset(deleteConfirm.id);
+                    if (deleteConfirm.type === 'faq' && onDeleteFaq) onDeleteFaq(deleteConfirm.id);
                     if (deleteConfirm.type === 'reset_all' && onResetDefault) onResetDefault();
                     setDeleteConfirm(null);
                     showToast(deleteConfirm.type === 'reset_all' ? 'Data berhasil dikembalikan ke bawaan awal!' : 'Data berhasil dihapus & disinkronkan!');

@@ -44,7 +44,8 @@ const TABLE_MAP = {
   forms: 'forms',
   submissions: 'submissions',
   brandAssets: 'brand_assets',
-  eventRsvps: 'event_rsvps'
+  eventRsvps: 'event_rsvps',
+  faqs: 'faqs'
 };
 
 export const rowMappers = {
@@ -367,6 +368,25 @@ export const rowMappers = {
       notes: row.notes || '',
       submittedAt: row.submitted_at || ''
     })
+  },
+
+  faqs: {
+    toDb: (item, idx = 0) => ({
+      id: String(item.id),
+      question: item.question || '',
+      answer: item.answer || '',
+      category: item.category || 'Umum',
+      is_published: item.isPublished !== false,
+      sort_order: idx,
+      updated_at: new Date().toISOString()
+    }),
+    fromDb: (row) => ({
+      id: row.id,
+      question: row.question || '',
+      answer: row.answer || '',
+      category: row.category || 'Umum',
+      isPublished: row.is_published !== false
+    })
   }
 };
 
@@ -387,6 +407,7 @@ export async function fetchAllCloudState() {
       submissionsRes,
       brandAssetsRes,
       eventRsvpsRes,
+      faqsRes,
       settingsRes
     ] = await Promise.all([
       supabase.from('tenures').select('*').order('sort_order', { ascending: true }),
@@ -400,6 +421,7 @@ export async function fetchAllCloudState() {
       supabase.from('submissions').select('*').order('created_at', { ascending: false }),
       supabase.from('brand_assets').select('*').order('sort_order', { ascending: true }),
       supabase.from('event_rsvps').select('*').order('created_at', { ascending: false }),
+      supabase.from('faqs').select('*').order('sort_order', { ascending: true }),
       supabase.from('page_settings').select('*')
     ]);
 
@@ -448,6 +470,10 @@ export async function fetchAllCloudState() {
     if (!eventRsvpsRes.error && Array.isArray(eventRsvpsRes.data)) {
       result.eventRsvps = eventRsvpsRes.data.map(rowMappers.eventRsvps.fromDb);
       saveLocalCache('eventRsvps', result.eventRsvps);
+    }
+    if (!faqsRes.error && Array.isArray(faqsRes.data) && faqsRes.data.length > 0) {
+      result.faqs = faqsRes.data.map(rowMappers.faqs.fromDb);
+      saveLocalCache('faqs', result.faqs);
     }
     if (!settingsRes.error && Array.isArray(settingsRes.data)) {
       for (const row of settingsRes.data) {

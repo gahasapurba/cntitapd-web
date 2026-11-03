@@ -25,7 +25,8 @@ import {
   INITIAL_SUBMISSIONS,
   INITIAL_BRAND_ASSETS,
   INITIAL_EVENT_RSVPS,
-  INITIAL_ANNOUNCEMENT_BAR
+  INITIAL_ANNOUNCEMENT_BAR,
+  INITIAL_FAQS
 } from './data/initialData';
 import {
   supabase,
@@ -152,6 +153,7 @@ export default function App() {
   const [aspirasiList, setAspirasiList] = useState(() => loadLocalCache('aspirasiList', INITIAL_ASPIRASI));
   const [brandAssets, setBrandAssets] = useState(() => loadLocalCache('brandAssets', INITIAL_BRAND_ASSETS));
   const [eventRsvps, setEventRsvps] = useState(() => loadLocalCache('eventRsvps', INITIAL_EVENT_RSVPS));
+  const [faqs, setFaqs] = useState(() => loadLocalCache('faqs', INITIAL_FAQS));
   const [announcementBar, setAnnouncementBar] = useState(() => loadLocalCache('announcementBar', INITIAL_ANNOUNCEMENT_BAR));
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [syncStatus, setSyncStatus] = useState('synced');
@@ -193,6 +195,7 @@ export default function App() {
       if (Array.isArray(cloud.aspirasiList)) setAspirasiList(cloud.aspirasiList);
       if (Array.isArray(cloud.brandAssets) && cloud.brandAssets.length > 0) setBrandAssets(cloud.brandAssets);
       if (Array.isArray(cloud.eventRsvps)) setEventRsvps(cloud.eventRsvps);
+      if (Array.isArray(cloud.faqs) && cloud.faqs.length > 0) setFaqs(cloud.faqs);
       if (cloud.announcementBar && typeof cloud.announcementBar === 'object') {
         setAnnouncementBar({ ...INITIAL_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
       }
@@ -398,6 +401,11 @@ export default function App() {
       pushCloudState('events', next);
       return next;
     });
+    setEventRsvps((prev) => {
+      const next = prev.filter(r => r.eventId !== evtId);
+      pushCloudState('eventRsvps', next);
+      return next;
+    });
   };
 
   // Dynamic Forms Lifecycle Handlers
@@ -555,6 +563,29 @@ export default function App() {
     pushCloudState('announcementBar', merged);
   };
 
+  // FAQs Lifecycle Handlers
+  const handleAddFaq = (newFaq) => {
+    setFaqs((prev) => {
+      const next = [...prev, newFaq];
+      pushCloudState('faqs', next);
+      return next;
+    });
+  };
+  const handleUpdateFaq = (updatedFaq) => {
+    setFaqs((prev) => {
+      const next = prev.map(f => f.id === updatedFaq.id ? updatedFaq : f);
+      pushCloudState('faqs', next);
+      return next;
+    });
+  };
+  const handleDeleteFaq = (faqId) => {
+    setFaqs((prev) => {
+      const next = prev.filter(f => f.id !== faqId);
+      pushCloudState('faqs', next);
+      return next;
+    });
+  };
+
   // Reset all collections back to initial defaults
   const handleResetDefault = async () => {
     setTenures(INITIAL_TENURES);
@@ -569,6 +600,7 @@ export default function App() {
     setAspirasiList(INITIAL_ASPIRASI);
     setBrandAssets(INITIAL_BRAND_ASSETS);
     setEventRsvps(INITIAL_EVENT_RSVPS);
+    setFaqs(INITIAL_FAQS);
     setAnnouncementBar(INITIAL_ANNOUNCEMENT_BAR);
     setPageVisibilityState(DEFAULT_PAGE_VISIBILITY);
     try { localStorage.setItem('cnt_page_visibility', JSON.stringify(DEFAULT_PAGE_VISIBILITY)); } catch (e) {}
@@ -586,6 +618,7 @@ export default function App() {
       pushCloudState('aspirasiList', INITIAL_ASPIRASI),
       pushCloudState('brandAssets', INITIAL_BRAND_ASSETS),
       pushCloudState('eventRsvps', INITIAL_EVENT_RSVPS),
+      pushCloudState('faqs', INITIAL_FAQS),
       pushCloudState('announcementBar', INITIAL_ANNOUNCEMENT_BAR),
       pushCloudState('pageVisibility', DEFAULT_PAGE_VISIBILITY)
     ]);
@@ -676,12 +709,12 @@ export default function App() {
                   lineHeight: 1.45
                 }}
               >
-                {announcementBar.text}
+                {announcementBar.message || announcementBar.text}
               </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              {announcementBar.ctaLabel && announcementBar.ctaTab && (
+              {(announcementBar.ctaText || announcementBar.ctaLabel) && announcementBar.ctaTab && (
                 <button
                   type="button"
                   onClick={() => setCurrentTab(announcementBar.ctaTab)}
@@ -699,7 +732,7 @@ export default function App() {
                     cursor: 'pointer'
                   }}
                 >
-                  <span>{announcementBar.ctaLabel}</span>
+                  <span>{announcementBar.ctaText || announcementBar.ctaLabel}</span>
                   <ChevronRight size={13} />
                 </button>
               )}
@@ -864,6 +897,9 @@ export default function App() {
             members={members}
             setCurrentTab={setCurrentTab}
             forms={forms}
+            eventRsvps={eventRsvps}
+            kudosList={kudosList}
+            faqs={faqs}
             theme={theme}
             pageVisibility={pageVisibility}
           />
@@ -881,6 +917,8 @@ export default function App() {
               activeTenure={activeTenure}
               divisions={divisions}
               members={members}
+              events={events}
+              onNavigateProgram={pageVisibility.program !== false ? () => setCurrentTab('program') : undefined}
               theme={theme}
             />
           )}
@@ -981,6 +1019,10 @@ export default function App() {
               onDeleteBrandAsset={handleDeleteBrandAsset}
               eventRsvps={eventRsvps}
               onDeleteEventRsvp={handleDeleteEventRsvp}
+              faqs={faqs}
+              onAddFaq={handleAddFaq}
+              onUpdateFaq={handleUpdateFaq}
+              onDeleteFaq={handleDeleteFaq}
               announcementBar={announcementBar}
               onUpdateAnnouncementBar={handleUpdateAnnouncementBar}
               pageVisibility={pageVisibility}
@@ -1035,7 +1077,37 @@ export default function App() {
             ).slice(0, 3)
           : [];
 
-        const totalResults = matchedMembers.length + matchedEvents.length + matchedForms.length + matchedGalleries.length + matchedAssets.length;
+        const matchedKudos = q
+          ? kudosList.filter(k =>
+              (k.recipient || '').toLowerCase().includes(q) ||
+              (k.sender || '').toLowerCase().includes(q) ||
+              (k.message || '').toLowerCase().includes(q) ||
+              (k.category || '').toLowerCase().includes(q)
+            ).slice(0, 3)
+          : [];
+
+        const matchedAspirasi = q
+          ? aspirasiList.filter(asp =>
+              asp.isPublic !== false && (
+                (asp.title || '').toLowerCase().includes(q) ||
+                (asp.description || '').toLowerCase().includes(q) ||
+                (asp.text || '').toLowerCase().includes(q) ||
+                (asp.adminReply || '').toLowerCase().includes(q)
+              )
+            ).slice(0, 3)
+          : [];
+
+        const matchedFaqs = q
+          ? faqs.filter(fq =>
+              fq.isPublished !== false && (
+                (fq.question || '').toLowerCase().includes(q) ||
+                (fq.answer || '').toLowerCase().includes(q) ||
+                (fq.category || '').toLowerCase().includes(q)
+              )
+            ).slice(0, 3)
+          : [];
+
+        const totalResults = matchedMembers.length + matchedEvents.length + matchedForms.length + matchedGalleries.length + matchedAssets.length + matchedKudos.length + matchedAspirasi.length + matchedFaqs.length;
 
         return (
           <div
@@ -1306,6 +1378,108 @@ export default function App() {
                             <div>
                               <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>📦 {a.title}</div>
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{a.category} • {a.fileType}</div>
+                            </div>
+                            <ChevronRight size={15} color="var(--text-dim)" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Kudos, Aspirasi & FAQ Results */}
+                  {(matchedKudos.length > 0 || matchedAspirasi.length > 0 || matchedFaqs.length > 0) && (
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Search size={13} color="var(--mandiri-gold)" />
+                        <span>Apresiasi Kudos, Aspirasi & Panduan FAQ</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {matchedKudos.map(k => (
+                          <button
+                            key={k.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab('kudos');
+                              setIsQuickSearchOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.86rem', fontWeight: 800 }}>🏆 Kudos untuk {k.recipient} (dari {k.sender})</div>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>"{(k.message || '').slice(0, 75)}..."</div>
+                            </div>
+                            <ChevronRight size={15} color="var(--text-dim)" />
+                          </button>
+                        ))}
+                        {matchedAspirasi.map(asp => (
+                          <button
+                            key={asp.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab('kudos');
+                              setIsQuickSearchOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.86rem', fontWeight: 800 }}>💡 Aspirasi: {asp.title || asp.text}</div>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Status: {asp.status} • {asp.category}</div>
+                            </div>
+                            <ChevronRight size={15} color="var(--text-dim)" />
+                          </button>
+                        ))}
+                        {matchedFaqs.map(fq => (
+                          <button
+                            key={fq.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab('home');
+                              setIsQuickSearchOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.86rem', fontWeight: 800 }}>❓ FAQ: {fq.question}</div>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{(fq.answer || '').slice(0, 80)}...</div>
                             </div>
                             <ChevronRight size={15} color="var(--text-dim)" />
                           </button>

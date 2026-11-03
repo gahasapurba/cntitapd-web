@@ -12,7 +12,8 @@ import {
   X,
   Clock,
   Search,
-  Filter
+  Filter,
+  Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -72,6 +73,112 @@ export default function KudosSection({
       const updatedLikes = alreadyLiked ? Math.max(1, currentLikes - 1) : currentLikes + 1;
       onUpdateKudos({ ...kudosItem, likes: updatedLikes });
     }
+  };
+
+  // HTML5 Canvas Generator for Shareable PNG Kudos Certificate Card
+  const handleDownloadKudosCard = (kudosItem) => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 680;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // 1. Background Gradient (Mandiri Cosmic Navy)
+      const bgGrad = ctx.createLinearGradient(0, 0, 1080, 680);
+      bgGrad.addColorStop(0, '#040914');
+      bgGrad.addColorStop(0.55, '#002855');
+      bgGrad.addColorStop(1, '#07132b');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 1080, 680);
+
+      // 2. Gold & Cyan Decorative Glow Orbs
+      const goldGlow = ctx.createRadialGradient(920, 110, 10, 920, 110, 260);
+      goldGlow.addColorStop(0, 'rgba(255, 184, 0, 0.25)');
+      goldGlow.addColorStop(1, 'rgba(255, 184, 0, 0)');
+      ctx.fillStyle = goldGlow;
+      ctx.fillRect(0, 0, 1080, 680);
+
+      // 3. Outer Gold Frame
+      ctx.strokeStyle = '#FFB800';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(28, 28, 1024, 624);
+
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(40, 40, 1000, 600);
+
+      // 4. Header Badge
+      ctx.fillStyle = '#FFB800';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText('★ CULTURE NETWORK TEAM (CNT) • GROUP IT APPLICATION DELIVERY', 76, 95);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 16px monospace';
+      ctx.fillText(`NILAI BUDAYA: ${(kudosItem.category || 'KOLABORATIF').toUpperCase()}`, 76, 128);
+
+      // 5. Recipient Title
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+      ctx.font = '600 20px sans-serif';
+      ctx.fillText('SERTIFIKAT APRESIASI & KUDOS DIBERIKAN KEPADA:', 76, 188);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 44px sans-serif';
+      ctx.fillText(String(kudosItem.recipient || 'Insan IT APD').slice(0, 38), 76, 242);
+
+      // 6. Divider Line
+      ctx.fillStyle = '#FFB800';
+      ctx.fillRect(76, 268, 180, 4);
+
+      // 7. Word-wrapped Quote Message
+      ctx.fillStyle = '#f1f5f9';
+      ctx.font = 'italic 27px sans-serif';
+      const rawText = `"${kudosItem.message || ''}"`;
+      const words = rawText.split(' ');
+      const lines = [];
+      let currentLine = '';
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (ctx.measureText(testLine).width > 910) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+
+      lines.slice(0, 5).forEach((line, idx) => {
+        ctx.fillText(line, 76, 330 + idx * 42);
+      });
+
+      // 8. Footer Sender & Timestamp
+      ctx.fillStyle = '#FFB800';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(`Dari: ${kudosItem.sender || 'Rekan IT APD'}`, 76, 565);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.font = '500 17px sans-serif';
+      ctx.fillText(`${kudosItem.exactTimestamp || kudosItem.date || ''}  •  ❤️ ${kudosItem.likes || 1} Apresiasi`, 76, 598);
+
+      ctx.fillStyle = 'rgba(255, 184, 0, 0.85)';
+      ctx.font = 'bold 17px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('Direktorat IT • Bank Mandiri', 1004, 598);
+
+      // 9. Trigger Download
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      const safeRecipient = String(kudosItem.recipient || 'apd')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .slice(0, 28);
+      a.href = dataUrl;
+      a.download = `kudos-cnt-apd-${safeRecipient}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {}
   };
 
   const validateKudos = () => {
@@ -667,27 +774,52 @@ export default function KudosSection({
                       )}
                     </div>
 
-                    <button
-                      onClick={() => handleToggleLike(kudos)}
-                      title="Beri like apresiasi"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        background: isLiked ? 'rgba(244, 63, 94, 0.15)' : 'transparent',
-                        border: isLiked ? '1px solid #f43f5e' : '1px solid var(--border-card)',
-                        color: isLiked ? '#f43f5e' : 'var(--text-muted)',
-                        padding: '4px 12px',
-                        borderRadius: 'var(--radius-full)',
-                        cursor: 'pointer',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <Heart size={13} fill={isLiked ? '#f43f5e' : 'none'} color={isLiked ? '#f43f5e' : 'currentColor'} />
-                      <span>{currentLikes} apresiasi</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadKudosCard(kudos)}
+                        title="Unduh kartu ucapan Kudos beresolusi tinggi (PNG) untuk dibagikan ke WhatsApp / Teams"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          background: 'rgba(255, 184, 0, 0.12)',
+                          border: '1px solid rgba(255, 184, 0, 0.45)',
+                          color: 'var(--mandiri-gold)',
+                          padding: '4px 11px',
+                          borderRadius: 'var(--radius-full)',
+                          cursor: 'pointer',
+                          fontSize: '0.72rem',
+                          fontWeight: 800
+                        }}
+                      >
+                        <Download size={12} />
+                        <span>Unduh Kartu (PNG)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleLike(kudos)}
+                        title="Beri like apresiasi"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          background: isLiked ? 'rgba(244, 63, 94, 0.15)' : 'transparent',
+                          border: isLiked ? '1px solid #f43f5e' : '1px solid var(--border-card)',
+                          color: isLiked ? '#f43f5e' : 'var(--text-muted)',
+                          padding: '4px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          cursor: 'pointer',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Heart size={13} fill={isLiked ? '#f43f5e' : 'none'} color={isLiked ? '#f43f5e' : 'currentColor'} />
+                        <span>{currentLikes} apresiasi</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

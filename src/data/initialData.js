@@ -955,3 +955,41 @@ export const INITIAL_BRAND_ASSETS = [
     badge: 'Legacy Archive'
   }
 ];
+
+export const INITIAL_FAQS = [
+  {
+    id: 'faq-1',
+    category: 'Tentang CNT',
+    question: 'Apa itu Culture Network Team (CNT) IT Application Delivery?',
+    answer: 'Culture Network Team (CNT) IT APD adalah tim penggerak budaya kerja kolaboratif, wellbeing olahraga & rohani, kreativitas media, serta apresiasi lintas squad di lingkungan Group IT Application Delivery Direktorat IT Bank Mandiri.',
+    isPublished: true
+  },
+  {
+    id: 'faq-2',
+    category: 'Kegiatan & Event',
+    question: 'Apakah seluruh pegawai/officer IT APD boleh mengikuti kegiatan olahraga & program CNT meskipun bukan pengurus?',
+    answer: 'Tentu saja! Seluruh kegiatan olahraga (Futsal, Mini Soccer, Badminton, Basket, Fun Run), Townhall, hingga kompetisi E-Sports terbuka untuk seluruh insan IT Application Delivery. Anda cukup melakukan konfirmasi hadir (RSVP) pada kartu Program Kerja atau mendaftar melalui Hub Registrasi.',
+    isPublished: true
+  },
+  {
+    id: 'faq-3',
+    category: 'Aspirasi & Usulan',
+    question: 'Bagaimana cara mengusulkan kegiatan komunitas baru atau menyampaikan aspirasi fasilitas kerja?',
+    answer: 'Anda dapat membuka menu Apresiasi & Kudos lalu mengisi Kotak Aspirasi & Ide Kegiatan Budaya, atau menghubungi langsung Pimpro Divisi terkait melalui tombol Chat WhatsApp di halaman Organigram. Status tindak lanjut aspirasi juga dapat dipantau secara transparan di portal.',
+    isPublished: true
+  },
+  {
+    id: 'faq-4',
+    category: 'Operasional & Sekben',
+    question: 'Bagaimana alur pengajuan dukungan dana / konsumsi untuk kegiatan olahraga atau komunitas di bawah CNT?',
+    answer: 'Koordinator kegiatan atau Pimpro Divisi dapat mengajukan rincian kebutuhan (RAB singkat & jadwal kegiatan) kepada Sekretaris & Bendahara (Sekben 1 / Sekben 2) minimal H-5 sebelum kegiatan berlangsung untuk proses verifikasi dan pencairan.',
+    isPublished: true
+  },
+  {
+    id: 'faq-5',
+    category: 'Pendaftaran & Oprec',
+    question: 'Bagaimana cara bergabung menjadi pengurus CNT atau panitia ad-hoc kegiatan besar?',
+    answer: 'Setiap pembukaan rekrutmen pengurus baru maupun kepanitiaan ad-hoc akan diumumkan di halaman Pendaftaran (Oprec). Setelah mengirim formulir, Anda dapat memantau tahapan seleksi secara mandiri melalui fitur Cek Status Pendaftaran & Seleksi Saya.',
+    isPublished: true
+  }
+];
