@@ -444,7 +444,6 @@ export default function AdminPortal({
       setMemImage(localPreview);
       showToast(`Foto "${file.name}" dipilih (akan diunggah saat Anda klik Tambah Personel)`);
     }
-    e.target.value = '';
   };
 
   const handleCreateMember = async (e) => {
@@ -591,7 +590,6 @@ export default function AdminPortal({
       setUploadedPhotos(prev => [...prev, ...localPreviews]);
       showToast(`${files.length} foto dipilih (akan diunggah saat Anda klik Publikasikan)`);
     }
-    e.target.value = '';
   };
 
   // Select Brand Asset file or preview - Deferred upload on Save only
@@ -646,14 +644,15 @@ export default function AdminPortal({
         showToast(`Gambar preview "${file.name}" dipilih`);
       }
     }
-    e.target.value = '';
   };
 
   const handleCreateBrandAsset = async (e) => {
     e.preventDefault();
     const errs = {};
     if (!assetTitle.trim()) errs.assetTitle = 'Judul Asset / Template wajib diisi';
-    if (!pendingAssetFile && !assetFileUrl.trim()) errs.assetFileUrl = 'File atau URL Download wajib dipilih / diisi';
+    if (!pendingAssetFile && !pendingPreviewFile && !assetFileUrl.trim() && !assetPreviewUrl.trim()) {
+      errs.assetFileUrl = 'File atau URL Download wajib dipilih / diisi';
+    }
     if (Object.keys(errs).length > 0) {
       setFormErrors(prev => ({ ...prev, ...errs }));
       showToast('Mohon lengkapi Judul dan File/URL Asset', 'error');
@@ -673,6 +672,7 @@ export default function AdminPortal({
         if (pendingPreviewFile === pendingAssetFile) {
           finalPreviewUrl = finalFileUrl;
         } else {
+          showToast(`Mengunggah preview "${pendingPreviewFile.name}" ke Cloud Storage...`);
           finalPreviewUrl = await uploadMediaToCloud(pendingPreviewFile, 'assets');
         }
       }
@@ -687,7 +687,7 @@ export default function AdminPortal({
     const effectivePreviewUrl = finalPreviewUrl || finalFileUrl || '';
 
     if (!effectiveFileUrl) {
-      showToast('Gagal: File asset atau URL download tidak boleh kosong', 'error');
+      showToast('Gagal: File asset atau URL download tidak boleh kosong. Silakan pilih berkas kembali.', 'error');
       return;
     }
 

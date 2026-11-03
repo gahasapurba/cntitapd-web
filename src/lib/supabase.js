@@ -637,14 +637,14 @@ export function getFileMimeType(file) {
 
 /**
  * Upload a File/Blob to Supabase Storage bucket `cnt-media` and return its public CDN URL.
- * Falls back to Base64 dataURL for small offline files.
+ * Throws explicit exceptions on failure to prevent silent null returns.
  */
 export async function uploadMediaToCloud(file, folder = 'uploads') {
-  if (!file) return null;
+  if (!file) throw new Error('File tidak valid atau tidak ditemukan');
 
   const ext = (file.name || '').split('.').pop() || '';
   const baseName = (file.name || 'file').slice(0, -(ext.length ? ext.length + 1 : 0));
-  const safeBase = baseName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(-60);
+  const safeBase = (baseName || 'file').replace(/[^a-zA-Z0-9_-]/g, '_').slice(-60);
   const safeName = ext ? `${safeBase}.${ext.toLowerCase()}` : safeBase;
   const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safeName}`;
 
@@ -659,32 +659,23 @@ export async function uploadMediaToCloud(file, folder = 'uploads') {
         contentType: resolvedMime
       });
 
-    if (!error && uploadData) {
+    if (error) {
+      console.error('Supabase Storage error:', error);
+      throw new Error(error.message || 'Gagal mengunggah berkas ke Supabase Storage');
+    }
+
+    if (uploadData) {
       const { data: pubData } = supabase.storage.from('cnt-media').getPublicUrl(path);
       if (pubData?.publicUrl) {
         return pubData.publicUrl;
       }
     }
 
-    if (error) {
-      console.error('Supabase Storage error:', error);
-      throw error;
-    }
+    throw new Error('Tidak ada respon data publik dari Cloud Storage');
   } catch (e) {
     console.error('Upload exception:', e);
-    // If small file (< 2MB) and offline, fallback to Base64
-    if (file.size < 2 * 1024 * 1024) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(file);
-      });
-    }
     throw e;
   }
-
-  return null;
 }
 
 /**

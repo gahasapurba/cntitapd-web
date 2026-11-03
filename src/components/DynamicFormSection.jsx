@@ -110,7 +110,6 @@ export default function DynamicFormSection({
     if (errors[fieldId]) {
       setErrors(prev => ({ ...prev, [fieldId]: null }));
     }
-    e.target.value = '';
   };
 
   // Dynamic Validation
