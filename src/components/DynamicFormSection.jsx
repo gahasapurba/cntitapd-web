@@ -125,7 +125,9 @@ export default function DynamicFormSection({
       const val = formData[field.id];
       if (field.required) {
         if (!val || (typeof val === 'string' && !val.trim())) {
-          newErrors[field.id] = `${field.label} wajib diisi`;
+          newErrors[field.id] = (field.type === 'select' || field.type === 'radio') 
+            ? `${field.label} wajib dipilih` 
+            : `${field.label} wajib diisi`;
         } else if (field.type === 'email' && !/\S+@\S+\.\S+/.test(val)) {
           newErrors[field.id] = 'Format email tidak valid';
         } else if (field.type === 'textarea' && val.trim().length < 10) {
@@ -600,6 +602,56 @@ export default function DynamicFormSection({
                               </option>
                             ))}
                           </select>
+                        )}
+
+                        {/* MULTIPLE CHOICE / RADIO (PILIHAN GANDA - 1 JAWABAN) */}
+                        {field.type === 'radio' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '2px' }}>
+                            {options.map((opt, oIdx) => {
+                              const isSelected = formData[field.id] === opt;
+                              return (
+                                <label
+                                  key={oIdx}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    padding: '11px 16px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    background: isSelected 
+                                      ? (isDark ? 'rgba(255, 184, 0, 0.12)' : '#fffbeb') 
+                                      : 'var(--input-bg)',
+                                    border: `1.5px solid ${isSelected ? 'var(--mandiri-gold)' : (hasError ? '#f43f5e' : 'var(--input-border)')}`,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`field-${field.id}`}
+                                    value={opt}
+                                    checked={isSelected}
+                                    onChange={() => handleInputChange(field.id, opt)}
+                                    style={{
+                                      accentColor: 'var(--mandiri-gold)',
+                                      cursor: 'pointer',
+                                      width: '17px',
+                                      height: '17px',
+                                      margin: 0,
+                                      flexShrink: 0
+                                    }}
+                                  />
+                                  <span style={{
+                                    fontSize: '0.88rem',
+                                    color: isSelected ? 'var(--text-main)' : 'var(--text-muted)',
+                                    fontWeight: isSelected ? 700 : 500
+                                  }}>
+                                    {opt}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
                         )}
 
                         {/* FILE UPLOAD WITH PREVIEW */}

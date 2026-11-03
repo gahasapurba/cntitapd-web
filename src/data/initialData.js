@@ -720,7 +720,7 @@ export const INITIAL_FORMS = [
       { 
         id: 'f-gameCategory', 
         label: 'Cabang Game yang Diikuti', 
-        type: 'select', 
+        type: 'radio', 
         options: ['Mobile Legends: Bang Bang (5 vs 5)', 'EA Sports FC 24 / FIFA (1 vs 1)'], 
         required: true 
       },

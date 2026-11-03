@@ -33,7 +33,10 @@ import {
   RotateCcw,
   Search,
   FolderOpen,
-  Share2
+  Share2,
+  GripVertical,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { parseDateToIso, formatToIndonesianDate, getDeadlineStatus } from '../utils/dateUtils';
@@ -243,12 +246,27 @@ export default function AdminPortal({
   const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo?.isOpen ?? true);
   const [recruitDeadline, setRecruitDeadline] = useState(recruitmentInfo?.deadline ?? '31 Maret 2026');
 
-  // New Form Creator State
+  // Form Creator & Field Builder States
   const [newFormTitle, setNewFormTitle] = useState('');
   const [newFormCategory, setNewFormCategory] = useState('Kegiatan & Event');
   const [newFormDeadline, setNewFormDeadline] = useState('');
   const [newFormSubtitle, setNewFormSubtitle] = useState('');
   const [selectedSubFilter, setSelectedSubFilter] = useState('all');
+  const [draggedFieldIndex, setDraggedFieldIndex] = useState(null);
+  const [dragOverFieldIndex, setDragOverFieldIndex] = useState(null);
+
+  const handleMoveField = (fromIndex, toIndex) => {
+    if (fromIndex === null || toIndex === null || fromIndex === toIndex) return;
+    if (!editingItem || editingItem.type !== 'form' || !editingItem.item?.fields) return;
+    const currentFields = [...editingItem.item.fields];
+    if (fromIndex < 0 || fromIndex >= currentFields.length || toIndex < 0 || toIndex >= currentFields.length) return;
+    const [moved] = currentFields.splice(fromIndex, 1);
+    currentFields.splice(toIndex, 0, moved);
+    setEditingItem({
+      ...editingItem,
+      item: { ...editingItem.item, fields: currentFields }
+    });
+  };
 
   // Form states for new Gallery Event
   const [galTitle, setGalTitle] = useState('');
@@ -5741,10 +5759,15 @@ export default function AdminPortal({
 
                 {/* Custom Field Builder */}
                 <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
-                      Daftar Pertanyaan / Field ({(editingItem.item.fields || []).length})
-                    </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                        Daftar Pertanyaan / Field ({(editingItem.item.fields || []).length})
+                      </label>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block' }}>
+                        Drag ikon grip atau klik panah untuk menentukan urutan pertanyaan
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -5779,21 +5802,107 @@ export default function AdminPortal({
                     </button>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto', paddingRight: '4px' }}>
                     {(editingItem.item.fields || []).map((fld, idx) => (
                       <div
                         key={fld.id || idx}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedFieldIndex(idx);
+                          e.dataTransfer.effectAllowed = 'move';
+                          e.dataTransfer.setData('text/plain', String(idx));
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (dragOverFieldIndex !== idx) {
+                            setDragOverFieldIndex(idx);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverFieldIndex === idx) setDragOverFieldIndex(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const fromIdx = draggedFieldIndex !== null ? draggedFieldIndex : Number(e.dataTransfer.getData('text/plain'));
+                          handleMoveField(fromIdx, idx);
+                          setDraggedFieldIndex(null);
+                          setDragOverFieldIndex(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedFieldIndex(null);
+                          setDragOverFieldIndex(null);
+                        }}
                         style={{
-                          padding: '10px',
+                          padding: '10px 12px',
                           borderRadius: 'var(--radius-sm)',
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid var(--border-card)',
+                          background: dragOverFieldIndex === idx && draggedFieldIndex !== idx
+                            ? 'rgba(56, 189, 248, 0.12)'
+                            : (draggedFieldIndex === idx ? 'rgba(255, 184, 0, 0.05)' : 'rgba(255,255,255,0.03)'),
+                          border: dragOverFieldIndex === idx && draggedFieldIndex !== idx
+                            ? '2px dashed var(--neon-cyan)'
+                            : (draggedFieldIndex === idx ? '1px dashed var(--mandiri-gold)' : '1px solid var(--border-card)'),
+                          opacity: draggedFieldIndex === idx ? 0.4 : 1,
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '8px'
+                          gap: '8px',
+                          transition: 'all 0.15s ease'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          {/* Drag Handle & Item Position */}
+                          <div 
+                            title="Tahan & geser untuk mengubah urutan field"
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'grab', color: 'var(--text-dim)', userSelect: 'none' }}
+                          >
+                            <GripVertical size={16} />
+                            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--mandiri-gold)', minWidth: '18px' }}>
+                              #{idx + 1}
+                            </span>
+                          </div>
+
+                          {/* Quick Up/Down Buttons */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveField(idx, idx - 1)}
+                              title="Pindahkan ke atas"
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid var(--border-card)',
+                                borderRadius: '4px',
+                                color: idx === 0 ? 'var(--text-dim)' : 'var(--text-main)',
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                padding: '3px 4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                opacity: idx === 0 ? 0.3 : 1
+                              }}
+                            >
+                              <ArrowUp size={11} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === (editingItem.item.fields?.length || 0) - 1}
+                              onClick={() => handleMoveField(idx, idx + 1)}
+                              title="Pindahkan ke bawah"
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid var(--border-card)',
+                                borderRadius: '4px',
+                                color: idx === (editingItem.item.fields?.length || 0) - 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                                cursor: idx === (editingItem.item.fields?.length || 0) - 1 ? 'not-allowed' : 'pointer',
+                                padding: '3px 4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                opacity: idx === (editingItem.item.fields?.length || 0) - 1 ? 0.3 : 1
+                              }}
+                            >
+                              <ArrowDown size={11} />
+                            </button>
+                          </div>
+
                           <input
                             type="text"
                             value={fld.label || ''}
@@ -5804,23 +5913,33 @@ export default function AdminPortal({
                               );
                               setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
                             }}
-                            style={{ flex: '1 1 160px', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
+                            style={{ flex: '1 1 150px', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
                           <select
                             value={fld.type || 'text'}
                             onChange={(e) => {
-                              const nextFields = editingItem.item.fields.map((item, i) =>
-                                i === idx ? { ...item, type: e.target.value } : item
-                              );
+                              const newType = e.target.value;
+                              const nextFields = editingItem.item.fields.map((item, i) => {
+                                if (i === idx) {
+                                  const updated = { ...item, type: newType };
+                                  if (newType === 'radio' && (!item.options || item.options.length === 0)) {
+                                    updated.options = ['Pilihan 1', 'Pilihan 2', 'Pilihan 3'];
+                                    updated.rawOptions = 'Pilihan 1, Pilihan 2, Pilihan 3';
+                                  }
+                                  return updated;
+                                }
+                                return item;
+                              });
                               setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
                             }}
                             style={{ padding: '6px 8px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
                           >
                             <option value="text">Teks Singkat</option>
                             <option value="textarea">Paragraf</option>
+                            <option value="radio">Pilihan Ganda (1 Jawaban)</option>
+                            <option value="select">Dropdown Pilihan</option>
                             <option value="email">Email</option>
                             <option value="number">Angka</option>
-                            <option value="select">Dropdown Pilihan</option>
                             <option value="file">Upload File</option>
                           </select>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
@@ -5848,20 +5967,36 @@ export default function AdminPortal({
                             <Trash2 size={14} />
                           </button>
                         </div>
-                        {fld.type === 'select' && fld.source !== 'divisions' && (
-                          <input
-                            type="text"
-                            placeholder="Opsi pilihan (pisahkan dengan koma, misal: Tim A, Tim B, Tim C)"
-                            value={Array.isArray(fld.options) ? fld.options.join(', ') : ''}
-                            onChange={(e) => {
-                              const opts = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                              const nextFields = editingItem.item.fields.map((item, i) =>
-                                i === idx ? { ...item, options: opts } : item
-                              );
-                              setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
-                            }}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-muted)', fontSize: '0.75rem' }}
-                          />
+
+                        {/* Option Editor for Dropdown & Multiple Choice (Radio) */}
+                        {(fld.type === 'select' || fld.type === 'radio') && fld.source !== 'divisions' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px', paddingLeft: '24px' }}>
+                            <input
+                              type="text"
+                              placeholder={fld.type === 'radio'
+                                ? "Pilihan jawaban (pisahkan dengan koma, misal: Pilihan A, Pilihan B, Pilihan C)"
+                                : "Opsi dropdown (pisahkan dengan koma, misal: Tim A, Tim B, Tim C)"}
+                              value={fld.rawOptions !== undefined ? fld.rawOptions : (Array.isArray(fld.options) ? fld.options.join(', ') : '')}
+                              onChange={(e) => {
+                                const textVal = e.target.value;
+                                const opts = textVal.split(',').map(s => s.trim()).filter(Boolean);
+                                const nextFields = editingItem.item.fields.map((item, i) =>
+                                  i === idx ? { ...item, options: opts, rawOptions: textVal } : item
+                                );
+                                setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                              }}
+                              style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                              {Array.isArray(fld.options) && fld.options.length > 0 ? (
+                                <span>
+                                  Opsi aktif ({fld.options.length}): <strong style={{ color: 'var(--neon-cyan)' }}>{fld.options.join(' • ')}</strong>
+                                </span>
+                              ) : (
+                                <span>Ketik opsi dipisahkan koma (contoh: <code>Opsi 1, Opsi 2, Opsi 3</code>)</span>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -6167,7 +6302,10 @@ export default function AdminPortal({
                   if (editingItem.type === 'gallery' && onUpdateGallery) onUpdateGallery(editingItem.item);
                   if (editingItem.type === 'tenure' && onUpdateTenure) onUpdateTenure(editingItem.item);
                   if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
-                  if (editingItem.type === 'form' && onUpdateForm) onUpdateForm(editingItem.item);
+                  if (editingItem.type === 'form' && onUpdateForm) {
+                    const cleanFields = (editingItem.item.fields || []).map(({ rawOptions, ...rest }) => rest);
+                    onUpdateForm({ ...editingItem.item, fields: cleanFields });
+                  }
                   if (editingItem.type === 'event' && onUpdateEvent) {
                     onUpdateEvent({
                       ...editingItem.item,
