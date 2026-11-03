@@ -649,9 +649,12 @@ export function getFileMimeType(file) {
 export async function uploadMediaToCloud(file, folder = 'uploads') {
   if (!file) throw new Error('File tidak valid atau tidak ditemukan');
 
-  const fileExt = (file.name || '').split('.').pop() || 'dat';
-  const cleanExt = fileExt.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${cleanExt || 'dat'}`;
+  const originalName = file.name || 'file';
+  const parts = originalName.split('.');
+  const ext = parts.length > 1 ? parts.pop() : '';
+  const baseName = parts.join('.').replace(/[^a-zA-Z0-9_-]/g, '_').slice(-40) || 'file';
+  const cleanExt = (ext || 'dat').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fileName = `${Date.now()}_${baseName}.${cleanExt}`;
   const path = `${folder}/${fileName}`;
 
   // 1. Direct Supabase SDK upload (sama persis dengan arsitektur quick-drop: upsert: false tanpa override header)

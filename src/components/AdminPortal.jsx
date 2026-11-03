@@ -601,31 +601,34 @@ export default function AdminPortal({
       ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
       : (file.size / 1024).toFixed(0) + ' KB';
     const extLabel = (file.name.split('.').pop() || 'FILE').toUpperCase();
+    const localBlobUrl = URL.createObjectURL(file);
 
     if (isEditModal) {
       if (field === 'fileUrl') {
         setEditingItem(prev => prev ? {
           ...prev,
           pendingFile: file,
+          originalFileUrl: prev.originalFileUrl || prev.item.fileUrl,
           item: {
             ...prev.item,
+            fileUrl: localBlobUrl,
             fileSize: sizeLabel,
             fileType: extLabel
           }
         } : null);
         showToast(`File baru "${file.name}" dipilih (akan diunggah saat Anda klik Simpan Perubahan)`);
       } else {
-        const localPreview = URL.createObjectURL(file);
         setEditingItem(prev => prev ? {
           ...prev,
           pendingPreviewFile: file,
-          item: { ...prev.item, previewUrl: localPreview }
+          item: { ...prev.item, previewUrl: localBlobUrl }
         } : null);
         showToast(`Preview "${file.name}" dipilih`);
       }
     } else {
       if (field === 'fileUrl') {
         setPendingAssetFile(file);
+        setAssetFileUrl(localBlobUrl);
         setAssetFileSize(sizeLabel);
         setAssetFileType(extLabel);
         clearFieldError('assetFileUrl');
@@ -635,12 +638,12 @@ export default function AdminPortal({
         }
         if (!assetPreviewUrl && /\.(png|jpg|jpeg|svg|webp|gif)$/i.test(file.name)) {
           setPendingPreviewFile(file);
-          setAssetPreviewUrl(URL.createObjectURL(file));
+          setAssetPreviewUrl(localBlobUrl);
         }
         showToast(`File "${file.name}" dipilih (akan diunggah saat Anda klik Simpan & Publikasikan)`);
       } else {
         setPendingPreviewFile(file);
-        setAssetPreviewUrl(URL.createObjectURL(file));
+        setAssetPreviewUrl(localBlobUrl);
         showToast(`Gambar preview "${file.name}" dipilih`);
       }
     }
@@ -4802,6 +4805,7 @@ export default function AdminPortal({
                     type="button"
                     onClick={() => {
                       setPendingAssetFile(null);
+                      setAssetFileUrl('');
                       setAssetFileSize('');
                     }}
                     style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}
@@ -6522,7 +6526,7 @@ export default function AdminPortal({
                       <span>📦 File baru: <strong>{editingItem.pendingFile.name}</strong> ({editingItem.item.fileSize}) &bull; <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>Akan diunggah saat Anda klik Simpan Perubahan</span></span>
                       <button
                         type="button"
-                        onClick={() => setEditingItem(prev => prev ? ({ ...prev, pendingFile: null }) : null)}
+                        onClick={() => setEditingItem(prev => prev ? ({ ...prev, pendingFile: null, item: { ...prev.item, fileUrl: prev.originalFileUrl || '' } }) : null)}
                         style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontWeight: 700 }}
                       >
                         ✕ Batalkan
