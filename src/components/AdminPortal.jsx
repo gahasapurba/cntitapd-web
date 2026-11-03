@@ -4799,7 +4799,7 @@ export default function AdminPortal({
                   gap: '10px'
                 }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>
-                    📦 File siap diunggah: <strong>{pendingAssetFile.name}</strong> ({assetFileSize}) &bull; <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>Akan diunggah ke Cloud saat Anda klik Simpan</span>
+                    📦 Berkas lokal: <strong>{pendingAssetFile.name}</strong> ({assetFileSize}) &bull; <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>Berkas akan diunggah ke Supabase Storage saat Anda klik tombol "Simpan & Publikasikan Asset" di bawah</span>
                   </span>
                   <button
                     type="button"
@@ -4892,22 +4892,24 @@ export default function AdminPortal({
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 type="submit"
+                disabled={isUploadingMedia}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
                   padding: '10px 22px',
                   borderRadius: 'var(--radius-full)',
-                  background: 'var(--mandiri-gold)',
-                  color: '#040914',
+                  background: isUploadingMedia ? 'var(--input-bg)' : 'var(--mandiri-gold)',
+                  color: isUploadingMedia ? 'var(--text-muted)' : '#040914',
                   fontWeight: 800,
                   fontSize: '0.86rem',
                   border: 'none',
-                  cursor: 'pointer'
+                  cursor: isUploadingMedia ? 'wait' : 'pointer',
+                  boxShadow: isUploadingMedia ? 'none' : '0 4px 14px rgba(255, 184, 0, 0.35)'
                 }}
               >
                 <Plus size={16} />
-                <span>Simpan & Publikasikan Asset</span>
+                <span>{isUploadingMedia ? '⏳ Mengunggah ke Cloud...' : 'Simpan & Publikasikan Asset'}</span>
               </button>
             </div>
           </form>
