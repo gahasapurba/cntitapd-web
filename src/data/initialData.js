@@ -809,6 +809,8 @@ export const INITIAL_SUBMISSIONS = [
     formId: 'form-oprec-2026',
     formTitle: 'Open Recruitment Kepengurusan CNT IT APD 2026',
     submittedAt: '2026-03-01 14:30:25',
+    status: 'Submitted',
+    adminNotes: '',
     data: {
       fullName: 'Ahmad Fauzi',
       nip: '199508122019031002',
@@ -823,5 +825,63 @@ export const INITIAL_SUBMISSIONS = [
         dataUrl: 'data:application/pdf;base64,JVBERi0xLjQKJcTl8uXr...'
       }
     }
+  }
+];
+
+export const INITIAL_BRAND_ASSETS = [
+  {
+    id: 'asset-master-zip',
+    title: 'Paket Komplit Logo CNT IT APD (Master Suite)',
+    category: 'Logo & Brand',
+    description: 'Berisi seluruh varian logo CNT IT APD: Horizontal, Vertical, Logomark, Transparent PNG, Monokrom, dan Vektor SVG resolusi tinggi.',
+    fileUrl: '/assets/CNTITAPD.zip',
+    previewUrl: '/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png',
+    fileType: 'ZIP Archive',
+    fileSize: '4.2 MB',
+    badge: 'Master Pack'
+  },
+  {
+    id: 'asset-logo-primary',
+    title: 'APD Master Brand Logo (Full Color)',
+    category: 'Logo & Brand',
+    description: 'Logo utama CNT IT Application Delivery untuk latar belakang terang (Light Mode), dokumen resmi, dan header presentasi.',
+    fileUrl: '/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png',
+    previewUrl: '/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png',
+    fileType: 'PNG Transparan',
+    fileSize: '680 KB',
+    badge: 'Primary Logo'
+  },
+  {
+    id: 'asset-logo-white',
+    title: 'APD Inverse White Logo (Dark Mode)',
+    category: 'Logo & Brand',
+    description: 'Logo warna putih bersih khusus untuk latar belakang gelap (Dark Navy), jersey olahraga, dan merchandise komunitas.',
+    fileUrl: '/assets/apd-logo-white.png',
+    previewUrl: '/assets/apd-logo-white.png',
+    fileType: 'PNG Transparan',
+    fileSize: '420 KB',
+    badge: 'Dark Mode'
+  },
+  {
+    id: 'asset-logo-horizontal',
+    title: 'APD Delivery Horizontal Banner Logo',
+    category: 'Logo & Brand',
+    description: 'Varian horizontal memanjang untuk kop surat, backdrop spanduk acara, dan tanda tangan email.',
+    fileUrl: '/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png',
+    previewUrl: '/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png',
+    fileType: 'PNG HD',
+    fileSize: '540 KB',
+    badge: 'Horizontal'
+  },
+  {
+    id: 'asset-logo-legacy',
+    title: 'Logo Legacy Ribbon CNT IT APD',
+    category: 'Logo & Brand',
+    description: 'Arsip identitas logo generasi pertama CNT IT APD untuk dokumentasi historis dan komparasi evolusi brand.',
+    fileUrl: '/assets/apd-logo-legacy.png',
+    previewUrl: '/assets/apd-logo-legacy.png',
+    fileType: 'PNG Arsip',
+    fileSize: '390 KB',
+    badge: 'Legacy Archive'
   }
 ];

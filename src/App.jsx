@@ -20,7 +20,8 @@ import {
   INITIAL_KUDOS, 
   INITIAL_GALLERIES,
   INITIAL_FORMS,
-  INITIAL_SUBMISSIONS
+  INITIAL_SUBMISSIONS,
+  INITIAL_BRAND_ASSETS
 } from './data/initialData';
 import DynamicFormSection from './components/DynamicFormSection';
 import {
@@ -33,6 +34,25 @@ import {
 } from './lib/supabase';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'program', 'galeri', 'kudos', 'assets', 'oprec'];
+const VALID_TABS = [...PUBLIC_PAGE_IDS, 'admin'];
+
+function parseLocationRoute() {
+  const rawHash = (window.location.hash || '').replace(/^#/, '');
+  const [hashTab, hashQuery] = rawHash.split('?');
+  const params = new URLSearchParams(hashQuery || window.location.search || '');
+  const formId = params.get('form') || null;
+
+  if (window.location.pathname === '/admin' || hashTab === 'admin') {
+    return { tab: 'admin', formId };
+  }
+  if (hashTab && VALID_TABS.includes(hashTab)) {
+    return { tab: hashTab, formId };
+  }
+  if (formId) {
+    return { tab: 'oprec', formId };
+  }
+  return { tab: 'home', formId: null };
+}
 
 const DEFAULT_PAGE_VISIBILITY = {
   navbar: true,
@@ -47,12 +67,21 @@ const DEFAULT_PAGE_VISIBILITY = {
 
 export default function App() {
   // Navigation: 'home' | 'organisasi' | 'program' | 'galeri' | 'kudos' | 'assets' | 'oprec' | 'admin'
-  const [currentTab, setCurrentTab] = useState(() => {
-    if (window.location.hash === '#admin' || window.location.pathname === '/admin') {
-      return 'admin';
+  const [currentTab, setCurrentTabState] = useState(() => parseLocationRoute().tab);
+  const [activeFormIdFromUrl, setActiveFormIdFromUrl] = useState(() => parseLocationRoute().formId);
+
+  const setCurrentTab = useCallback((nextTab, formIdParam = null) => {
+    const targetTab = VALID_TABS.includes(nextTab) ? nextTab : 'home';
+    setCurrentTabState(targetTab);
+    if (formIdParam) {
+      setActiveFormIdFromUrl(formIdParam);
+      window.history.replaceState(null, '', `#${targetTab}?form=${encodeURIComponent(formIdParam)}`);
+    } else {
+      if (targetTab !== 'oprec') setActiveFormIdFromUrl(null);
+      window.history.replaceState(null, '', `#${targetTab}`);
     }
-    return 'home';
-  });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Page & Navbar Visibility State (View / Hide per page & navbar)
   const [pageVisibility, setPageVisibilityState] = useState(() => {
@@ -81,8 +110,10 @@ export default function App() {
 
   useEffect(() => {
     const handleHash = () => {
-      if (window.location.hash === '#admin' || window.location.pathname === '/admin') {
-        setCurrentTab('admin');
+      const parsed = parseLocationRoute();
+      setCurrentTabState(parsed.tab);
+      if (parsed.formId) {
+        setActiveFormIdFromUrl(parsed.formId);
       }
     };
     window.addEventListener('hashchange', handleHash);
@@ -116,6 +147,7 @@ export default function App() {
   const [forms, setForms] = useState(() => loadLocalCache('forms', INITIAL_FORMS));
   const [submissions, setSubmissions] = useState(() => loadLocalCache('submissions', INITIAL_SUBMISSIONS));
   const [aspirasiList, setAspirasiList] = useState(() => loadLocalCache('aspirasiList', []));
+  const [brandAssets, setBrandAssets] = useState(() => loadLocalCache('brandAssets', INITIAL_BRAND_ASSETS));
   const [syncStatus, setSyncStatus] = useState('synced');
 
   // Pull & Reconcile Cloud State across devices
@@ -137,6 +169,7 @@ export default function App() {
       if (Array.isArray(cloud.forms) && cloud.forms.length > 0) setForms(cloud.forms);
       if (Array.isArray(cloud.submissions)) setSubmissions(cloud.submissions);
       if (Array.isArray(cloud.aspirasiList)) setAspirasiList(cloud.aspirasiList);
+      if (Array.isArray(cloud.brandAssets) && cloud.brandAssets.length > 0) setBrandAssets(cloud.brandAssets);
       if (cloud.pageVisibility && typeof cloud.pageVisibility === 'object') {
         const mergedVis = { ...DEFAULT_PAGE_VISIBILITY, ...cloud.pageVisibility };
         setPageVisibilityState(mergedVis);
@@ -343,18 +376,49 @@ export default function App() {
 
   // Submissions Lifecycle Handlers (Atomic merge across devices)
   const handleSubmitSubmission = async (newSub) => {
+    const withStatus = { status: 'Submitted', adminNotes: '', ...newSub };
     setSubmissions((prev) => {
-      const next = [newSub, ...prev];
+      const next = [withStatus, ...prev];
       saveLocalCache('submissions', next);
       return next;
     });
-    const merged = await mergeAndPushCloudList('submissions', newSub, submissions);
+    const merged = await mergeAndPushCloudList('submissions', withStatus, submissions);
     if (Array.isArray(merged)) setSubmissions(merged);
+  };
+  const handleUpdateSubmission = (updatedSub) => {
+    setSubmissions((prev) => {
+      const next = prev.map(s => s.id === updatedSub.id ? updatedSub : s);
+      pushCloudState('submissions', next);
+      return next;
+    });
   };
   const handleDeleteSubmission = (subId) => {
     setSubmissions((prev) => {
       const next = prev.filter(s => s.id !== subId);
       pushCloudState('submissions', next);
+      return next;
+    });
+  };
+
+  // Brand Assets Lifecycle Handlers
+  const handleAddBrandAsset = (newAsset) => {
+    setBrandAssets((prev) => {
+      const next = [...prev, newAsset];
+      pushCloudState('brandAssets', next);
+      return next;
+    });
+  };
+  const handleUpdateBrandAsset = (updatedAsset) => {
+    setBrandAssets((prev) => {
+      const next = prev.map(a => a.id === updatedAsset.id ? updatedAsset : a);
+      pushCloudState('brandAssets', next);
+      return next;
+    });
+  };
+  const handleDeleteBrandAsset = (assetId) => {
+    setBrandAssets((prev) => {
+      const next = prev.filter(a => a.id !== assetId);
+      pushCloudState('brandAssets', next);
       return next;
     });
   };
@@ -413,6 +477,7 @@ export default function App() {
     setForms(INITIAL_FORMS);
     setSubmissions(INITIAL_SUBMISSIONS);
     setAspirasiList([]);
+    setBrandAssets(INITIAL_BRAND_ASSETS);
     setPageVisibilityState(DEFAULT_PAGE_VISIBILITY);
     try { localStorage.setItem('cnt_page_visibility', JSON.stringify(DEFAULT_PAGE_VISIBILITY)); } catch (e) {}
 
@@ -427,6 +492,7 @@ export default function App() {
       pushCloudState('forms', INITIAL_FORMS),
       pushCloudState('submissions', INITIAL_SUBMISSIONS),
       pushCloudState('aspirasiList', []),
+      pushCloudState('brandAssets', INITIAL_BRAND_ASSETS),
       pushCloudState('pageVisibility', DEFAULT_PAGE_VISIBILITY)
     ]);
   };
@@ -647,7 +713,10 @@ export default function App() {
         )}
 
         {effectiveTab === 'assets' && (
-          <AssetKitSection theme={theme} />
+          <AssetKitSection
+            theme={theme}
+            brandAssets={brandAssets}
+          />
         )}
 
         {effectiveTab === 'oprec' && (
@@ -657,6 +726,8 @@ export default function App() {
             events={events}
             onSubmitSubmission={handleSubmitSubmission}
             theme={theme}
+            initialFormId={activeFormIdFromUrl}
+            onSelectFormUrl={(fId) => setCurrentTab('oprec', fId)}
           />
         )}
 
@@ -665,6 +736,7 @@ export default function App() {
             onBack={() => setCurrentTab(visiblePublicPages[0] || 'home')}
             tenures={tenures}
             activeTenure={activeTenure}
+            onSelectTenure={handleSelectTenure}
             onAddTenure={handleAddTenure}
             onUpdateTenure={handleUpdateTenure}
             onDeleteTenure={handleDeleteTenure}
@@ -677,6 +749,7 @@ export default function App() {
             onUpdateForm={handleUpdateForm}
             onDeleteForm={handleDeleteForm}
             submissions={submissions}
+            onUpdateSubmission={handleUpdateSubmission}
             onDeleteSubmission={handleDeleteSubmission}
             galleries={galleries}
             onAddGallery={handleAddGallery}
@@ -695,6 +768,10 @@ export default function App() {
             onDeleteKudos={handleDeleteKudos}
             aspirasiList={aspirasiList}
             onDeleteAspirasi={handleDeleteAspirasi}
+            brandAssets={brandAssets}
+            onAddBrandAsset={handleAddBrandAsset}
+            onUpdateBrandAsset={handleUpdateBrandAsset}
+            onDeleteBrandAsset={handleDeleteBrandAsset}
             pageVisibility={pageVisibility}
             onUpdatePageVisibility={setPageVisibility}
             syncStatus={syncStatus}

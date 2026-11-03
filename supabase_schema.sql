@@ -154,6 +154,8 @@ CREATE TABLE public.submissions (
     form_id TEXT,
     form_title TEXT,
     submitted_at TEXT,
+    status TEXT NOT NULL DEFAULT 'Submitted',
+    admin_notes TEXT DEFAULT '',
     data JSONB DEFAULT '{}'::jsonb,
     files JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT now()
@@ -163,6 +165,22 @@ CREATE TABLE public.submissions (
 CREATE TABLE public.page_settings (
     key TEXT PRIMARY KEY,
     value JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 11. Tabel Katalog Asset Logo & Template Resmi (brand_assets)
+CREATE TABLE public.brand_assets (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'Logo & Brand',
+    description TEXT DEFAULT '',
+    file_url TEXT NOT NULL,
+    preview_url TEXT DEFAULT '',
+    file_type TEXT DEFAULT 'ZIP / PNG',
+    file_size TEXT DEFAULT '',
+    badge TEXT DEFAULT 'Official Asset',
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -177,6 +195,7 @@ ALTER TABLE public.aspirasi ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.page_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.brand_assets ENABLE ROW LEVEL SECURITY;
 
 -- Policies for full client-side sync across devices
 CREATE POLICY "Public full access tenures" ON public.tenures FOR ALL USING (true) WITH CHECK (true);
@@ -189,6 +208,14 @@ CREATE POLICY "Public full access aspirasi" ON public.aspirasi FOR ALL USING (tr
 CREATE POLICY "Public full access forms" ON public.forms FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access submissions" ON public.submissions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access page_settings" ON public.page_settings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public full access brand_assets" ON public.brand_assets FOR ALL USING (true) WITH CHECK (true);
+
+-- Storage Bucket for Media & Document Uploads (cnt-media)
+INSERT INTO storage.buckets (id, name, public, file_size_limit)
+VALUES ('cnt-media', 'cnt-media', true, 20971520)
+ON CONFLICT (id) DO UPDATE SET public = true, file_size_limit = 20971520;
+
+CREATE POLICY "Public Access cnt-media" ON storage.objects FOR ALL TO anon, authenticated USING (bucket_id = 'cnt-media') WITH CHECK (bucket_id = 'cnt-media');
 
 -- Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';

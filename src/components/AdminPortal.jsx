@@ -30,8 +30,19 @@ import {
   RefreshCw,
   Upload,
   MessageSquare,
-  RotateCcw
+  RotateCcw,
+  Search,
+  FolderOpen,
+  Share2
 } from 'lucide-react';
+import { uploadMediaToCloud } from '../lib/supabase';
+
+function formatWaPhone(raw = '') {
+  const digits = String(raw).replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0')) return '62' + digits.slice(1);
+  return digits;
+}
 
 // Client-side SHA-256 hash helper using Web Crypto API
 async function sha256(message) {
@@ -78,7 +89,12 @@ export default function AdminPortal({
   onUpdateForm,
   onDeleteForm,
   submissions = [],
+  onUpdateSubmission,
   onDeleteSubmission,
+  brandAssets = [],
+  onAddBrandAsset,
+  onUpdateBrandAsset,
+  onDeleteBrandAsset,
   pageVisibility = {
     navbar: true,
     home: true,
@@ -91,17 +107,25 @@ export default function AdminPortal({
   },
   onUpdatePageVisibility,
   activeTenure,
+  onSelectTenure,
   aspirasiList = [],
   onDeleteAspirasi,
   syncStatus = 'synced',
   onForceSync,
   onResetDefault
 }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return sessionStorage.getItem('cnt_admin_auth_session') === 'authenticated_v2';
+    } catch (e) {
+      return false;
+    }
+  });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   // Modern Toast Notification State (replaces native browser alert)
   const [toast, setToast] = useState(null);
@@ -132,8 +156,39 @@ export default function AdminPortal({
     );
   };
 
-  // Admin Dashboard Tabs: 'members' | 'gallery' | 'divisions' | 'tenure' | 'recruitment' | 'applicants'
-  const [activeTab, setActiveTab] = useState('members');
+  // Admin Dashboard Tabs: 'members' | 'visibility' | 'events' | 'forms' | 'submissions' | 'kudos' | 'gallery' | 'assets' | 'divisions' | 'tenure'
+  const [activeTab, setActiveTabState] = useState(() => {
+    try {
+      return sessionStorage.getItem('cnt_admin_active_tab') || 'members';
+    } catch (e) {
+      return 'members';
+    }
+  });
+  const setActiveTab = (tabId) => {
+    setActiveTabState(tabId);
+    try {
+      sessionStorage.setItem('cnt_admin_active_tab', tabId);
+    } catch (e) {}
+  };
+
+  // Search & Filter states for Members in Admin
+  const [adminMemSearch, setAdminMemSearch] = useState('');
+  const [adminMemCatFilter, setAdminMemCatFilter] = useState('all');
+  const [adminMemDivFilter, setAdminMemDivFilter] = useState('all');
+
+  // Search & Filter states for Submissions in Admin
+  const [subStatusFilter, setSubStatusFilter] = useState('all');
+  const [subSearchQuery, setSubSearchQuery] = useState('');
+
+  // Form states for new Brand Asset
+  const [assetTitle, setAssetTitle] = useState('');
+  const [assetCategory, setAssetCategory] = useState('Logo & Brand');
+  const [assetBadge, setAssetBadge] = useState('Official Asset');
+  const [assetFileType, setAssetFileType] = useState('PNG / ZIP');
+  const [assetFileSize, setAssetFileSize] = useState('');
+  const [assetFileUrl, setAssetFileUrl] = useState('');
+  const [assetPreviewUrl, setAssetPreviewUrl] = useState('');
+  const [assetDesc, setAssetDesc] = useState('');
 
   // Generic Edit Modal State: { type: 'member'|'division'|'tenure'|'gallery', item: {...} }
   const [editingItem, setEditingItem] = useState(null);
@@ -273,6 +328,9 @@ export default function AdminPortal({
 
       if (uHash === ADMIN_USER_HASH && pHash === ADMIN_PASS_HASH) {
         setIsAuthenticated(true);
+        try {
+          sessionStorage.setItem('cnt_admin_auth_session', 'authenticated_v2');
+        } catch (e) {}
         setLoginError('');
         setFormErrors({});
       } else {
@@ -283,21 +341,21 @@ export default function AdminPortal({
     }
   };
 
-  // Upload photo for Member (New or Edit)
-  const handleMemberPhotoUpload = (e, isEdit = false) => {
+  // Upload photo for Member (New or Edit) to Supabase Storage `cnt-media`
+  const handleMemberPhotoUpload = async (e, isEdit = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
+    setIsUploadingMedia(true);
+    const cloudUrl = await uploadMediaToCloud(file, 'members');
+    setIsUploadingMedia(false);
+    if (cloudUrl) {
       if (isEdit) {
-        setEditingItem(prev => prev ? { ...prev, item: { ...prev.item, image: dataUrl } } : null);
+        setEditingItem(prev => prev ? { ...prev, item: { ...prev.item, image: cloudUrl } } : null);
       } else {
-        setMemImage(dataUrl);
+        setMemImage(cloudUrl);
       }
-      showToast('Foto profil berhasil dimuat!');
-    };
-    reader.readAsDataURL(file);
+      showToast('Foto profil berhasil diunggah ke Cloud Storage!');
+    }
   };
 
   const handleCreateMember = (e) => {
@@ -405,18 +463,108 @@ export default function AdminPortal({
 
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
 
-  // Photos file selector handler
-  const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files);
+  // Photos file selector handler (Uploads directly to Supabase Storage `cnt-media`)
+  const handlePhotoUpload = async (e, isEditModal = false) => {
+    const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadedPhotos(prev => [...prev, event.target.result]);
-      };
-      reader.readAsDataURL(file);
-    });
+    setIsUploadingMedia(true);
+    const uploadedUrls = [];
+    for (const file of files) {
+      const url = await uploadMediaToCloud(file, 'gallery');
+      if (url) uploadedUrls.push(url);
+    }
+    setIsUploadingMedia(false);
+
+    if (uploadedUrls.length > 0) {
+      if (isEditModal) {
+        setEditingItem(prev => {
+          if (!prev) return null;
+          const existing = Array.isArray(prev.item.photos) ? prev.item.photos : [];
+          return { ...prev, item: { ...prev.item, photos: [...existing, ...uploadedUrls] } };
+        });
+      } else {
+        setUploadedPhotos(prev => [...prev, ...uploadedUrls]);
+      }
+      showToast(`${uploadedUrls.length} foto berhasil diunggah ke Supabase Storage!`);
+    }
+  };
+
+  // Upload Brand Asset file or preview to Supabase Storage `cnt-media`
+  const handleBrandAssetUpload = async (e, field = 'fileUrl', isEditModal = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingMedia(true);
+    const cloudUrl = await uploadMediaToCloud(file, 'assets');
+    setIsUploadingMedia(false);
+    if (!cloudUrl) return;
+
+    const sizeLabel = file.size > 1024 * 1024
+      ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+      : (file.size / 1024).toFixed(0) + ' KB';
+    const extLabel = (file.name.split('.').pop() || 'FILE').toUpperCase();
+
+    if (isEditModal) {
+      setEditingItem(prev => {
+        if (!prev) return null;
+        const nextItem = { ...prev.item, [field]: cloudUrl };
+        if (field === 'fileUrl') {
+          if (!nextItem.fileSize) nextItem.fileSize = sizeLabel;
+          if (!nextItem.fileType) nextItem.fileType = extLabel;
+          if (!nextItem.previewUrl && /\.(png|jpg|jpeg|svg|webp|gif)$/i.test(file.name)) {
+            nextItem.previewUrl = cloudUrl;
+          }
+        }
+        return { ...prev, item: nextItem };
+      });
+    } else {
+      if (field === 'fileUrl') {
+        setAssetFileUrl(cloudUrl);
+        setAssetFileSize(sizeLabel);
+        setAssetFileType(extLabel);
+        clearFieldError('assetFileUrl');
+        if (!assetPreviewUrl && /\.(png|jpg|jpeg|svg|webp|gif)$/i.test(file.name)) {
+          setAssetPreviewUrl(cloudUrl);
+        }
+      } else {
+        setAssetPreviewUrl(cloudUrl);
+      }
+    }
+    showToast(`File "${file.name}" berhasil diunggah ke Cloud Storage!`);
+  };
+
+  const handleCreateBrandAsset = (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (!assetTitle.trim()) errs.assetTitle = 'Judul Asset / Template wajib diisi';
+    if (!assetFileUrl.trim()) errs.assetFileUrl = 'File atau URL Download wajib diisi';
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(prev => ({ ...prev, ...errs }));
+      showToast('Mohon lengkapi Judul dan File/URL Asset', 'error');
+      return;
+    }
+
+    if (onAddBrandAsset) {
+      onAddBrandAsset({
+        id: 'asset-' + Date.now(),
+        title: assetTitle.trim(),
+        category: assetCategory,
+        badge: assetBadge.trim() || assetCategory,
+        fileType: assetFileType.trim() || 'FILE',
+        fileSize: assetFileSize.trim() || '',
+        fileUrl: assetFileUrl.trim(),
+        previewUrl: assetPreviewUrl.trim() || assetFileUrl.trim(),
+        description: assetDesc.trim() || 'Asset resmi CNT IT Application Delivery.'
+      });
+    }
+
+    const saved = assetTitle.trim();
+    setAssetTitle('');
+    setAssetFileUrl('');
+    setAssetPreviewUrl('');
+    setAssetFileSize('');
+    setAssetDesc('');
+    showToast(`Asset "${saved}" berhasil ditambahkan ke Katalog Asset Logo!`);
   };
 
   const removeUploadedPhoto = (idx) => {
@@ -797,7 +945,12 @@ export default function AdminPortal({
           )}
 
           <button
-            onClick={() => setIsAuthenticated(false)}
+            onClick={() => {
+              try {
+                sessionStorage.removeItem('cnt_admin_auth_session');
+              } catch (e) {}
+              setIsAuthenticated(false);
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -818,6 +971,91 @@ export default function AdminPortal({
         </div>
       </div>
 
+      {/* Executive Summary Analytics Bar */}
+      {(() => {
+        const completedEvents = events.filter(e => e.status === 'Completed').length;
+        const prokerPercent = events.length > 0 ? Math.round((completedEvents / events.length) * 100) : 0;
+        const totalRab = events.reduce((acc, e) => acc + Number(e.totalRab || 0), 0);
+        const acceptedSubs = submissions.filter(s => s.status === 'Accepted').length;
+        const pendingSubs = submissions.filter(s => !s.status || s.status === 'Submitted').length;
+
+        // Top recipient of kudos
+        const recipientCounts = {};
+        kudosList.forEach(k => {
+          const rec = (k.recipient || '').trim();
+          if (rec) recipientCounts[rec] = (recipientCounts[rec] || 0) + 1;
+        });
+        const topKudosRecipient = Object.entries(recipientCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Belum ada';
+
+        return (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '12px'
+          }}>
+            <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid var(--mandiri-gold)' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                Personel Aktif
+              </div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
+                {members.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Orang</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {members.filter(m => m.category === 'inti').length} BPH • {members.filter(m => m.category === 'pimpro').length} Pimpro • {members.filter(m => m.category === 'anggota').length} Squad
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #10b981' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                Realisasi Proker
+              </div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
+                {completedEvents}/{events.length} <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10b981' }}>({prokerPercent}%)</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {events.length - completedEvents} Agenda Upcoming / Berjalan
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid var(--neon-cyan)' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                Total Anggaran RAB
+              </div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
+                Rp {(totalRab / 1000000).toFixed(1)} Jt
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Akumulasi {events.length} Program Kerja
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #a855f7' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                Seleksi Pendaftar
+              </div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
+                {submissions.length + applications.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Berkas</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                <strong style={{ color: '#10b981' }}>{acceptedSubs} Diterima</strong> • {pendingSubs} Perlu Review
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #f43f5e' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                Apresiasi & Aspirasi
+              </div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
+                {kudosList.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Kudos</span> • {aspirasiList.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Ide</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Top: {topKudosRecipient}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Tabs */}
       <div className="glass-panel" style={{
         padding: '8px',
@@ -833,6 +1071,7 @@ export default function AdminPortal({
           { id: 'submissions', label: `Berkas Masuk (${submissions.length + applications.length})`, icon: FileCheck2 },
           { id: 'kudos', label: `Wall of Kudos (${kudosList.length})`, icon: Heart },
           { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
+          { id: 'assets', label: `Asset & Template (${brandAssets.length})`, icon: Download },
           { id: 'divisions', label: 'Kelola Divisi', icon: Layers },
           { id: 'tenure', label: 'Periode Kepengurusan', icon: Calendar },
         ].map((tab) => {
@@ -1392,83 +1631,178 @@ export default function AdminPortal({
             </div>
           </form>
 
-          {/* Members List */}
-          <div>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
-              Personel Terdaftar Saat Ini ({members.length}):
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-              {members.map((m) => (
-                <div key={m.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  background: 'rgba(255,255,255,0.03)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-card)'
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                      {m.name}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {m.role} {m.title ? `• ${m.title}` : ''}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {m.whatsapp ? (
-                      <span style={{ fontSize: '0.72rem', background: 'rgba(37, 211, 102, 0.15)', color: '#25d366', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                        WA: Aktif
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                        Tanpa WA
-                      </span>
-                    )}
+          {/* Members List with Search & Filter */}
+          {(() => {
+            const filteredAdminMembers = members.filter(m => {
+              const q = adminMemSearch.trim().toLowerCase();
+              const matchesSearch = !q ||
+                (m.name || '').toLowerCase().includes(q) ||
+                (m.role || '').toLowerCase().includes(q) ||
+                (m.title || '').toLowerCase().includes(q) ||
+                (m.whatsapp || '').toLowerCase().includes(q);
+              const matchesCat = adminMemCatFilter === 'all' || m.category === adminMemCatFilter;
+              const matchesDiv = adminMemDivFilter === 'all' || m.divisionId === adminMemDivFilter;
+              return matchesSearch && matchesCat && matchesDiv;
+            });
 
-                    <button
-                      type="button"
-                      onClick={() => setEditingItem({ type: 'member', item: { ...m } })}
-                      title="Edit Data Personel"
+            return (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                    Personel Terdaftar ({filteredAdminMembers.length} dari {members.length}):
+                  </h4>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 360px', justifyContent: 'flex-end' }}>
+                    <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: '260px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                      <input
+                        type="text"
+                        placeholder="Cari nama atau jabatan..."
+                        value={adminMemSearch}
+                        onChange={(e) => setAdminMemSearch(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '7px 10px 7px 30px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.78rem'
+                        }}
+                      />
+                    </div>
+
+                    <select
+                      value={adminMemCatFilter}
+                      onChange={(e) => setAdminMemCatFilter(e.target.value)}
                       style={{
-                        padding: '6px',
-                        background: 'rgba(14, 165, 233, 0.1)',
-                        border: '1px solid #0284c7',
-                        color: '#0284c7',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        padding: '7px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.76rem',
+                        fontWeight: 600
                       }}
                     >
-                      <Edit2 size={13} />
-                    </button>
+                      <option value="all">Semua Posisi</option>
+                      <option value="pembina">Pembina</option>
+                      <option value="inti">Pengurus Inti</option>
+                      <option value="pimpro">Ketua Divisi (Pimpro)</option>
+                      <option value="anggota">Anggota Divisi</option>
+                    </select>
 
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirm({ type: 'member', id: m.id, name: m.name })}
-                      title="Hapus Personel"
+                    <select
+                      value={adminMemDivFilter}
+                      onChange={(e) => setAdminMemDivFilter(e.target.value)}
                       style={{
-                        padding: '6px',
-                        background: 'rgba(244, 63, 94, 0.1)',
-                        border: '1px solid #f43f5e',
-                        color: '#f43f5e',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        padding: '7px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.76rem',
+                        fontWeight: 600
                       }}
                     >
-                      <Trash2 size={13} />
-                    </button>
+                      <option value="all">Semua Divisi</option>
+                      {divisions.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+                  {filteredAdminMembers.map((m) => (
+                    <div key={m.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      background: 'rgba(255,255,255,0.03)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-card)',
+                      gap: '10px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        {m.image ? (
+                          <img
+                            src={m.image}
+                            alt={m.name}
+                            style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${m.color || 'var(--mandiri-gold)'}`, flexShrink: 0 }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : null}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {m.name}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {m.role} {m.title ? `• ${m.title}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        {m.whatsapp ? (
+                          <a
+                            href={`https://wa.me/${formatWaPhone(m.whatsapp)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.7rem', background: 'rgba(37, 211, 102, 0.15)', color: '#25d366', padding: '3px 8px', borderRadius: '4px', fontWeight: 700, textDecoration: 'none' }}
+                          >
+                            💬 WA
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+                            Tanpa WA
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem({ type: 'member', item: { ...m } })}
+                          title="Edit Data Personel"
+                          style={{
+                            padding: '6px',
+                            background: 'rgba(14, 165, 233, 0.1)',
+                            border: '1px solid #0284c7',
+                            color: '#0284c7',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirm({ type: 'member', id: m.id, name: m.name })}
+                          title="Hapus Personel"
+                          style={{
+                            padding: '6px',
+                            background: 'rgba(244, 63, 94, 0.1)',
+                            border: '1px solid #f43f5e',
+                            color: '#f43f5e',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -2596,10 +2930,33 @@ export default function AdminPortal({
                   <strong style={{ color: 'var(--text-main)' }}>{t.title}</strong>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>"{t.themeTagline}"</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className={t.isActive ? "badge-gold" : "badge-cyan"}>
-                    {t.isActive ? 'Periode Aktif' : 'Arsip'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span className={t.isActive || activeTenure?.id === t.id ? "badge-gold" : "badge-cyan"}>
+                    {t.isActive || activeTenure?.id === t.id ? 'Periode Aktif' : 'Arsip'}
                   </span>
+
+                  {activeTenure?.id !== t.id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onSelectTenure) onSelectTenure(t);
+                        if (onUpdateTenure) onUpdateTenure({ ...t, isActive: true });
+                        showToast(`Periode "${t.title}" dijadikan periode aktif!`);
+                      }}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(16, 185, 129, 0.14)',
+                        border: '1px solid #10b981',
+                        color: '#10b981',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Jadikan Aktif
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -2824,7 +3181,34 @@ export default function AdminPortal({
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {/* Copy Direct Link */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}#oprec?form=${encodeURIComponent(f.id)}`;
+                        navigator.clipboard?.writeText(url);
+                        showToast(`Link langsung formulir "${f.title}" berhasil disalin!`);
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        background: 'rgba(56, 189, 248, 0.12)',
+                        border: '1px solid var(--neon-cyan)',
+                        color: 'var(--neon-cyan)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Salin link langsung ke formulir ini untuk dibagikan ke WhatsApp / Teams"
+                    >
+                      <Share2 size={12} />
+                      <span>Salin Link</span>
+                    </button>
+
                     {/* Switch Buka/Tutup */}
                     <button
                       type="button"
@@ -2903,226 +3287,387 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* TAB CONTENT: SUBMISSIONS (BERKAS MASUK DINAMIS PER FORM) */}
-      {activeTab === 'submissions' && (
-        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Kotak Masuk Berkas & Pendaftar ({submissions.length + applications.length})
-              </h3>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                Filter hasil isian formulir berdasarkan judul event pendaftaran dan unduh data.
-              </p>
+      {/* TAB CONTENT: SUBMISSIONS (BERKAS MASUK DINAMIS PER FORM + SELEKSI STATUS & 1-CLICK WA) */}
+      {activeTab === 'submissions' && (() => {
+        const statusMeta = {
+          Submitted: { label: 'Baru Masuk', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.14)' },
+          Reviewed: { label: 'Direview', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+          Interview: { label: 'Wawancara', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)' },
+          Accepted: { label: 'Diterima ✓', color: '#10b981', bg: 'rgba(16, 185, 129, 0.16)' },
+          Rejected: { label: 'Ditolak / Arsip', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)' }
+        };
+
+        const filteredSubmissions = submissions.filter(s => {
+          const matchesForm = selectedSubFilter === 'all' || s.formId === selectedSubFilter;
+          const currentStat = s.status || 'Submitted';
+          const matchesStatus = subStatusFilter === 'all' || currentStat === subStatusFilter;
+          const q = subSearchQuery.trim().toLowerCase();
+          const dataString = JSON.stringify(s.data || {}).toLowerCase();
+          const matchesSearch = !q ||
+            dataString.includes(q) ||
+            (s.formTitle || '').toLowerCase().includes(q) ||
+            (s.adminNotes || '').toLowerCase().includes(q);
+          return matchesForm && matchesStatus && matchesSearch;
+        });
+
+        const extractApplicantPhone = (dataObj = {}) => {
+          for (const [k, v] of Object.entries(dataObj)) {
+            if (/wa|whatsapp|phone|telp|hp/i.test(k) && v) {
+              return formatWaPhone(v);
+            }
+          }
+          return '';
+        };
+
+        const extractApplicantName = (sub) => {
+          const d = sub?.data || {};
+          return d['f-fullName'] || d['f-teamName'] || d['f-name'] || d['f-captainName'] || d.fullName || 'Peserta';
+        };
+
+        return (
+          <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  Kotak Masuk & Seleksi Berkas Pendaftar ({filteredSubmissions.length} dari {submissions.length + applications.length})
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                  Kelola status seleksi pendaftar, tambahkan catatan komite, hubungi via WhatsApp 1-klik, atau unduh laporan CSV.
+                </p>
+              </div>
+
+              {/* Filter Dropdown & Export Button */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', minWidth: '200px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                  <input
+                    type="text"
+                    placeholder="Cari nama, NIP, divisi..."
+                    value={subSearchQuery}
+                    onChange={(e) => setSubSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 30px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.8rem'
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={selectedSubFilter}
+                  onChange={(e) => setSelectedSubFilter(e.target.value)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="all">Semua Formulir ({submissions.length + applications.length})</option>
+                  {forms.map(f => (
+                    <option key={f.id} value={f.id}>{f.title}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const itemsToExport = filteredSubmissions;
+                    
+                    if (itemsToExport.length === 0) {
+                      showToast('Tidak ada data berkas untuk diexport.', 'error');
+                      return;
+                    }
+
+                    const dynamicKeys = Array.from(
+                      new Set(
+                        itemsToExport.flatMap(s => s.data ? Object.keys(s.data) : ['fullName', 'nip', 'unitSquad', 'div1', 'div2', 'whatsapp', 'email', 'motivation'])
+                      )
+                    );
+
+                    const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                    const headerRow = ['ID Berkas', 'Judul Formulir', 'Status Seleksi', 'Catatan Admin', 'Waktu Submit', ...dynamicKeys.map(k => k.replace(/^f-/, '').toUpperCase()), 'Lampiran File'].map(escapeCsv).join(',');
+
+                    const dataRows = itemsToExport.map(s => {
+                      const baseCols = [
+                        s.id,
+                        s.formTitle || 'Oprec 2026',
+                        s.status || 'Submitted',
+                        s.adminNotes || '',
+                        s.submittedAt || ''
+                      ];
+                      const fieldCols = dynamicKeys.map(k => {
+                        if (s.data) return s.data[k] ?? '';
+                        return s[k] ?? '';
+                      });
+                      const fileCol = s.files ? Object.values(s.files).map(f => f.name).join('; ') : '';
+                      return [...baseCols, ...fieldCols, fileCol].map(escapeCsv).join(',');
+                    });
+
+                    const csvString = '\uFEFF' + [headerRow, ...dataRows].join('\n');
+                    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `berkas_cnt_it_apd_${Date.now()}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast(`Berhasil mengunduh ${itemsToExport.length} berkas dalam format CSV!`);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(14, 165, 233, 0.15)',
+                    border: '1px solid #0ea5e9',
+                    color: '#0ea5e9',
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Export CSV</span>
+                </button>
+              </div>
             </div>
 
-            {/* Filter Dropdown & Export Button */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <select
-                value={selectedSubFilter}
-                onChange={(e) => setSelectedSubFilter(e.target.value)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600
-                }}
-              >
-                <option value="all">Semua Formulir ({submissions.length + applications.length})</option>
-                {forms.map(f => (
-                  <option key={f.id} value={f.id}>{f.title}</option>
-                ))}
-              </select>
+            {/* Status Filter Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'all', label: `Semua Status (${submissions.length})` },
+                { id: 'Submitted', label: `Baru Masuk (${submissions.filter(s => (s.status || 'Submitted') === 'Submitted').length})` },
+                { id: 'Reviewed', label: `Direview (${submissions.filter(s => s.status === 'Reviewed').length})` },
+                { id: 'Interview', label: `Wawancara (${submissions.filter(s => s.status === 'Interview').length})` },
+                { id: 'Accepted', label: `Diterima (${submissions.filter(s => s.status === 'Accepted').length})` },
+                { id: 'Rejected', label: `Ditolak (${submissions.filter(s => s.status === 'Rejected').length})` },
+              ].map(st => {
+                const active = subStatusFilter === st.id;
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => setSubStatusFilter(st.id)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 'var(--radius-full)',
+                      border: active ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                      background: active ? 'rgba(255, 184, 0, 0.15)' : 'var(--input-bg)',
+                      color: active ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const itemsToExport = selectedSubFilter === 'all' 
-                    ? [...submissions, ...applications]
-                    : submissions.filter(s => s.formId === selectedSubFilter);
-                  
-                  if (itemsToExport.length === 0) {
-                    showToast('Tidak ada data berkas untuk diexport.', 'error');
-                    return;
-                  }
-
-                  // Collect dynamic field columns across exported submissions
-                  const dynamicKeys = Array.from(
-                    new Set(
-                      itemsToExport.flatMap(s => s.data ? Object.keys(s.data) : ['fullName', 'nip', 'unitSquad', 'div1', 'div2', 'whatsapp', 'email', 'motivation'])
-                    )
+            {/* Submissions List */}
+            {filteredSubmissions.length === 0 && applications.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
+                Tidak ada berkas pendaftaran yang sesuai dengan filter.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {filteredSubmissions.map((sub) => {
+                  const curStatus = sub.status || 'Submitted';
+                  const stInfo = statusMeta[curStatus] || statusMeta.Submitted;
+                  const applicantName = extractApplicantName(sub);
+                  const applicantWa = extractApplicantPhone(sub.data);
+                  const waMessage = encodeURIComponent(
+                    `Halo ${applicantName}, kami dari Pengurus Culture Network Team (CNT) IT APD Bank Mandiri ingin menindaklanjuti pendaftaran Anda pada "${sub.formTitle || 'Program CNT IT APD'}".`
                   );
 
-                  const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-                  const headerRow = ['ID Berkas', 'Judul Formulir', 'Waktu Submit', ...dynamicKeys.map(k => k.replace(/^f-/, '').toUpperCase()), 'Lampiran File'].map(escapeCsv).join(',');
-
-                  const dataRows = itemsToExport.map(s => {
-                    const baseCols = [
-                      s.id,
-                      s.formTitle || 'Oprec 2026',
-                      s.submittedAt || ''
-                    ];
-                    const fieldCols = dynamicKeys.map(k => {
-                      if (s.data) return s.data[k] ?? '';
-                      return s[k] ?? '';
-                    });
-                    const fileCol = s.files ? Object.values(s.files).map(f => f.name).join('; ') : '';
-                    return [...baseCols, ...fieldCols, fileCol].map(escapeCsv).join(',');
-                  });
-
-                  const csvString = '\uFEFF' + [headerRow, ...dataRows].join('\n');
-                  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.setAttribute("href", url);
-                  link.setAttribute("download", `berkas_cnt_it_apd_${Date.now()}.csv`);
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-                  showToast(`Berhasil mengunduh ${itemsToExport.length} berkas dalam format CSV!`);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(14, 165, 233, 0.15)',
-                  border: '1px solid #0ea5e9',
-                  color: '#0ea5e9',
-                  padding: '8px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                <Download size={14} />
-                <span>Export CSV</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Submissions List */}
-          {submissions.length === 0 && applications.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
-              Belum ada berkas pendaftaran yang masuk.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Dynamic Submissions */}
-              {submissions
-                .filter(s => selectedSubFilter === 'all' || s.formId === selectedSubFilter)
-                .map((sub) => (
-                  <div key={sub.id} style={{
-                    padding: '16px 20px',
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-card)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{sub.formTitle || 'Formulir'}</span>
-                        <strong style={{ color: 'var(--text-main)', fontSize: '0.96rem' }}>
-                          {sub.data['f-fullName'] || sub.data['f-teamName'] || sub.data['f-name'] || 'Peserta'}
-                        </strong>
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                          • {sub.submittedAt}
-                        </span>
-                      </div>
-                      {onDeleteSubmission && (
-                        <button
-                          type="button"
-                          onClick={() => onDeleteSubmission(sub.id)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#f43f5e',
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            fontWeight: 700
-                          }}
-                        >
-                          Hapus Berkas
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Data Fields Preview */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: '8px',
-                      background: 'var(--input-bg)',
-                      padding: '12px',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.8rem'
+                  return (
+                    <div key={sub.id} style={{
+                      padding: '18px 20px',
+                      background: 'rgba(255,255,255,0.03)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-card)',
+                      borderLeft: `4px solid ${stInfo.color}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px'
                     }}>
-                      {Object.entries(sub.data || {}).map(([key, val]) => (
-                        <div key={key}>
-                          <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.72rem' }}>{key.replace('f-', '').toUpperCase()}</span>
-                          <strong style={{ color: 'var(--text-main)' }}>{String(val)}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{sub.formTitle || 'Formulir'}</span>
+                          <strong style={{ color: 'var(--text-main)', fontSize: '0.98rem' }}>
+                            {applicantName}
+                          </strong>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            padding: '3px 10px',
+                            borderRadius: 'var(--radius-full)',
+                            background: stInfo.bg,
+                            color: stInfo.color,
+                            border: `1px solid ${stInfo.color}`
+                          }}>
+                            {stInfo.label}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            • {sub.submittedAt}
+                          </span>
                         </div>
-                      ))}
-                      {/* Attached File Preview */}
-                      {sub.files && Object.entries(sub.files).map(([key, fileObj]) => (
-                        <div key={key} style={{ gridColumn: 'span 2' }}>
-                          <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.72rem' }}>DOKUMEN TERLAMPIR</span>
-                          <a 
-                            href={fileObj.dataUrl} 
-                            download={fileObj.name} 
-                            style={{ color: 'var(--mandiri-gold)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}
-                          >
-                            <Download size={13} />
-                            <span>Download {fileObj.name} ({fileObj.size})</span>
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
 
-              {/* Legacy Applications (if any) */}
-              {(selectedSubFilter === 'all' || selectedSubFilter === 'form-oprec-2026') && applications.map((app) => (
-                <div key={app.id} style={{
-                  padding: '16px 20px',
-                  background: 'rgba(255,255,255,0.03)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-card)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <span className="badge-gold" style={{ fontSize: '0.65rem', marginRight: '6px' }}>Oprec 2026</span>
-                      <strong style={{ color: 'var(--text-main)', fontSize: '0.96rem' }}>{app.fullName}</strong>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                        (NIP: {app.nip} • {app.unitSquad})
-                      </span>
+                        {/* Status Selector, 1-Click WA & Delete Action */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <select
+                            value={curStatus}
+                            onChange={(e) => {
+                              const nextStat = e.target.value;
+                              if (onUpdateSubmission) {
+                                onUpdateSubmission({ ...sub, status: nextStat });
+                                showToast(`Status berkas "${applicantName}" diubah menjadi ${statusMeta[nextStat]?.label || nextStat}`);
+                              }
+                            }}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 'var(--radius-full)',
+                              background: 'var(--input-bg)',
+                              border: `1px solid ${stInfo.color}`,
+                              color: 'var(--text-main)',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="Submitted">Status: Baru Masuk</option>
+                            <option value="Reviewed">Status: Direview</option>
+                            <option value="Interview">Status: Wawancara</option>
+                            <option value="Accepted">Status: Diterima ✓</option>
+                            <option value="Rejected">Status: Ditolak</option>
+                          </select>
+
+                          {applicantWa && (
+                            <a
+                              href={`https://wa.me/${applicantWa}?text=${waMessage}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '5px 12px',
+                                borderRadius: 'var(--radius-full)',
+                                background: 'rgba(37, 211, 102, 0.16)',
+                                border: '1px solid #25d366',
+                                color: '#25d366',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                textDecoration: 'none'
+                              }}
+                              title="Hubungi pendaftar langsung via WhatsApp"
+                            >
+                              <span>💬 Hubungi WA</span>
+                            </a>
+                          )}
+
+                          {onDeleteSubmission && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirm({ type: 'submission', id: sub.id, name: `Berkas ${applicantName}` })}
+                              style={{
+                                background: 'rgba(244, 63, 94, 0.12)',
+                                border: '1px solid rgba(244, 63, 94, 0.35)',
+                                color: '#f43f5e',
+                                padding: '5px 10px',
+                                borderRadius: 'var(--radius-full)',
+                                cursor: 'pointer',
+                                fontSize: '0.74rem',
+                                fontWeight: 700
+                              }}
+                            >
+                              Hapus
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Data Fields Preview */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '8px',
+                        background: 'var(--input-bg)',
+                        padding: '12px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.8rem'
+                      }}>
+                        {Object.entries(sub.data || {}).map(([key, val]) => (
+                          <div key={key} style={{ wordBreak: 'break-word' }}>
+                            <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.72rem' }}>{key.replace('f-', '').toUpperCase()}</span>
+                            <strong style={{ color: 'var(--text-main)' }}>
+                              {typeof val === 'object' && val !== null ? (val.name || JSON.stringify(val)) : String(val)}
+                            </strong>
+                          </div>
+                        ))}
+                        {/* Attached File Preview */}
+                        {sub.files && Object.entries(sub.files).map(([key, fileObj]) => (
+                          <div key={key} style={{ gridColumn: '1 / -1' }}>
+                            <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.72rem' }}>DOKUMEN TERLAMPIR</span>
+                            <a 
+                              href={fileObj.dataUrl} 
+                              download={fileObj.name}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: 'var(--mandiri-gold)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+                            >
+                              <Download size={13} />
+                              <span>Download / Buka {fileObj.name} ({fileObj.size})</span>
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Admin Notes Input */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <input
+                          type="text"
+                          placeholder="Tambahkan catatan review pengurus (misal: Jadwal interview Kamis 14.00 WIB)..."
+                          defaultValue={sub.adminNotes || ''}
+                          onBlur={(e) => {
+                            const val = e.target.value.trim();
+                            if (val !== (sub.adminNotes || '') && onUpdateSubmission) {
+                              onUpdateSubmission({ ...sub, adminNotes: val });
+                              showToast('Catatan seleksi berhasil disimpan!');
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            minWidth: '220px',
+                            padding: '7px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.78rem'
+                          }}
+                        />
+                      </div>
                     </div>
-                    <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{app.status || 'Submitted'}</span>
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--neon-cyan)' }}>
-                    Pilihan 1: <strong>{app.div1}</strong> | Pilihan 2: <strong>{app.div2}</strong>
-                  </div>
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
-                    "{app.motivation}"
-                  </p>
-                  <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
-                    Kontak: {app.whatsapp} | {app.email} • {app.submittedAt}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* TAB CONTENT: KUDOS & ASPIRASI MANAGEMENT */}
       {activeTab === 'kudos' && (
@@ -3340,6 +3885,292 @@ export default function AdminPortal({
         </div>
       )}
 
+      {/* TAB CONTENT: BRAND ASSETS & TEMPLATES MANAGEMENT */}
+      {activeTab === 'assets' && (
+        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
+              Kelola Katalog Asset Logo, Template & Media Kit ({brandAssets.length})
+            </h3>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
+              Unggah file logo, template PowerPoint Townhall, Virtual Background MS Teams/Zoom, atau dokumen panduan brand langsung ke Supabase Storage agar dapat diunduh di halaman Asset Logo.
+            </p>
+          </div>
+
+          <form onSubmit={handleCreateBrandAsset} noValidate className="admin-form-two-col" style={{
+            gap: '14px',
+            background: 'rgba(255,255,255,0.03)',
+            padding: '20px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-card)'
+          }}>
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Judul Asset / Template <span style={{ color: '#f43f5e' }}>*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Template PPT Townhall CNT IT APD 2026"
+                value={assetTitle}
+                onChange={(e) => {
+                  setAssetTitle(e.target.value);
+                  clearFieldError('assetTitle');
+                }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.assetTitle ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
+              />
+              {renderFieldError('assetTitle')}
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Kategori Katalog
+              </label>
+              <select
+                value={assetCategory}
+                onChange={(e) => setAssetCategory(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              >
+                <option value="Logo & Brand">Logo & Brand</option>
+                <option value="Template Presentasi">Template Presentasi (PPT)</option>
+                <option value="Virtual Background">Virtual Background (Teams / Zoom)</option>
+                <option value="Media & Publikasi">Media, Twibbon & Publikasi</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Label Badge (misal: Official Asset / PPTX / HD)
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Template Resmi"
+                value={assetBadge}
+                onChange={(e) => setAssetBadge(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <div className="mobile-two-col" style={{ gap: '8px' }}>
+              <div>
+                <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                  Format File
+                </label>
+                <input
+                  type="text"
+                  placeholder="PNG / PPTX / ZIP"
+                  value={assetFileType}
+                  onChange={(e) => setAssetFileType(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                  Ukuran File
+                </label>
+                <input
+                  type="text"
+                  placeholder="Otomatis / 2.4 MB"
+                  value={assetFileSize}
+                  onChange={(e) => setAssetFileSize(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Upload File ke Supabase Storage atau Masukkan URL Download <span style={{ color: '#f43f5e' }}>*</span>
+              </label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '9px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(56, 189, 248, 0.14)',
+                  border: '1px solid var(--neon-cyan)',
+                  color: 'var(--neon-cyan)',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}>
+                  <Upload size={14} />
+                  <span>{isUploadingMedia ? 'Mengunggah...' : 'Upload File ke Cloud'}</span>
+                  <input type="file" onChange={(e) => handleBrandAssetUpload(e, 'fileUrl', false)} style={{ display: 'none' }} />
+                </label>
+                <input
+                  type="text"
+                  placeholder="Atau tempel URL file (https://... atau /assets/...)"
+                  value={assetFileUrl}
+                  onChange={(e) => {
+                    setAssetFileUrl(e.target.value);
+                    clearFieldError('assetFileUrl');
+                  }}
+                  style={{ flex: '1 1 220px', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.assetFileUrl ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.84rem' }}
+                />
+              </div>
+              {renderFieldError('assetFileUrl')}
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Gambar Preview Thumbnail (Opsional)
+              </label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <label style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 184, 0, 0.14)',
+                  border: '1px solid var(--mandiri-gold)',
+                  color: 'var(--mandiri-gold)',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}>
+                  <ImageIcon size={14} />
+                  <span>Upload Gambar Preview</span>
+                  <input type="file" accept="image/*" onChange={(e) => handleBrandAssetUpload(e, 'previewUrl', false)} style={{ display: 'none' }} />
+                </label>
+                <input
+                  type="text"
+                  placeholder="URL Gambar Preview (kosongkan jika sama dengan URL file)"
+                  value={assetPreviewUrl}
+                  onChange={(e) => setAssetPreviewUrl(e.target.value)}
+                  style={{ flex: '1 1 220px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Deskripsi Kegunaan Asset
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Penjelasan singkat kegunaan file/template..."
+                value={assetDesc}
+                onChange={(e) => setAssetDesc(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="submit"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '10px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} />
+                <span>Simpan & Publikasikan Asset</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Existing Brand Assets List */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+            {brandAssets.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--border-card)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '10px'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' }}>
+                    <span className="badge-gold" style={{ fontSize: '0.66rem' }}>{item.category || 'Logo & Brand'}</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+                      {[item.fileType, item.fileSize].filter(Boolean).join(' • ')}
+                    </span>
+                  </div>
+                  <strong style={{ fontSize: '0.94rem', color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
+                    {item.title}
+                  </strong>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>
+                    {item.description}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border-card)' }}>
+                  <a
+                    href={item.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--neon-cyan)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <ExternalLink size={12} />
+                    <span>Buka File</span>
+                  </a>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem({ type: 'brand_asset', item: { ...item } })}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(14, 165, 233, 0.12)',
+                        border: '1px solid #0284c7',
+                        color: '#0284c7',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Edit2 size={12} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm({ type: 'brand_asset', id: item.id, name: item.title })}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(244, 63, 94, 0.12)',
+                        border: '1px solid #f43f5e',
+                        color: '#f43f5e',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Trash2 size={12} />
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* EDIT MODAL DIALOG */}
       {editingItem && (
         <div style={{
@@ -3372,7 +4203,16 @@ export default function AdminPortal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Edit2 size={18} color="var(--mandiri-gold)" />
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  Edit {editingItem.type === 'member' ? 'Personel' : editingItem.type === 'division' ? 'Divisi' : editingItem.type === 'gallery' ? 'Galeri' : editingItem.type === 'kudos' ? 'Apresiasi / Kudos' : 'Periode'}
+                  Edit {
+                    editingItem.type === 'member' ? 'Data Personel' :
+                    editingItem.type === 'division' ? 'Data Divisi' :
+                    editingItem.type === 'gallery' ? 'Dokumentasi Galeri' :
+                    editingItem.type === 'kudos' ? 'Apresiasi / Kudos' :
+                    editingItem.type === 'form' ? 'Formulir Pendaftaran' :
+                    editingItem.type === 'event' ? 'Program Kerja & Agenda' :
+                    editingItem.type === 'brand_asset' ? 'Asset & Template' :
+                    'Periode Kepengurusan'
+                  }
                 </h3>
               </div>
               <button
@@ -3388,36 +4228,80 @@ export default function AdminPortal({
               </button>
             </div>
 
-            {/* Edit Member Form */}
+            {/* Edit Member Form (Complete Fields) */}
             {editingItem.type === 'member' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Lengkap</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.name || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Lengkap</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.name || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value, shortName: e.target.value.split(' ')[0] } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Posisi</label>
+                    <select
+                      value={editingItem.item.category || 'anggota'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      <option value="pembina">Pembina</option>
+                      <option value="inti">Pengurus Inti (BPH)</option>
+                      <option value="pimpro">Ketua Divisi (Pimpro)</option>
+                      <option value="anggota">Anggota Divisi</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Jabatan / Role</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.role || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, role: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Jabatan / Role</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.role || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, role: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Divisi Penugasan</label>
+                    <select
+                      value={editingItem.item.divisionId || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, divisionId: e.target.value || undefined } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      <option value="">-- Lintas Divisi / BPH --</option>
+                      {divisions.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nomor WhatsApp (Opsional)</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.whatsapp || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, whatsapp: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Title / Sub-Jabatan</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.title || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nomor WhatsApp</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.whatsapp || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, whatsapp: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
                 </div>
+
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Motto</label>
                   <input
@@ -3427,8 +4311,25 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
+
                 <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Foto Profil Personel</label>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggung Jawab Utama (1 baris per poin)</label>
+                  <textarea
+                    rows={3}
+                    value={Array.isArray(editingItem.item.responsibilities) ? editingItem.item.responsibilities.join('\n') : ''}
+                    onChange={(e) => setEditingItem({
+                      ...editingItem,
+                      item: {
+                        ...editingItem.item,
+                        responsibilities: e.target.value.split('\n').map(s => s.trim()).filter(Boolean)
+                      }
+                    })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Foto Profil Personel (Cloud Storage)</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     {editingItem.item.image && (
                       <img
@@ -3453,7 +4354,7 @@ export default function AdminPortal({
                       }}
                     >
                       <Upload size={13} />
-                      <span>Upload Foto</span>
+                      <span>{isUploadingMedia ? 'Mengunggah...' : 'Upload Foto'}</span>
                       <input type="file" accept="image/*" onChange={(e) => handleMemberPhotoUpload(e, true)} style={{ display: 'none' }} />
                     </label>
                     <input
@@ -3468,27 +4369,71 @@ export default function AdminPortal({
               </div>
             )}
 
-            {/* Edit Division Form */}
+            {/* Edit Division Form (Complete Fields) */}
             {editingItem.type === 'division' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Divisi</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.name || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Pimpro / PIC</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.leadName || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, leadName: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Warna Identitas Divisi</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="color"
+                        value={editingItem.item.color || '#0284c7'}
+                        onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
+                        style={{ width: '40px', height: '36px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                      />
+                      <input
+                        type="text"
+                        value={editingItem.item.color || '#0284c7'}
+                        onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Open Recruitment</label>
+                    <select
+                      value={editingItem.item.isRecruiting !== false ? 'open' : 'closed'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, isRecruiting: e.target.value === 'open' } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      <option value="open">● Membuka Rekrutmen (Oprec Buka)</option>
+                      <option value="closed">○ Ditutup Sementara (Oprec Tutup)</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Divisi</label>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Motto Divisi</label>
                   <input
                     type="text"
-                    value={editingItem.item.name || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value } })}
+                    value={editingItem.item.motto || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, motto: e.target.value } })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Pimpro / PIC</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.leadName || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, leadName: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
-                </div>
+
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Peran</label>
                   <textarea
@@ -3498,12 +4443,28 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Fokus Area (Pisahkan dengan koma)</label>
+                  <input
+                    type="text"
+                    value={Array.isArray(editingItem.item.focusAreas) ? editingItem.item.focusAreas.join(', ') : ''}
+                    onChange={(e) => setEditingItem({
+                      ...editingItem,
+                      item: {
+                        ...editingItem.item,
+                        focusAreas: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                      }
+                    })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
+                  />
+                </div>
               </div>
             )}
 
-            {/* Edit Gallery Form */}
+            {/* Edit Gallery Form (Complete with Photos & DocLinks management) */}
             {editingItem.type === 'gallery' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Acara</label>
                   <input
@@ -3513,15 +4474,31 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal / Jadwal</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.date || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal / Jadwal</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.date || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Divisi Penyelenggara</label>
+                    <select
+                      value={editingItem.item.division || 'Creative Media'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, division: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      {divisions.map(d => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Kegiatan</label>
                   <textarea
@@ -3531,29 +4508,173 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
+
+                {/* Photos Manager in Edit Modal */}
+                <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Foto Carousel ({(editingItem.item.photos || []).length})
+                    </label>
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'rgba(56, 189, 248, 0.14)',
+                      border: '1px solid var(--neon-cyan)',
+                      color: 'var(--neon-cyan)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}>
+                      <Upload size={12} />
+                      <span>{isUploadingMedia ? 'Mengunggah...' : '+ Upload Foto Baru'}</span>
+                      <input type="file" accept="image/*" multiple onChange={(e) => handlePhotoUpload(e, true)} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {(editingItem.item.photos || []).map((photoUrl, pIdx) => (
+                      <div key={pIdx} style={{ position: 'relative', width: '68px', height: '52px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-card)' }}>
+                        <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextPhotos = (editingItem.item.photos || []).filter((_, i) => i !== pIdx);
+                            setEditingItem({ ...editingItem, item: { ...editingItem.item, photos: nextPhotos } });
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '2px',
+                            right: '2px',
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            background: 'rgba(244, 63, 94, 0.9)',
+                            border: 'none',
+                            color: '#fff',
+                            fontSize: '0.7rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* DocLinks Manager in Edit Modal */}
+                <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Tautan Dokumentasi / Google Drive ({(editingItem.item.docLinks || []).length})
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextLinks = [...(editingItem.item.docLinks || []), { text: 'Dokumentasi GDrive', url: '' }];
+                        setEditingItem({ ...editingItem, item: { ...editingItem.item, docLinks: nextLinks } });
+                      }}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(16, 185, 129, 0.14)',
+                        border: '1px solid #10b981',
+                        color: '#10b981',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + Tambah Link
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(editingItem.item.docLinks || []).map((lnk, lIdx) => (
+                      <div key={lIdx} style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          placeholder="Label tombol"
+                          value={lnk.text || ''}
+                          onChange={(e) => {
+                            const nextLinks = (editingItem.item.docLinks || []).map((item, i) => i === lIdx ? { ...item, text: e.target.value } : item);
+                            setEditingItem({ ...editingItem, item: { ...editingItem.item, docLinks: nextLinks } });
+                          }}
+                          style={{ flex: '1 1 130px', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                        />
+                        <input
+                          type="url"
+                          placeholder="https://drive.google.com/..."
+                          value={lnk.url || ''}
+                          onChange={(e) => {
+                            const nextLinks = (editingItem.item.docLinks || []).map((item, i) => i === lIdx ? { ...item, url: e.target.value } : item);
+                            setEditingItem({ ...editingItem, item: { ...editingItem.item, docLinks: nextLinks } });
+                          }}
+                          style={{ flex: '1.4 1 160px', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextLinks = (editingItem.item.docLinks || []).filter((_, i) => i !== lIdx);
+                            setEditingItem({ ...editingItem, item: { ...editingItem.item, docLinks: nextLinks } });
+                          }}
+                          style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '4px' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Edit Tenure Form */}
             {editingItem.type === 'tenure' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Kepengurusan</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.title || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Kepengurusan</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.title || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tagline Budaya</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.themeTagline || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, themeTagline: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tagline Budaya</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.themeTagline || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, themeTagline: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Headline Hero</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.heroHeadline || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, heroHeadline: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Highlight Hero</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.heroHighlight || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, heroHighlight: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Visi CNT IT (Dinamis)</label>
@@ -3833,26 +4954,48 @@ export default function AdminPortal({
                     />
                   </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Pelaksanaan</label>
-                  <select
-                    value={editingItem.item.status || 'Upcoming'}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, status: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  >
-                    <option value="Upcoming">Upcoming (Akan Datang)</option>
-                    <option value="Ongoing">Ongoing (Sedang Berjalan)</option>
-                    <option value="Completed">Completed (Selesai)</option>
-                  </select>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Pelaksanaan</label>
+                    <select
+                      value={editingItem.item.status || 'Upcoming'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, status: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      <option value="Upcoming">Upcoming (Akan Datang)</option>
+                      <option value="Ongoing">Ongoing (Sedang Berjalan)</option>
+                      <option value="Completed">Completed (Selesai)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Estimasi RAB (Rp)</label>
+                    <input
+                      type="number"
+                      value={editingItem.item.totalRab ?? 0}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, totalRab: Number(e.target.value || 0) } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Lokasi Kegiatan</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.location || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, location: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Lokasi Kegiatan</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.location || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, location: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target KPI / Peserta</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.kpi || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, kpi: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Kegiatan</label>
@@ -3861,6 +5004,102 @@ export default function AdminPortal({
                     value={editingItem.item.description || ''}
                     onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, description: e.target.value } })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Edit Brand Asset Form */}
+            {editingItem.type === 'brand_asset' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Asset / Template</label>
+                  <input
+                    type="text"
+                    value={editingItem.item.title || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori</label>
+                    <select
+                      value={editingItem.item.category || 'Logo & Brand'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      <option value="Logo & Brand">Logo & Brand</option>
+                      <option value="Template Presentasi">Template Presentasi (PPT)</option>
+                      <option value="Virtual Background">Virtual Background (Teams / Zoom)</option>
+                      <option value="Media & Publikasi">Media, Twibbon & Publikasi</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Label Badge</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.badge || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, badge: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                </div>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Format File</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.fileType || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, fileType: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Ukuran File</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.fileSize || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, fileSize: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>URL File Download</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(56, 189, 248, 0.14)',
+                      border: '1px solid var(--neon-cyan)',
+                      color: 'var(--neon-cyan)',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}>
+                      <Upload size={13} />
+                      <span>Upload Baru</span>
+                      <input type="file" onChange={(e) => handleBrandAssetUpload(e, 'fileUrl', true)} style={{ display: 'none' }} />
+                    </label>
+                    <input
+                      type="text"
+                      value={editingItem.item.fileUrl || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, fileUrl: e.target.value } })}
+                      style={{ flex: 1, minWidth: '180px', padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi</label>
+                  <textarea
+                    rows={3}
+                    value={editingItem.item.description || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, description: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
               </div>
@@ -3891,7 +5130,7 @@ export default function AdminPortal({
                     showToast('Nama wajib diisi sebelum menyimpan perubahan', 'error');
                     return;
                   }
-                  if ((editingItem.type === 'gallery' || editingItem.type === 'tenure' || editingItem.type === 'form' || editingItem.type === 'event') && !(it.title || '').trim()) {
+                  if ((editingItem.type === 'gallery' || editingItem.type === 'tenure' || editingItem.type === 'form' || editingItem.type === 'event' || editingItem.type === 'brand_asset') && !(it.title || '').trim()) {
                     showToast('Judul wajib diisi sebelum menyimpan perubahan', 'error');
                     return;
                   }
@@ -3907,6 +5146,7 @@ export default function AdminPortal({
                   if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
                   if (editingItem.type === 'form' && onUpdateForm) onUpdateForm(editingItem.item);
                   if (editingItem.type === 'event' && onUpdateEvent) onUpdateEvent(editingItem.item);
+                  if (editingItem.type === 'brand_asset' && onUpdateBrandAsset) onUpdateBrandAsset(editingItem.item);
                   setEditingItem(null);
                   showToast('Perubahan data berhasil disimpan & disinkronkan ke Cloud!');
                 }}
@@ -4066,6 +5306,8 @@ export default function AdminPortal({
                     if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
                     if (deleteConfirm.type === 'form' && onDeleteForm) onDeleteForm(deleteConfirm.id, true);
                     if (deleteConfirm.type === 'event' && onDeleteEvent) onDeleteEvent(deleteConfirm.id);
+                    if (deleteConfirm.type === 'submission' && onDeleteSubmission) onDeleteSubmission(deleteConfirm.id);
+                    if (deleteConfirm.type === 'brand_asset' && onDeleteBrandAsset) onDeleteBrandAsset(deleteConfirm.id);
                     if (deleteConfirm.type === 'reset_all' && onResetDefault) onResetDefault();
                     setDeleteConfirm(null);
                     showToast(deleteConfirm.type === 'reset_all' ? 'Data berhasil dikembalikan ke bawaan awal!' : 'Data berhasil dihapus & disinkronkan!');

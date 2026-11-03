@@ -5,13 +5,25 @@ import {
   ChevronRight, 
   X, 
   CheckCircle2, 
-  Info 
+  Info,
+  Search,
+  Users
 } from 'lucide-react';
 import CrewMemberCard from './CrewMemberCard';
 import { soundFx } from '../utils/audio';
 
+function formatWaNumber(raw = '') {
+  const digits = String(raw).replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0')) return '62' + digits.slice(1);
+  return digits;
+}
+
 export default function OrganizationSection({ activeTenure, divisions, members }) {
   const [selectedMember, setSelectedMember] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [divisionFilter, setDivisionFilter] = useState('all');
 
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
   const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
@@ -19,6 +31,21 @@ export default function OrganizationSection({ activeTenure, divisions, members }
   const pembina = activeMembers.find(m => m.category === 'pembina');
   const inti = activeMembers.filter(m => m.category === 'inti');
   const pimpro = activeMembers.filter(m => m.category === 'pimpro');
+
+  const isFiltering = searchQuery.trim() !== '' || categoryFilter !== 'all' || divisionFilter !== 'all';
+
+  const filteredDirectoryMembers = activeMembers.filter(m => {
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q ||
+      (m.name || '').toLowerCase().includes(q) ||
+      (m.role || '').toLowerCase().includes(q) ||
+      (m.title || '').toLowerCase().includes(q) ||
+      (m.badge || '').toLowerCase().includes(q) ||
+      (Array.isArray(m.responsibilities) && m.responsibilities.some(r => r.toLowerCase().includes(q)));
+    const matchesCat = categoryFilter === 'all' || m.category === categoryFilter;
+    const matchesDiv = divisionFilter === 'all' || m.divisionId === divisionFilter;
+    return matchesSearch && matchesCat && matchesDiv;
+  });
 
   const handleMemberClick = (member) => {
     soundFx.playClick();
@@ -49,7 +76,131 @@ export default function OrganizationSection({ activeTenure, divisions, members }
         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6 }}>
           Struktur organisasi Culture Network Team Group IT APD Direktorat IT Bank Mandiri. Klik pada setiap personel untuk melihat detail tanggung jawab & profil lengkap.
         </p>
+
+        {/* Search & Filter Directory Bar */}
+        <div className="glass-panel" style={{
+          marginTop: '24px',
+          padding: '14px 18px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '10px',
+          border: '1px solid var(--border-card)'
+        }}>
+          <div style={{ position: 'relative', flex: '1 1 220px' }}>
+            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+            <input
+              type="text"
+              placeholder="Cari nama pengurus, jabatan, atau keahlian..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 12px 9px 34px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--input-bg)',
+                border: '1px solid var(--border-card)',
+                color: 'var(--text-main)',
+                fontSize: '0.82rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{
+              padding: '9px 12px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-card)',
+              color: 'var(--text-main)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              flex: '0 1 auto'
+            }}
+          >
+            <option value="all">Semua Posisi ({activeMembers.length})</option>
+            <option value="pembina">Pembina</option>
+            <option value="inti">Pengurus Inti (BPH)</option>
+            <option value="pimpro">Ketua Divisi (Pimpro)</option>
+            <option value="anggota">Anggota Divisi</option>
+          </select>
+
+          <select
+            value={divisionFilter}
+            onChange={(e) => setDivisionFilter(e.target.value)}
+            style={{
+              padding: '9px 12px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-card)',
+              color: 'var(--text-main)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              flex: '0 1 auto'
+            }}
+          >
+            <option value="all">Semua Divisi</option>
+            {(divisions || []).map(div => (
+              <option key={div.id} value={div.id}>{div.name}</option>
+            ))}
+          </select>
+
+          {isFiltering && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setCategoryFilter('all');
+                setDivisionFilter('all');
+              }}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(244, 63, 94, 0.14)',
+                border: '1px solid rgba(244, 63, 94, 0.4)',
+                color: '#f43f5e',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Reset Filter
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Filtered Directory Results when searching/filtering */}
+      {isFiltering && (
+        <div style={{ maxWidth: '1140px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <span className="badge-cyan">
+              Hasil Pencarian Personel: {filteredDirectoryMembers.length} Orang Ditemukan
+            </span>
+          </div>
+
+          {filteredDirectoryMembers.length === 0 ? (
+            <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              Tidak ditemukan personel yang cocok dengan kata kunci atau filter yang dipilih.
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))',
+              gap: '20px'
+            }}>
+              {filteredDirectoryMembers.map(person => (
+                <CrewMemberCard key={person.id} member={person} onClick={() => handleMemberClick(person)} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* HIERARCHICAL TREE CONTAINER WITH SEAMLESS CONNECTING NEON LINES (IDENTIK DENGAN PRESENTASI) */}
       <div className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -223,7 +374,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
 
                             {member.whatsapp && (
                               <a
-                                href={`https://wa.me/${member.whatsapp.replace(/\D/g, '')}`}
+                                href={`https://wa.me/${formatWaNumber(member.whatsapp)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
@@ -349,7 +500,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
                 {selectedMember.whatsapp && (
                   <div style={{ marginTop: '10px' }}>
                     <a
-                      href={`https://wa.me/${selectedMember.whatsapp.replace(/\D/g, '')}`}
+                      href={`https://wa.me/${formatWaNumber(selectedMember.whatsapp)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{

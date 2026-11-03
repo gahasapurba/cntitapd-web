@@ -42,7 +42,8 @@ const TABLE_MAP = {
   kudosList: 'kudos',
   aspirasiList: 'aspirasi',
   forms: 'forms',
-  submissions: 'submissions'
+  submissions: 'submissions',
+  brandAssets: 'brand_assets'
 };
 
 export const rowMappers = {
@@ -281,6 +282,8 @@ export const rowMappers = {
       form_id: item.formId || 'form-oprec-2026',
       form_title: item.formTitle || 'Formulir',
       submitted_at: item.submittedAt || '',
+      status: item.status || 'Submitted',
+      admin_notes: item.adminNotes || '',
       data: item.data || {},
       files: item.files || {}
     }),
@@ -289,8 +292,37 @@ export const rowMappers = {
       formId: row.form_id,
       formTitle: row.form_title,
       submittedAt: row.submitted_at,
+      status: row.status || 'Submitted',
+      adminNotes: row.admin_notes || '',
       data: row.data || {},
       files: row.files || {}
+    })
+  },
+
+  brandAssets: {
+    toDb: (item, idx = 0) => ({
+      id: String(item.id),
+      title: item.title || '',
+      category: item.category || 'Logo & Brand',
+      description: item.description || '',
+      file_url: item.fileUrl || '',
+      preview_url: item.previewUrl || item.fileUrl || '',
+      file_type: item.fileType || 'PNG / ZIP',
+      file_size: item.fileSize || '',
+      badge: item.badge || 'Official Asset',
+      sort_order: idx,
+      updated_at: new Date().toISOString()
+    }),
+    fromDb: (row) => ({
+      id: row.id,
+      title: row.title,
+      category: row.category || 'Logo & Brand',
+      description: row.description || '',
+      fileUrl: row.file_url || '',
+      previewUrl: row.preview_url || row.file_url || '',
+      fileType: row.file_type || 'PNG / ZIP',
+      fileSize: row.file_size || '',
+      badge: row.badge || 'Official Asset'
     })
   }
 };
@@ -310,6 +342,7 @@ export async function fetchAllCloudState() {
       aspirasiRes,
       formsRes,
       submissionsRes,
+      brandAssetsRes,
       settingsRes
     ] = await Promise.all([
       supabase.from('tenures').select('*').order('sort_order', { ascending: true }),
@@ -321,6 +354,7 @@ export async function fetchAllCloudState() {
       supabase.from('aspirasi').select('*').order('created_at', { ascending: false }),
       supabase.from('forms').select('*').order('sort_order', { ascending: true }),
       supabase.from('submissions').select('*').order('created_at', { ascending: false }),
+      supabase.from('brand_assets').select('*').order('sort_order', { ascending: true }),
       supabase.from('page_settings').select('*')
     ]);
 
@@ -361,6 +395,10 @@ export async function fetchAllCloudState() {
     if (!submissionsRes.error && Array.isArray(submissionsRes.data)) {
       result.submissions = submissionsRes.data.map(rowMappers.submissions.fromDb);
       saveLocalCache('submissions', result.submissions);
+    }
+    if (!brandAssetsRes.error && Array.isArray(brandAssetsRes.data) && brandAssetsRes.data.length > 0) {
+      result.brandAssets = brandAssetsRes.data.map(rowMappers.brandAssets.fromDb);
+      saveLocalCache('brandAssets', result.brandAssets);
     }
     if (!settingsRes.error && Array.isArray(settingsRes.data)) {
       for (const row of settingsRes.data) {
@@ -471,4 +509,43 @@ export async function mergeAndPushCloudList(key, newItem, currentLocalList = [])
     // fallback to optimistic list
   }
   return optimisticList;
+}
+
+/**
+ * Upload a File/Blob to Supabase Storage bucket `cnt-media` and return its public CDN URL.
+ * Falls back to Base64 dataURL if offline.
+ */
+export async function uploadMediaToCloud(file, folder = 'uploads') {
+  if (!file) return null;
+
+  const safeName = String(file.name || 'file')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .slice(-80);
+  const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safeName}`;
+
+  try {
+    const { error } = await supabase.storage
+      .from('cnt-media')
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type || 'application/octet-stream'
+      });
+
+    if (!error) {
+      const { data: pubData } = supabase.storage.from('cnt-media').getPublicUrl(path);
+      if (pubData?.publicUrl) {
+        return pubData.publicUrl;
+      }
+    }
+  } catch (e) {
+    // fallback to dataURL below
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Clock, 
@@ -14,32 +14,58 @@ import {
   ArrowLeft,
   X,
   ExternalLink,
-  HelpCircle
+  HelpCircle,
+  Share2,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { uploadMediaToCloud } from '../lib/supabase';
 
 export default function DynamicFormSection({ 
   forms = [], 
   divisions = [], 
   events = [], 
   onSubmitSubmission, 
-  theme 
+  theme,
+  initialFormId = null,
+  onSelectFormUrl
 }) {
   const isDark = theme === 'dark';
 
   // Active form selection
   const activeForms = forms.filter(f => f.isOpen !== false);
-  const [selectedFormId, setSelectedFormId] = useState(activeForms[0]?.id || forms[0]?.id || null);
+  const [selectedFormId, setSelectedFormId] = useState(() => {
+    if (initialFormId && activeForms.some(f => f.id === initialFormId)) {
+      return initialFormId;
+    }
+    return activeForms[0]?.id || forms[0]?.id || null;
+  });
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [uploadingFieldId, setUploadingFieldId] = useState(null);
+
+  useEffect(() => {
+    if (initialFormId && forms.some(f => f.id === initialFormId)) {
+      setSelectedFormId(initialFormId);
+    }
+  }, [initialFormId, forms]);
 
   // Current active form object
-  const currentForm = forms.find(f => f.id === selectedFormId);
+  const currentForm = forms.find(f => f.id === selectedFormId) || activeForms[0];
 
   // Submission form state: { [fieldId]: value }
   const [formData, setFormData] = useState({});
-  const [fileData, setFileData] = useState({}); // { [fieldId]: { name, size, base64 } }
+  const [fileData, setFileData] = useState({}); // { [fieldId]: { name, size, type, dataUrl } }
   const [errors, setErrors] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  const handleCopyFormLink = () => {
+    if (!currentForm) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}#oprec?form=${encodeURIComponent(currentForm.id)}`;
+    navigator.clipboard?.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
 
   // Handle Input Changes
   const handleInputChange = (fieldId, value) => {
@@ -49,33 +75,35 @@ export default function DynamicFormSection({
     }
   };
 
-  // Handle File Upload with Base64 preview
-  const handleFileUpload = (fieldId, e) => {
+  // Handle File Upload to Supabase Storage `cnt-media` bucket (with fallback to Base64)
+  const handleFileUpload = async (fieldId, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, [fieldId]: 'Ukuran file maksimal 5MB' }));
+    if (file.size > 15 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, [fieldId]: 'Ukuran file maksimal 15MB' }));
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
+    setUploadingFieldId(fieldId);
+    const cloudUrl = await uploadMediaToCloud(file, 'submissions');
+    setUploadingFieldId(null);
+
+    if (cloudUrl) {
       setFileData(prev => ({
         ...prev,
         [fieldId]: {
           name: file.name,
           size: (file.size / 1024).toFixed(1) + ' KB',
           type: file.type,
-          dataUrl: uploadEvent.target.result
+          dataUrl: cloudUrl
         }
       }));
       setFormData(prev => ({ ...prev, [fieldId]: file.name }));
       if (errors[fieldId]) {
         setErrors(prev => ({ ...prev, [fieldId]: null }));
       }
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   // Dynamic Validation
@@ -217,6 +245,7 @@ export default function DynamicFormSection({
                   key={f.id}
                   onClick={() => {
                     setSelectedFormId(f.id);
+                    if (onSelectFormUrl) onSelectFormUrl(f.id);
                     setFormData({});
                     setFileData({});
                     setErrors({});
@@ -329,6 +358,28 @@ export default function DynamicFormSection({
                   <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', marginTop: '8px', fontWeight: 600 }}>
                     📅 Batas Akhir: {currentForm.deadline}
                   </div>
+                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={handleCopyFormLink}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        borderRadius: 'var(--radius-full)',
+                        background: copiedLink ? 'rgba(16,185,129,0.15)' : 'var(--input-bg)',
+                        border: copiedLink ? '1px solid #10b981' : '1px solid var(--border-card)',
+                        color: copiedLink ? '#10b981' : 'var(--text-muted)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {copiedLink ? <Check size={13} /> : <Share2 size={13} />}
+                      <span>{copiedLink ? 'Link Formulir Tersalin!' : 'Salin Link Langsung Formulir Ini'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Dynamic Form Generator */}
@@ -409,12 +460,16 @@ export default function DynamicFormSection({
                                   onChange={(e) => handleFileUpload(field.id, e)}
                                   style={{ display: 'none' }}
                                 />
-                                {fileData[field.id] ? (
+                                {uploadingFieldId === field.id ? (
+                                  <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>
+                                    ⏳ Mengunggah berkas ke Supabase Storage...
+                                  </span>
+                                ) : fileData[field.id] ? (
                                   <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>
                                     ✓ {fileData[field.id].name} ({fileData[field.id].size})
                                   </span>
                                 ) : (
-                                  <span>Klik untuk memilih berkas ({field.accept || 'PDF, PNG, JPG, max 5MB'})</span>
+                                  <span>Klik untuk memilih berkas ({field.accept || 'PDF, PNG, JPG, max 15MB'})</span>
                                 )}
                               </label>
                               {fileData[field.id] && (
