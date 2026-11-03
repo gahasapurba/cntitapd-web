@@ -492,7 +492,7 @@ export default function AdminPortal({
       color: newDivColor,
       motto: 'Mendorong Transformasi Budaya Berkelanjutan',
       description: newDivDesc || 'Divisi pengembangan inisiatif budaya di Group IT APD.',
-      focusAreas: newDivFocus ? newDivFocus.split(',').map(s => s.trim()) : ['Program Kerja Baru'],
+      focusAreas: newDivFocus ? newDivFocus.split(',').map(s => s.trim()).filter(Boolean) : ['Program Kerja Baru'],
       isRecruiting: true,
       requirements: ['Memiliki komitmen tinggi', 'Aktif dan kolaboratif']
     });
@@ -2080,7 +2080,13 @@ export default function AdminPortal({
 
                         <button
                           type="button"
-                          onClick={() => setEditingItem({ type: 'member', item: { ...m } })}
+                          onClick={() => setEditingItem({
+                            type: 'member',
+                            item: {
+                              ...m,
+                              rawResponsibilities: Array.isArray(m.responsibilities) ? m.responsibilities.join('\n') : (m.responsibilities || '')
+                            }
+                          })}
                           title="Edit Data Personel"
                           style={{
                             padding: '6px',
@@ -3122,7 +3128,13 @@ export default function AdminPortal({
 
                     <button
                       type="button"
-                      onClick={() => setEditingItem({ type: 'division', item: { ...d } })}
+                      onClick={() => setEditingItem({
+                        type: 'division',
+                        item: {
+                          ...d,
+                          rawFocusAreas: Array.isArray(d.focusAreas) ? d.focusAreas.join(', ') : (d.focusAreas || '')
+                        }
+                      })}
                       title="Edit Data Divisi"
                       style={{
                         padding: '6px',
@@ -3399,7 +3411,13 @@ export default function AdminPortal({
 
                   <button
                     type="button"
-                    onClick={() => setEditingItem({ type: 'tenure', item: { ...t } })}
+                    onClick={() => setEditingItem({
+                      type: 'tenure',
+                      item: {
+                        ...t,
+                        rawMisi: Array.isArray(t.misi) ? t.misi.join('\n') : (t.misi || '')
+                      }
+                    })}
                     title="Edit Periode Kepengurusan"
                     style={{
                       padding: '6px',
@@ -5266,14 +5284,19 @@ export default function AdminPortal({
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggung Jawab Utama (1 baris per poin)</label>
                   <textarea
                     rows={3}
-                    value={Array.isArray(editingItem.item.responsibilities) ? editingItem.item.responsibilities.join('\n') : ''}
-                    onChange={(e) => setEditingItem({
-                      ...editingItem,
-                      item: {
-                        ...editingItem.item,
-                        responsibilities: e.target.value.split('\n').map(s => s.trim()).filter(Boolean)
-                      }
-                    })}
+                    placeholder="Tulis tanggung jawab utama (satu poin per baris)..."
+                    value={editingItem.item.rawResponsibilities !== undefined ? editingItem.item.rawResponsibilities : (Array.isArray(editingItem.item.responsibilities) ? editingItem.item.responsibilities.join('\n') : '')}
+                    onChange={(e) => {
+                      const textVal = e.target.value;
+                      setEditingItem({
+                        ...editingItem,
+                        item: {
+                          ...editingItem.item,
+                          rawResponsibilities: textVal,
+                          responsibilities: textVal.split('\n').map(s => s.trim()).filter(Boolean)
+                        }
+                      });
+                    }}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
                   />
                 </div>
@@ -5398,16 +5421,29 @@ export default function AdminPortal({
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Fokus Area (Pisahkan dengan koma)</label>
                   <input
                     type="text"
-                    value={Array.isArray(editingItem.item.focusAreas) ? editingItem.item.focusAreas.join(', ') : ''}
-                    onChange={(e) => setEditingItem({
-                      ...editingItem,
-                      item: {
-                        ...editingItem.item,
-                        focusAreas: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                      }
-                    })}
+                    value={editingItem.item.rawFocusAreas !== undefined ? editingItem.item.rawFocusAreas : (Array.isArray(editingItem.item.focusAreas) ? editingItem.item.focusAreas.join(', ') : '')}
+                    onChange={(e) => {
+                      const textVal = e.target.value;
+                      const parsed = textVal.split(',').map(s => s.trim()).filter(Boolean);
+                      setEditingItem({
+                        ...editingItem,
+                        item: {
+                          ...editingItem.item,
+                          rawFocusAreas: textVal,
+                          focusAreas: parsed
+                        }
+                      });
+                    }}
+                    placeholder="Contoh: Internal Engagement, Wellness, Learning"
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
                   />
+                  <div style={{ marginTop: '5px', fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                    {Array.isArray(editingItem.item.focusAreas) && editingItem.item.focusAreas.length > 0 ? (
+                      <span>Fokus aktif ({editingItem.item.focusAreas.length}): <strong style={{ color: 'var(--neon-cyan)' }}>{editingItem.item.focusAreas.join(' • ')}</strong></span>
+                    ) : (
+                      <span>Ketik fokus area dipisahkan koma (contoh: <code>Internal Engagement, Wellness, Learning</code>)</span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -5653,8 +5689,19 @@ export default function AdminPortal({
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Misi CNT IT (1 baris per misi)</label>
                   <textarea
                     rows={4}
-                    value={Array.isArray(editingItem.item.misi) ? editingItem.item.misi.join('\n') : (editingItem.item.misi || '')}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, misi: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) } })}
+                    placeholder="Tulis poin misi (satu baris per misi)..."
+                    value={editingItem.item.rawMisi !== undefined ? editingItem.item.rawMisi : (Array.isArray(editingItem.item.misi) ? editingItem.item.misi.join('\n') : (editingItem.item.misi || ''))}
+                    onChange={(e) => {
+                      const textVal = e.target.value;
+                      setEditingItem({
+                        ...editingItem,
+                        item: {
+                          ...editingItem.item,
+                          rawMisi: textVal,
+                          misi: textVal.split('\n').map(s => s.trim()).filter(Boolean)
+                        }
+                      });
+                    }}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
                   />
                 </div>
@@ -6358,10 +6405,28 @@ export default function AdminPortal({
                     return;
                   }
 
-                  if (editingItem.type === 'member' && onUpdateMember) onUpdateMember(editingItem.item);
-                  if (editingItem.type === 'division' && onUpdateDivision) onUpdateDivision(editingItem.item);
+                  if (editingItem.type === 'member' && onUpdateMember) {
+                    const finalResp = editingItem.item.rawResponsibilities !== undefined
+                      ? editingItem.item.rawResponsibilities.split('\n').map(s => s.trim()).filter(Boolean)
+                      : (Array.isArray(editingItem.item.responsibilities) ? editingItem.item.responsibilities : []);
+                    const { rawResponsibilities, ...cleanItem } = editingItem.item;
+                    onUpdateMember({ ...cleanItem, responsibilities: finalResp });
+                  }
+                  if (editingItem.type === 'division' && onUpdateDivision) {
+                    const finalFocus = editingItem.item.rawFocusAreas !== undefined
+                      ? editingItem.item.rawFocusAreas.split(',').map(s => s.trim()).filter(Boolean)
+                      : (Array.isArray(editingItem.item.focusAreas) ? editingItem.item.focusAreas : []);
+                    const { rawFocusAreas, ...cleanItem } = editingItem.item;
+                    onUpdateDivision({ ...cleanItem, focusAreas: finalFocus });
+                  }
                   if (editingItem.type === 'gallery' && onUpdateGallery) onUpdateGallery(editingItem.item);
-                  if (editingItem.type === 'tenure' && onUpdateTenure) onUpdateTenure(editingItem.item);
+                  if (editingItem.type === 'tenure' && onUpdateTenure) {
+                    const finalMisi = editingItem.item.rawMisi !== undefined
+                      ? editingItem.item.rawMisi.split('\n').map(s => s.trim()).filter(Boolean)
+                      : (Array.isArray(editingItem.item.misi) ? editingItem.item.misi : []);
+                    const { rawMisi, ...cleanItem } = editingItem.item;
+                    onUpdateTenure({ ...cleanItem, misi: finalMisi });
+                  }
                   if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
                   if (editingItem.type === 'form' && onUpdateForm) {
                     const cleanFields = (editingItem.item.fields || []).map(({ rawOptions, ...rest }) => rest);
