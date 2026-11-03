@@ -60,6 +60,7 @@ export default function DynamicFormSection({
   // Submission form state: { [fieldId]: value }
   const [formData, setFormData] = useState({});
   const [fileData, setFileData] = useState({}); // { [fieldId]: { name, size, type, dataUrl } }
+  const [pendingFiles, setPendingFiles] = useState({}); // { [fieldId]: File }
   const [errors, setErrors] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [lastSubmittedId, setLastSubmittedId] = useState('');
@@ -85,35 +86,31 @@ export default function DynamicFormSection({
     }
   };
 
-  // Handle File Upload to Supabase Storage `cnt-media` bucket (with fallback to Base64)
-  const handleFileUpload = async (fieldId, e) => {
+  // Handle File Selection - Deferred upload on Submit only (never prematurely on file pick)
+  const handleFileUpload = (fieldId, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, [fieldId]: 'Ukuran file maksimal 15MB' }));
+    if (file.size > 25 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, [fieldId]: 'Ukuran file maksimal 25MB' }));
       return;
     }
 
-    setUploadingFieldId(fieldId);
-    const cloudUrl = await uploadMediaToCloud(file, 'submissions');
-    setUploadingFieldId(null);
-
-    if (cloudUrl) {
-      setFileData(prev => ({
-        ...prev,
-        [fieldId]: {
-          name: file.name,
-          size: (file.size / 1024).toFixed(1) + ' KB',
-          type: file.type,
-          dataUrl: cloudUrl
-        }
-      }));
-      setFormData(prev => ({ ...prev, [fieldId]: file.name }));
-      if (errors[fieldId]) {
-        setErrors(prev => ({ ...prev, [fieldId]: null }));
+    setPendingFiles(prev => ({ ...prev, [fieldId]: file }));
+    setFileData(prev => ({
+      ...prev,
+      [fieldId]: {
+        name: file.name,
+        size: file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' : (file.size / 1024).toFixed(1) + ' KB',
+        type: file.type || 'file',
+        dataUrl: '' // Will be populated when form is submitted
       }
+    }));
+    setFormData(prev => ({ ...prev, [fieldId]: file.name }));
+    if (errors[fieldId]) {
+      setErrors(prev => ({ ...prev, [fieldId]: null }));
     }
+    e.target.value = '';
   };
 
   // Dynamic Validation
@@ -153,9 +150,32 @@ export default function DynamicFormSection({
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+
+    const uploadedFiles = { ...fileData };
+    try {
+      for (const [fieldId, file] of Object.entries(pendingFiles)) {
+        if (file) {
+          setUploadingFieldId(fieldId);
+          const cloudUrl = await uploadMediaToCloud(file, 'submissions');
+          if (cloudUrl) {
+            uploadedFiles[fieldId] = {
+              ...uploadedFiles[fieldId],
+              dataUrl: cloudUrl
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setIsSubmitting(false);
+      setUploadingFieldId(null);
+      alert('Gagal mengunggah berkas lampiran ke Cloud Storage. Silakan periksa koneksi dan coba lagi: ' + (err.message || 'Error'));
+      return;
+    }
+    setUploadingFieldId(null);
 
     const newSubId = 'sub-' + Date.now();
     const submission = {
@@ -166,7 +186,7 @@ export default function DynamicFormSection({
       status: 'Submitted',
       adminNotes: '',
       data: { ...formData },
-      files: { ...fileData }
+      files: uploadedFiles
     };
 
     if (onSubmitSubmission) {
@@ -180,6 +200,7 @@ export default function DynamicFormSection({
     });
 
     setLastSubmittedId(newSubId);
+    setPendingFiles({});
     setIsConfirmOpen(false);
     setIsSubmitted(true);
     setTimeout(() => setIsSubmitting(false), 600);
@@ -671,26 +692,31 @@ export default function DynamicFormSection({
                               <label style={{ cursor: 'pointer', flex: 1, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                 <input
                                   type="file"
-                                  accept={field.accept || '*'}
+                                  accept={field.accept || '*/*,.zip,.rar,.7z,.pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx'}
                                   onChange={(e) => handleFileUpload(field.id, e)}
                                   style={{ display: 'none' }}
                                 />
                                 {uploadingFieldId === field.id ? (
                                   <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>
-                                    ⏳ Mengunggah berkas ke Supabase Storage...
+                                    ⏳ Mengunggah berkas ke Cloud Storage...
                                   </span>
                                 ) : fileData[field.id] ? (
                                   <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>
-                                    ✓ {fileData[field.id].name} ({fileData[field.id].size})
+                                    ✓ {fileData[field.id].name} ({fileData[field.id].size}) &bull; Siap dikirim saat klik Kirim
                                   </span>
                                 ) : (
-                                  <span>Klik untuk memilih berkas ({field.accept || 'PDF, PNG, JPG, max 15MB'})</span>
+                                  <span>Klik untuk memilih berkas ({field.accept || 'ZIP, PDF, PNG, JPG, Dokumen max 25MB'})</span>
                                 )}
                               </label>
                               {fileData[field.id] && (
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    setPendingFiles(prev => {
+                                      const copy = { ...prev };
+                                      delete copy[field.id];
+                                      return copy;
+                                    });
                                     setFileData(prev => {
                                       const copy = { ...prev };
                                       delete copy[field.id];
@@ -703,6 +729,7 @@ export default function DynamicFormSection({
                                     });
                                   }}
                                   style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer' }}
+                                  title="Batalkan / Hapus file pilihan"
                                 >
                                   <X size={16} />
                                 </button>

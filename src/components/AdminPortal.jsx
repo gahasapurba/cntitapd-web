@@ -211,6 +211,12 @@ export default function AdminPortal({
   const [assetPreviewUrl, setAssetPreviewUrl] = useState('');
   const [assetDesc, setAssetDesc] = useState('');
 
+  // Pending Upload States (Deferred upload on Save/Submit only, never prematurely on selection)
+  const [pendingAssetFile, setPendingAssetFile] = useState(null);
+  const [pendingPreviewFile, setPendingPreviewFile] = useState(null);
+  const [pendingMemberPhoto, setPendingMemberPhoto] = useState(null);
+  const [pendingGalFiles, setPendingGalFiles] = useState([]);
+
   // Generic Edit Modal State: { type: 'member'|'division'|'tenure'|'gallery', item: {...} }
   const [editingItem, setEditingItem] = useState(null);
 
@@ -421,29 +427,46 @@ export default function AdminPortal({
     }
   };
 
-  // Upload photo for Member (New or Edit) to Supabase Storage `cnt-media`
-  const handleMemberPhotoUpload = async (e, isEdit = false) => {
+  // Select photo for Member (New or Edit) - Deferred upload on Save only
+  const handleMemberPhotoUpload = (e, isEdit = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsUploadingMedia(true);
-    const cloudUrl = await uploadMediaToCloud(file, 'members');
-    setIsUploadingMedia(false);
-    if (cloudUrl) {
-      if (isEdit) {
-        setEditingItem(prev => prev ? { ...prev, item: { ...prev.item, image: cloudUrl } } : null);
-      } else {
-        setMemImage(cloudUrl);
-      }
-      showToast('Foto profil berhasil diunggah ke Cloud Storage!');
+    const localPreview = URL.createObjectURL(file);
+    if (isEdit) {
+      setEditingItem(prev => prev ? {
+        ...prev,
+        pendingPhoto: file,
+        item: { ...prev.item, image: localPreview }
+      } : null);
+      showToast(`Foto baru "${file.name}" dipilih (akan diunggah saat Anda klik Simpan Perubahan)`);
+    } else {
+      setPendingMemberPhoto(file);
+      setMemImage(localPreview);
+      showToast(`Foto "${file.name}" dipilih (akan diunggah saat Anda klik Tambah Personel)`);
     }
+    e.target.value = '';
   };
 
-  const handleCreateMember = (e) => {
+  const handleCreateMember = async (e) => {
     e.preventDefault();
     if (!memName.trim()) {
       setFormErrors((prev) => ({ ...prev, memName: 'Nama Lengkap pengurus/anggota wajib diisi' }));
       showToast('Mohon isi Nama Lengkap pengurus/anggota', 'error');
       return;
+    }
+
+    let finalImageUrl = memImage || '';
+    if (pendingMemberPhoto) {
+      setIsUploadingMedia(true);
+      showToast('Mengunggah foto profil ke Cloud Storage...');
+      try {
+        finalImageUrl = await uploadMediaToCloud(pendingMemberPhoto, 'members');
+      } catch (err) {
+        setIsUploadingMedia(false);
+        showToast('Gagal mengunggah foto profil: ' + (err.message || 'Error'), 'error');
+        return;
+      }
+      setIsUploadingMedia(false);
     }
 
     const divObj = divisions.find(d => d.id === memDivisionId);
@@ -458,7 +481,7 @@ export default function AdminPortal({
       shortName: memName.split(' ')[0],
       role: memRole || (memCategory === 'anggota' ? 'Anggota Divisi' : 'Pengurus'),
       title: memCategory === 'anggota' ? `Anggota ${divObj?.name || 'CNT'}` : memRole,
-      image: memImage || '',
+      image: finalImageUrl,
       color: color,
       whatsapp: memWhatsapp.trim(),
       motto: memMotto || 'Dedikasi & Semangat untuk Insan IT APD',
@@ -471,6 +494,7 @@ export default function AdminPortal({
     setMemWhatsapp('');
     setMemMotto('');
     setMemImage('');
+    setPendingMemberPhoto(null);
     showToast(`Pengurus/Anggota "${savedName}" berhasil ditambahkan & tersimpan di Cloud!`);
   };
 
@@ -543,41 +567,37 @@ export default function AdminPortal({
 
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
 
-  // Photos file selector handler (Uploads directly to Supabase Storage `cnt-media`)
-  const handlePhotoUpload = async (e, isEditModal = false) => {
+  // Photos file selector handler - Deferred upload on Submit/Save only
+  const handlePhotoUpload = (e, isEditModal = false) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    setIsUploadingMedia(true);
-    const uploadedUrls = [];
-    for (const file of files) {
-      const url = await uploadMediaToCloud(file, 'gallery');
-      if (url) uploadedUrls.push(url);
+    if (isEditModal) {
+      const localPreviews = files.map(f => URL.createObjectURL(f));
+      setEditingItem(prev => {
+        if (!prev) return null;
+        const currentPending = prev.pendingPhotos || [];
+        const existingPhotos = Array.isArray(prev.item.photos) ? prev.item.photos : [];
+        return {
+          ...prev,
+          pendingPhotos: [...currentPending, ...files],
+          item: { ...prev.item, photos: [...existingPhotos, ...localPreviews] }
+        };
+      });
+      showToast(`${files.length} foto baru dipilih (akan diunggah saat Anda klik Simpan Perubahan)`);
+    } else {
+      setPendingGalFiles(prev => [...prev, ...files]);
+      const localPreviews = files.map(f => URL.createObjectURL(f));
+      setUploadedPhotos(prev => [...prev, ...localPreviews]);
+      showToast(`${files.length} foto dipilih (akan diunggah saat Anda klik Publikasikan)`);
     }
-    setIsUploadingMedia(false);
-
-    if (uploadedUrls.length > 0) {
-      if (isEditModal) {
-        setEditingItem(prev => {
-          if (!prev) return null;
-          const existing = Array.isArray(prev.item.photos) ? prev.item.photos : [];
-          return { ...prev, item: { ...prev.item, photos: [...existing, ...uploadedUrls] } };
-        });
-      } else {
-        setUploadedPhotos(prev => [...prev, ...uploadedUrls]);
-      }
-      showToast(`${uploadedUrls.length} foto berhasil diunggah ke Supabase Storage!`);
-    }
+    e.target.value = '';
   };
 
-  // Upload Brand Asset file or preview to Supabase Storage `cnt-media`
-  const handleBrandAssetUpload = async (e, field = 'fileUrl', isEditModal = false) => {
+  // Select Brand Asset file or preview - Deferred upload on Save only
+  const handleBrandAssetUpload = (e, field = 'fileUrl', isEditModal = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsUploadingMedia(true);
-    const cloudUrl = await uploadMediaToCloud(file, 'assets');
-    setIsUploadingMedia(false);
-    if (!cloudUrl) return;
 
     const sizeLabel = file.size > 1024 * 1024
       ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
@@ -585,44 +605,83 @@ export default function AdminPortal({
     const extLabel = (file.name.split('.').pop() || 'FILE').toUpperCase();
 
     if (isEditModal) {
-      setEditingItem(prev => {
-        if (!prev) return null;
-        const nextItem = { ...prev.item, [field]: cloudUrl };
-        if (field === 'fileUrl') {
-          if (!nextItem.fileSize) nextItem.fileSize = sizeLabel;
-          if (!nextItem.fileType) nextItem.fileType = extLabel;
-          if (!nextItem.previewUrl && /\.(png|jpg|jpeg|svg|webp|gif)$/i.test(file.name)) {
-            nextItem.previewUrl = cloudUrl;
+      if (field === 'fileUrl') {
+        setEditingItem(prev => prev ? {
+          ...prev,
+          pendingFile: file,
+          item: {
+            ...prev.item,
+            fileSize: sizeLabel,
+            fileType: extLabel
           }
-        }
-        return { ...prev, item: nextItem };
-      });
+        } : null);
+        showToast(`File baru "${file.name}" dipilih (akan diunggah saat Anda klik Simpan Perubahan)`);
+      } else {
+        const localPreview = URL.createObjectURL(file);
+        setEditingItem(prev => prev ? {
+          ...prev,
+          pendingPreviewFile: file,
+          item: { ...prev.item, previewUrl: localPreview }
+        } : null);
+        showToast(`Preview "${file.name}" dipilih`);
+      }
     } else {
       if (field === 'fileUrl') {
-        setAssetFileUrl(cloudUrl);
+        setPendingAssetFile(file);
         setAssetFileSize(sizeLabel);
         setAssetFileType(extLabel);
         clearFieldError('assetFileUrl');
-        if (!assetPreviewUrl && /\.(png|jpg|jpeg|svg|webp|gif)$/i.test(file.name)) {
-          setAssetPreviewUrl(cloudUrl);
+        if (!assetTitle) {
+          const cleanTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+          setAssetTitle(cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1));
         }
+        if (!assetPreviewUrl && /\.(png|jpg|jpeg|svg|webp|gif)$/i.test(file.name)) {
+          setPendingPreviewFile(file);
+          setAssetPreviewUrl(URL.createObjectURL(file));
+        }
+        showToast(`File "${file.name}" dipilih (akan diunggah saat Anda klik Simpan & Publikasikan)`);
       } else {
-        setAssetPreviewUrl(cloudUrl);
+        setPendingPreviewFile(file);
+        setAssetPreviewUrl(URL.createObjectURL(file));
+        showToast(`Gambar preview "${file.name}" dipilih`);
       }
     }
-    showToast(`File "${file.name}" berhasil diunggah ke Cloud Storage!`);
+    e.target.value = '';
   };
 
-  const handleCreateBrandAsset = (e) => {
+  const handleCreateBrandAsset = async (e) => {
     e.preventDefault();
     const errs = {};
     if (!assetTitle.trim()) errs.assetTitle = 'Judul Asset / Template wajib diisi';
-    if (!assetFileUrl.trim()) errs.assetFileUrl = 'File atau URL Download wajib diisi';
+    if (!pendingAssetFile && !assetFileUrl.trim()) errs.assetFileUrl = 'File atau URL Download wajib dipilih / diisi';
     if (Object.keys(errs).length > 0) {
       setFormErrors(prev => ({ ...prev, ...errs }));
       showToast('Mohon lengkapi Judul dan File/URL Asset', 'error');
       return;
     }
+
+    setIsUploadingMedia(true);
+    let finalFileUrl = assetFileUrl.trim();
+    let finalPreviewUrl = assetPreviewUrl.trim();
+
+    try {
+      if (pendingAssetFile) {
+        showToast(`Mengunggah file "${pendingAssetFile.name}" ke Cloud Storage...`);
+        finalFileUrl = await uploadMediaToCloud(pendingAssetFile, 'assets');
+      }
+      if (pendingPreviewFile) {
+        if (pendingPreviewFile === pendingAssetFile) {
+          finalPreviewUrl = finalFileUrl;
+        } else {
+          finalPreviewUrl = await uploadMediaToCloud(pendingPreviewFile, 'assets');
+        }
+      }
+    } catch (err) {
+      setIsUploadingMedia(false);
+      showToast('Gagal mengunggah file ke Cloud Storage: ' + (err.message || 'Error jaringan'), 'error');
+      return;
+    }
+    setIsUploadingMedia(false);
 
     if (onAddBrandAsset) {
       onAddBrandAsset({
@@ -632,8 +691,8 @@ export default function AdminPortal({
         badge: assetBadge.trim() || assetCategory,
         fileType: assetFileType.trim() || 'FILE',
         fileSize: assetFileSize.trim() || '',
-        fileUrl: assetFileUrl.trim(),
-        previewUrl: assetPreviewUrl.trim() || assetFileUrl.trim(),
+        fileUrl: finalFileUrl,
+        previewUrl: finalPreviewUrl || finalFileUrl,
         description: assetDesc.trim() || 'Asset resmi CNT IT Application Delivery.'
       });
     }
@@ -644,11 +703,14 @@ export default function AdminPortal({
     setAssetPreviewUrl('');
     setAssetFileSize('');
     setAssetDesc('');
-    showToast(`Asset "${saved}" berhasil ditambahkan ke Katalog Asset!`);
+    setPendingAssetFile(null);
+    setPendingPreviewFile(null);
+    showToast(`Asset "${saved}" berhasil disimpan & dipublikasikan!`);
   };
 
   const removeUploadedPhoto = (idx) => {
     setUploadedPhotos(prev => prev.filter((_, i) => i !== idx));
+    setPendingGalFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
   // Documentation Links (Dynamic multiple links with Link Text & URL)
@@ -668,7 +730,7 @@ export default function AdminPortal({
     setGalDocLinks(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
   };
 
-  const handleCreateGallery = (e) => {
+  const handleCreateGallery = async (e) => {
     e.preventDefault();
     const errs = {};
     if (!galTitle.trim()) errs.galTitle = 'Judul Kegiatan wajib diisi';
@@ -679,12 +741,30 @@ export default function AdminPortal({
       return;
     }
 
-    // Photos from text URL input + locally uploaded photos
+    let cloudPhotos = [];
+    if (pendingGalFiles.length > 0) {
+      setIsUploadingMedia(true);
+      showToast(`Mengunggah ${pendingGalFiles.length} foto ke Cloud Storage...`);
+      try {
+        for (const file of pendingGalFiles) {
+          const url = await uploadMediaToCloud(file, 'gallery');
+          if (url) cloudPhotos.push(url);
+        }
+      } catch (err) {
+        setIsUploadingMedia(false);
+        showToast('Gagal mengunggah foto galeri: ' + (err.message || 'Error'), 'error');
+        return;
+      }
+      setIsUploadingMedia(false);
+    }
+
+    // Photos from text URL input
     const urlPhotos = galPhotos.trim() 
       ? galPhotos.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
       : [];
     
-    const combinedPhotos = [...uploadedPhotos, ...urlPhotos];
+    // Combine cloud uploaded photos, existing uploaded, and text URLs
+    const combinedPhotos = [...cloudPhotos, ...urlPhotos];
     const photoList = combinedPhotos.length > 0 ? combinedPhotos : ['/images/pimpro-adjie.jpg'];
 
     // Cleaned valid doc links
@@ -707,6 +787,7 @@ export default function AdminPortal({
     setGalDesc('');
     setGalPhotos('');
     setUploadedPhotos([]);
+    setPendingGalFiles([]);
     setGalDocLinks([{ text: 'Folder Dokumentasi Full HD (Google Drive)', url: '' }]);
     showToast(`Dokumentasi "${savedGalTitle}" berhasil ditambahkan ke Galeri Kegiatan!`);
   };
@@ -4658,7 +4739,7 @@ export default function AdminPortal({
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Upload File ke Supabase Storage atau Masukkan URL Download <span style={{ color: '#f43f5e' }}>*</span>
+                Pilih File Asset (ZIP, PDF, PPTX, PNG, dsb.) atau Masukkan URL Download <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <label style={{
@@ -4675,12 +4756,17 @@ export default function AdminPortal({
                   cursor: 'pointer'
                 }}>
                   <Upload size={14} />
-                  <span>{isUploadingMedia ? 'Mengunggah...' : 'Upload File ke Cloud'}</span>
-                  <input type="file" onChange={(e) => handleBrandAssetUpload(e, 'fileUrl', false)} style={{ display: 'none' }} />
+                  <span>{pendingAssetFile ? 'Ganti File Pilihan' : 'Pilih File dari Komputer'}</span>
+                  <input
+                    type="file"
+                    accept="*/*,.zip,.rar,.7z,.pdf,.pptx,.ppt,.png,.jpg,.jpeg,.svg,.docx,.xlsx"
+                    onChange={(e) => handleBrandAssetUpload(e, 'fileUrl', false)}
+                    style={{ display: 'none' }}
+                  />
                 </label>
                 <input
                   type="text"
-                  placeholder="Atau tempel URL file (https://... atau /assets/...)"
+                  placeholder="Atau tempel URL file langsung (https://... atau /assets/...)"
                   value={assetFileUrl}
                   onChange={(e) => {
                     setAssetFileUrl(e.target.value);
@@ -4689,6 +4775,33 @@ export default function AdminPortal({
                   style={{ flex: '1 1 220px', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.assetFileUrl ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.84rem' }}
                 />
               </div>
+              {pendingAssetFile && (
+                <div style={{
+                  marginTop: '8px',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px dashed var(--neon-cyan)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px'
+                }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>
+                    📦 File siap diunggah: <strong>{pendingAssetFile.name}</strong> ({assetFileSize}) &bull; <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>Akan diunggah ke Cloud saat Anda klik Simpan</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingAssetFile(null);
+                      setAssetFileSize('');
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}
+                  >
+                    ✕ Batalkan
+                  </button>
+                </div>
+              )}
               {renderFieldError('assetFileUrl')}
             </div>
 
@@ -4711,7 +4824,7 @@ export default function AdminPortal({
                   cursor: 'pointer'
                 }}>
                   <ImageIcon size={14} />
-                  <span>Upload Gambar Preview</span>
+                  <span>{pendingPreviewFile ? 'Ganti Preview' : 'Pilih Gambar Preview'}</span>
                   <input type="file" accept="image/*" onChange={(e) => handleBrandAssetUpload(e, 'previewUrl', false)} style={{ display: 'none' }} />
                 </label>
                 <input
@@ -4722,6 +4835,33 @@ export default function AdminPortal({
                   style={{ flex: '1 1 220px', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem' }}
                 />
               </div>
+              {pendingPreviewFile && (
+                <div style={{
+                  marginTop: '8px',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 184, 0, 0.08)',
+                  border: '1px dashed var(--mandiri-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px'
+                }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>
+                    🖼️ Preview: <strong>{pendingPreviewFile.name}</strong> &bull; <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>Akan diunggah ke Cloud saat Anda klik Simpan</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingPreviewFile(null);
+                      setAssetPreviewUrl('');
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}
+                  >
+                    ✕ Batalkan
+                  </button>
+                </div>
+              )}
             </div>
 
             <div style={{ gridColumn: 'span 2' }}>
@@ -5327,7 +5467,7 @@ export default function AdminPortal({
                       }}
                     >
                       <Upload size={13} />
-                      <span>{isUploadingMedia ? 'Mengunggah...' : 'Upload Foto'}</span>
+                      <span>{editingItem.pendingPhoto ? 'Ganti Foto Pilihan' : 'Pilih Foto Baru'}</span>
                       <input type="file" accept="image/*" onChange={(e) => handleMemberPhotoUpload(e, true)} style={{ display: 'none' }} />
                     </label>
                     <input
@@ -5338,6 +5478,29 @@ export default function AdminPortal({
                       style={{ flex: 1, minWidth: '150px', padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                     />
                   </div>
+                  {editingItem.pendingPhoto && (
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1px dashed var(--neon-cyan)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-main)'
+                    }}>
+                      <span>👤 Foto baru: <strong>{editingItem.pendingPhoto.name}</strong> &bull; <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>Akan diunggah saat Anda klik Simpan Perubahan</span></span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem(prev => prev ? ({ ...prev, pendingPhoto: null, item: { ...prev.item, image: '' } }) : null)}
+                        style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        ✕ Batalkan
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -5529,10 +5692,36 @@ export default function AdminPortal({
                       cursor: 'pointer'
                     }}>
                       <Upload size={12} />
-                      <span>{isUploadingMedia ? 'Mengunggah...' : '+ Upload Foto Baru'}</span>
+                      <span>+ Pilih Foto Baru</span>
                       <input type="file" accept="image/*" multiple onChange={(e) => handlePhotoUpload(e, true)} style={{ display: 'none' }} />
                     </label>
                   </div>
+                  {editingItem.pendingPhotos && editingItem.pendingPhotos.length > 0 && (
+                    <div style={{
+                      marginBottom: '8px',
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1px dashed var(--neon-cyan)',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-main)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span>📷 <strong>{editingItem.pendingPhotos.length} foto baru</strong> dipilih &bull; <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>Akan diunggah saat Anda klik Simpan Perubahan</span></span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentPhotos = (editingItem.item.photos || []).filter(p => typeof p === 'string' && !p.startsWith('blob:'));
+                          setEditingItem({ ...editingItem, pendingPhotos: [], item: { ...editingItem.item, photos: currentPhotos } });
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        ✕ Batalkan Foto Baru
+                      </button>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {(editingItem.item.photos || []).map((photoUrl, pIdx) => (
                       <div key={pIdx} style={{ position: 'relative', width: '68px', height: '52px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-card)' }}>
@@ -6277,7 +6466,7 @@ export default function AdminPortal({
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>URL File Download</label>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>File Asset / Template (Cloud Storage)</label>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <label style={{
                       display: 'inline-flex',
@@ -6293,16 +6482,100 @@ export default function AdminPortal({
                       cursor: 'pointer'
                     }}>
                       <Upload size={13} />
-                      <span>Upload Baru</span>
-                      <input type="file" onChange={(e) => handleBrandAssetUpload(e, 'fileUrl', true)} style={{ display: 'none' }} />
+                      <span>{editingItem.pendingFile ? 'Ganti File Pilihan' : 'Pilih File Baru'}</span>
+                      <input
+                        type="file"
+                        accept="*/*,.zip,.rar,.7z,.pdf,.pptx,.ppt,.png,.jpg,.jpeg,.svg,.docx,.xlsx"
+                        onChange={(e) => handleBrandAssetUpload(e, 'fileUrl', true)}
+                        style={{ display: 'none' }}
+                      />
                     </label>
                     <input
                       type="text"
+                      placeholder="Atau tempel URL file langsung"
                       value={editingItem.item.fileUrl || ''}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, fileUrl: e.target.value } })}
                       style={{ flex: 1, minWidth: '180px', padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem' }}
                     />
                   </div>
+                  {editingItem.pendingFile && (
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1px dashed var(--neon-cyan)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-main)'
+                    }}>
+                      <span>📦 File baru: <strong>{editingItem.pendingFile.name}</strong> ({editingItem.item.fileSize}) &bull; <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>Akan diunggah saat Anda klik Simpan Perubahan</span></span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem(prev => prev ? ({ ...prev, pendingFile: null }) : null)}
+                        style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        ✕ Batalkan
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Preview Thumbnail Gambar (Opsional)</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {editingItem.item.previewUrl && (
+                      <img src={editingItem.item.previewUrl} alt="" style={{ width: '36px', height: '36px', borderRadius: '4px', objectFit: 'cover', border: '1px solid var(--border-card)' }} />
+                    )}
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255, 184, 0, 0.12)',
+                      border: '1px solid var(--mandiri-gold)',
+                      color: 'var(--mandiri-gold)',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}>
+                      <ImageIcon size={13} />
+                      <span>{editingItem.pendingPreviewFile ? 'Ganti Preview' : 'Pilih Gambar'}</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleBrandAssetUpload(e, 'previewUrl', true)} style={{ display: 'none' }} />
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="URL Gambar Thumbnail..."
+                      value={editingItem.item.previewUrl || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, previewUrl: e.target.value } })}
+                      style={{ flex: 1, minWidth: '180px', padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  {editingItem.pendingPreviewFile && (
+                    <div style={{
+                      marginTop: '6px',
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255, 184, 0, 0.08)',
+                      border: '1px dashed var(--mandiri-gold)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-main)'
+                    }}>
+                      <span>🖼️ Preview baru: <strong>{editingItem.pendingPreviewFile.name}</strong> &bull; <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>Akan diunggah saat Anda klik Simpan Perubahan</span></span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem(prev => prev ? ({ ...prev, pendingPreviewFile: null, item: { ...prev.item, previewUrl: '' } }) : null)}
+                        style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        ✕ Batalkan
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi</label>
@@ -6386,7 +6659,8 @@ export default function AdminPortal({
               </button>
               <button
                 type="button"
-                onClick={() => {
+                disabled={isUploadingMedia}
+                onClick={async () => {
                   const it = editingItem.item || {};
                   if ((editingItem.type === 'member' || editingItem.type === 'division') && !(it.name || '').trim()) {
                     showToast('Nama wajib diisi sebelum menyimpan perubahan', 'error');
@@ -6406,11 +6680,25 @@ export default function AdminPortal({
                   }
 
                   if (editingItem.type === 'member' && onUpdateMember) {
+                    let finalImage = editingItem.item.image || '';
+                    if (editingItem.pendingPhoto) {
+                      setIsUploadingMedia(true);
+                      showToast(`Mengunggah foto "${editingItem.pendingPhoto.name}" ke Cloud Storage...`);
+                      try {
+                        const cloudUrl = await uploadMediaToCloud(editingItem.pendingPhoto, 'members');
+                        if (cloudUrl) finalImage = cloudUrl;
+                      } catch (err) {
+                        setIsUploadingMedia(false);
+                        showToast('Gagal mengunggah foto: ' + (err.message || 'Error jaringan'), 'error');
+                        return;
+                      }
+                      setIsUploadingMedia(false);
+                    }
                     const finalResp = editingItem.item.rawResponsibilities !== undefined
                       ? editingItem.item.rawResponsibilities.split('\n').map(s => s.trim()).filter(Boolean)
                       : (Array.isArray(editingItem.item.responsibilities) ? editingItem.item.responsibilities : []);
                     const { rawResponsibilities, ...cleanItem } = editingItem.item;
-                    onUpdateMember({ ...cleanItem, responsibilities: finalResp });
+                    onUpdateMember({ ...cleanItem, image: finalImage, responsibilities: finalResp });
                   }
                   if (editingItem.type === 'division' && onUpdateDivision) {
                     const finalFocus = editingItem.item.rawFocusAreas !== undefined
@@ -6419,7 +6707,33 @@ export default function AdminPortal({
                     const { rawFocusAreas, ...cleanItem } = editingItem.item;
                     onUpdateDivision({ ...cleanItem, focusAreas: finalFocus });
                   }
-                  if (editingItem.type === 'gallery' && onUpdateGallery) onUpdateGallery(editingItem.item);
+                  if (editingItem.type === 'gallery' && onUpdateGallery) {
+                    let finalPhotos = Array.isArray(editingItem.item.photos) ? [...editingItem.item.photos] : [];
+                    if (editingItem.pendingPhotos && editingItem.pendingPhotos.length > 0) {
+                      setIsUploadingMedia(true);
+                      showToast(`Mengunggah ${editingItem.pendingPhotos.length} foto ke Cloud Storage...`);
+                      try {
+                        for (const pFile of editingItem.pendingPhotos) {
+                          const cloudUrl = await uploadMediaToCloud(pFile, 'gallery');
+                          if (cloudUrl) {
+                            const blobIdx = finalPhotos.findIndex(u => typeof u === 'string' && u.startsWith('blob:'));
+                            if (blobIdx !== -1) {
+                              finalPhotos[blobIdx] = cloudUrl;
+                            } else {
+                              finalPhotos.push(cloudUrl);
+                            }
+                          }
+                        }
+                      } catch (err) {
+                        setIsUploadingMedia(false);
+                        showToast('Gagal mengunggah foto galeri: ' + (err.message || 'Error'), 'error');
+                        return;
+                      }
+                      setIsUploadingMedia(false);
+                    }
+                    finalPhotos = finalPhotos.filter(u => typeof u === 'string' && !u.startsWith('blob:'));
+                    onUpdateGallery({ ...editingItem.item, photos: finalPhotos });
+                  }
                   if (editingItem.type === 'tenure' && onUpdateTenure) {
                     const finalMisi = editingItem.item.rawMisi !== undefined
                       ? editingItem.item.rawMisi.split('\n').map(s => s.trim()).filter(Boolean)
@@ -6438,7 +6752,45 @@ export default function AdminPortal({
                       date: (editingItem.item.date || '').trim() || editingItem.item.startDate || 'TBD'
                     });
                   }
-                  if (editingItem.type === 'brand_asset' && onUpdateBrandAsset) onUpdateBrandAsset(editingItem.item);
+                  if (editingItem.type === 'brand_asset' && onUpdateBrandAsset) {
+                    let finalFileUrl = editingItem.item.fileUrl || '';
+                    let finalPreviewUrl = editingItem.item.previewUrl || '';
+                    if (editingItem.pendingFile) {
+                      setIsUploadingMedia(true);
+                      showToast(`Mengunggah file "${editingItem.pendingFile.name}" ke Cloud Storage...`);
+                      try {
+                        const cloudUrl = await uploadMediaToCloud(editingItem.pendingFile, 'assets');
+                        if (cloudUrl) finalFileUrl = cloudUrl;
+                      } catch (err) {
+                        setIsUploadingMedia(false);
+                        showToast('Gagal mengunggah file asset: ' + (err.message || 'Error'), 'error');
+                        return;
+                      }
+                      setIsUploadingMedia(false);
+                    }
+                    if (editingItem.pendingPreviewFile) {
+                      setIsUploadingMedia(true);
+                      showToast(`Mengunggah preview "${editingItem.pendingPreviewFile.name}"...`);
+                      try {
+                        if (editingItem.pendingPreviewFile === editingItem.pendingFile) {
+                          finalPreviewUrl = finalFileUrl;
+                        } else {
+                          const previewCloudUrl = await uploadMediaToCloud(editingItem.pendingPreviewFile, 'assets');
+                          if (previewCloudUrl) finalPreviewUrl = previewCloudUrl;
+                        }
+                      } catch (err) {
+                        setIsUploadingMedia(false);
+                        showToast('Gagal mengunggah gambar preview: ' + (err.message || 'Error'), 'error');
+                        return;
+                      }
+                      setIsUploadingMedia(false);
+                    }
+                    onUpdateBrandAsset({
+                      ...editingItem.item,
+                      fileUrl: finalFileUrl,
+                      previewUrl: finalPreviewUrl || finalFileUrl
+                    });
+                  }
                   if (editingItem.type === 'faq' && onUpdateFaq) onUpdateFaq(editingItem.item);
                   setEditingItem(null);
                   showToast('Perubahan data berhasil disimpan & disinkronkan ke Cloud!');
@@ -6446,16 +6798,16 @@ export default function AdminPortal({
                 style={{
                   padding: '9px 24px',
                   borderRadius: 'var(--radius-full)',
-                  background: 'var(--mandiri-gold)',
+                  background: isUploadingMedia ? 'var(--input-bg)' : 'var(--mandiri-gold)',
                   border: 'none',
-                  color: '#040914',
+                  color: isUploadingMedia ? 'var(--text-muted)' : '#040914',
                   fontWeight: 800,
                   fontSize: '0.86rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(255, 184, 0, 0.35)'
+                  cursor: isUploadingMedia ? 'not-allowed' : 'pointer',
+                  boxShadow: isUploadingMedia ? 'none' : '0 4px 14px rgba(255, 184, 0, 0.35)'
                 }}
               >
-                Simpan Perubahan
+                {isUploadingMedia ? 'Mengunggah & Menyimpan...' : 'Simpan Perubahan'}
               </button>
             </div>
           </div>

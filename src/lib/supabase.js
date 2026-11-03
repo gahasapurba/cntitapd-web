@@ -604,42 +604,87 @@ export async function mergeAndPushCloudList(key, newItem, currentLocalList = [])
 }
 
 /**
+ * Resolve correct MIME type by file extension or browser type
+ * Ensures ZIP, RAR, PDF, Office, and media formats upload properly
+ */
+export function getFileMimeType(file) {
+  if (!file) return 'application/octet-stream';
+  const ext = (file.name || '').split('.').pop()?.toLowerCase();
+  const mimeMap = {
+    zip: 'application/zip',
+    rar: 'application/x-rar-compressed',
+    '7z': 'application/x-7z-compressed',
+    tar: 'application/x-tar',
+    gz: 'application/gzip',
+    pdf: 'application/pdf',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    gif: 'image/gif',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ppt: 'application/vnd.ms-powerpoint',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    doc: 'application/msword',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    xls: 'application/vnd.ms-excel',
+    mp4: 'video/mp4'
+  };
+  if (ext && mimeMap[ext]) return mimeMap[ext];
+  return file.type || 'application/octet-stream';
+}
+
+/**
  * Upload a File/Blob to Supabase Storage bucket `cnt-media` and return its public CDN URL.
- * Falls back to Base64 dataURL if offline.
+ * Falls back to Base64 dataURL for small offline files.
  */
 export async function uploadMediaToCloud(file, folder = 'uploads') {
   if (!file) return null;
 
-  const safeName = String(file.name || 'file')
-    .replace(/[^a-zA-Z0-9._-]/g, '_')
-    .slice(-80);
+  const ext = (file.name || '').split('.').pop() || '';
+  const baseName = (file.name || 'file').slice(0, -(ext.length ? ext.length + 1 : 0));
+  const safeBase = baseName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(-60);
+  const safeName = ext ? `${safeBase}.${ext.toLowerCase()}` : safeBase;
   const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safeName}`;
 
+  const resolvedMime = getFileMimeType(file);
+
   try {
-    const { error } = await supabase.storage
+    const { data: uploadData, error } = await supabase.storage
       .from('cnt-media')
       .upload(path, file, {
         cacheControl: '3600',
         upsert: true,
-        contentType: file.type || 'application/octet-stream'
+        contentType: resolvedMime
       });
 
-    if (!error) {
+    if (!error && uploadData) {
       const { data: pubData } = supabase.storage.from('cnt-media').getPublicUrl(path);
       if (pubData?.publicUrl) {
         return pubData.publicUrl;
       }
     }
+
+    if (error) {
+      console.error('Supabase Storage error:', error);
+      throw error;
+    }
   } catch (e) {
-    // fallback to dataURL below
+    console.error('Upload exception:', e);
+    // If small file (< 2MB) and offline, fallback to Base64
+    if (file.size < 2 * 1024 * 1024) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      });
+    }
+    throw e;
   }
 
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = () => resolve('');
-    reader.readAsDataURL(file);
-  });
+  return null;
 }
 
 /**
