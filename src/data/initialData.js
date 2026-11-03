@@ -809,6 +809,9 @@ export const INITIAL_ASPIRASI = [
   {
     id: 'asp-seed-1',
     sender: 'Officer Squad Retail APD',
+    title: 'Upskilling AI Coding Assistant & Best Practice Microservice',
+    category: 'Sharing & Pengembangan',
+    description: 'Adakan sesi sharing santai bulanan membahas pemanfaatan AI Coding Assistant dan best practice microservice antar squad.',
     text: 'Adakan sesi sharing santai bulanan membahas pemanfaatan AI Coding Assistant dan best practice microservice antar squad.',
     submittedAt: '02 November 2026 • 14:20 WIB',
     status: 'Sudah Direalisasikan',
@@ -818,6 +821,9 @@ export const INITIAL_ASPIRASI = [
   {
     id: 'asp-seed-2',
     sender: 'Insan Core Banking APD',
+    title: 'Turnamen Mini Badminton & Futsal Lintas Squad',
+    category: 'Olahraga & Wellness',
+    description: 'Sediakan turnamen mini badminton atau futsal lintas squad setiap akhir kuartal supaya makin akrab.',
     text: 'Sediakan turnamen mini badminton atau futsal lintas squad setiap akhir kuartal supaya makin akrab.',
     submittedAt: '03 November 2026 • 09:15 WIB',
     status: 'Masuk Rencana Proker',
@@ -825,6 +831,47 @@ export const INITIAL_ASPIRASI = [
     isPublic: true
   }
 ];
+
+export const INITIAL_EVENT_RSVPS = [
+  {
+    id: 'rsvp-seed-1',
+    eventId: 'evt-1',
+    eventTitle: 'APD E-Sports Championship: Mobile Legends & FIFA',
+    attendeeName: 'Rizky Pratama',
+    squadUnit: 'Squad Core Banking',
+    attendanceMode: 'Hadir Onsite',
+    notes: 'Siap tanding bawa tim 5 orang',
+    submittedAt: 'Selasa, 10 Maret 2026 • 09:30 WIB'
+  },
+  {
+    id: 'rsvp-seed-2',
+    eventId: 'evt-1',
+    eventTitle: 'APD E-Sports Championship: Mobile Legends & FIFA',
+    attendeeName: 'Anisa Putri',
+    squadUnit: 'Squad Livin SuperApp',
+    attendanceMode: 'Hadir Onsite',
+    notes: 'Supporter & dokumentasi',
+    submittedAt: 'Selasa, 10 Maret 2026 • 10:15 WIB'
+  },
+  {
+    id: 'rsvp-seed-3',
+    eventId: 'evt-2',
+    eventTitle: 'APD Sehat: Fun Run & Pound Fit Session',
+    attendeeName: 'Bimo Setiawan',
+    squadUnit: 'Squad Kopra Wholesale',
+    attendanceMode: 'Hadir Onsite',
+    notes: 'Ikut Fun Run 5K',
+    submittedAt: 'Rabu, 11 Maret 2026 • 08:20 WIB'
+  }
+];
+
+export const INITIAL_ANNOUNCEMENT_BAR = {
+  isActive: true,
+  badge: 'INFO TERBARU',
+  message: 'Pendaftaran Open Recruitment Crew CNT IT APD 2026 & Turnamen E-Sports sedang dibuka! Segera daftarkan dirimu atau cek status seleksimu.',
+  ctaText: 'Buka Hub Registrasi',
+  ctaTab: 'oprec'
+};
 
 export const INITIAL_SUBMISSIONS = [
   {

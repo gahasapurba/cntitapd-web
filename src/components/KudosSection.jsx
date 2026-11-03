@@ -271,7 +271,142 @@ export default function KudosSection({
 
       {/* CONTENT: KUDOS */}
       {activeSubTab === 'kudos' && (
-        <div className="kudos-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          {/* TOP CULTURE CHAMPIONS LEADERBOARD & VALUE DISTRIBUTION */}
+          {kudosList.length > 0 && (() => {
+            const recipientStats = {};
+            const categoryStats = {
+              Kolaboratif: 0,
+              Inovatif: 0,
+              Harmonis: 0,
+              Integritas: 0,
+              Dedikasi: 0
+            };
+
+            kudosList.forEach((k) => {
+              const rec = (k.recipient || '').trim();
+              if (rec) {
+                if (!recipientStats[rec]) {
+                  recipientStats[rec] = { name: rec, count: 0, totalLikes: 0, topCategory: k.category || 'Kolaboratif' };
+                }
+                recipientStats[rec].count += 1;
+                recipientStats[rec].totalLikes += Number(k.likes || 1);
+              }
+              const cat = k.category || 'Kolaboratif';
+              categoryStats[cat] = (categoryStats[cat] || 0) + 1;
+            });
+
+            const topChampions = Object.values(recipientStats)
+              .sort((a, b) => b.totalLikes - a.totalLikes || b.count - a.count)
+              .slice(0, 3);
+
+            const medals = ['🥇', '🥈', '🥉'];
+
+            return (
+              <div className="glass-panel" style={{
+                padding: '24px 28px',
+                border: '1.5px solid var(--border-card)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Sparkles size={20} color="var(--mandiri-gold)" />
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                        🏆 Top Culture Champions & Indeks Nilai Budaya
+                      </h3>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Insan & Squad dengan apresiasi tertinggi serta distribusi nilai budaya Group IT APD
+                      </span>
+                    </div>
+                  </div>
+                  <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
+                    Total {kudosList.length} Shoutout • {totalApresiasi} Likes
+                  </span>
+                </div>
+
+                {/* Top 3 Champions Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                  {topChampions.map((champ, idx) => (
+                    <div
+                      key={champ.name}
+                      onClick={() => setSearchQuery(champ.name)}
+                      title={`Klik untuk melihat semua apresiasi untuk ${champ.name}`}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: 'var(--radius-md)',
+                        background: idx === 0 ? 'rgba(255, 184, 0, 0.1)' : 'var(--input-bg)',
+                        border: idx === 0 ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '10px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <span style={{ fontSize: '1.45rem', flexShrink: 0 }}>{medals[idx] || '🌟'}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {champ.name}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {champ.count} Kudos • Nilai: {champ.topCategory}
+                          </div>
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        color: 'var(--mandiri-gold)',
+                        background: 'rgba(255, 184, 0, 0.14)',
+                        padding: '4px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        flexShrink: 0
+                      }}>
+                        ❤️ {champ.totalLikes}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 5 Cultural Values Distribution Pills */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingTop: '6px', borderTop: '1px solid var(--border-card)' }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-dim)', marginRight: '4px' }}>
+                    Filter Cepat Nilai Budaya:
+                  </span>
+                  {Object.entries(categoryStats).map(([catName, count]) => {
+                    const pct = kudosList.length > 0 ? Math.round((count / kudosList.length) * 100) : 0;
+                    const isSelected = categoryFilter === catName;
+                    return (
+                      <button
+                        key={catName}
+                        type="button"
+                        onClick={() => setCategoryFilter(isSelected ? 'all' : catName)}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '0.73rem',
+                          fontWeight: 700,
+                          border: isSelected ? '1px solid var(--neon-cyan)' : '1px solid var(--border-card)',
+                          background: isSelected ? 'rgba(56, 189, 248, 0.16)' : 'var(--input-bg)',
+                          color: isSelected ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {catName}: {count} ({pct}%)
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="kudos-grid">
           {/* Send Form */}
           <div className="glass-panel" style={{ padding: '32px', border: '1.5px solid var(--border-card)' }}>
             <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
@@ -557,6 +692,7 @@ export default function KudosSection({
                 </div>
               );
             })}
+          </div>
           </div>
         </div>
       )}

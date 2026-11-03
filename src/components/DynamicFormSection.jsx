@@ -158,7 +158,7 @@ export default function DynamicFormSection({
       formId: currentForm.id,
       formTitle: currentForm.title,
       submittedAt: getExactTimestamp(),
-      status: 'Baru Masuk',
+      status: 'Submitted',
       adminNotes: '',
       data: { ...formData },
       files: { ...fileData }
@@ -192,16 +192,21 @@ export default function DynamicFormSection({
 
   const getStatusBadgeStyle = (status) => {
     switch (status) {
+      case 'Accepted':
       case 'Diterima':
-        return { bg: 'rgba(16, 185, 129, 0.16)', border: '#10b981', color: '#10b981', icon: '🎉' };
+      case 'Diterima ✓':
+        return { label: 'Diterima ✓', bg: 'rgba(16, 185, 129, 0.16)', border: '#10b981', color: '#10b981', icon: '🎉' };
+      case 'Interview':
       case 'Wawancara':
-        return { bg: 'rgba(168, 85, 247, 0.16)', border: '#a855f7', color: '#a855f7', icon: '🎙️' };
+        return { label: 'Wawancara', bg: 'rgba(168, 85, 247, 0.16)', border: '#a855f7', color: '#a855f7', icon: '🎙️' };
+      case 'Reviewed':
       case 'Direview':
-        return { bg: 'rgba(255, 184, 0, 0.16)', border: 'var(--mandiri-gold)', color: 'var(--mandiri-gold)', icon: '🔎' };
+        return { label: 'Direview', bg: 'rgba(255, 184, 0, 0.16)', border: 'var(--mandiri-gold)', color: 'var(--mandiri-gold)', icon: '🔎' };
+      case 'Rejected':
       case 'Ditolak':
-        return { bg: 'rgba(244, 63, 94, 0.16)', border: '#f43f5e', color: '#f43f5e', icon: '✕' };
+        return { label: 'Ditolak', bg: 'rgba(244, 63, 94, 0.16)', border: '#f43f5e', color: '#f43f5e', icon: '✕' };
       default:
-        return { bg: 'rgba(56, 189, 248, 0.16)', border: 'var(--neon-cyan)', color: 'var(--neon-cyan)', icon: '📥' };
+        return { label: 'Baru Masuk', bg: 'rgba(56, 189, 248, 0.16)', border: 'var(--neon-cyan)', color: 'var(--neon-cyan)', icon: '📥' };
     }
   };
 
@@ -217,38 +222,6 @@ export default function DynamicFormSection({
     transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
     boxShadow: hasError ? '0 0 8px rgba(244, 63, 94, 0.25)' : 'none'
   });
-
-  // CASE 1: No active forms available
-  if (activeForms.length === 0) {
-    return (
-      <div style={{ maxWidth: '640px', margin: '40px auto 80px auto', textAlign: 'center', padding: '0 20px' }}>
-        <div className="glass-panel" style={{ padding: '48px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            background: 'rgba(255, 184, 0, 0.15)',
-            color: 'var(--mandiri-gold)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '8px'
-          }}>
-            <Clock size={32} />
-          </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-            Pendaftaran Sedang Ditutup
-          </h2>
-          <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-            Saat ini belum ada formulir pendaftaran, registrasi kegiatan, ataupun open recruitment yang sedang aktif. Pantau terus pengumuman resmi di <strong>Channel MS Teams Group IT APD</strong>!
-          </p>
-          <div style={{ marginTop: '8px', padding: '8px 16px', background: 'var(--input-bg)', borderRadius: 'var(--radius-full)', fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-            Status: Hub Pendaftaran Standby
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '48px', paddingBottom: '80px' }}>
@@ -270,6 +243,36 @@ export default function DynamicFormSection({
           Pilih dan lengkapi formulir inisiatif, open recruitment, turnamen, atau kegiatan budaya kerja Group IT Application Delivery yang ingin Anda ikuti.
         </p>
       </div>
+
+      {/* CASE 1: No active forms available (tetap tampilkan informasi standby + Cek Status Pendaftaran di bawahnya) */}
+      {activeForms.length === 0 && (
+        <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center', width: '100%' }}>
+          <div className="glass-panel" style={{ padding: '44px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(255, 184, 0, 0.15)',
+              color: 'var(--mandiri-gold)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <Clock size={32} />
+            </div>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+              Pendaftaran Sedang Ditutup
+            </h2>
+            <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+              Saat ini belum ada formulir pendaftaran baru yang sedang dibuka. Bagi Anda yang sudah pernah mendaftar, silakan gunakan fitur <strong>Cek Status Pendaftaran & Seleksi Saya</strong> di bawah ini!
+            </p>
+            <div style={{ marginTop: '4px', padding: '8px 16px', background: 'var(--input-bg)', borderRadius: 'var(--radius-full)', fontSize: '0.78rem', color: 'var(--text-dim)' }}>
+              Status: Hub Pendaftaran Standby • Pelacakan Seleksi Aktif
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. Form Switcher / Catalog Cards (Jika ada lebih dari 1 form aktif) */}
       {activeForms.length > 1 && (
@@ -905,7 +908,7 @@ export default function DynamicFormSection({
                           fontWeight: 800
                         }}>
                           <span>{badge.icon}</span>
-                          <span>Status: {statusText}</span>
+                          <span>Status: {badge.label}</span>
                         </span>
                       </div>
 

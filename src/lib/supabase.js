@@ -43,7 +43,8 @@ const TABLE_MAP = {
   aspirasiList: 'aspirasi',
   forms: 'forms',
   submissions: 'submissions',
-  brandAssets: 'brand_assets'
+  brandAssets: 'brand_assets',
+  eventRsvps: 'event_rsvps'
 };
 
 export const rowMappers = {
@@ -234,19 +235,26 @@ export const rowMappers = {
   },
 
   aspirasiList: {
-    toDb: (item) => ({
+    toDb: (item, idx = 0) => ({
       id: String(item.id),
       sender: item.sender || 'Anonim',
-      text: item.text || '',
+      title: item.title || item.text || '',
+      category: item.category || 'Kegiatan & Event',
+      description: item.description || item.text || '',
+      text: item.text || item.description || item.title || '',
       submitted_at: item.submittedAt || '',
       status: item.status || 'Menunggu Review',
       admin_reply: item.adminReply || '',
-      is_public: item.isPublic !== false
+      is_public: item.isPublic !== false,
+      sort_order: idx
     }),
     fromDb: (row) => ({
       id: row.id,
       sender: row.sender || 'Anonim',
-      text: row.text,
+      title: row.title || row.text || '',
+      category: row.category || 'Kegiatan & Event',
+      description: row.description || row.text || '',
+      text: row.text || row.description || row.title || '',
       submittedAt: row.submitted_at,
       status: row.status || 'Menunggu Review',
       adminReply: row.admin_reply || '',
@@ -334,6 +342,31 @@ export const rowMappers = {
       fileSize: row.file_size || '',
       badge: row.badge || 'Official Asset'
     })
+  },
+
+  eventRsvps: {
+    toDb: (item, idx = 0) => ({
+      id: String(item.id),
+      event_id: item.eventId || '',
+      event_title: item.eventTitle || '',
+      attendee_name: item.attendeeName || '',
+      squad_unit: item.squadUnit || '',
+      attendance_mode: item.attendanceMode || 'Hadir Onsite',
+      notes: item.notes || '',
+      submitted_at: item.submittedAt || '',
+      sort_order: idx,
+      updated_at: new Date().toISOString()
+    }),
+    fromDb: (row) => ({
+      id: row.id,
+      eventId: row.event_id || '',
+      eventTitle: row.event_title || '',
+      attendeeName: row.attendee_name || '',
+      squadUnit: row.squad_unit || '',
+      attendanceMode: row.attendance_mode || 'Hadir Onsite',
+      notes: row.notes || '',
+      submittedAt: row.submitted_at || ''
+    })
   }
 };
 
@@ -353,6 +386,7 @@ export async function fetchAllCloudState() {
       formsRes,
       submissionsRes,
       brandAssetsRes,
+      eventRsvpsRes,
       settingsRes
     ] = await Promise.all([
       supabase.from('tenures').select('*').order('sort_order', { ascending: true }),
@@ -365,6 +399,7 @@ export async function fetchAllCloudState() {
       supabase.from('forms').select('*').order('sort_order', { ascending: true }),
       supabase.from('submissions').select('*').order('created_at', { ascending: false }),
       supabase.from('brand_assets').select('*').order('sort_order', { ascending: true }),
+      supabase.from('event_rsvps').select('*').order('created_at', { ascending: false }),
       supabase.from('page_settings').select('*')
     ]);
 
@@ -410,6 +445,10 @@ export async function fetchAllCloudState() {
       result.brandAssets = brandAssetsRes.data.map(rowMappers.brandAssets.fromDb);
       saveLocalCache('brandAssets', result.brandAssets);
     }
+    if (!eventRsvpsRes.error && Array.isArray(eventRsvpsRes.data)) {
+      result.eventRsvps = eventRsvpsRes.data.map(rowMappers.eventRsvps.fromDb);
+      saveLocalCache('eventRsvps', result.eventRsvps);
+    }
     if (!settingsRes.error && Array.isArray(settingsRes.data)) {
       for (const row of settingsRes.data) {
         if (row.key === 'page_visibility' && row.value) {
@@ -419,6 +458,10 @@ export async function fetchAllCloudState() {
         if (row.key === 'active_tenure_id' && row.value?.id) {
           result.activeTenureId = row.value.id;
           saveLocalCache('activeTenureId', row.value.id);
+        }
+        if (row.key === 'announcement_bar' && row.value) {
+          result.announcementBar = row.value;
+          saveLocalCache('announcementBar', row.value);
         }
       }
     }
@@ -450,6 +493,15 @@ export async function pushCloudState(key, value) {
       await supabase.from('page_settings').upsert({
         key: 'active_tenure_id',
         value: { id: value },
+        updated_at: new Date().toISOString()
+      });
+      return true;
+    }
+
+    if (key === 'announcementBar') {
+      await supabase.from('page_settings').upsert({
+        key: 'announcement_bar',
+        value,
         updated_at: new Date().toISOString()
       });
       return true;

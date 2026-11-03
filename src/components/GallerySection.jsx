@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -9,7 +9,9 @@ import {
   FolderDown,
   ExternalLink,
   Search,
-  Filter
+  Filter,
+  Download,
+  X
 } from 'lucide-react';
 
 export default function GallerySection({ galleries = [], divisions = [], activeTenure = null }) {
@@ -18,6 +20,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
   const [searchQuery, setSearchQuery] = useState('');
   const [divFilter, setDivFilter] = useState('all');
   const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   const uniqueDivisions = Array.from(
     new Set([
@@ -64,6 +67,19 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
     setCurrentPhotoIdx((prev) => (prev - 1 + activeEvent.photos.length) % activeEvent.photos.length);
   };
 
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setIsLightboxOpen(false);
+      if (e.key === 'ArrowRight') nextPhoto();
+      if (e.key === 'ArrowLeft') prevPhoto();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isLightboxOpen, activeEvent]);
+
+  const currentPhotoUrl = activeEvent.photos[currentPhotoIdx] || activeEvent.photos[0];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px' }}>
       
@@ -93,15 +109,76 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
         {/* Photo Display Window */}
         <div className="gallery-window">
           <img 
-            src={activeEvent.photos[currentPhotoIdx] || activeEvent.photos[0]} 
+            src={currentPhotoUrl} 
             alt={activeEvent.title}
+            onClick={() => setIsLightboxOpen(true)}
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              transition: 'opacity 0.3s ease'
+              transition: 'opacity 0.3s ease',
+              cursor: 'zoom-in'
             }}
           />
+
+          {/* Top-Right Fullscreen & Download Action Pill */}
+          <div style={{
+            position: 'absolute',
+            top: '14px',
+            right: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 5
+          }}>
+            <button
+              type="button"
+              onClick={() => setIsLightboxOpen(true)}
+              title="Perbesar Layar Penuh (Lightbox)"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(0,0,0,0.68)',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.25)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)'
+              }}
+            >
+              <Maximize2 size={13} />
+              <span>Layar Penuh</span>
+            </button>
+
+            <a
+              href={currentPhotoUrl}
+              download={`${(activeEvent.title || 'dokumentasi').replace(/\s+/g, '_')}_${currentPhotoIdx + 1}.jpg`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Unduh Foto Resolusi Penuh"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(0,0,0,0.68)',
+                color: 'var(--mandiri-gold)',
+                border: '1px solid rgba(255,184,0,0.45)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+                backdropFilter: 'blur(8px)'
+              }}
+            >
+              <Download size={13} />
+              <span>Unduh</span>
+            </a>
+          </div>
 
           {/* Navigation Arrows */}
           {activeEvent.photos.length > 1 && (
@@ -426,6 +503,175 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
           </div>
         )}
       </div>
+
+      {/* FULLSCREEN LIGHTBOX MODAL FOR HD PHOTO VIEWING & DOWNLOAD */}
+      {isLightboxOpen && (
+        <div
+          onClick={() => setIsLightboxOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(2, 6, 20, 0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+        >
+          {/* Top Lightbox Controls */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              top: '18px',
+              left: '20px',
+              right: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              zIndex: 10
+            }}
+          >
+            <div style={{ color: '#ffffff' }}>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800 }}>
+                {activeEvent.title}
+              </div>
+              <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)' }}>
+                Foto {currentPhotoIdx + 1} dari {activeEvent.photos.length} • {activeEvent.date}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <a
+                href={currentPhotoUrl}
+                download={`${(activeEvent.title || 'dokumentasi').replace(/\s+/g, '_')}_${currentPhotoIdx + 1}.jpg`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  textDecoration: 'none'
+                }}
+              >
+                <Download size={14} />
+                <span>Download Foto HD</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(false)}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.14)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Main Lightbox Image & Prev/Next Arrows */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: '94vw',
+              maxHeight: '80vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {activeEvent.photos.length > 1 && (
+              <button
+                type="button"
+                onClick={prevPhoto}
+                style={{
+                  position: 'fixed',
+                  left: '18px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.14)',
+                  border: '1px solid rgba(255,255,255,0.28)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 10
+                }}
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
+
+            <img
+              src={currentPhotoUrl}
+              alt={activeEvent.title}
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '78vh',
+                objectFit: 'contain',
+                borderRadius: '12px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.75)'
+              }}
+            />
+
+            {activeEvent.photos.length > 1 && (
+              <button
+                type="button"
+                onClick={nextPhoto}
+                style={{
+                  position: 'fixed',
+                  right: '18px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.14)',
+                  border: '1px solid rgba(255,255,255,0.28)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 10
+                }}
+              >
+                <ChevronRight size={24} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

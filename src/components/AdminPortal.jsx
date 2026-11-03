@@ -111,6 +111,16 @@ export default function AdminPortal({
   aspirasiList = [],
   onUpdateAspirasi,
   onDeleteAspirasi,
+  eventRsvps = [],
+  onDeleteEventRsvp,
+  announcementBar = {
+    isActive: true,
+    badge: 'INFO TERBARU',
+    message: 'Pendaftaran Open Recruitment Crew CNT IT APD 2026 & Turnamen E-Sports sedang dibuka!',
+    ctaText: 'Buka Hub Registrasi',
+    ctaTab: 'oprec'
+  },
+  onUpdateAnnouncementBar,
   syncStatus = 'synced',
   onForceSync,
   onResetDefault
@@ -1334,6 +1344,120 @@ export default function AdminPortal({
               </button>
             </div>
 
+            {/* 1.B. Live Announcement Running Banner Control (public.page_settings -> announcement_bar) */}
+            {onUpdateAnnouncementBar && (
+              <div style={{
+                padding: '20px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(255, 184, 0, 0.05)',
+                border: '1.5px solid rgba(255, 184, 0, 0.35)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
+                        📢 Pengumuman Penting / Top Running Banner
+                      </strong>
+                      <span className={announcementBar?.isActive ? 'badge-gold' : 'badge-cyan'} style={{ fontSize: '0.66rem' }}>
+                        {announcementBar?.isActive ? 'AKTIF TAMPIL' : 'NONAKTIF'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Tampilkan pengumuman cepat (info Townhall, batas akhir Oprec, atau jadwal penting) di bagian paling atas halaman publik.
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextState = { ...announcementBar, isActive: !announcementBar?.isActive };
+                      onUpdateAnnouncementBar(nextState);
+                      showToast(nextState.isActive ? 'Banner Pengumuman diaktifkan!' : 'Banner Pengumuman disembunyikan!');
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: announcementBar?.isActive ? '#10b981' : 'var(--input-bg)',
+                      color: announcementBar?.isActive ? '#ffffff' : 'var(--text-muted)'
+                    }}
+                  >
+                    {announcementBar?.isActive ? <Eye size={14} /> : <EyeOff size={14} />}
+                    <span>{announcementBar?.isActive ? 'Banner Aktif (Klik Matikan)' : 'Aktifkan Banner'}</span>
+                  </button>
+                </div>
+
+                <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Label Badge</label>
+                    <input
+                      type="text"
+                      defaultValue={announcementBar?.badge || 'INFO TERBARU'}
+                      onBlur={(e) => {
+                        onUpdateAnnouncementBar({ ...announcementBar, badge: e.target.value.trim() || 'INFO' });
+                        showToast('Label pengumuman disimpan!');
+                      }}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Isi Pesan Pengumuman</label>
+                    <input
+                      type="text"
+                      defaultValue={announcementBar?.message || ''}
+                      onBlur={(e) => {
+                        onUpdateAnnouncementBar({ ...announcementBar, message: e.target.value.trim() });
+                        showToast('Pesan pengumuman disimpan!');
+                      }}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Teks Tombol Aksi (Opsional)</label>
+                    <input
+                      type="text"
+                      defaultValue={announcementBar?.ctaText || ''}
+                      onBlur={(e) => {
+                        onUpdateAnnouncementBar({ ...announcementBar, ctaText: e.target.value.trim() });
+                        showToast('Tombol aksi pengumuman disimpan!');
+                      }}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target Halaman Saat Diklik</label>
+                    <select
+                      value={announcementBar?.ctaTab || 'oprec'}
+                      onChange={(e) => {
+                        onUpdateAnnouncementBar({ ...announcementBar, ctaTab: e.target.value });
+                        showToast('Target halaman pengumuman disimpan!');
+                      }}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.82rem' }}
+                    >
+                      <option value="oprec">Registrasi & Formulir</option>
+                      <option value="program">Program & Kalender</option>
+                      <option value="organisasi">Struktur Organisasi</option>
+                      <option value="galeri">Galeri Kegiatan</option>
+                      <option value="kudos">Wall of Kudos & Aspirasi</option>
+                      <option value="assets">Asset Logo & Template</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 2. Individual Pages Visibility Grid */}
             <div>
               <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '12px' }}>
@@ -2129,6 +2253,126 @@ export default function AdminPortal({
                 );
               })}
             </div>
+          </div>
+
+          {/* Daftar Hadir & Konfirmasi RSVP Kegiatan (public.event_rsvps) */}
+          <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  📋 Daftar Hadir & Konfirmasi RSVP Kegiatan ({eventRsvps.length})
+                </h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                  Data kehadiran pegawai yang mengisi form RSVP Cepat pada kartu Program Kerja (tersimpan di tabel <code>public.event_rsvps</code>).
+                </p>
+              </div>
+
+              {eventRsvps.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                    const header = ['ID RSVP', 'ID Event', 'Nama Kegiatan', 'Nama Peserta', 'Squad / Unit', 'Mode Kehadiran', 'Catatan', 'Waktu Konfirmasi'].map(escapeCsv).join(',');
+                    const rows = eventRsvps.map(r => [
+                      r.id,
+                      r.eventId,
+                      r.eventTitle,
+                      r.attendeeName,
+                      r.squadUnit,
+                      r.attendanceMode,
+                      r.notes || '',
+                      r.submittedAt || ''
+                    ].map(escapeCsv).join(','));
+                    const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `daftar_hadir_rsvp_cnt_it_apd_${Date.now()}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast(`Berhasil mengunduh ${eventRsvps.length} data RSVP ke CSV!`);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Export CSV Daftar Hadir RSVP</span>
+                </button>
+              )}
+            </div>
+
+            {eventRsvps.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                Belum ada konfirmasi kehadiran RSVP pada program kerja.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+                {eventRsvps.map((rsvp) => (
+                  <div
+                    key={rsvp.id}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid var(--border-card)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px'
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {rsvp.eventTitle}
+                      </div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        {rsvp.attendeeName} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>• {rsvp.squadUnit}</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                        {rsvp.attendanceMode} {rsvp.notes ? `• "${rsvp.notes}"` : ''} • {rsvp.submittedAt}
+                      </div>
+                    </div>
+
+                    {onDeleteEventRsvp && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDeleteEventRsvp(rsvp.id);
+                          showToast('Data RSVP berhasil dihapus.');
+                        }}
+                        style={{
+                          padding: '5px 8px',
+                          borderRadius: '6px',
+                          background: 'rgba(244, 63, 94, 0.12)',
+                          border: '1px solid rgba(244, 63, 94, 0.35)',
+                          color: '#f43f5e',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          flexShrink: 0
+                        }}
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -4488,14 +4732,28 @@ export default function AdminPortal({
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Motto</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.motto || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, motto: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Motto</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.motto || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, motto: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
+                    <select
+                      value={editingItem.item.tenureId || activeTenure?.id || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      {tenures.map(t => (
+                        <option key={t.id} value={t.id}>{t.periodLabel} — {t.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -4651,14 +4909,28 @@ export default function AdminPortal({
             {/* Edit Gallery Form (Complete with Photos & DocLinks management) */}
             {editingItem.type === 'gallery' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Acara</label>
-                  <input
-                    type="text"
-                    value={editingItem.item.title || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Acara</label>
+                    <input
+                      type="text"
+                      value={editingItem.item.title || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
+                    <select
+                      value={editingItem.item.tenureId || activeTenure?.id || 'tenure-2026'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      {tenures.map(t => (
+                        <option key={t.id} value={t.id}>{t.title || t.code}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
@@ -5142,6 +5414,18 @@ export default function AdminPortal({
                 </div>
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
+                    <select
+                      value={editingItem.item.tenureId || activeTenure?.id || 'tenure-2026'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      {tenures.map(t => (
+                        <option key={t.id} value={t.id}>{t.title || t.code}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Pelaksanaan</label>
                     <select
                       value={editingItem.item.status || 'Upcoming'}
@@ -5153,15 +5437,15 @@ export default function AdminPortal({
                       <option value="Completed">Completed (Selesai)</option>
                     </select>
                   </div>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Estimasi RAB (Rp)</label>
-                    <input
-                      type="number"
-                      value={editingItem.item.totalRab ?? 0}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, totalRab: Number(e.target.value || 0) } })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    />
-                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Estimasi RAB (Rp)</label>
+                  <input
+                    type="number"
+                    value={editingItem.item.totalRab ?? 0}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, totalRab: Number(e.target.value || 0) } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
                 </div>
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>

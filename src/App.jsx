@@ -23,7 +23,9 @@ import {
   INITIAL_GALLERIES,
   INITIAL_FORMS,
   INITIAL_SUBMISSIONS,
-  INITIAL_BRAND_ASSETS
+  INITIAL_BRAND_ASSETS,
+  INITIAL_EVENT_RSVPS,
+  INITIAL_ANNOUNCEMENT_BAR
 } from './data/initialData';
 import {
   supabase,
@@ -149,6 +151,9 @@ export default function App() {
   const [submissions, setSubmissions] = useState(() => loadLocalCache('submissions', INITIAL_SUBMISSIONS));
   const [aspirasiList, setAspirasiList] = useState(() => loadLocalCache('aspirasiList', INITIAL_ASPIRASI));
   const [brandAssets, setBrandAssets] = useState(() => loadLocalCache('brandAssets', INITIAL_BRAND_ASSETS));
+  const [eventRsvps, setEventRsvps] = useState(() => loadLocalCache('eventRsvps', INITIAL_EVENT_RSVPS));
+  const [announcementBar, setAnnouncementBar] = useState(() => loadLocalCache('announcementBar', INITIAL_ANNOUNCEMENT_BAR));
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [syncStatus, setSyncStatus] = useState('synced');
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
   const [quickSearchQuery, setQuickSearchQuery] = useState('');
@@ -187,6 +192,10 @@ export default function App() {
       if (Array.isArray(cloud.submissions)) setSubmissions(cloud.submissions);
       if (Array.isArray(cloud.aspirasiList)) setAspirasiList(cloud.aspirasiList);
       if (Array.isArray(cloud.brandAssets) && cloud.brandAssets.length > 0) setBrandAssets(cloud.brandAssets);
+      if (Array.isArray(cloud.eventRsvps)) setEventRsvps(cloud.eventRsvps);
+      if (cloud.announcementBar && typeof cloud.announcementBar === 'object') {
+        setAnnouncementBar({ ...INITIAL_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
+      }
       if (cloud.pageVisibility && typeof cloud.pageVisibility === 'object') {
         const mergedVis = { ...DEFAULT_PAGE_VISIBILITY, ...cloud.pageVisibility };
         setPageVisibilityState(mergedVis);
@@ -519,6 +528,33 @@ export default function App() {
     });
   };
 
+  // Event RSVP Lifecycle Handlers (Atomic merge across devices)
+  const handleAddEventRsvp = async (newRsvp) => {
+    setEventRsvps((prev) => {
+      const next = [newRsvp, ...prev];
+      saveLocalCache('eventRsvps', next);
+      return next;
+    });
+    const merged = await mergeAndPushCloudList('eventRsvps', newRsvp, eventRsvps);
+    if (Array.isArray(merged)) setEventRsvps(merged);
+  };
+  const handleDeleteEventRsvp = (rsvpId) => {
+    setEventRsvps((prev) => {
+      const next = prev.filter(r => r.id !== rsvpId);
+      pushCloudState('eventRsvps', next);
+      return next;
+    });
+  };
+
+  // Announcement Bar Handler
+  const handleUpdateAnnouncementBar = (nextBar) => {
+    const resolved = typeof nextBar === 'function' ? nextBar(announcementBar) : nextBar;
+    const merged = { ...INITIAL_ANNOUNCEMENT_BAR, ...resolved };
+    setAnnouncementBar(merged);
+    setIsBannerDismissed(false);
+    pushCloudState('announcementBar', merged);
+  };
+
   // Reset all collections back to initial defaults
   const handleResetDefault = async () => {
     setTenures(INITIAL_TENURES);
@@ -532,6 +568,8 @@ export default function App() {
     setSubmissions(INITIAL_SUBMISSIONS);
     setAspirasiList(INITIAL_ASPIRASI);
     setBrandAssets(INITIAL_BRAND_ASSETS);
+    setEventRsvps(INITIAL_EVENT_RSVPS);
+    setAnnouncementBar(INITIAL_ANNOUNCEMENT_BAR);
     setPageVisibilityState(DEFAULT_PAGE_VISIBILITY);
     try { localStorage.setItem('cnt_page_visibility', JSON.stringify(DEFAULT_PAGE_VISIBILITY)); } catch (e) {}
 
@@ -547,6 +585,8 @@ export default function App() {
       pushCloudState('submissions', INITIAL_SUBMISSIONS),
       pushCloudState('aspirasiList', INITIAL_ASPIRASI),
       pushCloudState('brandAssets', INITIAL_BRAND_ASSETS),
+      pushCloudState('eventRsvps', INITIAL_EVENT_RSVPS),
+      pushCloudState('announcementBar', INITIAL_ANNOUNCEMENT_BAR),
       pushCloudState('pageVisibility', DEFAULT_PAGE_VISIBILITY)
     ]);
   };
@@ -583,6 +623,105 @@ export default function App() {
           pageVisibility={pageVisibility}
           onOpenQuickSearch={() => setIsQuickSearchOpen(true)}
         />
+      )}
+
+      {/* LIVE ANNOUNCEMENT / TOP RUNNING BANNER */}
+      {announcementBar?.isActive && !isBannerDismissed && effectiveTab !== 'admin' && effectiveTab !== 'all-hidden' && (
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 45,
+            background: isDark
+              ? 'linear-gradient(90deg, rgba(0, 61, 121, 0.92), rgba(255, 184, 0, 0.18), rgba(0, 61, 121, 0.92))'
+              : 'linear-gradient(90deg, #003D79, #00529C, #003D79)',
+            borderBottom: '1px solid rgba(255, 184, 0, 0.4)',
+            color: '#ffffff',
+            padding: '10px 16px',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)'
+          }}
+        >
+          <div
+            className="container"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 260px', minWidth: 0 }}>
+              {announcementBar.badge && (
+                <span
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--mandiri-gold)',
+                    color: '#040914',
+                    fontSize: '0.68rem',
+                    fontWeight: 900,
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    flexShrink: 0
+                  }}
+                >
+                  {announcementBar.badge}
+                </span>
+              )}
+              <span
+                style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  lineHeight: 1.45
+                }}
+              >
+                {announcementBar.text}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              {announcementBar.ctaLabel && announcementBar.ctaTab && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab(announcementBar.ctaTab)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(255, 184, 0, 0.2)',
+                    border: '1px solid var(--mandiri-gold)',
+                    color: 'var(--mandiri-gold)',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>{announcementBar.ctaLabel}</span>
+                  <ChevronRight size={13} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsBannerDismissed(true)}
+                title="Sembunyikan pengumuman sementara"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.75)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Floating Quick Utility Pill when Navbar is Hidden */}
@@ -753,6 +892,8 @@ export default function App() {
               activeTenure={activeTenure}
               theme={theme}
               onNavigateOprec={pageVisibility.oprec !== false ? () => setCurrentTab('oprec') : undefined}
+              eventRsvps={eventRsvps}
+              onAddEventRsvp={handleAddEventRsvp}
             />
           )}
 
@@ -838,6 +979,10 @@ export default function App() {
               onAddBrandAsset={handleAddBrandAsset}
               onUpdateBrandAsset={handleUpdateBrandAsset}
               onDeleteBrandAsset={handleDeleteBrandAsset}
+              eventRsvps={eventRsvps}
+              onDeleteEventRsvp={handleDeleteEventRsvp}
+              announcementBar={announcementBar}
+              onUpdateAnnouncementBar={handleUpdateAnnouncementBar}
               pageVisibility={pageVisibility}
               onUpdatePageVisibility={setPageVisibility}
               syncStatus={syncStatus}

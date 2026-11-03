@@ -38,6 +38,8 @@ export default function HomeSection({
   const primaryForm = activeForms[0] || recruitmentInfo || null;
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
   const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
+  const matchingTenureEvents = events.filter(e => !e.tenureId || e.tenureId === activeTenure?.id);
+  const activeEvents = matchingTenureEvents.length > 0 ? matchingTenureEvents : events;
   const pembina = activeMembers.find(m => m.category === 'pembina');
   const ketua = activeMembers.find(m => m.role === 'Ketua');
   const wakil = activeMembers.find(m => m.role === 'Wakil Ketua');
@@ -232,9 +234,9 @@ export default function HomeSection({
               <Users size={22} />
             </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
-              {members.length} Personel
+              {activeMembers.length} Personel
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT ({activeTenure?.code || '2026'})</div>
           </div>
 
           <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', border: '1px solid rgba(255, 184, 0, 0.3)' }}>
@@ -272,9 +274,9 @@ export default function HomeSection({
               <Activity size={22} />
             </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--mandiri-gold)', fontFamily: 'monospace' }}>
-              {events.length}+ Event
+              {activeEvents.length}+ Event
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Agenda Kerja Terencana</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Agenda Kerja {activeTenure?.code || '2026'}</div>
           </div>
 
           <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', border: '1px solid rgba(52, 211, 153, 0.3)' }}>

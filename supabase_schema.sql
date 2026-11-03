@@ -127,11 +127,15 @@ CREATE TABLE public.kudos (
 CREATE TABLE public.aspirasi (
     id TEXT PRIMARY KEY,
     sender TEXT DEFAULT 'Anonim',
+    title TEXT DEFAULT '',
+    category TEXT DEFAULT 'Kegiatan & Event',
+    description TEXT DEFAULT '',
     text TEXT NOT NULL,
     submitted_at TEXT,
     status TEXT NOT NULL DEFAULT 'Menunggu Review',
     admin_reply TEXT DEFAULT '',
     is_public BOOLEAN DEFAULT true,
+    sort_order INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -189,6 +193,21 @@ CREATE TABLE public.brand_assets (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 12. Tabel Daftar Hadir & Konfirmasi RSVP Kegiatan (event_rsvps)
+CREATE TABLE public.event_rsvps (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL,
+    event_title TEXT NOT NULL,
+    attendee_name TEXT NOT NULL,
+    squad_unit TEXT NOT NULL,
+    attendance_mode TEXT NOT NULL DEFAULT 'Hadir Onsite',
+    notes TEXT DEFAULT '',
+    submitted_at TEXT,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.tenures ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.divisions ENABLE ROW LEVEL SECURITY;
@@ -201,6 +220,7 @@ ALTER TABLE public.forms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.page_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.brand_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_rsvps ENABLE ROW LEVEL SECURITY;
 
 -- Policies for full client-side sync across devices
 CREATE POLICY "Public full access tenures" ON public.tenures FOR ALL USING (true) WITH CHECK (true);
@@ -214,6 +234,7 @@ CREATE POLICY "Public full access forms" ON public.forms FOR ALL USING (true) WI
 CREATE POLICY "Public full access submissions" ON public.submissions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access page_settings" ON public.page_settings FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public full access brand_assets" ON public.brand_assets FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public full access event_rsvps" ON public.event_rsvps FOR ALL USING (true) WITH CHECK (true);
 
 -- Storage Bucket for Media & Document Uploads (cnt-media)
 INSERT INTO storage.buckets (id, name, public, file_size_limit)

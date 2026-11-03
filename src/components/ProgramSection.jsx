@@ -14,10 +14,20 @@ import {
   X,
   Users,
   Download,
-  ExternalLink
+  ExternalLink,
+  AlertCircle,
+  Send
 } from 'lucide-react';
 
-export default function ProgramSection({ events = [], divisions = [], activeTenure = null, theme, onNavigateOprec }) {
+export default function ProgramSection({
+  events = [],
+  divisions = [],
+  activeTenure = null,
+  eventRsvps = [],
+  onAddEventRsvp,
+  theme,
+  onNavigateOprec
+}) {
   const isDark = theme === 'dark';
   const [filterDiv, setFilterDiv] = useState('all');
   const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
@@ -27,6 +37,52 @@ export default function ProgramSection({ events = [], divisions = [], activeTenu
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(2); // 2 = Maret (Q1 kick-off)
   const [hoveredDate, setHoveredDate] = useState(null);
+
+  // Quick RSVP form states
+  const [rsvpName, setRsvpName] = useState('');
+  const [rsvpSquad, setRsvpSquad] = useState('');
+  const [rsvpMode, setRsvpMode] = useState('Hadir Onsite');
+  const [rsvpNotes, setRsvpNotes] = useState('');
+  const [rsvpErrors, setRsvpErrors] = useState({});
+  const [rsvpSuccess, setRsvpSuccess] = useState(false);
+  const [isSubmittingRsvp, setIsSubmittingRsvp] = useState(false);
+
+  const handleSubmitQuickRsvp = (e) => {
+    e.preventDefault();
+    if (!rsvpModalEvent || isSubmittingRsvp) return;
+    const errs = {};
+    if (!rsvpName.trim()) errs.rsvpName = 'Nama lengkap wajib diisi';
+    if (!rsvpSquad.trim()) errs.rsvpSquad = 'Squad / Unit wajib diisi';
+    setRsvpErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setIsSubmittingRsvp(true);
+    const now = new Date();
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const ts = `${days[now.getDay()]}, ${String(now.getDate()).padStart(2, '0')} ${months[now.getMonth()]} ${now.getFullYear()} • ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
+
+    if (onAddEventRsvp) {
+      onAddEventRsvp({
+        id: 'rsvp-' + Date.now(),
+        eventId: rsvpModalEvent.id,
+        eventTitle: rsvpModalEvent.title,
+        attendeeName: rsvpName.trim(),
+        squadUnit: rsvpSquad.trim(),
+        attendanceMode: rsvpMode,
+        notes: rsvpNotes.trim(),
+        submittedAt: ts
+      });
+    }
+
+    setRsvpSuccess(true);
+    setRsvpName('');
+    setRsvpSquad('');
+    setRsvpNotes('');
+    setRsvpErrors({});
+    setTimeout(() => setIsSubmittingRsvp(false), 500);
+    setTimeout(() => setRsvpSuccess(false), 4000);
+  };
 
   const hasTenureEvents = activeTenure?.id
     ? events.some((evt) => !evt.tenureId || evt.tenureId === activeTenure.id)
@@ -305,6 +361,15 @@ export default function ProgramSection({ events = [], divisions = [], activeTenu
                     <Target size={15} color="var(--mandiri-gold)" />
                     <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Target: {evt.kpi}</span>
                   </div>
+                  {(() => {
+                    const count = eventRsvps.filter(r => r.eventId === evt.id).length;
+                    return count > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--neon-cyan)', fontWeight: 700 }}>
+                        <Users size={15} color="var(--neon-cyan)" />
+                        <span>{count} Insan IT APD telah konfirmasi hadir (RSVP)</span>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
 
                 {!isCompleted && (
@@ -767,254 +832,434 @@ export default function ProgramSection({ events = [], divisions = [], activeTenu
         );
       })()}
 
-      {/* SLEEK PROFESSIONAL RSVP MODAL (Tanpa alert kuno bawaan browser) */}
-      {rsvpModalEvent && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div className="glass-panel" style={{
-            maxWidth: '520px',
-            width: '100%',
-            padding: '28px',
-            position: 'relative',
-            border: '1px solid var(--mandiri-blue)',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+      {/* SLEEK PROFESSIONAL RSVP MODAL WITH LIVE ATTENDANCE CONFIRMATION */}
+      {rsvpModalEvent && (() => {
+        const currentEventRsvps = eventRsvps.filter(r => r.eventId === rsvpModalEvent.id);
+
+        return (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.78)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 1000,
             display: 'flex',
-            flexDirection: 'column',
-            gap: '16px'
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
           }}>
-            <button
-              onClick={() => setRsvpModalEvent(null)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: 'rgba(255,255,255,0.08)',
-                border: 'none',
-                color: 'var(--text-main)',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-            >
-              <X size={18} />
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '50%',
-                background: 'rgba(0, 61, 121, 0.15)',
-                color: 'var(--mandiri-blue)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Info size={22} />
-              </div>
-              <div>
-                <span className="badge-gold" style={{ fontSize: '0.68rem', marginBottom: '4px' }}>
-                  RSVP • {rsvpModalEvent.date}
-                </span>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  {rsvpModalEvent.title}
-                </h3>
-              </div>
-            </div>
-
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              {rsvpModalEvent.description}
-            </p>
-
-            <div style={{
-              background: 'rgba(0, 61, 121, 0.05)',
-              border: '1px solid var(--border-card)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '14px',
+            <div className="glass-panel modal-container" style={{
+              maxWidth: '580px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              padding: '28px',
+              position: 'relative',
+              border: '1.5px solid var(--mandiri-blue)',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px',
-              fontSize: '0.82rem'
+              gap: '16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin size={15} color="var(--mandiri-blue)" />
-                <strong>Lokasi:</strong> <span>{rsvpModalEvent.location}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Target size={15} color="var(--mandiri-gold)" />
-                <strong>Target Partisipasi:</strong> <span>{rsvpModalEvent.kpi}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={15} color="var(--neon-emerald)" />
-                <strong>Divisi Penyelenggara:</strong> <span>{rsvpModalEvent.divisionName || 'CNT IT APD'}</span>
-              </div>
-            </div>
-
-            <div style={{
-              padding: '12px 14px',
-              background: 'rgba(255, 184, 0, 0.1)',
-              border: '1px solid rgba(255, 184, 0, 0.3)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.82rem',
-              color: 'var(--text-main)',
-              lineHeight: 1.5
-            }}>
-              📢 <strong>Informasi Pembukaan RSVP:</strong> Pendaftaran dan konfirmasi kehadiran dibuka melalui Hub Registrasi atau pengumuman resmi di <strong>Channel MS Teams Group IT APD</strong>.
-            </div>
-
-            {/* Add to Calendar Actions (Outlook .ics & Google Calendar) */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               <button
-                type="button"
                 onClick={() => {
-                  const sRaw = (rsvpModalEvent.startDate || '2026-03-10').replace(/-/g, '');
-                  const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || '2026-03-10');
-                  eDateObj.setDate(eDateObj.getDate() + 1);
-                  const eRaw = eDateObj.toISOString().split('T')[0].replace(/-/g, '');
-                  const icsContent = [
-                    'BEGIN:VCALENDAR',
-                    'VERSION:2.0',
-                    'PRODID:-//CNT IT APD Bank Mandiri//ID',
-                    'BEGIN:VEVENT',
-                    `UID:${rsvpModalEvent.id}@cntitapd.netlify.app`,
-                    `DTSTAMP:${sRaw}T010000Z`,
-                    `DTSTART;VALUE=DATE:${sRaw}`,
-                    `DTEND;VALUE=DATE:${eRaw}`,
-                    `SUMMARY:${rsvpModalEvent.title} - CNT IT APD`,
-                    `DESCRIPTION:${(rsvpModalEvent.description || '').replace(/\n/g, '\\n')}`,
-                    `LOCATION:${rsvpModalEvent.location || 'Plaza Mandiri'}`,
-                    'END:VEVENT',
-                    'END:VCALENDAR'
-                  ].join('\r\n');
-
-                  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.setAttribute('download', `${rsvpModalEvent.title.replace(/\s+/g, '_')}.ics`);
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
+                  setRsvpModalEvent(null);
+                  setRsvpErrors({});
+                  setRsvpSuccess(false);
                 }}
                 style={{
-                  flex: '1 1 200px',
-                  display: 'inline-flex',
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: 'none',
+                  color: 'var(--text-main)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  padding: '9px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(14, 165, 233, 0.12)',
-                  border: '1px solid var(--neon-cyan)',
-                  color: 'var(--neon-cyan)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
                   cursor: 'pointer'
                 }}
               >
-                <Download size={14} />
-                <span>Simpan ke Outlook / Kalender (.ics)</span>
+                <X size={18} />
               </button>
 
-              <a
-                href={(() => {
-                  const sRaw = (rsvpModalEvent.startDate || '2026-03-10').replace(/-/g, '');
-                  const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || '2026-03-10');
-                  eDateObj.setDate(eDateObj.getDate() + 1);
-                  const eRaw = eDateObj.toISOString().split('T')[0].replace(/-/g, '');
-                  const params = new URLSearchParams({
-                    action: 'TEMPLATE',
-                    text: `${rsvpModalEvent.title} (CNT IT APD)`,
-                    dates: `${sRaw}/${eRaw}`,
-                    details: rsvpModalEvent.description || '',
-                    location: rsvpModalEvent.location || 'Plaza Mandiri'
-                  });
-                  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-                })()}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  flex: '1 1 180px',
-                  display: 'inline-flex',
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'rgba(0, 61, 121, 0.15)',
+                  color: 'var(--mandiri-blue)',
+                  display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  padding: '9px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  textDecoration: 'none'
-                }}
-              >
-                <ExternalLink size={14} />
-                <span>Google Calendar</span>
-              </a>
-            </div>
+                  flexShrink: 0
+                }}>
+                  <Info size={22} />
+                </div>
+                <div>
+                  <span className="badge-gold" style={{ fontSize: '0.68rem', marginBottom: '4px' }}>
+                    RSVP & Info Event • {rsvpModalEvent.date}
+                  </span>
+                  <h3 style={{ fontSize: '1.22rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    {rsvpModalEvent.title}
+                  </h3>
+                </div>
+              </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-              {onNavigateOprec && (
+              <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.55, margin: 0 }}>
+                {rsvpModalEvent.description}
+              </p>
+
+              <div style={{
+                background: 'rgba(0, 61, 121, 0.05)',
+                border: '1px solid var(--border-card)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                fontSize: '0.8rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MapPin size={14} color="var(--mandiri-blue)" />
+                  <strong>Lokasi:</strong> <span>{rsvpModalEvent.location}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Target size={14} color="var(--mandiri-gold)" />
+                  <strong>Target Partisipasi:</strong> <span>{rsvpModalEvent.kpi}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={14} color="var(--neon-emerald)" />
+                  <strong>Divisi Penyelenggara:</strong> <span>{rsvpModalEvent.divisionName || 'CNT IT APD'}</span>
+                </div>
+              </div>
+
+              {/* Quick RSVP Form (Tersimpan di Tabel Supabase public.event_rsvps) */}
+              <div style={{
+                padding: '16px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--input-bg)',
+                border: '1px solid var(--border-card)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    ✋ Konfirmasi Kehadiran Instan (RSVP)
+                  </div>
+                  <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                    {currentEventRsvps.length} Terdaftar Hadir
+                  </span>
+                </div>
+
+                {rsvpSuccess && (
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <CheckCircle2 size={15} />
+                    <span>Konfirmasi kehadiran Anda berhasil tercatat di daftar hadir kegiatan!</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmitQuickRsvp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Nama Lengkap Anda *"
+                        value={rsvpName}
+                        onChange={(e) => {
+                          setRsvpName(e.target.value);
+                          if (rsvpErrors.rsvpName) setRsvpErrors(prev => ({ ...prev, rsvpName: null }));
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--bg-card)',
+                          border: `1.5px solid ${rsvpErrors.rsvpName ? '#f43f5e' : 'var(--border-card)'}`,
+                          color: 'var(--text-main)',
+                          fontSize: '0.82rem',
+                          outline: 'none'
+                        }}
+                      />
+                      {rsvpErrors.rsvpName && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
+                          <AlertCircle size={11} />
+                          <span>{rsvpErrors.rsvpName}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Squad / Departemen *"
+                        value={rsvpSquad}
+                        onChange={(e) => {
+                          setRsvpSquad(e.target.value);
+                          if (rsvpErrors.rsvpSquad) setRsvpErrors(prev => ({ ...prev, rsvpSquad: null }));
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--bg-card)',
+                          border: `1.5px solid ${rsvpErrors.rsvpSquad ? '#f43f5e' : 'var(--border-card)'}`,
+                          color: 'var(--text-main)',
+                          fontSize: '0.82rem',
+                          outline: 'none'
+                        }}
+                      />
+                      {rsvpErrors.rsvpSquad && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
+                          <AlertCircle size={11} />
+                          <span>{rsvpErrors.rsvpSquad}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '10px' }}>
+                    <select
+                      value={rsvpMode}
+                      onChange={(e) => setRsvpMode(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.82rem',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="Hadir Onsite">📍 Hadir Onsite</option>
+                      <option value="Hadir Online">💻 Hadir Online / Teams</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Catatan singkat (opsional)..."
+                      value={rsvpNotes}
+                      onChange={(e) => setRsvpNotes(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.82rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingRsvp}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '10px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      background: isSubmittingRsvp ? 'var(--input-bg)' : 'var(--mandiri-gold)',
+                      color: '#040914',
+                      border: 'none',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: isSubmittingRsvp ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    <Send size={14} />
+                    <span>{isSubmittingRsvp ? 'Menyimpan RSVP...' : 'Konfirmasi Kehadiran Saya'}</span>
+                  </button>
+                </form>
+
+                {currentEventRsvps.length > 0 && (
+                  <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+                      Rekan yang sudah konfirmasi hadir:
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '85px', overflowY: 'auto' }}>
+                      {currentEventRsvps.slice(0, 12).map((r) => (
+                        <span
+                          key={r.id}
+                          style={{
+                            fontSize: '0.72rem',
+                            padding: '3px 9px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-main)'
+                          }}
+                        >
+                          ✓ <strong>{r.attendeeName}</strong> <span style={{ color: 'var(--text-dim)' }}>({r.squadUnit})</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Add to Calendar Actions (Outlook .ics & Google Calendar) */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 <button
                   type="button"
                   onClick={() => {
-                    setRsvpModalEvent(null);
-                    onNavigateOprec();
+                    const sRaw = (rsvpModalEvent.startDate || '2026-03-10').replace(/-/g, '');
+                    const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || '2026-03-10');
+                    eDateObj.setDate(eDateObj.getDate() + 1);
+                    const eRaw = eDateObj.toISOString().split('T')[0].replace(/-/g, '');
+                    const icsContent = [
+                      'BEGIN:VCALENDAR',
+                      'VERSION:2.0',
+                      'PRODID:-//CNT IT APD Bank Mandiri//ID',
+                      'BEGIN:VEVENT',
+                      `UID:${rsvpModalEvent.id}@cntitapd.netlify.app`,
+                      `DTSTAMP:${sRaw}T010000Z`,
+                      `DTSTART;VALUE=DATE:${sRaw}`,
+                      `DTEND;VALUE=DATE:${eRaw}`,
+                      `SUMMARY:${rsvpModalEvent.title} - CNT IT APD`,
+                      `DESCRIPTION:${(rsvpModalEvent.description || '').replace(/\n/g, '\\n')}`,
+                      `LOCATION:${rsvpModalEvent.location || 'Plaza Mandiri'}`,
+                      'END:VEVENT',
+                      'END:VCALENDAR'
+                    ].join('\r\n');
+
+                    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `${rsvpModalEvent.title.replace(/\s+/g, '_')}.ics`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
                   }}
                   style={{
-                    flex: 1,
-                    background: 'var(--mandiri-gold)',
-                    color: '#040914',
-                    border: 'none',
-                    padding: '10px 18px',
-                    borderRadius: 'var(--radius-full)',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
+                    flex: '1 1 200px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '9px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(14, 165, 233, 0.12)',
+                    border: '1px solid var(--neon-cyan)',
+                    color: 'var(--neon-cyan)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
                     cursor: 'pointer'
                   }}
                 >
-                  Ke Hub Registrasi
+                  <Download size={14} />
+                  <span>Simpan ke Outlook / Kalender (.ics)</span>
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setRsvpModalEvent(null)}
-                style={{
-                  flex: 1,
-                  background: 'var(--mandiri-blue)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: 'var(--radius-full)',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Mengerti & Tutup
-              </button>
+
+                <a
+                  href={(() => {
+                    const sRaw = (rsvpModalEvent.startDate || '2026-03-10').replace(/-/g, '');
+                    const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || '2026-03-10');
+                    eDateObj.setDate(eDateObj.getDate() + 1);
+                    const eRaw = eDateObj.toISOString().split('T')[0].replace(/-/g, '');
+                    const params = new URLSearchParams({
+                      action: 'TEMPLATE',
+                      text: `${rsvpModalEvent.title} (CNT IT APD)`,
+                      dates: `${sRaw}/${eRaw}`,
+                      details: rsvpModalEvent.description || '',
+                      location: rsvpModalEvent.location || 'Plaza Mandiri'
+                    });
+                    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+                  })()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    flex: '1 1 180px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '9px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                >
+                  <ExternalLink size={14} />
+                  <span>Google Calendar</span>
+                </a>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '2px' }}>
+                {onNavigateOprec && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRsvpModalEvent(null);
+                      onNavigateOprec();
+                    }}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(255, 184, 0, 0.14)',
+                      color: 'var(--mandiri-gold)',
+                      border: '1px solid var(--mandiri-gold)',
+                      padding: '9px 16px',
+                      borderRadius: 'var(--radius-full)',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Ke Hub Formulir
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setRsvpModalEvent(null)}
+                  style={{
+                    flex: 1,
+                    background: 'var(--mandiri-blue)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '9px 18px',
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Selesai & Tutup
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
