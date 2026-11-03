@@ -329,7 +329,7 @@ export default function App() {
       pushCloudState('tenures', next);
       return next;
     });
-    if (activeTenure.id === updatedTenure.id) {
+    if (activeTenure?.id === updatedTenure.id) {
       setActiveTenure(updatedTenure);
     }
   };
@@ -337,7 +337,7 @@ export default function App() {
     setTenures((prev) => {
       const next = prev.filter(t => t.id !== tenureId);
       pushCloudState('tenures', next);
-      if (activeTenure.id === tenureId && next.length > 0) {
+      if (activeTenure?.id === tenureId && next.length > 0) {
         setActiveTenure(next[0]);
         pushCloudState('activeTenureId', next[0].id);
       }

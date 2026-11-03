@@ -40,19 +40,21 @@ export default function DynamicFormSection({
     if (initialFormId && activeForms.some(f => f.id === initialFormId)) {
       return initialFormId;
     }
-    return activeForms[0]?.id || forms[0]?.id || null;
+    return activeForms[0]?.id || null;
   });
   const [copiedLink, setCopiedLink] = useState(false);
   const [uploadingFieldId, setUploadingFieldId] = useState(null);
 
   useEffect(() => {
-    if (initialFormId && forms.some(f => f.id === initialFormId)) {
+    if (initialFormId && activeForms.some(f => f.id === initialFormId)) {
       setSelectedFormId(initialFormId);
+    } else if (activeForms.length > 0 && !activeForms.some(f => f.id === selectedFormId)) {
+      setSelectedFormId(activeForms[0].id);
     }
   }, [initialFormId, forms]);
 
   // Current active form object
-  const currentForm = forms.find(f => f.id === selectedFormId) || activeForms[0];
+  const currentForm = activeForms.find(f => f.id === selectedFormId) || activeForms[0] || null;
 
   // Submission form state: { [fieldId]: value }
   const [formData, setFormData] = useState({});

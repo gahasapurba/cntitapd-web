@@ -312,7 +312,7 @@ export default function ProgramSection({
                   cursor: 'pointer'
                 }}
               >
-                Periode {activeTenure.code || activeTenure.label}
+                Periode {activeTenure?.code || activeTenure?.title || '2026'}
               </button>
               <button
                 type="button"

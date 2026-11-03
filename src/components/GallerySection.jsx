@@ -379,7 +379,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                     cursor: 'pointer'
                   }}
                 >
-                  Periode {activeTenure.code || activeTenure.label}
+                  Periode {activeTenure?.code || activeTenure?.title || '2026'}
                 </button>
                 <button
                   type="button"

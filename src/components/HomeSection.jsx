@@ -137,7 +137,7 @@ export default function HomeSection({
               textTransform: 'uppercase',
               letterSpacing: '0.08em'
             }}>
-              PORTAL RESMI • CNT GROUP IT APD {activeTenure.code}
+              PORTAL RESMI • CNT GROUP IT APD {activeTenure?.code || '2026'}
             </span>
           </div>
         </div>
@@ -152,14 +152,14 @@ export default function HomeSection({
           margin: '0 auto 20px auto',
           letterSpacing: '-0.03em'
         }}>
-          {activeTenure.heroHeadline || 'COMMITTED TO CULTIVATE'}{' '}
+          {activeTenure?.heroHeadline || 'COMMITTED TO CULTIVATE'}{' '}
           <span style={{
             background: 'linear-gradient(135deg, #FFB800 0%, #38bdf8 50%, #c084fc 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             textShadow: '0 0 35px rgba(56, 189, 248, 0.3)'
           }}>
-            {activeTenure.heroHighlight || 'EXCELLENCE & SYNERGY'}
+            {activeTenure?.heroHighlight || 'EXCELLENCE & SYNERGY'}
           </span>
         </h1>
 
@@ -173,7 +173,7 @@ export default function HomeSection({
           lineHeight: 1.5,
           fontStyle: 'italic'
         }}>
-          "{activeTenure.themeTagline || 'Sinergi, Inovasi & Cultural Excellence'}"
+          "{activeTenure?.themeTagline || 'Sinergi, Inovasi & Cultural Excellence'}"
         </div>
 
         {/* Subtitle */}
@@ -184,7 +184,7 @@ export default function HomeSection({
           margin: '0 auto 36px auto',
           lineHeight: 1.7,
         }}>
-          {activeTenure.description || (
+          {activeTenure?.description || (
             <>
               Pusat gerakan budaya kerja <strong style={{ color: 'var(--text-main)' }}>Culture Network Team (CNT)</strong> Group IT Application Delivery, Direktorat IT Bank Mandiri. Mengobarkan semangat kolaborasi lintas squad, inovasi engineering, dan harmoni kerja.
             </>
@@ -387,11 +387,11 @@ export default function HomeSection({
                 <Target size={20} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Visi CNT IT {activeTenure.code}
+                Visi CNT IT {activeTenure?.code || '2026'}
               </h3>
             </div>
             <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', lineHeight: 1.7, fontStyle: 'italic' }}>
-              "{activeTenure.visi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan profesional yang mendorong produktivitas engineering prima serta kebahagiaan insan IT Application Delivery.'}"
+              "{activeTenure?.visi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan profesional yang mendorong produktivitas engineering prima serta kebahagiaan insan IT Application Delivery.'}"
             </p>
           </div>
 
@@ -417,11 +417,11 @@ export default function HomeSection({
                 <ShieldCheck size={20} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Misi CNT IT {activeTenure.code}
+                Misi CNT IT {activeTenure?.code || '2026'}
               </h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              {(activeTenure.misi || [
+              {(activeTenure?.misi || [
                 'Memperkuat sinergi dan komunikasi terbuka antar squad delivery.',
                 'Menumbuhkan wellbeing jasmani dan rohani insan IT APD.',
                 'Menyediakan panggung kreativitas dan apresiasi prestasi (Kudos).'
@@ -442,7 +442,7 @@ export default function HomeSection({
           <div>
             <span className="badge-gold" style={{ marginBottom: '6px' }}>Leadership & BPH</span>
             <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>
-              Pimpinan & Pengurus Inti CNT {activeTenure.code}
+              Pimpinan & Pengurus Inti CNT {activeTenure?.code || '2026'}
             </h2>
           </div>
           <button

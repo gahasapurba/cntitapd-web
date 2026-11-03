@@ -103,7 +103,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto', padding: '0 8px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(52, 211, 153, 0.15)', border: '1px solid rgba(52, 211, 153, 0.4)', color: 'var(--neon-emerald)', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', marginBottom: '16px' }}>
           <Sparkles size={14} />
-          <span>Struktur Hirarki Organigram • {activeTenure.title}</span>
+          <span>Struktur Hirarki Organigram • {activeTenure?.title || activeTenure?.code || '2026'}</span>
         </div>
         <h1 style={{ fontSize: 'clamp(2.4rem, 4.5vw, 3.8rem)', fontWeight: 900, color: 'var(--text-main)', marginBottom: '14px', letterSpacing: '-0.02em' }}>
           ORGANIGRAM <span style={{
