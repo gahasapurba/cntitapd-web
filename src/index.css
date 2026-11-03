@@ -312,9 +312,38 @@ select option {
   }
 
   /* Organigram Hierarchy tree adjustments on mobile */
+  .org-section-wrapper {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    gap: 36px !important;
+  }
+
+  .org-tree-wrapper {
+    gap: 24px !important;
+    padding: 0 6px !important;
+  }
+
   .org-level-2, .org-level-3 {
     grid-template-columns: 1fr !important;
-    gap: 16px !important;
+    gap: 20px !important;
+  }
+
+  .org-pimpro-grid {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+
+  .org-anggota-wrapper {
+    margin-top: 14px !important;
+  }
+
+  .org-anggota-box {
+    padding: 16px !important;
+    gap: 10px !important;
+  }
+
+  .crew-member-card {
+    padding: 20px 18px !important;
   }
 
   .org-tree-line {

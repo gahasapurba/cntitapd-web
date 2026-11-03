@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, Lock } from 'lucide-react';
 
 export default function Footer({ onNavigateAdmin, theme }) {
   const isDark = theme === 'dark';
@@ -83,10 +83,33 @@ export default function Footer({ onNavigateAdmin, theme }) {
             © {new Date().getFullYear()} Culture Network Team Group IT APD. Satu Hati, Satu Mandiri.
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               Didesain dengan <Heart size={13} color="#f43f5e" fill="#f43f5e" /> untuk Insan IT APD
             </span>
+            {onNavigateAdmin && (
+              <button
+                type="button"
+                onClick={onNavigateAdmin}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-dim)',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Lock size={11} />
+                <span>Portal Pengurus</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

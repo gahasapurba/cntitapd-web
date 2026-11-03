@@ -28,10 +28,10 @@ export default function OrganizationSection({ activeTenure, divisions, members }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '60px', paddingBottom: '80px', position: 'relative', zIndex: 10 }}>
+    <div className="org-section-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '60px', paddingBottom: '80px', position: 'relative', zIndex: 10 }}>
       
       {/* Section Header */}
-      <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto' }}>
+      <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto', padding: '0 8px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(52, 211, 153, 0.15)', border: '1px solid rgba(52, 211, 153, 0.4)', color: 'var(--neon-emerald)', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', marginBottom: '16px' }}>
           <Sparkles size={14} />
           <span>Struktur Hirarki Organigram • {activeTenure.title}</span>
@@ -49,7 +49,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
       </div>
 
       {/* HIERARCHICAL TREE CONTAINER WITH SEAMLESS CONNECTING NEON LINES (IDENTIK DENGAN PRESENTASI) */}
-      <div style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
         {/* LEVEL 1: PEMBINA (Top Center) */}
         {pembina && (
@@ -59,7 +59,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
         )}
 
         {/* CONNECTING LINE 1 (Pembina down to Level 2) */}
-        <div style={{
+        <div className="org-tree-line" style={{
           width: '5px',
           height: '28px',
           background: 'linear-gradient(to bottom, #FFB800, #34d399)',
@@ -143,7 +143,7 @@ export default function OrganizationSection({ activeTenure, divisions, members }
 
         {/* LEVEL 4: PIMPRO 1 - 4 (Ketua Divisi) & ANGGOTA DIVISI */}
         <div style={{ width: '100%', maxWidth: '1180px', zIndex: 10 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+          <div className="org-pimpro-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
             {pimpro.map((lead, idx) => {
               const lineColor = idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800';
               // Find all squad members in this division
@@ -160,19 +160,19 @@ export default function OrganizationSection({ activeTenure, divisions, members }
 
                   {/* Connecting Line from Ketua Divisi down to Anggota */}
                   {divisionMembers.length > 0 && (
-                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '4px' }}>
+                    <div className="org-anggota-wrapper" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '8px' }}>
                       <div className="org-tree-line" style={{ width: '2px', height: '14px', background: lineColor, opacity: 0.6 }} />
                       
                       {/* Anggota Divisi Box */}
-                      <div style={{
+                      <div className="org-anggota-box" style={{
                         width: '100%',
                         background: 'rgba(255, 255, 255, 0.02)',
                         border: '1px dashed var(--border-card)',
                         borderRadius: 'var(--radius-md)',
-                        padding: '12px',
+                        padding: '14px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '8px'
+                        gap: '10px'
                       }}>
                         <div style={{
                           display: 'flex',

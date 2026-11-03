@@ -22,7 +22,10 @@ import {
   Heart,
   X,
   ClipboardList,
-  Download
+  Download,
+  CalendarDays,
+  Layout,
+  Globe
 } from 'lucide-react';
 
 // Client-side SHA-256 hash helper using Web Crypto API
@@ -47,7 +50,7 @@ export default function AdminPortal({
   onAddDivision, 
   onUpdateDivision,
   onDeleteDivision,
-  recruitmentInfo, 
+  recruitmentInfo = { isOpen: true, deadline: '31 Maret 2026' }, 
   onUpdateRecruitment, 
   applications = [],
   galleries = [],
@@ -70,7 +73,18 @@ export default function AdminPortal({
   onUpdateForm,
   onDeleteForm,
   submissions = [],
-  onDeleteSubmission
+  onDeleteSubmission,
+  pageVisibility = {
+    navbar: true,
+    home: true,
+    organisasi: true,
+    program: true,
+    galeri: true,
+    kudos: true,
+    assets: true,
+    oprec: true
+  },
+  onUpdatePageVisibility
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -113,8 +127,8 @@ export default function AdminPortal({
   const [newTenureMisi, setNewTenureMisi] = useState('');
 
   // Recruitment controls
-  const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo.isOpen);
-  const [recruitDeadline, setRecruitDeadline] = useState(recruitmentInfo.deadline);
+  const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo?.isOpen ?? true);
+  const [recruitDeadline, setRecruitDeadline] = useState(recruitmentInfo?.deadline ?? '31 Maret 2026');
 
   // New Form Creator State
   const [newFormTitle, setNewFormTitle] = useState('');
@@ -600,6 +614,7 @@ export default function AdminPortal({
       }}>
         {[
           { id: 'members', label: `Pengurus & Anggota (${members.length})`, icon: Users },
+          { id: 'visibility', label: 'Visibilitas Halaman & Navbar', icon: Eye },
           { id: 'events', label: `Agenda & Proker (${events.length})`, icon: CalendarDays },
           { id: 'forms', label: `Kelola Formulir (${forms.length})`, icon: ClipboardList },
           { id: 'submissions', label: `Berkas Masuk (${submissions.length + applications.length})`, icon: FileCheck2 },
@@ -634,6 +649,298 @@ export default function AdminPortal({
           );
         })}
       </div>
+
+      {/* TAB CONTENT: VISIBILITAS HALAMAN & NAVBAR (VIEW / HIDE) */}
+      {activeTab === 'visibility' && (() => {
+        const pageItems = [
+          { id: 'home', label: 'Beranda Utama', desc: 'Halaman depan (Hero Banner, Statistik, Visi & Misi, Pimpinan, dan 4 Pilar Divisi)' },
+          { id: 'organisasi', label: 'Struktur Organisasi', desc: 'Halaman bagan hierarki organigram interaktif Pembina, Inti, Pimpro & Anggota' },
+          { id: 'program', label: 'Program & Kalender', desc: 'Halaman daftar program kerja divisi & kalender budaya bulanan interaktif' },
+          { id: 'galeri', label: 'Galeri Kegiatan', desc: 'Halaman dokumentasi foto carousel kegiatan & tautan folder dokumentasi' },
+          { id: 'kudos', label: 'Wall of Kudos', desc: 'Halaman papan apresiasi & pengiriman pesan terima kasih antar insan IT APD' },
+          { id: 'assets', label: 'Asset Logo', desc: 'Halaman transformasi logo & pengunduhan paket logo resmi CNT IT APD' },
+          { id: 'oprec', label: 'Registrasi & Formulir', desc: 'Halaman pusat pendaftaran event, open recruitment & survei dinamis' },
+        ];
+
+        const visiblePagesCount = pageItems.filter(p => pageVisibility[p.id] !== false).length;
+        const isNavbarVisible = pageVisibility.navbar !== false;
+
+        const handleToggleKey = (key) => {
+          if (!onUpdatePageVisibility) return;
+          onUpdatePageVisibility({
+            ...pageVisibility,
+            [key]: pageVisibility[key] === false ? true : false
+          });
+        };
+
+        const handleSetAll = (showPages, showNavbar) => {
+          if (!onUpdatePageVisibility) return;
+          const nextState = { navbar: showNavbar };
+          pageItems.forEach(p => {
+            nextState[p.id] = showPages;
+          });
+          onUpdatePageVisibility(nextState);
+        };
+
+        return (
+          <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>
+                  Kontrol Visibilitas Halaman & Navbar (View / Hide)
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '650px', lineHeight: 1.5 }}>
+                  Atur halaman mana saja yang ditampilkan atau disembunyikan dari publik, termasuk visibilitas <strong>Navbar Utama</strong>. Jika seluruh halaman di-hide, pengunjung otomatis dialihkan ke tampilan <em>Mode Standby / Maintenance</em> yang tetap menyediakan tombol akses ke Portal Admin.
+                </p>
+              </div>
+
+              {/* Quick Bulk Actions */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSetAll(true, true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Eye size={14} />
+                  <span>Tampilkan Semua</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetAll(false, true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(255, 184, 0, 0.15)',
+                    border: '1px solid var(--mandiri-gold)',
+                    color: 'var(--mandiri-gold)',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <EyeOff size={14} />
+                  <span>Hide Semua Halaman</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetAll(false, false)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(244, 63, 94, 0.15)',
+                    border: '1px solid #f43f5e',
+                    color: '#f43f5e',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <EyeOff size={14} />
+                  <span>Hide Semua + Navbar</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Live Status Banner */}
+            <div style={{
+              padding: '14px 18px',
+              borderRadius: 'var(--radius-md)',
+              background: visiblePagesCount === 0 
+                ? 'rgba(244, 63, 94, 0.12)' 
+                : 'rgba(14, 165, 233, 0.08)',
+              border: `1px solid ${visiblePagesCount === 0 ? '#f43f5e' : 'rgba(14, 165, 233, 0.3)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {visiblePagesCount === 0 ? (
+                  <AlertTriangle size={18} color="#f43f5e" />
+                ) : (
+                  <Globe size={18} color="var(--neon-cyan)" />
+                )}
+                <div style={{ fontSize: '0.84rem', color: 'var(--text-main)' }}>
+                  {visiblePagesCount === 0 ? (
+                    <span>
+                      <strong>Perhatian: Semua halaman sedang di-Hide!</strong> Pengunjung saat ini melihat layar <em>Mode Standby / Pemeliharaan</em> dengan akses langsung ke Portal Pengurus.
+                    </span>
+                  ) : (
+                    <span>
+                      Status Publik: <strong>{visiblePagesCount} dari {pageItems.length} halaman ditampilkan</strong> • Navbar Utama: <strong>{isNavbarVisible ? 'Ditampilkan (View)' : 'Disembunyikan (Hide)'}</strong>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 1. Master Navbar Visibility Control */}
+            <div style={{
+              padding: '18px 20px',
+              borderRadius: 'var(--radius-md)',
+              background: isNavbarVisible ? 'rgba(56, 189, 248, 0.06)' : 'rgba(244, 63, 94, 0.06)',
+              border: `1.5px solid ${isNavbarVisible ? 'rgba(56, 189, 248, 0.35)' : 'rgba(244, 63, 94, 0.35)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: isNavbarVisible ? 'rgba(56, 189, 248, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                  color: isNavbarVisible ? 'var(--neon-cyan)' : '#f43f5e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Layout size={22} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
+                      Navbar Utama (Header Navigasi Atas)
+                    </strong>
+                    <span className={isNavbarVisible ? 'badge-cyan' : 'badge-gold'} style={{ fontSize: '0.66rem' }}>
+                      {isNavbarVisible ? 'VIEW (TAMPIL)' : 'HIDDEN (SEMBUNYI)'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Mengatur tampil/sembunyinya bar navigasi utama beserta logo, pemilih periode, dan tombol tema di bagian atas halaman.
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleToggleKey('navbar')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: isNavbarVisible ? '#10b981' : '#f43f5e',
+                  color: '#ffffff',
+                  boxShadow: isNavbarVisible ? '0 4px 12px rgba(16, 185, 129, 0.3)' : '0 4px 12px rgba(244, 63, 94, 0.3)'
+                }}
+              >
+                {isNavbarVisible ? <Eye size={15} /> : <EyeOff size={15} />}
+                <span>{isNavbarVisible ? 'Ditampilkan (Klik untuk Hide)' : 'Disembunyikan (Klik untuk View)'}</span>
+              </button>
+            </div>
+
+            {/* 2. Individual Pages Visibility Grid */}
+            <div>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '12px' }}>
+                Daftar Halaman Website ({visiblePagesCount}/{pageItems.length} Aktif):
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px' }}>
+                {pageItems.map((page) => {
+                  const isVisible = pageVisibility[page.id] !== false;
+                  return (
+                    <div
+                      key={page.id}
+                      style={{
+                        padding: '16px 18px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: `1px solid ${isVisible ? 'var(--border-card)' : 'rgba(244, 63, 94, 0.35)'}`,
+                        borderLeft: `4px solid ${isVisible ? '#10b981' : '#f43f5e'}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '14px',
+                        opacity: isVisible ? 1 : 0.85
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                          <strong style={{ fontSize: '0.96rem', color: 'var(--text-main)' }}>
+                            {page.label}
+                          </strong>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: 'var(--radius-full)',
+                            background: isVisible ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+                            color: isVisible ? '#10b981' : '#f43f5e'
+                          }}>
+                            {isVisible ? '● VIEW' : '○ HIDDEN'}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>
+                          {page.desc}
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleKey(page.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '7px 14px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.76rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            border: `1px solid ${isVisible ? 'rgba(244, 63, 94, 0.4)' : 'rgba(16, 185, 129, 0.5)'}`,
+                            background: isVisible ? 'rgba(244, 63, 94, 0.1)' : 'rgba(16, 185, 129, 0.15)',
+                            color: isVisible ? '#f43f5e' : '#10b981'
+                          }}
+                        >
+                          {isVisible ? (
+                            <>
+                              <EyeOff size={13} />
+                              <span>Hide Halaman</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye size={13} />
+                              <span>View Halaman</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* TAB CONTENT: PENGURUS & ANGGOTA (DENGAN NOMOR WA OPSIONAL) */}
       {activeTab === 'members' && (

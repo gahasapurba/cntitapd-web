@@ -22,13 +22,14 @@ export default function Navbar({
   onSelectTenure,
   theme,
   onToggleTheme,
-  forms = []
+  forms = [],
+  pageVisibility = {}
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const isDark = theme === 'dark';
   const activeFormsCount = forms.filter(f => f.isOpen !== false).length;
 
-  const navItems = [
+  const allNavItems = [
     { id: 'home', label: 'Beranda', icon: Building2 },
     { id: 'organisasi', label: 'Organisasi', icon: Users },
     { id: 'program', label: 'Program', icon: Calendar },
@@ -37,8 +38,22 @@ export default function Navbar({
     { id: 'assets', label: 'Asset Logo', icon: Download },
   ];
 
+  const navItems = allNavItems.filter(tab => pageVisibility[tab.id] !== false);
+  const isOprecVisible = pageVisibility.oprec !== false;
+
   const handleSelectTab = (tabId) => {
     setCurrentTab(tabId);
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleLogoClick = () => {
+    if (pageVisibility.home !== false) {
+      setCurrentTab('home');
+    } else if (navItems.length > 0) {
+      setCurrentTab(navItems[0].id);
+    } else if (isOprecVisible) {
+      setCurrentTab('oprec');
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -64,7 +79,7 @@ export default function Navbar({
       }}>
         {/* 1. Left: Brand Logo & Title */}
         <div 
-          onClick={() => setCurrentTab('home')}
+          onClick={handleLogoClick}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -140,59 +155,61 @@ export default function Navbar({
           })}
 
           {/* Highlighted Dynamic Registration / Forms Button */}
-          <button
-            onClick={() => handleSelectTab('oprec')}
-            className={currentTab === 'oprec' ? '' : (activeFormsCount > 0 ? 'pulse-glow' : '')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-full)',
-              background: currentTab === 'oprec' 
-                ? 'var(--mandiri-gold)' 
-                : (activeFormsCount > 0 
-                    ? (isDark ? 'rgba(255, 184, 0, 0.18)' : '#fef3c7')
-                    : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9')),
-              color: currentTab === 'oprec' 
-                ? '#040914' 
-                : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
-              border: `1px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              marginLeft: '4px',
-              flexShrink: 0,
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <UserPlus size={13} />
-            <span>Registrasi & Form</span>
-            {activeFormsCount > 0 ? (
-              <span style={{
-                fontSize: '0.58rem',
-                background: '#b45309',
-                color: '#ffffff',
-                padding: '1px 6px',
-                borderRadius: '10px',
-                fontWeight: 800
-              }}>
-                {activeFormsCount} AKTIF
-              </span>
-            ) : (
-              <span style={{
-                fontSize: '0.58rem',
-                background: 'var(--border-card)',
-                color: 'var(--text-muted)',
-                padding: '1px 5px',
-                borderRadius: '4px',
-                fontWeight: 700
-              }}>
-                CLOSED
-              </span>
-            )}
-          </button>
+          {isOprecVisible && (
+            <button
+              onClick={() => handleSelectTab('oprec')}
+              className={currentTab === 'oprec' ? '' : (activeFormsCount > 0 ? 'pulse-glow' : '')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-full)',
+                background: currentTab === 'oprec' 
+                  ? 'var(--mandiri-gold)' 
+                  : (activeFormsCount > 0 
+                      ? (isDark ? 'rgba(255, 184, 0, 0.18)' : '#fef3c7')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9')),
+                color: currentTab === 'oprec' 
+                  ? '#040914' 
+                  : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
+                border: `1px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                marginLeft: '4px',
+                flexShrink: 0,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <UserPlus size={13} />
+              <span>Registrasi & Form</span>
+              {activeFormsCount > 0 ? (
+                <span style={{
+                  fontSize: '0.58rem',
+                  background: '#b45309',
+                  color: '#ffffff',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontWeight: 800
+                }}>
+                  {activeFormsCount} AKTIF
+                </span>
+              ) : (
+                <span style={{
+                  fontSize: '0.58rem',
+                  background: 'var(--border-card)',
+                  color: 'var(--text-muted)',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  fontWeight: 700
+                }}>
+                  CLOSED
+                </span>
+              )}
+            </button>
+          )}
         </nav>
 
         {/* 3. Right: Tenure Selector, Theme Toggle & Mobile Burger Button */}
@@ -333,59 +350,67 @@ export default function Navbar({
           })}
 
           {/* Dynamic Registration in Mobile Menu */}
-          <button
-            onClick={() => handleSelectTab('oprec')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px',
-              padding: '13px 16px',
-              borderRadius: 'var(--radius-md)',
-              background: currentTab === 'oprec' 
-                ? 'var(--mandiri-gold)' 
-                : (activeFormsCount > 0 
-                    ? (isDark ? 'rgba(255, 184, 0, 0.2)' : '#fef3c7')
-                    : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9')),
-              color: currentTab === 'oprec' 
-                ? '#040914' 
-                : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
-              border: `1.5px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,
-              fontWeight: 800,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              marginTop: '4px',
-              width: '100%'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <UserPlus size={18} />
-              <span>Registrasi & Formulir</span>
+          {isOprecVisible && (
+            <button
+              onClick={() => handleSelectTab('oprec')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+                padding: '13px 16px',
+                borderRadius: 'var(--radius-md)',
+                background: currentTab === 'oprec' 
+                  ? 'var(--mandiri-gold)' 
+                  : (activeFormsCount > 0 
+                      ? (isDark ? 'rgba(255, 184, 0, 0.2)' : '#fef3c7')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9')),
+                color: currentTab === 'oprec' 
+                  ? '#040914' 
+                  : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
+                border: `1.5px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                marginTop: '4px',
+                width: '100%'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <UserPlus size={18} />
+                <span>Registrasi & Formulir</span>
+              </div>
+              {activeFormsCount > 0 ? (
+                <span style={{
+                  fontSize: '0.68rem',
+                  background: '#b45309',
+                  color: '#ffffff',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontWeight: 800
+                }}>
+                  {activeFormsCount} AKTIF
+                </span>
+              ) : (
+                <span style={{
+                  fontSize: '0.68rem',
+                  background: 'var(--border-card)',
+                  color: 'var(--text-muted)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontWeight: 700
+                }}>
+                  CLOSED
+                </span>
+              )}
+            </button>
+          )}
+
+          {navItems.length === 0 && !isOprecVisible && (
+            <div style={{ padding: '12px', textAlign: 'center', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+              Semua menu navigasi halaman sedang disembunyikan oleh Admin.
             </div>
-            {activeFormsCount > 0 ? (
-              <span style={{
-                fontSize: '0.68rem',
-                background: '#b45309',
-                color: '#ffffff',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                fontWeight: 800
-              }}>
-                {activeFormsCount} AKTIF
-              </span>
-            ) : (
-              <span style={{
-                fontSize: '0.68rem',
-                background: 'var(--border-card)',
-                color: 'var(--text-muted)',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                fontWeight: 700
-              }}>
-                CLOSED
-              </span>
-            )}
-          </button>
+          )}
         </div>
       )}
     </header>

@@ -23,9 +23,9 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
   return (
     <div
       onClick={onClick}
-      className="glass-panel glass-panel-hover"
+      className="glass-panel glass-panel-hover crew-member-card"
       style={{
-        padding: compact ? '12px 16px' : '18px 22px',
+        padding: compact ? '14px 18px' : '20px 24px',
         cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',

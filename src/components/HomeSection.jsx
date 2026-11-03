@@ -27,16 +27,21 @@ export default function HomeSection({
   setCurrentTab,
   recruitmentInfo,
   forms = [],
-  theme
+  theme,
+  pageVisibility = {}
 }) {
   const isDark = theme === 'dark';
-  const activeForms = forms.filter(f => f.isOpen !== false);
+  const isOprecVisible = pageVisibility.oprec !== false;
+  const isOrganisasiVisible = pageVisibility.organisasi !== false;
+  const isProgramVisible = pageVisibility.program !== false;
+  const activeForms = isOprecVisible ? forms.filter(f => f.isOpen !== false) : [];
   const primaryForm = activeForms[0] || recruitmentInfo || null;
   const pembina = members.find(m => m.category === 'pembina');
   const ketua = members.find(m => m.role === 'Ketua');
   const wakil = members.find(m => m.role === 'Wakil Ketua');
 
   const handleTabChange = (tabId) => {
+    if (pageVisibility[tabId] === false) return;
     soundFx.playClick();
     setCurrentTab(tabId);
   };
@@ -125,7 +130,7 @@ export default function HomeSection({
           )}
         </p>
 
-        {/* Quick Actions (Cerdas & Dinamis Mengikuti Form Aktif) */}
+        {/* Quick Actions (Cerdas & Dinamis Mengikuti Form Aktif & Visibilitas Page) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '48px' }}>
           {activeForms.length > 0 ? (
             <button
@@ -153,7 +158,7 @@ export default function HomeSection({
               </span>
               <ArrowRight size={18} />
             </button>
-          ) : (
+          ) : isProgramVisible ? (
             <button
               onClick={() => handleTabChange('program')}
               className="pulse-glow"
@@ -175,29 +180,31 @@ export default function HomeSection({
               <span>Jelajahi Program & Kalender</span>
               <ArrowRight size={18} />
             </button>
-          )}
+          ) : null}
 
-          <button
-            onClick={() => handleTabChange('organisasi')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'var(--bg-card)',
-              color: 'var(--text-main)',
-              border: '1.5px solid var(--mandiri-blue)',
-              padding: '16px 28px',
-              borderRadius: 'var(--radius-full)',
-              fontWeight: 800,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-card)',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Compass size={18} color="var(--mandiri-blue)" />
-            <span>Jelajahi Struktur Organisasi</span>
-          </button>
+          {isOrganisasiVisible && (
+            <button
+              onClick={() => handleTabChange('organisasi')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'var(--bg-card)',
+                color: 'var(--text-main)',
+                border: '1.5px solid var(--mandiri-blue)',
+                padding: '16px 28px',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-card)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Compass size={18} color="var(--mandiri-blue)" />
+              <span>Jelajahi Struktur Organisasi</span>
+            </button>
+          )}
         </div>
 
         {/* Quick Stats Grid (Identik dengan presentasi) */}

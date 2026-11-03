@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Lock, EyeOff, Sun, Moon } from 'lucide-react';
 import StarfieldBackground from './components/StarfieldBackground';
 import Navbar from './components/Navbar';
 import HomeSection from './components/HomeSection';
@@ -23,6 +24,19 @@ import {
 } from './data/initialData';
 import DynamicFormSection from './components/DynamicFormSection';
 
+const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'program', 'galeri', 'kudos', 'assets', 'oprec'];
+
+const DEFAULT_PAGE_VISIBILITY = {
+  navbar: true,
+  home: true,
+  organisasi: true,
+  program: true,
+  galeri: true,
+  kudos: true,
+  assets: true,
+  oprec: true
+};
+
 export default function App() {
   // Navigation: 'home' | 'organisasi' | 'program' | 'galeri' | 'kudos' | 'assets' | 'oprec' | 'admin'
   const [currentTab, setCurrentTab] = useState(() => {
@@ -31,6 +45,23 @@ export default function App() {
     }
     return 'home';
   });
+
+  // Page & Navbar Visibility State (View / Hide per page & navbar)
+  const [pageVisibility, setPageVisibility] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cnt_page_visibility');
+      if (saved) {
+        return { ...DEFAULT_PAGE_VISIBILITY, ...JSON.parse(saved) };
+      }
+    } catch (e) {}
+    return DEFAULT_PAGE_VISIBILITY;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cnt_page_visibility', JSON.stringify(pageVisibility));
+    } catch (e) {}
+  }, [pageVisibility]);
 
   // Default theme is LIGHT THEME as requested
   const [theme, setTheme] = useState(() => {
@@ -159,26 +190,172 @@ export default function App() {
     setKudosList((prev) => prev.filter(k => k.id !== kudosId));
   };
 
+  // Determine visible public pages and effective active tab
+  const visiblePublicPages = PUBLIC_PAGE_IDS.filter(id => pageVisibility[id] !== false);
+  const allPagesHidden = visiblePublicPages.length === 0;
+  const isNavbarVisible = pageVisibility.navbar !== false;
+  const isDark = theme === 'dark';
+
+  // If currentTab is a public page that has been hidden, automatically fall back to the first visible page
+  const effectiveTab = currentTab === 'admin'
+    ? 'admin'
+    : (allPagesHidden
+        ? 'all-hidden'
+        : (pageVisibility[currentTab] !== false ? currentTab : visiblePublicPages[0]));
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
       {/* Background Canvas */}
       <StarfieldBackground theme={theme} />
 
-      {/* Responsive Navbar */}
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        tenures={tenures}
-        activeTenure={activeTenure}
-        onSelectTenure={setActiveTenure}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        forms={forms}
-      />
+      {/* Responsive Navbar (Can be toggled View / Hide) */}
+      {isNavbarVisible && (
+        <Navbar
+          currentTab={effectiveTab}
+          setCurrentTab={setCurrentTab}
+          tenures={tenures}
+          activeTenure={activeTenure}
+          onSelectTenure={setActiveTenure}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          forms={forms}
+          pageVisibility={pageVisibility}
+        />
+      )}
+
+      {/* Floating Quick Utility Pill when Navbar is Hidden */}
+      {!isNavbarVisible && currentTab !== 'admin' && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          zIndex: 90,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '6px 10px',
+          borderRadius: 'var(--radius-full)',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-card)',
+          boxShadow: 'var(--shadow-card)',
+          backdropFilter: 'blur(12px)'
+        }}>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={isDark ? 'Ganti ke Light Mode' : 'Ganti ke Dark Mode'}
+            style={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-card)',
+              color: isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+          >
+            {isDark ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentTab('admin')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--mandiri-gold)',
+              color: '#040914',
+              border: 'none',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            <Lock size={12} />
+            <span>Portal Admin</span>
+          </button>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="container" style={{ flex: 1, paddingTop: '32px', position: 'relative', zIndex: 10 }}>
-        {currentTab === 'home' && (
+        {effectiveTab === 'all-hidden' && (
+          <div style={{ maxWidth: '620px', margin: '60px auto 80px auto', textAlign: 'center', padding: '0 16px' }}>
+            <div className="glass-panel" style={{
+              padding: '48px 32px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '18px',
+              border: '1.5px solid var(--border-card)'
+            }}>
+              <img 
+                src={isDark ? "/assets/apd-logo-white.png" : "/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png"} 
+                alt="CNT IT APD Logo"
+                style={{ height: '48px', objectFit: 'contain', marginBottom: '4px' }}
+                onError={(e) => {
+                  e.currentTarget.src = "/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png";
+                }}
+              />
+
+              <div style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                background: 'rgba(255, 184, 0, 0.14)',
+                border: '1px solid rgba(255, 184, 0, 0.4)',
+                color: 'var(--mandiri-gold)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <EyeOff size={28} />
+              </div>
+
+              <span className="badge-gold">
+                Mode Standby • Halaman Disembunyikan
+              </span>
+
+              <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                Seluruh Halaman Sedang Disembunyikan
+              </h2>
+
+              <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.65, maxWidth: '480px', margin: 0 }}>
+                Saat ini seluruh halaman publik portal <strong>Culture Network Team (CNT) IT APD</strong> sedang dinonaktifkan sementara oleh pengurus. Jika Anda adalah pengurus/admin, silakan masuk ke Portal Pengurus untuk mengaktifkan kembali visibilitas halaman.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setCurrentTab('admin')}
+                style={{
+                  marginTop: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 28px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 18px rgba(255, 184, 0, 0.35)'
+                }}
+              >
+                <Lock size={16} />
+                <span>Buka Portal Pengurus (Admin)</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {effectiveTab === 'home' && (
           <HomeSection
             activeTenure={activeTenure}
             divisions={divisions}
@@ -187,10 +364,11 @@ export default function App() {
             setCurrentTab={setCurrentTab}
             forms={forms}
             theme={theme}
+            pageVisibility={pageVisibility}
           />
         )}
 
-        {currentTab === 'organisasi' && (
+        {effectiveTab === 'organisasi' && (
           <OrganizationSection
             activeTenure={activeTenure}
             divisions={divisions}
@@ -199,7 +377,7 @@ export default function App() {
           />
         )}
 
-        {currentTab === 'program' && (
+        {effectiveTab === 'program' && (
           <ProgramSection
             events={events}
             divisions={divisions}
@@ -207,14 +385,14 @@ export default function App() {
           />
         )}
 
-        {currentTab === 'galeri' && (
+        {effectiveTab === 'galeri' && (
           <GallerySection
             galleries={galleries}
             theme={theme}
           />
         )}
 
-        {currentTab === 'kudos' && (
+        {effectiveTab === 'kudos' && (
           <KudosSection
             kudosList={kudosList}
             onAddKudos={handleAddKudos}
@@ -222,11 +400,11 @@ export default function App() {
           />
         )}
 
-        {currentTab === 'assets' && (
+        {effectiveTab === 'assets' && (
           <AssetKitSection theme={theme} />
         )}
 
-        {currentTab === 'oprec' && (
+        {effectiveTab === 'oprec' && (
           <DynamicFormSection
             forms={forms}
             divisions={divisions}
@@ -236,9 +414,9 @@ export default function App() {
           />
         )}
 
-        {currentTab === 'admin' && (
+        {effectiveTab === 'admin' && (
           <AdminPortal
-            onBack={() => setCurrentTab('home')}
+            onBack={() => setCurrentTab(visiblePublicPages[0] || 'home')}
             tenures={tenures}
             onAddTenure={handleAddTenure}
             onUpdateTenure={handleUpdateTenure}
@@ -256,7 +434,7 @@ export default function App() {
             galleries={galleries}
             onAddGallery={handleAddGallery}
             onUpdateGallery={handleUpdateGallery}
-            onDeleteGallery={handleDeleteGallery}
+            onDeleteGallery={handleUpdateGallery ? handleDeleteGallery : undefined}
             members={members}
             onAddMember={handleAddMember}
             onUpdateMember={handleUpdateMember}
@@ -268,6 +446,8 @@ export default function App() {
             kudosList={kudosList}
             onUpdateKudos={handleUpdateKudos}
             onDeleteKudos={handleDeleteKudos}
+            pageVisibility={pageVisibility}
+            onUpdatePageVisibility={setPageVisibility}
           />
         )}
       </main>
