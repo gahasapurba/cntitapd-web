@@ -362,6 +362,12 @@ export default function App() {
     });
   };
   const handleUpdateGallery = (updatedGal) => {
+    const oldGal = galleries.find(g => g.id === updatedGal.id);
+    if (oldGal && Array.isArray(oldGal.photos)) {
+      const currentPhotos = Array.isArray(updatedGal.photos) ? updatedGal.photos : [];
+      const removedPhotos = oldGal.photos.filter(p => !currentPhotos.includes(p));
+      removedPhotos.forEach(p => deleteMediaFromCloud(p));
+    }
     setGalleries((prev) => {
       const next = prev.map(g => g.id === updatedGal.id ? updatedGal : g);
       pushCloudState('galleries', next);
@@ -396,6 +402,10 @@ export default function App() {
     }
   };
   const handleUpdateMember = (updatedMem) => {
+    const oldMem = members.find(m => m.id === updatedMem.id);
+    if (oldMem?.image && oldMem.image !== updatedMem.image) {
+      deleteMediaFromCloud(oldMem.image);
+    }
     setMembers((prev) => {
       const next = prev.map(m => m.id === updatedMem.id ? updatedMem : m);
       pushCloudState('members', next);
@@ -489,6 +499,17 @@ export default function App() {
     if (Array.isArray(merged)) setSubmissions(merged);
   };
   const handleUpdateSubmission = (updatedSub) => {
+    const oldSub = submissions.find(s => s.id === updatedSub.id);
+    if (oldSub?.files && typeof oldSub.files === 'object') {
+      const newUrls = updatedSub.files && typeof updatedSub.files === 'object'
+        ? Object.values(updatedSub.files).map(f => f?.url).filter(Boolean)
+        : [];
+      Object.values(oldSub.files).forEach(f => {
+        if (f?.url && !newUrls.includes(f.url)) {
+          deleteMediaFromCloud(f.url);
+        }
+      });
+    }
     setSubmissions((prev) => {
       const next = prev.map(s => s.id === updatedSub.id ? updatedSub : s);
       pushCloudState('submissions', next);
@@ -518,6 +539,15 @@ export default function App() {
     });
   };
   const handleUpdateBrandAsset = (updatedAsset) => {
+    const oldAsset = brandAssets.find(a => a.id === updatedAsset.id);
+    if (oldAsset) {
+      if (oldAsset.fileUrl && oldAsset.fileUrl !== updatedAsset.fileUrl) {
+        deleteMediaFromCloud(oldAsset.fileUrl);
+      }
+      if (oldAsset.previewUrl && oldAsset.previewUrl !== updatedAsset.previewUrl && oldAsset.previewUrl !== updatedAsset.fileUrl) {
+        deleteMediaFromCloud(oldAsset.previewUrl);
+      }
+    }
     setBrandAssets((prev) => {
       const next = prev.map(a => a.id === updatedAsset.id ? updatedAsset : a);
       pushCloudState('brandAssets', next);
