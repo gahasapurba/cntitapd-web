@@ -67,7 +67,6 @@ export default function AdminModal({
     setNewDivLead('');
     setNewDivDesc('');
     setNewDivFocus('');
-    alert(`Divisi "${newDivName}" berhasil ditambahkan secara dinamis!`);
   };
 
   const handleCreateTenure = (e) => {
@@ -85,7 +84,6 @@ export default function AdminModal({
     setNewTenureCode('');
     setNewTenureTitle('');
     setNewTenureTagline('');
-    alert(`Periode Kepengurusan "${newTenureCode}" berhasil dibuat! Anda dapat mengarsipkannya kapan saja.`);
   };
 
   const handleSaveRecruitment = () => {
@@ -94,7 +92,6 @@ export default function AdminModal({
       isOpen: isRecruitOpen,
       deadline: recruitDeadline
     });
-    alert('Pengaturan Open Recruitment berhasil diperbarui!');
   };
 
   return (
@@ -206,7 +203,7 @@ export default function AdminModal({
                 </p>
               </div>
 
-              <form onSubmit={handleCreateDivision} style={{
+              <form onSubmit={handleCreateDivision} noValidate style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: '16px',
@@ -221,7 +218,6 @@ export default function AdminModal({
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="Contoh: Social Impact & Sustainability"
                     value={newDivName}
                     onChange={(e) => setNewDivName(e.target.value)}
@@ -367,7 +363,7 @@ export default function AdminModal({
                 </p>
               </div>
 
-              <form onSubmit={handleCreateTenure} style={{
+              <form onSubmit={handleCreateTenure} noValidate style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 2fr',
                 gap: '12px',
@@ -377,7 +373,6 @@ export default function AdminModal({
               }}>
                 <input
                   type="text"
-                  required
                   placeholder="Kode Tahun (misal: 2027)"
                   value={newTenureCode}
                   onChange={(e) => setNewTenureCode(e.target.value)}

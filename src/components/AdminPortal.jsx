@@ -18,6 +18,7 @@ import {
   EyeOff,
   Edit2,
   AlertTriangle,
+  AlertCircle,
   Users,
   Heart,
   X,
@@ -111,6 +112,26 @@ export default function AdminPortal({
     }, 3800);
   };
 
+  // Custom Inline Field Validation State (replaces native browser required tooltips)
+  const [formErrors, setFormErrors] = useState({});
+  const clearFieldError = (fieldKey) => {
+    setFormErrors((prev) => {
+      if (!prev[fieldKey]) return prev;
+      const next = { ...prev };
+      delete next[fieldKey];
+      return next;
+    });
+  };
+  const renderFieldError = (fieldKey) => {
+    if (!formErrors[fieldKey]) return null;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#f43f5e', fontSize: '0.75rem', marginTop: '5px', fontWeight: 600 }}>
+        <AlertCircle size={13} />
+        <span>{formErrors[fieldKey]}</span>
+      </div>
+    );
+  };
+
   // Admin Dashboard Tabs: 'members' | 'gallery' | 'divisions' | 'tenure' | 'recruitment' | 'applicants'
   const [activeTab, setActiveTab] = useState('members');
 
@@ -175,7 +196,16 @@ export default function AdminPortal({
 
   const handleCreateEvent = (e) => {
     e.preventDefault();
-    if (!eventTitle.trim()) return;
+    const errs = {};
+    if (!eventTitle.trim()) errs.eventTitle = 'Nama Program / Event wajib diisi';
+    if (!eventStartDate) errs.eventStartDate = 'Tanggal Mulai wajib dipilih';
+    if (!eventEndDate) errs.eventEndDate = 'Tanggal Berakhir wajib dipilih';
+    if (!eventDesc.trim()) errs.eventDesc = 'Deskripsi Program Kerja wajib diisi';
+    if (Object.keys(errs).length > 0) {
+      setFormErrors((prev) => ({ ...prev, ...errs }));
+      showToast('Mohon lengkapi kolom wajib pada form Program Kerja', 'error');
+      return;
+    }
 
     const divObj = divisions.find(d => d.id === eventDivId);
 
@@ -230,6 +260,13 @@ export default function AdminPortal({
   // Secure SHA-256 Authentication (Zero plaintext in code)
   const handleLogin = async (e) => {
     e.preventDefault();
+    const errs = {};
+    if (!username.trim()) errs.loginUsername = 'Username wajib diisi';
+    if (!password) errs.loginPassword = 'Password wajib diisi';
+    if (Object.keys(errs).length > 0) {
+      setFormErrors((prev) => ({ ...prev, ...errs }));
+      return;
+    }
     try {
       const uHash = await sha256(username.trim());
       const pHash = await sha256(password);
@@ -237,6 +274,7 @@ export default function AdminPortal({
       if (uHash === ADMIN_USER_HASH && pHash === ADMIN_PASS_HASH) {
         setIsAuthenticated(true);
         setLoginError('');
+        setFormErrors({});
       } else {
         setLoginError('Username atau password salah');
       }
@@ -264,7 +302,11 @@ export default function AdminPortal({
 
   const handleCreateMember = (e) => {
     e.preventDefault();
-    if (!memName.trim()) return;
+    if (!memName.trim()) {
+      setFormErrors((prev) => ({ ...prev, memName: 'Nama Lengkap pengurus/anggota wajib diisi' }));
+      showToast('Mohon isi Nama Lengkap pengurus/anggota', 'error');
+      return;
+    }
 
     const divObj = divisions.find(d => d.id === memDivisionId);
     const color = divObj?.color || '#FFB800';
@@ -296,7 +338,11 @@ export default function AdminPortal({
 
   const handleCreateDivision = (e) => {
     e.preventDefault();
-    if (!newDivName.trim()) return;
+    if (!newDivName.trim()) {
+      setFormErrors((prev) => ({ ...prev, newDivName: 'Nama Divisi wajib diisi' }));
+      showToast('Mohon isi Nama Divisi terlebih dahulu', 'error');
+      return;
+    }
 
     onAddDivision({
       id: 'div-' + Date.now(),
@@ -323,7 +369,11 @@ export default function AdminPortal({
 
   const handleCreateTenure = (e) => {
     e.preventDefault();
-    if (!newTenureCode.trim()) return;
+    if (!newTenureCode.trim()) {
+      setFormErrors((prev) => ({ ...prev, newTenureCode: 'Kode Tahun Kepengurusan wajib diisi' }));
+      showToast('Mohon isi Kode Tahun Kepengurusan', 'error');
+      return;
+    }
 
     onAddTenure({
       id: 'tenure-' + newTenureCode,
@@ -392,7 +442,14 @@ export default function AdminPortal({
 
   const handleCreateGallery = (e) => {
     e.preventDefault();
-    if (!galTitle.trim() || !galDesc.trim()) return;
+    const errs = {};
+    if (!galTitle.trim()) errs.galTitle = 'Judul Kegiatan wajib diisi';
+    if (!galDesc.trim()) errs.galDesc = 'Deskripsi Singkat Acara wajib diisi';
+    if (Object.keys(errs).length > 0) {
+      setFormErrors((prev) => ({ ...prev, ...errs }));
+      showToast('Mohon lengkapi Judul dan Deskripsi Kegiatan', 'error');
+      return;
+    }
 
     // Photos from text URL input + locally uploaded photos
     const urlPhotos = galPhotos.trim() 
@@ -498,47 +555,52 @@ export default function AdminPortal({
             </div>
           )}
 
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <form onSubmit={handleLogin} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Username
+                Username <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="Masukkan Username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  clearFieldError('loginUsername');
+                }}
                 style={{
                   width: '100%',
                   padding: '11px 14px',
                   borderRadius: 'var(--radius-md)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.loginUsername ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   outline: 'none',
                   fontSize: '0.9rem'
                 }}
               />
+              {renderFieldError('loginUsername')}
             </div>
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Password
+                Password <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  required
                   placeholder="Masukkan Password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    clearFieldError('loginPassword');
+                  }}
                   style={{
                     width: '100%',
                     padding: '11px 44px 11px 14px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--input-bg)',
-                    border: '1px solid var(--border-card)',
+                    border: `1.5px solid ${formErrors.loginPassword ? '#f43f5e' : 'var(--border-card)'}`,
                     color: 'var(--text-main)',
                     outline: 'none',
                     fontSize: '0.9rem'
@@ -564,6 +626,7 @@ export default function AdminPortal({
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {renderFieldError('loginPassword')}
             </div>
 
             <button
@@ -1104,7 +1167,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          <form onSubmit={handleCreateMember} className="admin-form-two-col" style={{
+          <form onSubmit={handleCreateMember} noValidate className="admin-form-two-col" style={{
             background: 'rgba(255,255,255,0.03)',
             padding: '20px',
             borderRadius: 'var(--radius-md)',
@@ -1112,24 +1175,27 @@ export default function AdminPortal({
           }}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Nama Lengkap *
+                Nama Lengkap <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="Contoh: Raden Bagus Prakoso"
                 value={memName}
-                onChange={(e) => setMemName(e.target.value)}
+                onChange={(e) => {
+                  setMemName(e.target.value);
+                  clearFieldError('memName');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.memName ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('memName')}
             </div>
 
             <div>
@@ -1418,7 +1484,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          <form onSubmit={handleCreateEvent} className="admin-form-two-col" style={{
+          <form onSubmit={handleCreateEvent} noValidate className="admin-form-two-col" style={{
             background: 'rgba(255,255,255,0.03)',
             padding: '20px',
             borderRadius: 'var(--radius-md)',
@@ -1426,29 +1492,32 @@ export default function AdminPortal({
           }}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Nama Program / Event *
+                Nama Program / Event <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="Contoh: APD E-Sports Championship"
                 value={eventTitle}
-                onChange={(e) => setEventTitle(e.target.value)}
+                onChange={(e) => {
+                  setEventTitle(e.target.value);
+                  clearFieldError('eventTitle');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.eventTitle ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('eventTitle')}
             </div>
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Divisi Penyelenggara *
+                Divisi Penyelenggara <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <select
                 value={eventDivId}
@@ -1471,44 +1540,50 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                📅 Tanggal Mulai *
+                📅 Tanggal Mulai <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="date"
-                required
                 value={eventStartDate}
-                onChange={(e) => setEventStartDate(e.target.value)}
+                onChange={(e) => {
+                  setEventStartDate(e.target.value);
+                  clearFieldError('eventStartDate');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.eventStartDate ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('eventStartDate')}
             </div>
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                📅 Tanggal Berakhir *
+                📅 Tanggal Berakhir <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="date"
-                required
                 value={eventEndDate}
-                onChange={(e) => setEventEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEventEndDate(e.target.value);
+                  clearFieldError('eventEndDate');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.eventEndDate ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('eventEndDate')}
             </div>
 
             <div>
@@ -1555,25 +1630,28 @@ export default function AdminPortal({
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Deskripsi Program Kerja *
+                Deskripsi Program Kerja <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <textarea
                 rows={3}
-                required
                 placeholder="Jelaskan tujuan dan gambaran pelaksanaan program kerja..."
                 value={eventDesc}
-                onChange={(e) => setEventDesc(e.target.value)}
+                onChange={(e) => {
+                  setEventDesc(e.target.value);
+                  clearFieldError('eventDesc');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.eventDesc ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem',
                   resize: 'vertical'
                 }}
               />
+              {renderFieldError('eventDesc')}
             </div>
 
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
@@ -1708,7 +1786,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          <form onSubmit={handleCreateGallery} className="admin-form-two-col" style={{
+          <form onSubmit={handleCreateGallery} noValidate className="admin-form-two-col" style={{
             background: 'rgba(255,255,255,0.03)',
             padding: '20px',
             borderRadius: 'var(--radius-md)',
@@ -1716,24 +1794,27 @@ export default function AdminPortal({
           }}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Judul Kegiatan *
+                Judul Kegiatan <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="Contoh: IT APD Fun Run 5K Gelora Mandiri"
                 value={galTitle}
-                onChange={(e) => setGalTitle(e.target.value)}
+                onChange={(e) => {
+                  setGalTitle(e.target.value);
+                  clearFieldError('galTitle');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.galTitle ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('galTitle')}
             </div>
 
             <div>
@@ -1782,24 +1863,27 @@ export default function AdminPortal({
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Deskripsi Singkat Acara *
+                Deskripsi Singkat Acara <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <textarea
-                required
                 rows={3}
                 placeholder="Ceritakan keseruan acara dan antusiasme insan IT APD..."
                 value={galDesc}
-                onChange={(e) => setGalDesc(e.target.value)}
+                onChange={(e) => {
+                  setGalDesc(e.target.value);
+                  clearFieldError('galDesc');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.galDesc ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('galDesc')}
             </div>
 
             <div style={{ gridColumn: 'span 2' }}>
@@ -2120,7 +2204,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          <form onSubmit={handleCreateDivision} style={{
+          <form onSubmit={handleCreateDivision} noValidate style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '16px',
@@ -2131,24 +2215,27 @@ export default function AdminPortal({
           }}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Nama Divisi *
+                Nama Divisi <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="Contoh: Social Impact & Sustainability"
                 value={newDivName}
-                onChange={(e) => setNewDivName(e.target.value)}
+                onChange={(e) => {
+                  setNewDivName(e.target.value);
+                  clearFieldError('newDivName');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.newDivName ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('newDivName')}
             </div>
 
             <div>
@@ -2320,7 +2407,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          <form onSubmit={handleCreateTenure} style={{
+          <form onSubmit={handleCreateTenure} noValidate style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '12px',
@@ -2331,24 +2418,27 @@ export default function AdminPortal({
           }}>
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Kode Tahun *
+                Kode Tahun <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="misal: 2027"
                 value={newTenureCode}
-                onChange={(e) => setNewTenureCode(e.target.value)}
+                onChange={(e) => {
+                  setNewTenureCode(e.target.value);
+                  clearFieldError('newTenureCode');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
+                  border: `1.5px solid ${formErrors.newTenureCode ? '#f43f5e' : 'var(--input-border)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('newTenureCode')}
             </div>
 
             <div>
@@ -2579,9 +2669,14 @@ export default function AdminPortal({
 
           {/* Form Creator */}
           <form 
+            noValidate
             onSubmit={(e) => {
               e.preventDefault();
-              if (!newFormTitle.trim()) return;
+              if (!newFormTitle.trim()) {
+                setFormErrors((prev) => ({ ...prev, newFormTitle: 'Judul Formulir wajib diisi' }));
+                showToast('Mohon isi Judul Formulir terlebih dahulu', 'error');
+                return;
+              }
 
               const newForm = {
                 id: 'form-' + Date.now(),
@@ -2625,16 +2720,19 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Judul Formulir *
+                Judul Formulir <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="Contoh: Pendaftaran Workshop AI Agent Mandiri"
                 value={newFormTitle}
-                onChange={(e) => setNewFormTitle(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                onChange={(e) => {
+                  setNewFormTitle(e.target.value);
+                  clearFieldError('newFormTitle');
+                }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.newFormTitle ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
               />
+              {renderFieldError('newFormTitle')}
             </div>
 
             <div>
@@ -3794,6 +3892,20 @@ export default function AdminPortal({
               <button
                 type="button"
                 onClick={() => {
+                  const it = editingItem.item || {};
+                  if ((editingItem.type === 'member' || editingItem.type === 'division') && !(it.name || '').trim()) {
+                    showToast('Nama wajib diisi sebelum menyimpan perubahan', 'error');
+                    return;
+                  }
+                  if ((editingItem.type === 'gallery' || editingItem.type === 'tenure' || editingItem.type === 'form' || editingItem.type === 'event') && !(it.title || '').trim()) {
+                    showToast('Judul wajib diisi sebelum menyimpan perubahan', 'error');
+                    return;
+                  }
+                  if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {
+                    showToast('Pengirim, penerima, dan pesan apresiasi wajib diisi', 'error');
+                    return;
+                  }
+
                   if (editingItem.type === 'member' && onUpdateMember) onUpdateMember(editingItem.item);
                   if (editingItem.type === 'division' && onUpdateDivision) onUpdateDivision(editingItem.item);
                   if (editingItem.type === 'gallery' && onUpdateGallery) onUpdateGallery(editingItem.item);
