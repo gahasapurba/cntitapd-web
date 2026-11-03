@@ -12,11 +12,12 @@ import {
   Filter
 } from 'lucide-react';
 
-export default function GallerySection({ galleries = [], divisions = [] }) {
+export default function GallerySection({ galleries = [], divisions = [], activeTenure = null }) {
   const [selectedGalleryId, setSelectedGalleryId] = useState(null);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [divFilter, setDivFilter] = useState('all');
+  const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
 
   const uniqueDivisions = Array.from(
     new Set([
@@ -25,7 +26,15 @@ export default function GallerySection({ galleries = [], divisions = [] }) {
     ])
   );
 
-  const filteredGalleries = galleries.filter(g => {
+  const hasTenureGalleries = activeTenure?.id
+    ? galleries.some(g => !g.tenureId || g.tenureId === activeTenure.id)
+    : false;
+
+  const scopedGalleries = (tenureFilter === 'active' && activeTenure?.id && hasTenureGalleries)
+    ? galleries.filter(g => !g.tenureId || g.tenureId === activeTenure.id)
+    : galleries;
+
+  const filteredGalleries = scopedGalleries.filter(g => {
     const matchesDiv = divFilter === 'all' || g.division === divFilter;
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch = !q ||
@@ -261,8 +270,57 @@ export default function GallerySection({ galleries = [], divisions = [] }) {
             Daftar Arsip Dokumentasi Kegiatan ({filteredGalleries.length}):
           </h3>
 
-          {/* Search & Division Filter */}
+          {/* Search, Tenure & Division Filter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {activeTenure && (
+              <div style={{
+                display: 'inline-flex',
+                background: 'var(--input-bg)',
+                padding: '3px',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid var(--border-card)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTenureFilter('active');
+                    setCurrentPhotoIdx(0);
+                  }}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    background: tenureFilter === 'active' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                    color: tenureFilter === 'active' ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Periode {activeTenure.code || activeTenure.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTenureFilter('all');
+                    setCurrentPhotoIdx(0);
+                  }}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    background: tenureFilter === 'all' ? 'rgba(255, 184, 0, 0.2)' : 'transparent',
+                    color: tenureFilter === 'all' ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Semua ({galleries.length})
+                </button>
+              </div>
+            )}
+
             <div style={{ position: 'relative', minWidth: '210px' }}>
               <Search size={14} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input

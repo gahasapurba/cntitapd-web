@@ -770,6 +770,7 @@ export const RECRUITMENT_INFO = {
 export const INITIAL_GALLERIES = [
   {
     id: 'gal-1',
+    tenureId: 'tenure-2026',
     title: 'Townhall & Kick-Off Budaya Group IT APD 2026',
     date: 'Januari 2026',
     division: 'Experience & Activity',
@@ -787,6 +788,7 @@ export const INITIAL_GALLERIES = [
   },
   {
     id: 'gal-2',
+    tenureId: 'tenure-2026',
     title: 'Setup Creative Media Studio & Production Gear',
     date: 'Februari 2026',
     division: 'Creative Media',
@@ -800,6 +802,27 @@ export const INITIAL_GALLERIES = [
     docLinks: [
       { text: 'Raw Footage & Video Rekaman Tim', url: 'https://bankmandiri.co.id' }
     ]
+  }
+];
+
+export const INITIAL_ASPIRASI = [
+  {
+    id: 'asp-seed-1',
+    sender: 'Officer Squad Retail APD',
+    text: 'Adakan sesi sharing santai bulanan membahas pemanfaatan AI Coding Assistant dan best practice microservice antar squad.',
+    submittedAt: '02 November 2026 • 14:20 WIB',
+    status: 'Sudah Direalisasikan',
+    adminReply: 'Terima kasih idenya! Sudah kami masukkan ke dalam agenda Upskilling Tech Masterclass & AI Sharing Session bersama divisi Talent & Interest.',
+    isPublic: true
+  },
+  {
+    id: 'asp-seed-2',
+    sender: 'Insan Core Banking APD',
+    text: 'Sediakan turnamen mini badminton atau futsal lintas squad setiap akhir kuartal supaya makin akrab.',
+    submittedAt: '03 November 2026 • 09:15 WIB',
+    status: 'Masuk Rencana Proker',
+    adminReply: 'Siap! Sudah dijadwalkan dalam kalender Mandiri APD Sport League oleh divisi Wellbeing & Community.',
+    isPublic: true
   }
 ];
 

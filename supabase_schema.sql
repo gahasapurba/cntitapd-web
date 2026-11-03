@@ -98,6 +98,7 @@ CREATE TABLE public.events (
 -- 5. Tabel Galeri Dokumentasi Kegiatan (galleries)
 CREATE TABLE public.galleries (
     id TEXT PRIMARY KEY,
+    tenure_id TEXT DEFAULT 'tenure-2026',
     title TEXT NOT NULL,
     date TEXT,
     division TEXT,
@@ -125,8 +126,12 @@ CREATE TABLE public.kudos (
 -- 7. Tabel Kotak Ide & Aspirasi Budaya (aspirasi)
 CREATE TABLE public.aspirasi (
     id TEXT PRIMARY KEY,
+    sender TEXT DEFAULT 'Anonim',
     text TEXT NOT NULL,
     submitted_at TEXT,
+    status TEXT NOT NULL DEFAULT 'Menunggu Review',
+    admin_reply TEXT DEFAULT '',
+    is_public BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 

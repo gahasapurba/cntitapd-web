@@ -188,6 +188,7 @@ export const rowMappers = {
   galleries: {
     toDb: (item, idx = 0) => ({
       id: String(item.id),
+      tenure_id: item.tenureId || 'tenure-2026',
       title: item.title || '',
       date: item.date || '',
       division: item.division || '',
@@ -198,6 +199,7 @@ export const rowMappers = {
     }),
     fromDb: (row) => ({
       id: row.id,
+      tenureId: row.tenure_id || 'tenure-2026',
       title: row.title,
       date: row.date,
       division: row.division,
@@ -234,13 +236,21 @@ export const rowMappers = {
   aspirasiList: {
     toDb: (item) => ({
       id: String(item.id),
+      sender: item.sender || 'Anonim',
       text: item.text || '',
-      submitted_at: item.submittedAt || ''
+      submitted_at: item.submittedAt || '',
+      status: item.status || 'Menunggu Review',
+      admin_reply: item.adminReply || '',
+      is_public: item.isPublic !== false
     }),
     fromDb: (row) => ({
       id: row.id,
+      sender: row.sender || 'Anonim',
       text: row.text,
-      submittedAt: row.submitted_at
+      submittedAt: row.submitted_at,
+      status: row.status || 'Menunggu Review',
+      adminReply: row.admin_reply || '',
+      isPublic: row.is_public !== false
     })
   },
 

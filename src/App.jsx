@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Lock, EyeOff, Sun, Moon } from 'lucide-react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import { Lock, EyeOff, Sun, Moon, Search, X, Users, Calendar, Image as ImageIcon, ClipboardList, Download, ChevronRight } from 'lucide-react';
 import StarfieldBackground from './components/StarfieldBackground';
 import Navbar from './components/Navbar';
 import HomeSection from './components/HomeSection';
-import OrganizationSection from './components/OrganizationSection';
-import ProgramSection from './components/ProgramSection';
-import GallerySection from './components/GallerySection';
-import KudosSection from './components/KudosSection';
-import AssetKitSection from './components/AssetKitSection';
-import RecruitmentSection from './components/RecruitmentSection';
-import AdminPortal from './components/AdminPortal';
 import Footer from './components/Footer';
+
+const OrganizationSection = lazy(() => import('./components/OrganizationSection'));
+const ProgramSection = lazy(() => import('./components/ProgramSection'));
+const GallerySection = lazy(() => import('./components/GallerySection'));
+const KudosSection = lazy(() => import('./components/KudosSection'));
+const AssetKitSection = lazy(() => import('./components/AssetKitSection'));
+const DynamicFormSection = lazy(() => import('./components/DynamicFormSection'));
+const AdminPortal = lazy(() => import('./components/AdminPortal'));
 
 import { 
   INITIAL_TENURES, 
@@ -18,12 +19,12 @@ import {
   INITIAL_MEMBERS, 
   INITIAL_EVENTS, 
   INITIAL_KUDOS, 
+  INITIAL_ASPIRASI,
   INITIAL_GALLERIES,
   INITIAL_FORMS,
   INITIAL_SUBMISSIONS,
   INITIAL_BRAND_ASSETS
 } from './data/initialData';
-import DynamicFormSection from './components/DynamicFormSection';
 import {
   supabase,
   loadLocalCache,
@@ -146,9 +147,25 @@ export default function App() {
   const [kudosList, setKudosList] = useState(() => loadLocalCache('kudosList', INITIAL_KUDOS));
   const [forms, setForms] = useState(() => loadLocalCache('forms', INITIAL_FORMS));
   const [submissions, setSubmissions] = useState(() => loadLocalCache('submissions', INITIAL_SUBMISSIONS));
-  const [aspirasiList, setAspirasiList] = useState(() => loadLocalCache('aspirasiList', []));
+  const [aspirasiList, setAspirasiList] = useState(() => loadLocalCache('aspirasiList', INITIAL_ASPIRASI));
   const [brandAssets, setBrandAssets] = useState(() => loadLocalCache('brandAssets', INITIAL_BRAND_ASSETS));
   const [syncStatus, setSyncStatus] = useState('synced');
+  const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
+  const [quickSearchQuery, setQuickSearchQuery] = useState('');
+
+  // Global keyboard shortcut Ctrl+K / Cmd+K for Quick Search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsQuickSearchOpen(prev => !prev);
+      } else if (e.key === 'Escape') {
+        setIsQuickSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Pull & Reconcile Cloud State across devices
   const syncFromCloud = useCallback(async () => {
@@ -235,6 +252,20 @@ export default function App() {
       pushCloudState('divisions', next);
       return next;
     });
+    // Auto-sync Pimpro name if leadName changed on Division
+    if (updatedDiv.leadName) {
+      setMembers((prev) => {
+        const hasPimpro = prev.some(m => m.category === 'pimpro' && m.divisionId === updatedDiv.id);
+        if (!hasPimpro) return prev;
+        const next = prev.map(m =>
+          (m.category === 'pimpro' && m.divisionId === updatedDiv.id)
+            ? { ...m, name: updatedDiv.leadName }
+            : m
+        );
+        pushCloudState('members', next);
+        return next;
+      });
+    }
   };
   const handleDeleteDivision = (divId) => {
     setDivisions((prev) => {
@@ -306,6 +337,14 @@ export default function App() {
       pushCloudState('members', next);
       return next;
     });
+    // Auto-sync Division leadName when adding a Pimpro
+    if (newMem.category === 'pimpro' && newMem.divisionId && newMem.name) {
+      setDivisions((prev) => {
+        const next = prev.map(d => d.id === newMem.divisionId ? { ...d, leadName: newMem.name } : d);
+        pushCloudState('divisions', next);
+        return next;
+      });
+    }
   };
   const handleUpdateMember = (updatedMem) => {
     setMembers((prev) => {
@@ -313,6 +352,14 @@ export default function App() {
       pushCloudState('members', next);
       return next;
     });
+    // Auto-sync Division leadName when updating a Pimpro
+    if (updatedMem.category === 'pimpro' && updatedMem.divisionId && updatedMem.name) {
+      setDivisions((prev) => {
+        const next = prev.map(d => d.id === updatedMem.divisionId ? { ...d, leadName: updatedMem.name } : d);
+        pushCloudState('divisions', next);
+        return next;
+      });
+    }
   };
   const handleDeleteMember = (memId) => {
     setMembers((prev) => {
@@ -457,6 +504,13 @@ export default function App() {
     const merged = await mergeAndPushCloudList('aspirasiList', newAsp, aspirasiList);
     if (Array.isArray(merged)) setAspirasiList(merged);
   };
+  const handleUpdateAspirasi = (updatedAsp) => {
+    setAspirasiList((prev) => {
+      const next = prev.map(a => a.id === updatedAsp.id ? updatedAsp : a);
+      pushCloudState('aspirasiList', next);
+      return next;
+    });
+  };
   const handleDeleteAspirasi = (aspId) => {
     setAspirasiList((prev) => {
       const next = prev.filter(a => a.id !== aspId);
@@ -476,7 +530,7 @@ export default function App() {
     setKudosList(INITIAL_KUDOS);
     setForms(INITIAL_FORMS);
     setSubmissions(INITIAL_SUBMISSIONS);
-    setAspirasiList([]);
+    setAspirasiList(INITIAL_ASPIRASI);
     setBrandAssets(INITIAL_BRAND_ASSETS);
     setPageVisibilityState(DEFAULT_PAGE_VISIBILITY);
     try { localStorage.setItem('cnt_page_visibility', JSON.stringify(DEFAULT_PAGE_VISIBILITY)); } catch (e) {}
@@ -491,7 +545,7 @@ export default function App() {
       pushCloudState('kudosList', INITIAL_KUDOS),
       pushCloudState('forms', INITIAL_FORMS),
       pushCloudState('submissions', INITIAL_SUBMISSIONS),
-      pushCloudState('aspirasiList', []),
+      pushCloudState('aspirasiList', INITIAL_ASPIRASI),
       pushCloudState('brandAssets', INITIAL_BRAND_ASSETS),
       pushCloudState('pageVisibility', DEFAULT_PAGE_VISIBILITY)
     ]);
@@ -527,6 +581,7 @@ export default function App() {
           onToggleTheme={toggleTheme}
           forms={forms}
           pageVisibility={pageVisibility}
+          onOpenQuickSearch={() => setIsQuickSearchOpen(true)}
         />
       )}
 
@@ -675,111 +730,455 @@ export default function App() {
           />
         )}
 
-        {effectiveTab === 'organisasi' && (
-          <OrganizationSection
-            activeTenure={activeTenure}
-            divisions={divisions}
-            members={members}
-            theme={theme}
-          />
-        )}
+        <Suspense
+          fallback={
+            <div style={{ padding: '80px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.92rem' }}>
+              Memuat halaman CNT IT APD...
+            </div>
+          }
+        >
+          {effectiveTab === 'organisasi' && (
+            <OrganizationSection
+              activeTenure={activeTenure}
+              divisions={divisions}
+              members={members}
+              theme={theme}
+            />
+          )}
 
-        {effectiveTab === 'program' && (
-          <ProgramSection
-            events={events}
-            divisions={divisions}
-            theme={theme}
-            onNavigateOprec={pageVisibility.oprec !== false ? () => setCurrentTab('oprec') : undefined}
-          />
-        )}
+          {effectiveTab === 'program' && (
+            <ProgramSection
+              events={events}
+              divisions={divisions}
+              activeTenure={activeTenure}
+              theme={theme}
+              onNavigateOprec={pageVisibility.oprec !== false ? () => setCurrentTab('oprec') : undefined}
+            />
+          )}
 
-        {effectiveTab === 'galeri' && (
-          <GallerySection
-            galleries={galleries}
-            divisions={divisions}
-            theme={theme}
-          />
-        )}
+          {effectiveTab === 'galeri' && (
+            <GallerySection
+              galleries={galleries}
+              divisions={divisions}
+              activeTenure={activeTenure}
+              theme={theme}
+            />
+          )}
 
-        {effectiveTab === 'kudos' && (
-          <KudosSection
-            kudosList={kudosList}
-            onAddKudos={handleAddKudos}
-            onUpdateKudos={handleUpdateKudos}
-            aspirasiList={aspirasiList}
-            onAddAspirasi={handleAddAspirasi}
-            theme={theme}
-          />
-        )}
+          {effectiveTab === 'kudos' && (
+            <KudosSection
+              kudosList={kudosList}
+              onAddKudos={handleAddKudos}
+              onUpdateKudos={handleUpdateKudos}
+              aspirasiList={aspirasiList}
+              onAddAspirasi={handleAddAspirasi}
+              theme={theme}
+            />
+          )}
 
-        {effectiveTab === 'assets' && (
-          <AssetKitSection
-            theme={theme}
-            brandAssets={brandAssets}
-          />
-        )}
+          {effectiveTab === 'assets' && (
+            <AssetKitSection
+              theme={theme}
+              brandAssets={brandAssets}
+            />
+          )}
 
-        {effectiveTab === 'oprec' && (
-          <DynamicFormSection
-            forms={forms}
-            divisions={divisions}
-            events={events}
-            onSubmitSubmission={handleSubmitSubmission}
-            theme={theme}
-            initialFormId={activeFormIdFromUrl}
-            onSelectFormUrl={(fId) => setCurrentTab('oprec', fId)}
-          />
-        )}
+          {effectiveTab === 'oprec' && (
+            <DynamicFormSection
+              forms={forms}
+              divisions={divisions}
+              events={events}
+              submissions={submissions}
+              onSubmitSubmission={handleSubmitSubmission}
+              theme={theme}
+              initialFormId={activeFormIdFromUrl}
+              onSelectFormUrl={(fId) => setCurrentTab('oprec', fId)}
+            />
+          )}
 
-        {effectiveTab === 'admin' && (
-          <AdminPortal
-            onBack={() => setCurrentTab(visiblePublicPages[0] || 'home')}
-            tenures={tenures}
-            activeTenure={activeTenure}
-            onSelectTenure={handleSelectTenure}
-            onAddTenure={handleAddTenure}
-            onUpdateTenure={handleUpdateTenure}
-            onDeleteTenure={handleDeleteTenure}
-            divisions={divisions}
-            onAddDivision={handleAddDivision}
-            onUpdateDivision={handleUpdateDivision}
-            onDeleteDivision={handleDeleteDivision}
-            forms={forms}
-            onAddForm={handleAddForm}
-            onUpdateForm={handleUpdateForm}
-            onDeleteForm={handleDeleteForm}
-            submissions={submissions}
-            onUpdateSubmission={handleUpdateSubmission}
-            onDeleteSubmission={handleDeleteSubmission}
-            galleries={galleries}
-            onAddGallery={handleAddGallery}
-            onUpdateGallery={handleUpdateGallery}
-            onDeleteGallery={handleUpdateGallery ? handleDeleteGallery : undefined}
-            members={members}
-            onAddMember={handleAddMember}
-            onUpdateMember={handleUpdateMember}
-            onDeleteMember={handleDeleteMember}
-            events={events}
-            onAddEvent={handleAddEvent}
-            onUpdateEvent={handleUpdateEvent}
-            onDeleteEvent={handleDeleteEvent}
-            kudosList={kudosList}
-            onUpdateKudos={handleUpdateKudos}
-            onDeleteKudos={handleDeleteKudos}
-            aspirasiList={aspirasiList}
-            onDeleteAspirasi={handleDeleteAspirasi}
-            brandAssets={brandAssets}
-            onAddBrandAsset={handleAddBrandAsset}
-            onUpdateBrandAsset={handleUpdateBrandAsset}
-            onDeleteBrandAsset={handleDeleteBrandAsset}
-            pageVisibility={pageVisibility}
-            onUpdatePageVisibility={setPageVisibility}
-            syncStatus={syncStatus}
-            onForceSync={syncFromCloud}
-            onResetDefault={handleResetDefault}
-          />
-        )}
+          {effectiveTab === 'admin' && (
+            <AdminPortal
+              onBack={() => setCurrentTab(visiblePublicPages[0] || 'home')}
+              tenures={tenures}
+              activeTenure={activeTenure}
+              onSelectTenure={handleSelectTenure}
+              onAddTenure={handleAddTenure}
+              onUpdateTenure={handleUpdateTenure}
+              onDeleteTenure={handleDeleteTenure}
+              divisions={divisions}
+              onAddDivision={handleAddDivision}
+              onUpdateDivision={handleUpdateDivision}
+              onDeleteDivision={handleDeleteDivision}
+              forms={forms}
+              onAddForm={handleAddForm}
+              onUpdateForm={handleUpdateForm}
+              onDeleteForm={handleDeleteForm}
+              submissions={submissions}
+              onUpdateSubmission={handleUpdateSubmission}
+              onDeleteSubmission={handleDeleteSubmission}
+              galleries={galleries}
+              onAddGallery={handleAddGallery}
+              onUpdateGallery={handleUpdateGallery}
+              onDeleteGallery={handleUpdateGallery ? handleDeleteGallery : undefined}
+              members={members}
+              onAddMember={handleAddMember}
+              onUpdateMember={handleUpdateMember}
+              onDeleteMember={handleDeleteMember}
+              events={events}
+              onAddEvent={handleAddEvent}
+              onUpdateEvent={handleAddEvent ? handleUpdateEvent : undefined}
+              onDeleteEvent={handleDeleteEvent}
+              kudosList={kudosList}
+              onUpdateKudos={handleUpdateKudos}
+              onDeleteKudos={handleDeleteKudos}
+              aspirasiList={aspirasiList}
+              onUpdateAspirasi={handleUpdateAspirasi}
+              onDeleteAspirasi={handleDeleteAspirasi}
+              brandAssets={brandAssets}
+              onAddBrandAsset={handleAddBrandAsset}
+              onUpdateBrandAsset={handleUpdateBrandAsset}
+              onDeleteBrandAsset={handleDeleteBrandAsset}
+              pageVisibility={pageVisibility}
+              onUpdatePageVisibility={setPageVisibility}
+              syncStatus={syncStatus}
+              onForceSync={syncFromCloud}
+              onResetDefault={handleResetDefault}
+            />
+          )}
+        </Suspense>
       </main>
+
+      {/* GLOBAL QUICK SEARCH MODAL (Ctrl+K / Tombol Cari di Navbar) */}
+      {isQuickSearchOpen && (() => {
+        const q = quickSearchQuery.trim().toLowerCase();
+        const matchedMembers = q
+          ? members.filter(m =>
+              (m.name || '').toLowerCase().includes(q) ||
+              (m.role || '').toLowerCase().includes(q) ||
+              (m.title || '').toLowerCase().includes(q)
+            ).slice(0, 5)
+          : members.slice(0, 3);
+
+        const matchedEvents = q
+          ? events.filter(e =>
+              (e.title || '').toLowerCase().includes(q) ||
+              (e.divisionName || '').toLowerCase().includes(q) ||
+              (e.location || '').toLowerCase().includes(q)
+            ).slice(0, 4)
+          : events.slice(0, 2);
+
+        const matchedForms = q
+          ? forms.filter(f =>
+              f.isOpen !== false && (
+                (f.title || '').toLowerCase().includes(q) ||
+                (f.category || '').toLowerCase().includes(q)
+              )
+            ).slice(0, 3)
+          : forms.filter(f => f.isOpen !== false).slice(0, 2);
+
+        const matchedGalleries = q
+          ? galleries.filter(g =>
+              (g.title || '').toLowerCase().includes(q) ||
+              (g.division || '').toLowerCase().includes(q)
+            ).slice(0, 3)
+          : [];
+
+        const matchedAssets = q
+          ? brandAssets.filter(a =>
+              (a.title || '').toLowerCase().includes(q) ||
+              (a.category || '').toLowerCase().includes(q)
+            ).slice(0, 3)
+          : [];
+
+        const totalResults = matchedMembers.length + matchedEvents.length + matchedForms.length + matchedGalleries.length + matchedAssets.length;
+
+        return (
+          <div
+            onClick={() => setIsQuickSearchOpen(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.72)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+              padding: '64px 16px 24px 16px'
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="glass-panel modal-container"
+              style={{
+                maxWidth: '640px',
+                width: '100%',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                padding: '20px',
+                border: '1.5px solid var(--mandiri-gold)',
+                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.55)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+            >
+              {/* Search Bar Input */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <Search size={18} color="var(--mandiri-gold)" style={{ position: 'absolute', left: '14px' }} />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Cari nama personel, program kerja, formulir oprec, galeri, atau asset logo..."
+                  value={quickSearchQuery}
+                  onChange={(e) => setQuickSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '13px 40px 13px 42px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--input-bg)',
+                    border: '1.5px solid var(--input-border)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.92rem',
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsQuickSearchOpen(false)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {totalResults === 0 ? (
+                <div style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                  Tidak ditemukan hasil untuk <strong>"{quickSearchQuery}"</strong>. Coba kata kunci lain seperti nama pengurus, turnamen, atau logo.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* Members Results */}
+                  {matchedMembers.length > 0 && pageVisibility.organisasi !== false && (
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Users size={13} color="var(--mandiri-gold)" />
+                        <span>Personel & Struktur Organisasi</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {matchedMembers.map(m => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab('organisasi');
+                              setIsQuickSearchOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>{m.name}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{m.role} • {m.title}</div>
+                            </div>
+                            <ChevronRight size={15} color="var(--text-dim)" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Events Results */}
+                  {matchedEvents.length > 0 && pageVisibility.program !== false && (
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Calendar size={13} color="var(--neon-cyan)" />
+                        <span>Program Kerja & Event Budaya</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {matchedEvents.map(evt => (
+                          <button
+                            key={evt.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab('program');
+                              setIsQuickSearchOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>{evt.title}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{evt.date} • {evt.divisionName}</div>
+                            </div>
+                            <ChevronRight size={15} color="var(--text-dim)" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Active Forms Results */}
+                  {matchedForms.length > 0 && pageVisibility.oprec !== false && (
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <ClipboardList size={13} color="#10b981" />
+                        <span>Formulir & Pendaftaran Aktif</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {matchedForms.map(f => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab('oprec', f.id);
+                              setIsQuickSearchOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>{f.title}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{f.category} • Deadline: {f.deadline}</div>
+                            </div>
+                            <ChevronRight size={15} color="var(--text-dim)" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Galleries & Brand Assets Results */}
+                  {(matchedGalleries.length > 0 || matchedAssets.length > 0) && (
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Download size={13} color="#a855f7" />
+                        <span>Galeri Dokumentasi & Asset Brand</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {matchedGalleries.map(g => (
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab('galeri');
+                              setIsQuickSearchOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>📷 {g.title}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{g.date} • {g.division}</div>
+                            </div>
+                            <ChevronRight size={15} color="var(--text-dim)" />
+                          </button>
+                        ))}
+                        {matchedAssets.map(a => (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab('assets');
+                              setIsQuickSearchOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>📦 {a.title}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{a.category} • {a.fileType}</div>
+                            </div>
+                            <ChevronRight size={15} color="var(--text-dim)" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-dim)', borderTop: '1px solid var(--border-card)', paddingTop: '10px' }}>
+                <span>💡 Pintasan Keyboard: <strong>Ctrl + K</strong> atau <strong>⌘ + K</strong></span>
+                <span>Tekan <strong>ESC</strong> untuk menutup</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Clean Footer */}
       <Footer onNavigateAdmin={() => setCurrentTab('admin')} theme={theme} />

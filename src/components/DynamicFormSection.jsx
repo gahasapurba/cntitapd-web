@@ -16,7 +16,8 @@ import {
   ExternalLink,
   HelpCircle,
   Share2,
-  Check
+  Check,
+  Search
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadMediaToCloud } from '../lib/supabase';
@@ -25,6 +26,7 @@ export default function DynamicFormSection({
   forms = [], 
   divisions = [], 
   events = [], 
+  submissions = [],
   onSubmitSubmission, 
   theme,
   initialFormId = null,
@@ -57,7 +59,12 @@ export default function DynamicFormSection({
   const [fileData, setFileData] = useState({}); // { [fieldId]: { name, size, type, dataUrl } }
   const [errors, setErrors] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [lastSubmittedId, setLastSubmittedId] = useState('');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Self-Service Status Tracker state
+  const [statusQuery, setStatusQuery] = useState('');
 
   const handleCopyFormLink = () => {
     if (!currentForm) return;
@@ -142,11 +149,17 @@ export default function DynamicFormSection({
   };
 
   const handleConfirmSubmit = () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    const newSubId = 'sub-' + Date.now();
     const submission = {
-      id: 'sub-' + Date.now(),
+      id: newSubId,
       formId: currentForm.id,
       formTitle: currentForm.title,
       submittedAt: getExactTimestamp(),
+      status: 'Baru Masuk',
+      adminNotes: '',
       data: { ...formData },
       files: { ...fileData }
     };
@@ -161,8 +174,35 @@ export default function DynamicFormSection({
       origin: { y: 0.55 }
     });
 
+    setLastSubmittedId(newSubId);
     setIsConfirmOpen(false);
     setIsSubmitted(true);
+    setTimeout(() => setIsSubmitting(false), 600);
+  };
+
+  // Filtered submissions for Self-Service Status Tracker (requires >= 3 chars)
+  const trimmedStatusQuery = statusQuery.trim().toLowerCase();
+  const matchedSubmissions = trimmedStatusQuery.length >= 3
+    ? submissions.filter((sub) => {
+        if ((sub.id || '').toLowerCase().includes(trimmedStatusQuery)) return true;
+        const vals = Object.values(sub.data || {});
+        return vals.some((val) => String(val || '').toLowerCase().includes(trimmedStatusQuery));
+      })
+    : [];
+
+  const getStatusBadgeStyle = (status) => {
+    switch (status) {
+      case 'Diterima':
+        return { bg: 'rgba(16, 185, 129, 0.16)', border: '#10b981', color: '#10b981', icon: '🎉' };
+      case 'Wawancara':
+        return { bg: 'rgba(168, 85, 247, 0.16)', border: '#a855f7', color: '#a855f7', icon: '🎙️' };
+      case 'Direview':
+        return { bg: 'rgba(255, 184, 0, 0.16)', border: 'var(--mandiri-gold)', color: 'var(--mandiri-gold)', icon: '🔎' };
+      case 'Ditolak':
+        return { bg: 'rgba(244, 63, 94, 0.16)', border: '#f43f5e', color: '#f43f5e', icon: '✕' };
+      default:
+        return { bg: 'rgba(56, 189, 248, 0.16)', border: 'var(--neon-cyan)', color: 'var(--neon-cyan)', icon: '📥' };
+    }
   };
 
   const inputStyle = (hasError) => ({
@@ -318,10 +358,27 @@ export default function DynamicFormSection({
                 <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
                   Formulir Berhasil Dikirim! 🎉
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '520px', margin: '0 auto 24px auto', lineHeight: 1.6 }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '520px', margin: '0 auto 14px auto', lineHeight: 1.6 }}>
                   Terima kasih! Isian formulir untuk <strong>"{currentForm.title}"</strong> telah tersimpan aman di database sistem CNT IT APD.
                 </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                {lastSubmittedId && (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    fontSize: '0.78rem',
+                    color: 'var(--neon-cyan)',
+                    fontWeight: 700,
+                    marginBottom: '20px'
+                  }}>
+                    <span>ID Pendaftaran: {lastSubmittedId}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <button
                     onClick={() => {
                       setIsSubmitted(false);
@@ -341,6 +398,24 @@ export default function DynamicFormSection({
                   >
                     Kirim Formulir Lainnya
                   </button>
+                  {lastSubmittedId && (
+                    <button
+                      type="button"
+                      onClick={() => setStatusQuery(lastSubmittedId)}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        color: 'var(--neon-cyan)',
+                        border: '1px solid var(--neon-cyan)',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔍 Cek Status Pendaftaran Saya
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -679,29 +754,195 @@ export default function DynamicFormSection({
               </button>
               <button
                 type="button"
+                disabled={isSubmitting}
                 onClick={handleConfirmSubmit}
                 style={{
                   padding: '9px 22px',
                   borderRadius: 'var(--radius-full)',
-                  background: 'var(--mandiri-gold)',
+                  background: isSubmitting ? 'var(--input-bg)' : 'var(--mandiri-gold)',
                   border: 'none',
-                  color: '#040914',
+                  color: isSubmitting ? 'var(--text-muted)' : '#040914',
                   fontWeight: 800,
                   fontSize: '0.85rem',
-                  cursor: 'pointer',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  boxShadow: '0 4px 15px rgba(255, 184, 0, 0.3)'
+                  boxShadow: isSubmitting ? 'none' : '0 4px 15px rgba(255, 184, 0, 0.3)'
                 }}
               >
                 <Send size={14} />
-                <span>Ya, Kirim Sekarang</span>
+                <span>{isSubmitting ? 'Mengirim...' : 'Ya, Kirim Sekarang'}</span>
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* 4. SELF-SERVICE STATUS TRACKER ("CEK STATUS PENDAFTARAN SAYA") */}
+      <section style={{ maxWidth: '820px', margin: '0 auto', width: '100%' }}>
+        <div className="glass-panel" style={{
+          padding: '32px',
+          border: '1.5px solid var(--border-card)',
+          borderRadius: 'var(--radius-lg)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <span className="badge-cyan" style={{ fontSize: '0.68rem', marginBottom: '6px' }}>
+                Transparansi Seleksi & Registrasi
+              </span>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0' }}>
+                🔍 Cek Status Pendaftaran & Seleksi Saya
+              </h3>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
+                Sudah pernah mengisi formulir? Ketik <strong>NIP, Nomor WhatsApp, Email, Nama Lengkap / Squad, atau ID Pendaftaran</strong> Anda untuk melihat progres seleksi & catatan resmi panitia.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <Search size={17} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="Ketik minimal 3 karakter (Contoh: NIP 2402..., No WA 0812..., Nama, atau ID sub-...)"
+              value={statusQuery}
+              onChange={(e) => setStatusQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 38px 12px 42px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--input-bg)',
+                border: '1.5px solid var(--input-border)',
+                color: 'var(--text-main)',
+                fontSize: '0.88rem',
+                outline: 'none'
+              }}
+            />
+            {statusQuery && (
+              <button
+                type="button"
+                onClick={() => setStatusQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {statusQuery.trim().length > 0 && statusQuery.trim().length < 3 && (
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '6px' }}>
+              Ketik minimal 3 karakter untuk mulai mencari data pendaftaran Anda...
+            </div>
+          )}
+
+          {trimmedStatusQuery.length >= 3 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {matchedSubmissions.length === 0 ? (
+                <div style={{
+                  padding: '20px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--input-bg)',
+                  border: '1px dashed var(--border-card)',
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.85rem'
+                }}>
+                  Tidak ditemukan data pendaftaran dengan kata kunci <strong>"{statusQuery}"</strong>. Pastikan ejaan NIP, Nomor WhatsApp, atau Nama sesuai saat mendaftar.
+                </div>
+              ) : (
+                matchedSubmissions.map((sub) => {
+                  const statusText = sub.status || 'Baru Masuk';
+                  const badge = getStatusBadgeStyle(statusText);
+                  const dataEntries = Object.entries(sub.data || {});
+                  const primaryIdentity = dataEntries.slice(0, 3).map(([, v]) => String(v)).filter(Boolean).join(' • ');
+
+                  return (
+                    <div
+                      key={sub.id}
+                      style={{
+                        padding: '18px 20px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--input-bg)',
+                        border: `1.5px solid ${badge.border}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+                            ID: {sub.id} • {sub.submittedAt}
+                          </span>
+                          <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-main)', margin: '2px 0 0 0' }}>
+                            {sub.formTitle}
+                          </h4>
+                        </div>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 14px',
+                          borderRadius: 'var(--radius-full)',
+                          background: badge.bg,
+                          border: `1px solid ${badge.border}`,
+                          color: badge.color,
+                          fontSize: '0.78rem',
+                          fontWeight: 800
+                        }}>
+                          <span>{badge.icon}</span>
+                          <span>Status: {statusText}</span>
+                        </span>
+                      </div>
+
+                      {primaryIdentity && (
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                          <strong>Pendaftar:</strong> {primaryIdentity}
+                        </div>
+                      )}
+
+                      {sub.adminNotes ? (
+                        <div style={{
+                          padding: '12px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: isDark ? 'rgba(56, 189, 248, 0.08)' : '#f0f9ff',
+                          borderLeft: '3px solid var(--neon-cyan)',
+                          fontSize: '0.82rem',
+                          color: 'var(--text-main)',
+                          lineHeight: 1.5
+                        }}>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--neon-cyan)', textTransform: 'uppercase', marginBottom: '2px' }}>
+                            💬 Catatan / Informasi dari Panitia CNT IT APD:
+                          </div>
+                          <div>{sub.adminNotes}</div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                          Belum ada catatan tambahan dari panitia. Pantau secara berkala untuk pembaruan jadwal wawancara atau pengumuman seleksi.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+      </section>
 
     </div>
   );

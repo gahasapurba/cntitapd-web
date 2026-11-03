@@ -11,7 +11,8 @@ import {
   Moon,
   ChevronDown,
   Menu,
-  X
+  X,
+  Search
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -23,7 +24,8 @@ export default function Navbar({
   theme,
   onToggleTheme,
   forms = [],
-  pageVisibility = {}
+  pageVisibility = {},
+  onOpenQuickSearch
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const isDark = theme === 'dark';
@@ -252,6 +254,33 @@ export default function Navbar({
               }} 
             />
           </div>
+
+          {/* Quick Search Button (Ctrl+K / Mobile Tap) */}
+          {onOpenQuickSearch && (
+            <button
+              type="button"
+              onClick={onOpenQuickSearch}
+              title="Pencarian Cepat Lintas Halaman (Ctrl+K)"
+              style={{
+                height: '34px',
+                padding: '0 10px',
+                borderRadius: 'var(--radius-full)',
+                background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+                border: '1px solid var(--border-card)',
+                color: 'var(--text-main)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Search size={14} color={isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)'} />
+              <span className="desktop-nav" style={{ fontSize: '0.74rem' }}>Cari</span>
+            </button>
+          )}
 
           {/* Theme Toggle Button */}
           <button

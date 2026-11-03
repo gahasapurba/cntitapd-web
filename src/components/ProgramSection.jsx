@@ -17,9 +17,10 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-export default function ProgramSection({ events = [], divisions = [], theme, onNavigateOprec }) {
+export default function ProgramSection({ events = [], divisions = [], activeTenure = null, theme, onNavigateOprec }) {
   const isDark = theme === 'dark';
   const [filterDiv, setFilterDiv] = useState('all');
+  const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'all'
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'calendar'
   const [rsvpModalEvent, setRsvpModalEvent] = useState(null);
@@ -27,7 +28,15 @@ export default function ProgramSection({ events = [], divisions = [], theme, onN
   const [currentMonth, setCurrentMonth] = useState(2); // 2 = Maret (Q1 kick-off)
   const [hoveredDate, setHoveredDate] = useState(null);
 
-  const filteredEvents = events.filter((evt) => {
+  const hasTenureEvents = activeTenure?.id
+    ? events.some((evt) => !evt.tenureId || evt.tenureId === activeTenure.id)
+    : false;
+
+  const scopedEvents = (tenureFilter === 'active' && activeTenure?.id && hasTenureEvents)
+    ? events.filter((evt) => !evt.tenureId || evt.tenureId === activeTenure.id)
+    : events;
+
+  const filteredEvents = scopedEvents.filter((evt) => {
     const matchesDiv = filterDiv === 'all' || evt.divisionId === filterDiv;
     const matchesTab = activeTab === 'all' || (activeTab === 'upcoming' && evt.status !== 'Completed');
     return matchesDiv && matchesTab;
@@ -150,13 +159,56 @@ export default function ProgramSection({ events = [], divisions = [], theme, onN
                 cursor: 'pointer'
               }}
             >
-              Semua ({events.length})
+              Semua ({scopedEvents.length})
             </button>
           </div>
         </div>
 
-        {/* Division Filter (Dinamis dari divisions) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Right: Tenure Scope & Division Filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {activeTenure && (
+            <div style={{
+              display: 'inline-flex',
+              background: 'var(--input-bg)',
+              padding: '3px',
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid var(--border-card)'
+            }}>
+              <button
+                type="button"
+                onClick={() => setTenureFilter('active')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: tenureFilter === 'active' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                  color: tenureFilter === 'active' ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                Periode {activeTenure.code || activeTenure.label}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTenureFilter('all')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: tenureFilter === 'all' ? 'rgba(255, 184, 0, 0.2)' : 'transparent',
+                  color: tenureFilter === 'all' ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                 lintas Tahun ({events.length})
+              </button>
+            </div>
+          )}
+
           <Filter size={16} color="var(--text-dim)" />
           <select
             value={filterDiv}

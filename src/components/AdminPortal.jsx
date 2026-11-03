@@ -109,6 +109,7 @@ export default function AdminPortal({
   activeTenure,
   onSelectTenure,
   aspirasiList = [],
+  onUpdateAspirasi,
   onDeleteAspirasi,
   syncStatus = 'synced',
   onForceSync,
@@ -126,6 +127,7 @@ export default function AdminPortal({
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [showExecutiveReportModal, setShowExecutiveReportModal] = useState(false);
 
   // Modern Toast Notification State (replaces native browser alert)
   const [toast, setToast] = useState(null);
@@ -612,6 +614,7 @@ export default function AdminPortal({
 
     onAddGallery({
       id: 'gal-' + Date.now(),
+      tenureId: activeTenure?.id || 'tenure-2026',
       title: galTitle,
       date: galDate || '2026',
       division: galDivision,
@@ -893,6 +896,28 @@ export default function AdminPortal({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setShowExecutiveReportModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(16, 185, 129, 0.14)',
+              color: '#10b981',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              padding: '7px 14px',
+              borderRadius: 'var(--radius-full)',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: 'pointer'
+            }}
+            title="Buka & Cetak Laporan Eksekutif / LPJ Periode Kepengurusan"
+          >
+            <ClipboardList size={14} />
+            <span>📄 Laporan Eksekutif / LPJ</span>
+          </button>
+
           {onForceSync && (
             <button
               type="button"
@@ -3820,65 +3845,226 @@ export default function AdminPortal({
           )}
 
           {/* Kotak Ide & Aspirasi Masuk */}
-          <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <MessageSquare size={18} color="var(--neon-cyan)" />
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                Kotak Ide & Aspirasi Masuk ({aspirasiList.length})
-              </h4>
+          <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={18} color="var(--neon-cyan)" />
+                <div>
+                  <h4 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    Kotak Ide, Tindak Lanjut & Balasan Aspirasi ({aspirasiList.length})
+                  </h4>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                    Ubah status realisasi dan berikan tanggapan resmi pengurus yang akan tampil di Papan Transparansi Aspirasi publik.
+                  </p>
+                </div>
+              </div>
+
+              {aspirasiList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                    const header = ['ID', 'Pengusul', 'Kategori', 'Judul Usulan', 'Deskripsi', 'Status Tindak Lanjut', 'Tanggapan Pengurus', 'Publik', 'Waktu Kirim'].map(escapeCsv).join(',');
+                    const rows = aspirasiList.map(a => [
+                      a.id,
+                      a.sender || 'Anonim',
+                      a.category || 'Usulan Budaya',
+                      a.title || a.text || '',
+                      a.description || a.text || '',
+                      a.status || 'Menunggu Review',
+                      a.adminReply || '',
+                      a.isPublic !== false ? 'Ya' : 'Tidak',
+                      a.submittedAt || ''
+                    ].map(escapeCsv).join(','));
+                    const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `laporan_aspirasi_cnt_it_apd_${Date.now()}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast(`Berhasil mengunduh ${aspirasiList.length} data Aspirasi ke CSV!`);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(16, 185, 129, 0.14)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    padding: '7px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Download size={13} />
+                  <span>Export CSV Aspirasi</span>
+                </button>
+              )}
             </div>
+
             {aspirasiList.length === 0 ? (
               <div style={{ fontSize: '0.84rem', color: 'var(--text-dim)', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)' }}>
                 Belum ada kiriman ide atau aspirasi program budaya dari pengunjung.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {aspirasiList.map((asp) => (
-                  <div
-                    key={asp.id}
-                    style={{
-                      padding: '14px 18px',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'rgba(56, 189, 248, 0.05)',
-                      border: '1px solid rgba(56, 189, 248, 0.25)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: '0.88rem', color: 'var(--text-main)', fontWeight: 600 }}>
-                        "{asp.text}"
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {aspirasiList.map((asp) => {
+                  const curStatus = asp.status || 'Menunggu Review';
+                  const isPub = asp.isPublic !== false;
+                  const statusColor = curStatus === 'Sudah Direalisasikan'
+                    ? '#10b981'
+                    : curStatus === 'Masuk Rencana Proker'
+                      ? 'var(--mandiri-gold)'
+                      : 'var(--neon-cyan)';
+
+                  return (
+                    <div
+                      key={asp.id}
+                      style={{
+                        padding: '16px 18px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'rgba(56, 189, 248, 0.04)',
+                        border: '1px solid var(--border-card)',
+                        borderLeft: `4px solid ${statusColor}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '240px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                            <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                              {asp.category || 'Usulan Budaya'}
+                            </span>
+                            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                              Pengusul: {asp.sender || 'Anonim'}
+                            </span>
+                            <span style={{ fontSize: '0.73rem', color: 'var(--text-dim)' }}>
+                              • 📅 {asp.submittedAt}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.96rem', color: 'var(--text-main)', fontWeight: 800, marginBottom: '4px' }}>
+                            {asp.title || asp.text}
+                          </div>
+                          {asp.description && asp.description !== asp.title && (
+                            <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                              {asp.description}
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <select
+                            value={curStatus}
+                            onChange={(e) => {
+                              const nextSt = e.target.value;
+                              if (onUpdateAspirasi) {
+                                onUpdateAspirasi({ ...asp, status: nextSt });
+                                showToast(`Status aspirasi diubah menjadi "${nextSt}"`);
+                              }
+                            }}
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: 'var(--radius-full)',
+                              background: 'var(--input-bg)',
+                              border: `1px solid ${statusColor}`,
+                              color: 'var(--text-main)',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="Menunggu Review">⏳ Menunggu Review</option>
+                            <option value="Masuk Rencana Proker">🚀 Masuk Rencana Proker</option>
+                            <option value="Sudah Direalisasikan">✓ Sudah Direalisasikan</option>
+                          </select>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onUpdateAspirasi) {
+                                onUpdateAspirasi({ ...asp, isPublic: !isPub });
+                                showToast(!isPub ? 'Aspirasi ditampilkan di Papan Publik' : 'Aspirasi disembunyikan dari publik');
+                              }
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '6px 10px',
+                              borderRadius: 'var(--radius-full)',
+                              background: isPub ? 'rgba(16, 185, 129, 0.14)' : 'rgba(255,255,255,0.06)',
+                              border: `1px solid ${isPub ? '#10b981' : 'var(--border-card)'}`,
+                              color: isPub ? '#10b981' : 'var(--text-dim)',
+                              fontSize: '0.73rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                            title="Tampilkan atau sembunyikan di halaman publik Wall of Kudos & Aspirasi"
+                          >
+                            {isPub ? <Eye size={13} /> : <EyeOff size={13} />}
+                            <span>{isPub ? 'Publik' : 'Privat'}</span>
+                          </button>
+
+                          {onDeleteAspirasi && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDeleteAspirasi(asp.id);
+                                showToast('Aspirasi berhasil dihapus.');
+                              }}
+                              style={{
+                                padding: '6px 10px',
+                                background: 'rgba(244,63,94,0.12)',
+                                border: '1px solid #f43f5e',
+                                color: '#f43f5e',
+                                borderRadius: 'var(--radius-full)',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Hapus
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        📅 {asp.submittedAt}
+
+                      {/* Official Admin Reply Input */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <input
+                          type="text"
+                          placeholder="Tulis tanggapan resmi / tindak lanjut pengurus CNT IT APD (otomatis tersimpan saat klik di luar)..."
+                          defaultValue={asp.adminReply || ''}
+                          onBlur={(e) => {
+                            const val = e.target.value.trim();
+                            if (val !== (asp.adminReply || '') && onUpdateAspirasi) {
+                              onUpdateAspirasi({ ...asp, adminReply: val });
+                              showToast('Tanggapan pengurus untuk aspirasi berhasil disimpan!');
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            minWidth: '220px',
+                            padding: '8px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.8rem'
+                          }}
+                        />
                       </div>
                     </div>
-                    {onDeleteAspirasi && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onDeleteAspirasi(asp.id);
-                          showToast('Aspirasi berhasil dihapus.');
-                        }}
-                        style={{
-                          padding: '6px 10px',
-                          background: 'rgba(244,63,94,0.12)',
-                          border: '1px solid #f43f5e',
-                          color: '#f43f5e',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Hapus
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -5330,6 +5516,184 @@ export default function AdminPortal({
           </div>
         </div>
       )}
+
+      {/* PRINT-READY EXECUTIVE REPORT & LPJ MODAL */}
+      {showExecutiveReportModal && (() => {
+        const completedEvents = events.filter(e => e.status === 'Completed').length;
+        const prokerPercent = events.length > 0 ? Math.round((completedEvents / events.length) * 100) : 0;
+        const totalRab = events.reduce((acc, e) => acc + Number(e.totalRab || 0), 0);
+        const coreLeaders = members.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro');
+        const realizedAspirasi = aspirasiList.filter(a => a.status === 'Sudah Direalisasikan').length;
+
+        return (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.82)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}>
+            <div className="glass-panel modal-container" style={{
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              padding: '32px',
+              border: '1.5px solid var(--mandiri-gold)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px'
+            }}>
+              {/* Modal Top Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid var(--border-card)', paddingBottom: '16px' }}>
+                <div>
+                  <span className="badge-gold" style={{ fontSize: '0.68rem', marginBottom: '4px' }}>
+                    Executive Summary & LPJ Resmi
+                  </span>
+                  <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
+                    Laporan Pertanggungjawaban & Progres CNT IT APD
+                  </h2>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Periode: <strong>{activeTenure?.label || 'Kepengurusan 2026'}</strong> • Tema: <em>{activeTenure?.theme || 'Empowering Synergy'}</em>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '9px 18px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--mandiri-gold)',
+                      color: '#040914',
+                      border: 'none',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Download size={15} />
+                    <span>🖨️ Cetak / Simpan PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowExecutiveReportModal(false)}
+                    style={{
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-main)',
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* 1. Key Performance Metrics */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+                <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>TOTAL PERSONEL</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px' }}>{members.length} Orang</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>4 Divisi & BPH Inti</div>
+                </div>
+                <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>REALISASI PROKER</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>{completedEvents}/{events.length} ({prokerPercent}%)</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{galleries.length} Dokumentasi Galeri</div>
+                </div>
+                <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>TOTAL ANGGARAN (RAB)</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--neon-cyan)', marginTop: '4px' }}>Rp {(totalRab / 1000000).toFixed(1)} Jt</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Rp {totalRab.toLocaleString('id-ID')}</div>
+                </div>
+                <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>INDEKS PARTISIPASI</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--mandiri-gold)', marginTop: '4px' }}>{kudosList.length} Kudos</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{aspirasiList.length} Aspirasi ({realizedAspirasi} Terealisasi)</div>
+                </div>
+              </div>
+
+              {/* 2. Tabel Realisasi Program Kerja & Anggaran */}
+              <div>
+                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
+                  I. Rekapitulasi Program Kerja & Rencana Anggaran Biaya (RAB)
+                </h4>
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border-card)', borderRadius: 'var(--radius-md)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: '580px' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--input-bg)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Program Kerja</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Divisi</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Jadwal</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Target KPI</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Status</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)', textAlign: 'right' }}>Total RAB</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {events.map((evt) => (
+                        <tr key={evt.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                          <td style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--text-main)' }}>{evt.title}</td>
+                          <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.divisionName}</td>
+                          <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.date}</td>
+                          <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.kpi}</td>
+                          <td style={{ padding: '9px 12px' }}>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              color: evt.status === 'Completed' ? '#10b981' : 'var(--mandiri-gold)'
+                            }}>
+                              {evt.status === 'Completed' ? '✓ Selesai' : evt.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-main)' }}>
+                            Rp {Number(evt.totalRab || 0).toLocaleString('id-ID')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 3. Susunan Pimpinan & Ketua Divisi */}
+              <div>
+                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
+                  II. Susunan Dewan Pembina, Pengurus Inti & Ketua Divisi (Pimpro)
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+                  {coreLeaders.map((ldr) => (
+                    <div key={ldr.id} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--mandiri-gold)', textTransform: 'uppercase' }}>{ldr.role}</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>{ldr.name}</div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{ldr.title}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

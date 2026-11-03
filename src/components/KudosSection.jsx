@@ -46,13 +46,17 @@ export default function KudosSection({
   const [isSuccess, setIsSuccess] = useState(false);
   const [kudosErrors, setKudosErrors] = useState({});
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [isSubmittingKudos, setIsSubmittingKudos] = useState(false);
 
   // Form State Aspirasi
+  const [ideaSender, setIdeaSender] = useState('');
   const [ideaTitle, setIdeaTitle] = useState('');
   const [ideaCategory, setIdeaCategory] = useState('Kegiatan & Event');
   const [ideaDesc, setIdeaDesc] = useState('');
   const [ideaSuccess, setIdeaSuccess] = useState(false);
   const [ideaErrors, setIdeaErrors] = useState({});
+  const [isSubmittingAspirasi, setIsSubmittingAspirasi] = useState(false);
+  const [aspirasiStatusFilter, setAspirasiStatusFilter] = useState('all');
 
   const handleToggleLike = (kudosItem) => {
     const kudosId = kudosItem.id;
@@ -101,6 +105,9 @@ export default function KudosSection({
   };
 
   const handleFinalSubmitKudos = () => {
+    if (isSubmittingKudos) return;
+    setIsSubmittingKudos(true);
+
     onAddKudos({
       id: 'kd-' + Date.now(),
       sender: sender.trim(),
@@ -124,6 +131,7 @@ export default function KudosSection({
     setMessage('');
     setKudosErrors({});
     setConfirmModalOpen(false);
+    setTimeout(() => setIsSubmittingKudos(false), 600);
     setTimeout(() => setIsSuccess(false), 4000);
   };
 
@@ -139,7 +147,10 @@ export default function KudosSection({
 
   const handleSubmitIdea = (e) => {
     e.preventDefault();
+    if (isSubmittingAspirasi) return;
     if (!validateIdea()) return;
+
+    setIsSubmittingAspirasi(true);
 
     if (onAddAspirasi) {
       onAddAspirasi({
@@ -147,6 +158,10 @@ export default function KudosSection({
         title: ideaTitle.trim(),
         category: ideaCategory,
         description: ideaDesc.trim(),
+        sender: ideaSender.trim() || 'Anonim',
+        status: 'Menunggu Review',
+        adminReply: '',
+        isPublic: true,
         submittedAt: getExactTimestamp()
       });
     }
@@ -158,9 +173,11 @@ export default function KudosSection({
     });
 
     setIdeaSuccess(true);
+    setIdeaSender('');
     setIdeaTitle('');
     setIdeaDesc('');
     setIdeaErrors({});
+    setTimeout(() => setIsSubmittingAspirasi(false), 600);
     setTimeout(() => setIdeaSuccess(false), 4000);
   };
 
@@ -683,117 +700,284 @@ export default function KudosSection({
       )}
 
       {/* CONTENT: ASPIRASI */}
-      {activeSubTab === 'aspirasi' && (
-        <div style={{ maxWidth: '680px', margin: '0 auto', width: '100%' }}>
-          <div className="glass-panel" style={{ padding: '36px', border: '1.5px solid var(--border-card)' }}>
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <Lightbulb size={24} color="var(--mandiri-blue)" />
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, lineHeight: 1.2 }}>
-                  Kotak Ide & Aspirasi Budaya (Anonim)
-                </h3>
-              </div>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                Punya ide kegiatan seru, usulan fasilitas penunjang kenyamanan kerja, atau saran program wellbeing? Suaramu sangat berarti untuk kemajuan IT APD!
-              </p>
-            </div>
+      {activeSubTab === 'aspirasi' && (() => {
+        const publicAspirasi = (aspirasiList || []).filter(a => a.isPublic !== false);
+        const filteredAspirasi = publicAspirasi.filter(a =>
+          aspirasiStatusFilter === 'all' || (a.status || 'Menunggu Review') === aspirasiStatusFilter
+        );
 
-            {ideaSuccess && (
-              <div style={{
-                background: 'rgba(14, 165, 233, 0.15)',
-                border: '1px solid #0ea5e9',
-                color: '#0284c7',
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.85rem',
-                marginBottom: '18px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <CheckCircle2 size={16} />
-                <span>Terima kasih! Idemu telah tersimpan langsung di inbox Tim Inti CNT IT APD.</span>
-              </div>
-            )}
+        const getAspirasiBadge = (status) => {
+          if (status === 'Sudah Direalisasikan') {
+            return { bg: 'rgba(16, 185, 129, 0.16)', border: '#10b981', color: '#10b981', icon: '✓' };
+          }
+          if (status === 'Masuk Rencana Proker') {
+            return { bg: 'rgba(255, 184, 0, 0.16)', border: 'var(--mandiri-gold)', color: 'var(--mandiri-gold)', icon: '🚀' };
+          }
+          return { bg: 'rgba(56, 189, 248, 0.16)', border: 'var(--neon-cyan)', color: 'var(--neon-cyan)', icon: '⏳' };
+        };
 
-            <form onSubmit={handleSubmitIdea} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Judul Ide / Usulan *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Sesi Coffee Talk dengan Group Head / Turnamen Mini Soccer Lintas Departemen"
-                  value={ideaTitle}
-                  onChange={(e) => {
-                    setIdeaTitle(e.target.value);
-                    if (ideaErrors.ideaTitle) setIdeaErrors(prev => ({ ...prev, ideaTitle: null }));
-                  }}
-                  style={inputStyle(ideaErrors.ideaTitle)}
-                />
-                {ideaErrors.ideaTitle && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
-                    <AlertCircle size={12} />
-                    <span>{ideaErrors.ideaTitle}</span>
-                  </div>
-                )}
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '36px', maxWidth: '860px', margin: '0 auto', width: '100%' }}>
+            {/* Form Kotak Ide & Aspirasi */}
+            <div className="glass-panel" style={{ padding: '32px', border: '1.5px solid var(--border-card)' }}>
+              <div style={{ marginBottom: '22px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <Lightbulb size={24} color="var(--mandiri-blue)" />
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, lineHeight: 1.2 }}>
+                    Kotak Ide & Aspirasi Budaya
+                  </h3>
+                </div>
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  Punya ide kegiatan seru, usulan fasilitas penunjang kenyamanan kerja, atau saran program wellbeing? Sampaikan aspirasimu (bisa Anonim atau mencantumkan Squad) dan pantau tindak lanjutnya secara transparan!
+                </p>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Deskripsi & Dampak yang Diharapkan *
-                </label>
-                <textarea
-                  rows={5}
-                  placeholder="Jelaskan detail ide dan kenapa program ini akan bermanfaat bagi insan IT APD..."
-                  value={ideaDesc}
-                  onChange={(e) => {
-                    setIdeaDesc(e.target.value);
-                    if (ideaErrors.ideaDesc) setIdeaErrors(prev => ({ ...prev, ideaDesc: null }));
-                  }}
-                  style={{
-                    ...inputStyle(ideaErrors.ideaDesc),
-                    resize: 'vertical'
-                  }}
-                />
-                {ideaErrors.ideaDesc && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
-                    <AlertCircle size={12} />
-                    <span>{ideaErrors.ideaDesc}</span>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-                🔒 Formulir ini bersifat anonim untuk menjaga kenyamanan berekspresi.
-              </div>
-
-              <button
-                type="submit"
-                style={{
+              {ideaSuccess && (
+                <div style={{
+                  background: 'rgba(14, 165, 233, 0.15)',
+                  border: '1px solid #0ea5e9',
+                  color: '#0284c7',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.85rem',
+                  marginBottom: '18px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  background: 'var(--mandiri-blue)',
-                  color: '#ffffff',
-                  padding: '14px 24px',
-                  borderRadius: 'var(--radius-full)',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                  marginTop: '8px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <Send size={16} />
-                <span>Kirimkan Aspirasi ke CNT</span>
-              </button>
-            </form>
+                  gap: '8px'
+                }}>
+                  <CheckCircle2 size={16} />
+                  <span>Terima kasih! Idemu telah tersimpan di database CNT IT APD dan muncul di papan tindak lanjut aspirasi.</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitIdea} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                      Nama / Squad Pengusul (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Kosongkan jika ingin Anonim"
+                      value={ideaSender}
+                      onChange={(e) => setIdeaSender(e.target.value)}
+                      style={inputStyle(false)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                      Kategori Usulan
+                    </label>
+                    <select
+                      value={ideaCategory}
+                      onChange={(e) => setIdeaCategory(e.target.value)}
+                      style={inputStyle(false)}
+                    >
+                      <option value="Kegiatan & Event">Kegiatan & Event Budaya</option>
+                      <option value="Olahraga & Wellness">Olahraga, E-Sports & Wellness</option>
+                      <option value="Fasilitas & Ruang Kerja">Fasilitas & Kenyamanan Kerja</option>
+                      <option value="Sharing & Pengembangan">Tech Sharing & Pengembangan Diri</option>
+                      <option value="Sosial & Kerohanian">Sosial, CSR & Kerohanian</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Judul Ide / Usulan *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Sesi Coffee Talk dengan Group Head / Turnamen Mini Soccer Lintas Departemen"
+                    value={ideaTitle}
+                    onChange={(e) => {
+                      setIdeaTitle(e.target.value);
+                      if (ideaErrors.ideaTitle) setIdeaErrors(prev => ({ ...prev, ideaTitle: null }));
+                    }}
+                    style={inputStyle(ideaErrors.ideaTitle)}
+                  />
+                  {ideaErrors.ideaTitle && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                      <AlertCircle size={12} />
+                      <span>{ideaErrors.ideaTitle}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Deskripsi & Dampak yang Diharapkan *
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="Jelaskan detail ide dan kenapa program ini akan bermanfaat bagi insan IT APD..."
+                    value={ideaDesc}
+                    onChange={(e) => {
+                      setIdeaDesc(e.target.value);
+                      if (ideaErrors.ideaDesc) setIdeaErrors(prev => ({ ...prev, ideaDesc: null }));
+                    }}
+                    style={{
+                      ...inputStyle(ideaErrors.ideaDesc),
+                      resize: 'vertical'
+                    }}
+                  />
+                  {ideaErrors.ideaDesc && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                      <AlertCircle size={12} />
+                      <span>{ideaErrors.ideaDesc}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                  🔒 Identitas bersifat opsional (otomatis tertulis "Anonim" bila dikosongkan) untuk menjaga kenyamanan berekspresi.
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingAspirasi}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: isSubmittingAspirasi ? 'var(--input-bg)' : 'var(--mandiri-blue)',
+                    color: '#ffffff',
+                    padding: '14px 24px',
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    border: 'none',
+                    cursor: isSubmittingAspirasi ? 'not-allowed' : 'pointer',
+                    marginTop: '6px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <Send size={16} />
+                  <span>{isSubmittingAspirasi ? 'Mengirim Aspirasi...' : 'Kirimkan Aspirasi ke CNT'}</span>
+                </button>
+              </form>
+            </div>
+
+            {/* Papan Transparansi & Tindak Lanjut Aspirasi */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    📌 Papan Transparansi & Tindak Lanjut Aspirasi ({publicAspirasi.length})
+                  </h3>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                    Pantau status realisasi ide dan tanggapan resmi dari pengurus CNT IT APD
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  {['all', 'Menunggu Review', 'Masuk Rencana Proker', 'Sudah Direalisasikan'].map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setAspirasiStatusFilter(st)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        border: aspirasiStatusFilter === st ? '1px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                        background: aspirasiStatusFilter === st ? 'rgba(255, 184, 0, 0.16)' : 'var(--input-bg)',
+                        color: aspirasiStatusFilter === st ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {st === 'all' ? 'Semua Status' : st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredAspirasi.length === 0 ? (
+                <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                  Belum ada aspirasi publik pada filter status ini. Jadilah yang pertama mengusulkan ide positif!
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {filteredAspirasi.map((asp) => {
+                    const st = asp.status || 'Menunggu Review';
+                    const badge = getAspirasiBadge(st);
+                    return (
+                      <div
+                        key={asp.id}
+                        className="glass-panel"
+                        style={{
+                          padding: '20px 22px',
+                          borderLeft: `4px solid ${badge.border}`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                              {asp.category || 'Usulan Budaya'}
+                            </span>
+                            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                              Oleh: {asp.sender || 'Anonim'}
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                              • {asp.submittedAt}
+                            </span>
+                          </div>
+
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 12px',
+                            borderRadius: 'var(--radius-full)',
+                            background: badge.bg,
+                            border: `1px solid ${badge.border}`,
+                            color: badge.color,
+                            fontSize: '0.74rem',
+                            fontWeight: 800
+                          }}>
+                            <span>{badge.icon}</span>
+                            <span>{st}</span>
+                          </span>
+                        </div>
+
+                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                          {asp.title}
+                        </h4>
+                        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
+                          {asp.description}
+                        </p>
+
+                        {asp.adminReply && (
+                          <div style={{
+                            marginTop: '4px',
+                            padding: '12px 14px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(16, 185, 129, 0.08)',
+                            borderLeft: '3px solid #10b981',
+                            fontSize: '0.83rem',
+                            color: 'var(--text-main)',
+                            lineHeight: 1.5
+                          }}>
+                            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', marginBottom: '3px' }}>
+                              💬 Tanggapan & Tindak Lanjut Pengurus CNT IT APD:
+                            </div>
+                            <div>{asp.adminReply}</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
