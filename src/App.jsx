@@ -45,9 +45,10 @@ function parseLocationRoute() {
   const [hashTab, hashQuery] = rawHash.split('?');
   const params = new URLSearchParams(hashQuery || window.location.search || '');
   const formId = params.get('form') || null;
-  const eventId = params.get('event') || null;
+  const eventId = params.get('eventId') || params.get('event') || null;
+  const pathname = (window.location.pathname || '').replace(/\/+$/, '');
 
-  if (window.location.pathname === '/admin' || hashTab === 'admin') {
+  if (pathname === '/admin' || hashTab === 'admin') {
     return { tab: 'admin', formId, eventId };
   }
   if (hashTab && VALID_TABS.includes(hashTab)) {
@@ -82,18 +83,25 @@ export default function App() {
   const setCurrentTab = useCallback((nextTab, formIdParam = null, eventIdParam = null) => {
     const targetTab = VALID_TABS.includes(nextTab) ? nextTab : 'home';
     setCurrentTabState(targetTab);
+    const isPathAdmin = (window.location.pathname || '').replace(/\/+$/, '') === '/admin';
+    const basePrefix = isPathAdmin ? '/' : '';
+
     if (formIdParam) {
       setActiveFormIdFromUrl(formIdParam);
       setActiveEventIdFromUrl(null);
-      window.history.replaceState(null, '', `#${targetTab}?form=${encodeURIComponent(formIdParam)}`);
+      window.history.replaceState(null, '', `${basePrefix}#${targetTab}?form=${encodeURIComponent(formIdParam)}`);
     } else if (eventIdParam) {
       setActiveEventIdFromUrl(eventIdParam);
       setActiveFormIdFromUrl(null);
-      window.history.replaceState(null, '', `#${targetTab}?event=${encodeURIComponent(eventIdParam)}`);
+      window.history.replaceState(null, '', `${basePrefix}#${targetTab}?event=${encodeURIComponent(eventIdParam)}`);
     } else {
       setActiveFormIdFromUrl(null);
       setActiveEventIdFromUrl(null);
-      window.history.replaceState(null, '', `#${targetTab}`);
+      if (targetTab === 'admin') {
+        window.history.replaceState(null, '', isPathAdmin ? '/admin' : '#admin');
+      } else {
+        window.history.replaceState(null, '', `${basePrefix}#${targetTab}`);
+      }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -872,7 +880,7 @@ export default function App() {
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          padding: '6px 10px',
+          padding: '6px',
           borderRadius: 'var(--radius-full)',
           background: 'var(--bg-card)',
           border: '1px solid var(--border-card)',
@@ -884,8 +892,8 @@ export default function App() {
             onClick={toggleTheme}
             title={isDark ? 'Ganti ke Light Mode' : 'Ganti ke Dark Mode'}
             style={{
-              width: '30px',
-              height: '30px',
+              width: '32px',
+              height: '32px',
               borderRadius: '50%',
               background: 'var(--input-bg)',
               border: '1px solid var(--border-card)',
@@ -897,26 +905,6 @@ export default function App() {
             }}
           >
             {isDark ? <Sun size={14} /> : <Moon size={14} />}
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrentTab('admin')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--mandiri-gold)',
-              color: '#040914',
-              border: 'none',
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              cursor: 'pointer'
-            }}
-          >
-            <Lock size={12} />
-            <span>Portal Admin</span>
           </button>
         </div>
       )}
@@ -965,31 +953,8 @@ export default function App() {
               </h2>
 
               <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.65, maxWidth: '480px', margin: 0 }}>
-                Saat ini seluruh halaman publik portal <strong>Culture Network Team (CNT) IT APD</strong> sedang dinonaktifkan sementara oleh pengurus. Jika Anda adalah pengurus/admin, silakan masuk ke Portal Pengurus untuk mengaktifkan kembali visibilitas halaman.
+                Saat ini seluruh halaman publik portal <strong>Culture Network Team (CNT) IT APD</strong> sedang dinonaktifkan sementara. Silakan kembali lagi nanti.
               </p>
-
-              <button
-                type="button"
-                onClick={() => setCurrentTab('admin')}
-                style={{
-                  marginTop: '8px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '12px 28px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--mandiri-gold)',
-                  color: '#040914',
-                  border: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 18px rgba(255, 184, 0, 0.35)'
-                }}
-              >
-                <Lock size={16} />
-                <span>Buka Portal Pengurus (Admin)</span>
-              </button>
             </div>
           </div>
         )}
@@ -1085,7 +1050,12 @@ export default function App() {
 
           {effectiveTab === 'admin' && (
             <AdminPortal
-              onBack={() => setCurrentTab(visiblePublicPages[0] || 'home')}
+              onBack={() => {
+                if ((window.location.pathname || '').replace(/\/+$/, '') === '/admin') {
+                  window.history.pushState(null, '', '/');
+                }
+                setCurrentTab(visiblePublicPages[0] || 'home');
+              }}
               tenures={tenures}
               activeTenure={activeTenure}
               onSelectTenure={handleSelectTenure}
@@ -1609,7 +1579,7 @@ export default function App() {
       })()}
 
       {/* Clean Footer */}
-      <Footer onNavigateAdmin={() => setCurrentTab('admin')} theme={theme} />
+      <Footer theme={theme} />
     </div>
   );
 }
