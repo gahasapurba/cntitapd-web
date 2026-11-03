@@ -762,9 +762,25 @@ export default function HomeSection({
                   <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
                     {div.name}
                   </h3>
-                  <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700 }}>
+                  <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700, marginBottom: div.motto ? '6px' : '0' }}>
                     Lead: {div.leadName}
                   </div>
+                  {div.motto && (
+                    <div style={{
+                      fontSize: '0.78rem',
+                      fontStyle: 'italic',
+                      color: 'var(--text-main)',
+                      opacity: 0.9,
+                      lineHeight: 1.45,
+                      padding: '6px 10px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      borderLeft: `3px solid ${div.color}`,
+                      borderRadius: '0 6px 6px 0',
+                      marginTop: '6px'
+                    }}>
+                      &ldquo;{div.motto}&rdquo;
+                    </div>
+                  )}
                 </div>
 
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6, flex: 1 }}>
