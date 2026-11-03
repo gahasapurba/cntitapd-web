@@ -34,7 +34,8 @@ import {
   saveLocalCache,
   fetchAllCloudState,
   pushCloudState,
-  mergeAndPushCloudList
+  mergeAndPushCloudList,
+  deleteMediaFromCloud
 } from './lib/supabase';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'program', 'galeri', 'kudos', 'assets', 'oprec'];
@@ -368,6 +369,10 @@ export default function App() {
     });
   };
   const handleDeleteGallery = (galId) => {
+    const target = galleries.find(g => g.id === galId);
+    if (target && Array.isArray(target.photos)) {
+      target.photos.forEach(url => deleteMediaFromCloud(url));
+    }
     setGalleries((prev) => {
       const next = prev.filter(g => g.id !== galId);
       pushCloudState('galleries', next);
@@ -406,6 +411,8 @@ export default function App() {
     }
   };
   const handleDeleteMember = (memId) => {
+    const target = members.find(m => m.id === memId);
+    if (target?.image) deleteMediaFromCloud(target.image);
     setMembers((prev) => {
       const next = prev.filter(m => m.id !== memId);
       pushCloudState('members', next);
@@ -489,6 +496,12 @@ export default function App() {
     });
   };
   const handleDeleteSubmission = (subId) => {
+    const target = submissions.find(s => s.id === subId);
+    if (target?.files && typeof target.files === 'object') {
+      Object.values(target.files).forEach(f => {
+        if (f?.url) deleteMediaFromCloud(f.url);
+      });
+    }
     setSubmissions((prev) => {
       const next = prev.filter(s => s.id !== subId);
       pushCloudState('submissions', next);
@@ -512,6 +525,13 @@ export default function App() {
     });
   };
   const handleDeleteBrandAsset = (assetId) => {
+    const targetAsset = brandAssets.find(a => a.id === assetId);
+    if (targetAsset) {
+      if (targetAsset.fileUrl) deleteMediaFromCloud(targetAsset.fileUrl);
+      if (targetAsset.previewUrl && targetAsset.previewUrl !== targetAsset.fileUrl) {
+        deleteMediaFromCloud(targetAsset.previewUrl);
+      }
+    }
     setBrandAssets((prev) => {
       const next = prev.filter(a => a.id !== assetId);
       pushCloudState('brandAssets', next);

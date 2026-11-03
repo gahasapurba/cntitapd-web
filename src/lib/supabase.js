@@ -641,3 +641,32 @@ export async function uploadMediaToCloud(file, folder = 'uploads') {
     reader.readAsDataURL(file);
   });
 }
+
+/**
+ * Extract bucket-relative path from a Supabase Storage public CDN URL
+ */
+export function extractStoragePath(url, bucketName = 'cnt-media') {
+  if (!url || typeof url !== 'string') return null;
+  const marker = `/storage/v1/object/public/${bucketName}/`;
+  const idx = url.indexOf(marker);
+  if (idx !== -1) {
+    return decodeURIComponent(url.substring(idx + marker.length));
+  }
+  return null;
+}
+
+/**
+ * Delete a file from Supabase Storage bucket `cnt-media` given its public CDN URL.
+ * Silently ignores local assets (/assets/...) or external links.
+ */
+export async function deleteMediaFromCloud(url, bucketName = 'cnt-media') {
+  const path = extractStoragePath(url, bucketName);
+  if (!path) return false;
+
+  try {
+    const { error } = await supabase.storage.from(bucketName).remove([path]);
+    return !error;
+  } catch (e) {
+    return false;
+  }
+}
