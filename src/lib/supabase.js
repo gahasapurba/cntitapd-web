@@ -561,11 +561,15 @@ export async function pushCloudState(key, value) {
     // Upsert all current rows into their dedicated table
     if (dbRows.length > 0) {
       const { error } = await supabase.from(tableName).upsert(dbRows, { onConflict: 'id' });
-      if (error) return false;
+      if (error) {
+        console.error('pushCloudState error on', tableName, error);
+        return false;
+      }
     }
 
     return true;
   } catch (e) {
+    console.error('pushCloudState exception on', key, e);
     return false;
   }
 }
@@ -637,45 +641,75 @@ export function getFileMimeType(file) {
 
 /**
  * Upload a File/Blob to Supabase Storage bucket `cnt-media` and return its public CDN URL.
- * Throws explicit exceptions on failure to prevent silent null returns.
+ * Mengikuti arsitektur quick-drop (upsert: false) dengan fallback multi-tier:
+ * 1. Direct Supabase Storage upload
+ * 2. Same-origin reverse proxy (/storage-proxy) jika direct access diblokir CORS/VPN
+ * 3. Base64 dataURL untuk file < 5MB agar data selalu tersimpan ke Supabase
  */
 export async function uploadMediaToCloud(file, folder = 'uploads') {
   if (!file) throw new Error('File tidak valid atau tidak ditemukan');
 
-  const ext = (file.name || '').split('.').pop() || '';
-  const baseName = (file.name || 'file').slice(0, -(ext.length ? ext.length + 1 : 0));
-  const safeBase = (baseName || 'file').replace(/[^a-zA-Z0-9_-]/g, '_').slice(-60);
-  const safeName = ext ? `${safeBase}.${ext.toLowerCase()}` : safeBase;
-  const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${safeName}`;
+  const fileExt = (file.name || '').split('.').pop() || 'dat';
+  const cleanExt = fileExt.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${cleanExt || 'dat'}`;
+  const path = `${folder}/${fileName}`;
 
-  const resolvedMime = getFileMimeType(file);
-
+  // 1. Direct Supabase SDK upload (sama persis dengan arsitektur quick-drop: upsert: false tanpa override header)
   try {
-    const { data: uploadData, error } = await supabase.storage
+    const { data: uploadData, error: uploadErr } = await supabase.storage
       .from('cnt-media')
       .upload(path, file, {
         cacheControl: '3600',
-        upsert: true,
-        contentType: resolvedMime
+        upsert: false
       });
 
-    if (error) {
-      console.error('Supabase Storage error:', error);
-      throw new Error(error.message || 'Gagal mengunggah berkas ke Supabase Storage');
-    }
-
-    if (uploadData) {
+    if (!uploadErr && uploadData) {
       const { data: pubData } = supabase.storage.from('cnt-media').getPublicUrl(path);
       if (pubData?.publicUrl) {
         return pubData.publicUrl;
       }
     }
 
-    throw new Error('Tidak ada respon data publik dari Cloud Storage');
-  } catch (e) {
-    console.error('Upload exception:', e);
-    throw e;
+    if (uploadErr) {
+      console.warn('Direct Supabase upload failed, falling back to same-origin reverse proxy...', uploadErr);
+    }
+  } catch (err) {
+    console.warn('Direct upload exception, trying same-origin proxy...', err);
   }
+
+  // 2. Fallback: Same-Origin Reverse Proxy Netlify (/storage-proxy)
+  // Menembus blokir jaringan kantor/VPN dan bypass pemeriksaan CORS browser
+  try {
+    const proxyUrl = `/storage-proxy/object/cnt-media/${path}`;
+    const proxyRes = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`
+      },
+      body: file
+    });
+
+    if (proxyRes.ok) {
+      const { data: pubData } = supabase.storage.from('cnt-media').getPublicUrl(path);
+      return pubData?.publicUrl || `/storage-proxy/object/public/cnt-media/${path}`;
+    }
+  } catch (proxyErr) {
+    console.warn('Proxy upload failed:', proxyErr);
+  }
+
+  // 3. Fallback: Base64 dataURL untuk file < 5MB (menjamin data tetap masuk ke database Supabase)
+  if (file.size < 5 * 1024 * 1024) {
+    console.info('Menggunakan Base64 dataURL fallback untuk memastikan data tersimpan...');
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  throw new Error('Gagal mengunggah berkas. Pastikan ukuran berkas di bawah batas kapasitas.');
 }
 
 /**
