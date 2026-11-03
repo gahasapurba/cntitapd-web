@@ -324,7 +324,7 @@ export const rowMappers = {
       title: item.title || '',
       category: item.category || 'Logo & Brand',
       description: item.description || '',
-      file_url: item.fileUrl || '',
+      file_url: item.fileUrl || item.previewUrl || '',
       preview_url: item.previewUrl || item.fileUrl || '',
       file_type: item.fileType || 'PNG / ZIP',
       file_size: item.fileSize || '',

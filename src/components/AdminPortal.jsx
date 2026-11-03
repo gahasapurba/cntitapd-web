@@ -683,6 +683,14 @@ export default function AdminPortal({
     }
     setIsUploadingMedia(false);
 
+    const effectiveFileUrl = finalFileUrl || finalPreviewUrl || '';
+    const effectivePreviewUrl = finalPreviewUrl || finalFileUrl || '';
+
+    if (!effectiveFileUrl) {
+      showToast('Gagal: File asset atau URL download tidak boleh kosong', 'error');
+      return;
+    }
+
     if (onAddBrandAsset) {
       onAddBrandAsset({
         id: 'asset-' + Date.now(),
@@ -691,8 +699,8 @@ export default function AdminPortal({
         badge: assetBadge.trim() || assetCategory,
         fileType: assetFileType.trim() || 'FILE',
         fileSize: assetFileSize.trim() || '',
-        fileUrl: finalFileUrl,
-        previewUrl: finalPreviewUrl || finalFileUrl,
+        fileUrl: effectiveFileUrl,
+        previewUrl: effectivePreviewUrl,
         description: assetDesc.trim() || 'Asset resmi CNT IT Application Delivery.'
       });
     }
@@ -6785,10 +6793,12 @@ export default function AdminPortal({
                       }
                       setIsUploadingMedia(false);
                     }
+                    const effectiveFileUrl = finalFileUrl || finalPreviewUrl || '';
+                    const effectivePreviewUrl = finalPreviewUrl || finalFileUrl || '';
                     onUpdateBrandAsset({
                       ...editingItem.item,
-                      fileUrl: finalFileUrl,
-                      previewUrl: finalPreviewUrl || finalFileUrl
+                      fileUrl: effectiveFileUrl,
+                      previewUrl: effectivePreviewUrl
                     });
                   }
                   if (editingItem.type === 'faq' && onUpdateFaq) onUpdateFaq(editingItem.item);

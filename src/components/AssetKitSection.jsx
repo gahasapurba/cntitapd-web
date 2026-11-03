@@ -19,6 +19,56 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const handleDownloadAsset = async (e, item) => {
+    e.preventDefault();
+    const downloadUrl = (item.fileUrl || item.previewUrl || '').trim();
+    if (!downloadUrl) {
+      alert('Tautan berkas download untuk asset ini belum tersedia.');
+      return;
+    }
+
+    const triggerDownload = (url, filename) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+
+    setDownloadingId(item.id);
+    try {
+      // Local or blob URLs
+      if (downloadUrl.startsWith('/') || downloadUrl.startsWith('blob:') || downloadUrl.startsWith(window.location.origin)) {
+        const cleanName = downloadUrl.split('/').pop()?.split('?')[0] || `${item.title || 'asset'}.${(item.fileType || 'zip').toLowerCase()}`;
+        triggerDownload(downloadUrl, cleanName);
+        setDownloadingId(null);
+        return;
+      }
+
+      // Remote CDN (Supabase) - fetch as blob to enforce local file download
+      const res = await fetch(downloadUrl);
+      if (!res.ok) throw new Error('Fetch failed');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const urlExt = (downloadUrl.split('.').pop() || '').split('?')[0];
+      const fallbackExt = (item.fileType || urlExt || 'file').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const rawName = downloadUrl.split('/').pop()?.split('?')[0];
+      const filename = rawName && rawName.includes('.')
+        ? rawName
+        : `${(item.title || 'asset').replace(/[^a-zA-Z0-9_-]/g, '_')}.${fallbackExt || 'bin'}`;
+
+      triggerDownload(blobUrl, filename);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+    } catch (err) {
+      console.warn('Direct blob download failed, opening in new tab:', err);
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const categories = ['Semua', ...Array.from(new Set(brandAssets.map(a => a.category || 'Logo & Brand')))];
   const filteredAssets = brandAssets.filter(asset => {
@@ -361,11 +411,10 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', paddingTop: '10px', borderTop: '1px solid var(--border-card)' }}>
-                    <a
-                      href={item.fileUrl}
-                      download
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={(e) => handleDownloadAsset(e, item)}
+                      disabled={downloadingId === item.id}
                       style={{
                         flex: 1,
                         display: 'inline-flex',
@@ -374,16 +423,18 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
                         gap: '7px',
                         padding: '10px 14px',
                         borderRadius: 'var(--radius-md)',
-                        background: 'var(--mandiri-gold)',
-                        color: '#040914',
+                        background: downloadingId === item.id ? 'var(--input-bg)' : 'var(--mandiri-gold)',
+                        color: downloadingId === item.id ? 'var(--text-muted)' : '#040914',
                         fontWeight: 800,
                         fontSize: '0.8rem',
-                        textDecoration: 'none'
+                        border: 'none',
+                        cursor: downloadingId === item.id ? 'wait' : 'pointer',
+                        transition: 'all 0.2s ease'
                       }}
                     >
                       <Download size={14} />
-                      <span>Download / Buka</span>
-                    </a>
+                      <span>{downloadingId === item.id ? 'Mengunduh...' : 'Download / Buka'}</span>
+                    </button>
                   </div>
                 </div>
               );
