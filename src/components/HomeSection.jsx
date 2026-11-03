@@ -20,7 +20,10 @@ import {
   Calendar,
   MapPin,
   HelpCircle,
-  Search
+  Search,
+  Send,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 
@@ -35,6 +38,7 @@ export default function HomeSection({
   eventRsvps = [],
   kudosList = [],
   faqs = [],
+  onSubmitFaqQuestion,
   theme,
   pageVisibility = {}
 }) {
@@ -42,6 +46,47 @@ export default function HomeSection({
   const [openFaqId, setOpenFaqId] = useState('faq-1');
   const [faqCategory, setFaqCategory] = useState('Semua');
   const [faqSearch, setFaqSearch] = useState('');
+  const [askName, setAskName] = useState('');
+  const [askCat, setAskCat] = useState('Kegiatan & Event');
+  const [askQuestionText, setAskQuestionText] = useState('');
+  const [askErrors, setAskErrors] = useState({});
+  const [askSuccess, setAskSuccess] = useState(false);
+  const [isSubmittingAsk, setIsSubmittingAsk] = useState(false);
+
+  const handleSubmitPublicFaqQuestion = (e) => {
+    e.preventDefault();
+    if (isSubmittingAsk) return;
+    const errs = {};
+    if (!askQuestionText.trim() || askQuestionText.trim().length < 8) {
+      errs.question = 'Mohon tuliskan pertanyaan Anda minimal 8 karakter';
+    }
+    setAskErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setIsSubmittingAsk(true);
+    const now = new Date();
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const ts = `${String(now.getDate()).padStart(2, '0')} ${months[now.getMonth()]} ${now.getFullYear()} • ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
+
+    if (onSubmitFaqQuestion) {
+      onSubmitFaqQuestion({
+        id: 'faq-user-' + Date.now(),
+        category: askCat || 'Umum',
+        question: askQuestionText.trim(),
+        answer: 'Menunggu jawaban & penjelasan resmi dari Pengurus CNT IT APD.',
+        askedBy: askName.trim() || 'Insan IT APD',
+        submittedAt: ts,
+        isPublished: false
+      });
+    }
+
+    setAskSuccess(true);
+    setAskName('');
+    setAskQuestionText('');
+    setAskErrors({});
+    setTimeout(() => setIsSubmittingAsk(false), 500);
+    setTimeout(() => setAskSuccess(false), 5000);
+  };
   const isOprecVisible = pageVisibility.oprec !== false;
   const isOrganisasiVisible = pageVisibility.organisasi !== false;
   const isProgramVisible = pageVisibility.program !== false;
@@ -1081,6 +1126,140 @@ export default function HomeSection({
                 })
               )}
             </div>
+
+            {/* Public "Ask a Question" Box (Synced to `public.faqs` with is_published=false for Admin Review) */}
+            {onSubmitFaqQuestion && (
+              <div className="glass-panel" style={{
+                marginTop: '24px',
+                padding: '22px 24px',
+                borderRadius: 'var(--radius-md)',
+                border: '1.5px solid var(--border-card)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}>
+                <div>
+                  <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
+                    💬 Punya Pertanyaan Lain yang Belum Tercantum di FAQ?
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Kirimkan pertanyaan Anda langsung ke Pengurus CNT IT APD. Pertanyaan yang dijawab oleh Admin akan ditampilkan pada papan FAQ di atas.
+                  </p>
+                </div>
+
+                {askSuccess && (
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <CheckCircle2 size={15} />
+                    <span>Pertanyaan Anda berhasil dikirim ke antrean FAQ Pengurus CNT!</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmitPublicFaqQuestion} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <input
+                      type="text"
+                      placeholder="Nama / Squad Anda (Opsional)"
+                      value={askName}
+                      onChange={(e) => setAskName(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.82rem',
+                        outline: 'none'
+                      }}
+                    />
+                    <select
+                      value={askCat}
+                      onChange={(e) => setAskCat(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.82rem',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="Kegiatan & Event">Topik: Kegiatan & Event</option>
+                      <option value="Operasional & Sekben">Topik: Operasional & Sekben</option>
+                      <option value="Pendaftaran & Oprec">Topik: Pendaftaran & Oprec</option>
+                      <option value="Aspirasi & Usulan">Topik: Aspirasi & Usulan</option>
+                      <option value="Tentang CNT">Topik: Tentang CNT</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 260px' }}>
+                      <input
+                        type="text"
+                        placeholder="Tuliskan pertanyaan Anda di sini... *"
+                        value={askQuestionText}
+                        onChange={(e) => {
+                          setAskQuestionText(e.target.value);
+                          if (askErrors.question) setAskErrors({});
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: `1.5px solid ${askErrors.question ? '#f43f5e' : 'var(--border-card)'}`,
+                          color: 'var(--text-main)',
+                          fontSize: '0.84rem',
+                          outline: 'none'
+                        }}
+                      />
+                      {askErrors.question && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.72rem', marginTop: '4px' }}>
+                          <AlertCircle size={12} />
+                          <span>{askErrors.question}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingAsk}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '10px 20px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--mandiri-gold)',
+                        color: '#040914',
+                        border: 'none',
+                        fontWeight: 800,
+                        fontSize: '0.82rem',
+                        cursor: isSubmittingAsk ? 'not-allowed' : 'pointer',
+                        height: '40px'
+                      }}
+                    >
+                      <Send size={14} />
+                      <span>{isSubmittingAsk ? 'Mengirim...' : 'Ajukan Pertanyaan'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </section>
         );
       })()}

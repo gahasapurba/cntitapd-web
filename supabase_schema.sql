@@ -214,6 +214,8 @@ CREATE TABLE public.faqs (
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
     category TEXT DEFAULT 'Umum',
+    asked_by TEXT DEFAULT 'Admin CNT',
+    submitted_at TEXT DEFAULT '',
     sort_order INT DEFAULT 0,
     is_published BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now(),

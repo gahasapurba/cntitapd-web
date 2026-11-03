@@ -45,17 +45,21 @@ function parseLocationRoute() {
   const [hashTab, hashQuery] = rawHash.split('?');
   const params = new URLSearchParams(hashQuery || window.location.search || '');
   const formId = params.get('form') || null;
+  const eventId = params.get('event') || null;
 
   if (window.location.pathname === '/admin' || hashTab === 'admin') {
-    return { tab: 'admin', formId };
+    return { tab: 'admin', formId, eventId };
   }
   if (hashTab && VALID_TABS.includes(hashTab)) {
-    return { tab: hashTab, formId };
+    return { tab: hashTab, formId, eventId };
   }
   if (formId) {
-    return { tab: 'oprec', formId };
+    return { tab: 'oprec', formId, eventId: null };
   }
-  return { tab: 'home', formId: null };
+  if (eventId) {
+    return { tab: 'program', formId: null, eventId };
+  }
+  return { tab: 'home', formId: null, eventId: null };
 }
 
 const DEFAULT_PAGE_VISIBILITY = {
@@ -73,15 +77,22 @@ export default function App() {
   // Navigation: 'home' | 'organisasi' | 'program' | 'galeri' | 'kudos' | 'assets' | 'oprec' | 'admin'
   const [currentTab, setCurrentTabState] = useState(() => parseLocationRoute().tab);
   const [activeFormIdFromUrl, setActiveFormIdFromUrl] = useState(() => parseLocationRoute().formId);
+  const [activeEventIdFromUrl, setActiveEventIdFromUrl] = useState(() => parseLocationRoute().eventId);
 
-  const setCurrentTab = useCallback((nextTab, formIdParam = null) => {
+  const setCurrentTab = useCallback((nextTab, formIdParam = null, eventIdParam = null) => {
     const targetTab = VALID_TABS.includes(nextTab) ? nextTab : 'home';
     setCurrentTabState(targetTab);
     if (formIdParam) {
       setActiveFormIdFromUrl(formIdParam);
+      setActiveEventIdFromUrl(null);
       window.history.replaceState(null, '', `#${targetTab}?form=${encodeURIComponent(formIdParam)}`);
+    } else if (eventIdParam) {
+      setActiveEventIdFromUrl(eventIdParam);
+      setActiveFormIdFromUrl(null);
+      window.history.replaceState(null, '', `#${targetTab}?event=${encodeURIComponent(eventIdParam)}`);
     } else {
       if (targetTab !== 'oprec') setActiveFormIdFromUrl(null);
+      if (targetTab !== 'program') setActiveEventIdFromUrl(null);
       window.history.replaceState(null, '', `#${targetTab}`);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -118,6 +129,9 @@ export default function App() {
       setCurrentTabState(parsed.tab);
       if (parsed.formId) {
         setActiveFormIdFromUrl(parsed.formId);
+      }
+      if (parsed.eventId) {
+        setActiveEventIdFromUrl(parsed.eventId);
       }
     };
     window.addEventListener('hashchange', handleHash);
@@ -275,6 +289,20 @@ export default function App() {
             : m
         );
         pushCloudState('members', next);
+        return next;
+      });
+    }
+    // Auto-sync divisionName onto Events belonging to this division
+    if (updatedDiv.name) {
+      setEvents((prev) => {
+        const hasMatch = prev.some(e => e.divisionId === updatedDiv.id && e.divisionName !== updatedDiv.name);
+        if (!hasMatch) return prev;
+        const next = prev.map(e =>
+          e.divisionId === updatedDiv.id
+            ? { ...e, divisionName: updatedDiv.name }
+            : e
+        );
+        pushCloudState('events', next);
         return next;
       });
     }
@@ -571,6 +599,15 @@ export default function App() {
       return next;
     });
   };
+  const handleSubmitPublicFaq = async (newFaq) => {
+    setFaqs((prev) => {
+      const next = [newFaq, ...prev];
+      saveLocalCache('faqs', next);
+      return next;
+    });
+    const merged = await mergeAndPushCloudList('faqs', newFaq, faqs);
+    if (Array.isArray(merged)) setFaqs(merged);
+  };
   const handleUpdateFaq = (updatedFaq) => {
     setFaqs((prev) => {
       const next = prev.map(f => f.id === updatedFaq.id ? updatedFaq : f);
@@ -584,6 +621,78 @@ export default function App() {
       pushCloudState('faqs', next);
       return next;
     });
+  };
+
+  // Restore full backup snapshot (.json) across all 13 tables
+  const handleRestoreBackup = async (backupData) => {
+    if (!backupData || typeof backupData !== 'object') return;
+    const tasks = [];
+
+    if (Array.isArray(backupData.tenures) && backupData.tenures.length > 0) {
+      setTenures(backupData.tenures);
+      tasks.push(pushCloudState('tenures', backupData.tenures));
+      const targetTenureId = backupData.meta?.activeTenureId || backupData.tenures[0].id;
+      const foundTenure = backupData.tenures.find(t => t.id === targetTenureId) || backupData.tenures[0];
+      setActiveTenure(foundTenure);
+      tasks.push(pushCloudState('activeTenureId', foundTenure.id));
+    }
+    if (Array.isArray(backupData.divisions)) {
+      setDivisions(backupData.divisions);
+      tasks.push(pushCloudState('divisions', backupData.divisions));
+    }
+    if (Array.isArray(backupData.members)) {
+      setMembers(backupData.members);
+      tasks.push(pushCloudState('members', backupData.members));
+    }
+    if (Array.isArray(backupData.events)) {
+      setEvents(backupData.events);
+      tasks.push(pushCloudState('events', backupData.events));
+    }
+    if (Array.isArray(backupData.galleries)) {
+      setGalleries(backupData.galleries);
+      tasks.push(pushCloudState('galleries', backupData.galleries));
+    }
+    if (Array.isArray(backupData.kudosList)) {
+      setKudosList(backupData.kudosList);
+      tasks.push(pushCloudState('kudosList', backupData.kudosList));
+    }
+    if (Array.isArray(backupData.aspirasiList)) {
+      setAspirasiList(backupData.aspirasiList);
+      tasks.push(pushCloudState('aspirasiList', backupData.aspirasiList));
+    }
+    if (Array.isArray(backupData.forms)) {
+      setForms(backupData.forms);
+      tasks.push(pushCloudState('forms', backupData.forms));
+    }
+    if (Array.isArray(backupData.submissions)) {
+      setSubmissions(backupData.submissions);
+      tasks.push(pushCloudState('submissions', backupData.submissions));
+    }
+    if (Array.isArray(backupData.brandAssets)) {
+      setBrandAssets(backupData.brandAssets);
+      tasks.push(pushCloudState('brandAssets', backupData.brandAssets));
+    }
+    if (Array.isArray(backupData.eventRsvps)) {
+      setEventRsvps(backupData.eventRsvps);
+      tasks.push(pushCloudState('eventRsvps', backupData.eventRsvps));
+    }
+    if (Array.isArray(backupData.faqs)) {
+      setFaqs(backupData.faqs);
+      tasks.push(pushCloudState('faqs', backupData.faqs));
+    }
+    if (backupData.announcementBar && typeof backupData.announcementBar === 'object') {
+      const mergedBar = { ...INITIAL_ANNOUNCEMENT_BAR, ...backupData.announcementBar };
+      setAnnouncementBar(mergedBar);
+      tasks.push(pushCloudState('announcementBar', mergedBar));
+    }
+    if (backupData.pageVisibility && typeof backupData.pageVisibility === 'object') {
+      const mergedVis = { ...DEFAULT_PAGE_VISIBILITY, ...backupData.pageVisibility };
+      setPageVisibilityState(mergedVis);
+      try { localStorage.setItem('cnt_page_visibility', JSON.stringify(mergedVis)); } catch (e) {}
+      tasks.push(pushCloudState('pageVisibility', mergedVis));
+    }
+
+    await Promise.all(tasks);
   };
 
   // Reset all collections back to initial defaults
@@ -900,6 +1009,7 @@ export default function App() {
             eventRsvps={eventRsvps}
             kudosList={kudosList}
             faqs={faqs}
+            onSubmitFaqQuestion={handleSubmitPublicFaq}
             theme={theme}
             pageVisibility={pageVisibility}
           />
@@ -932,6 +1042,8 @@ export default function App() {
               onNavigateOprec={pageVisibility.oprec !== false ? () => setCurrentTab('oprec') : undefined}
               eventRsvps={eventRsvps}
               onAddEventRsvp={handleAddEventRsvp}
+              initialEventId={activeEventIdFromUrl}
+              onSelectEventUrl={(eId) => setCurrentTab('program', null, eId)}
             />
           )}
 
@@ -1030,6 +1142,7 @@ export default function App() {
               syncStatus={syncStatus}
               onForceSync={syncFromCloud}
               onResetDefault={handleResetDefault}
+              onRestoreBackup={handleRestoreBackup}
             />
           )}
         </Suspense>
@@ -1243,7 +1356,7 @@ export default function App() {
                             key={evt.id}
                             type="button"
                             onClick={() => {
-                              setCurrentTab('program');
+                              setCurrentTab('program', null, evt.id);
                               setIsQuickSearchOpen(false);
                             }}
                             style={{

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar as CalendarIcon, 
   MapPin, 
@@ -16,7 +16,9 @@ import {
   Download,
   ExternalLink,
   AlertCircle,
-  Send
+  Send,
+  Share2,
+  Link2
 } from 'lucide-react';
 
 export default function ProgramSection({
@@ -26,7 +28,9 @@ export default function ProgramSection({
   eventRsvps = [],
   onAddEventRsvp,
   theme,
-  onNavigateOprec
+  onNavigateOprec,
+  initialEventId = null,
+  onSelectEventUrl
 }) {
   const isDark = theme === 'dark';
   const [filterDiv, setFilterDiv] = useState('all');
@@ -34,9 +38,71 @@ export default function ProgramSection({
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'all'
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'calendar'
   const [rsvpModalEvent, setRsvpModalEvent] = useState(null);
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(2); // 2 = Maret (Q1 kick-off)
+  const [sameDayModalEvents, setSameDayModalEvents] = useState([]);
+  const [copiedEventId, setCopiedEventId] = useState(null);
+  const [currentYear, setCurrentYear] = useState(() => {
+    const firstWithDate = events.find(e => e.startDate && e.status !== 'Completed') || events.find(e => e.startDate);
+    if (firstWithDate?.startDate) {
+      const yr = parseInt(firstWithDate.startDate.split('-')[0], 10);
+      if (!isNaN(yr)) return yr;
+    }
+    return new Date().getFullYear();
+  });
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const nowM = new Date().getMonth();
+    const nowY = new Date().getFullYear();
+    const hasEventThisMonth = events.some(e => {
+      if (!e.startDate) return false;
+      const parts = e.startDate.split('-');
+      return parseInt(parts[0], 10) === nowY && (parseInt(parts[1], 10) - 1) === nowM;
+    });
+    if (hasEventThisMonth) return nowM;
+    const firstWithDate = events.find(e => e.startDate && e.status !== 'Completed') || events.find(e => e.startDate);
+    if (firstWithDate?.startDate) {
+      const mo = parseInt(firstWithDate.startDate.split('-')[1], 10) - 1;
+      if (!isNaN(mo) && mo >= 0 && mo <= 11) return mo;
+    }
+    return nowM;
+  });
   const [hoveredDate, setHoveredDate] = useState(null);
+
+  useEffect(() => {
+    if (initialEventId && events.length > 0) {
+      const found = events.find(e => e.id === initialEventId);
+      if (found) {
+        setRsvpModalEvent(found);
+      }
+    }
+  }, [initialEventId, events]);
+
+  const handleOpenEventModal = (evt, dayEventsList = []) => {
+    setRsvpModalEvent(evt);
+    setSameDayModalEvents(dayEventsList.length > 1 ? dayEventsList : []);
+    if (onSelectEventUrl && evt?.id) {
+      onSelectEventUrl(evt.id);
+    }
+  };
+
+  const getEventDirectUrl = (evtId) => {
+    const base = window.location.origin + window.location.pathname;
+    return `${base}#program?event=${encodeURIComponent(evtId)}`;
+  };
+
+  const handleCopyEventLink = (evt) => {
+    if (!evt) return;
+    try {
+      navigator.clipboard.writeText(getEventDirectUrl(evt.id));
+      setCopiedEventId(evt.id);
+      setTimeout(() => setCopiedEventId(null), 2200);
+    } catch (e) {}
+  };
+
+  const handleShareEventWa = (evt) => {
+    if (!evt) return;
+    const url = getEventDirectUrl(evt.id);
+    const text = `Halo Insan IT APD! Yuk ikuti & konfirmasi kehadiranmu (RSVP) di kegiatan *${evt.title}* (${evt.date} • ${evt.location || 'Plaza Mandiri'}):\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
 
   // Quick RSVP form states
   const [rsvpName, setRsvpName] = useState('');
@@ -373,42 +439,63 @@ export default function ProgramSection({
                 </div>
 
                 {!isCompleted && (
-                  <button
-                    className="btn-rsvp-action"
-                    style={{
-                      marginTop: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      background: 'rgba(14, 165, 233, 0.12)',
-                      color: 'var(--neon-cyan)',
-                      border: '1.5px solid var(--neon-cyan)',
-                      padding: '11px 18px',
-                      borderRadius: 'var(--radius-md)',
-                      fontWeight: 800,
-                      fontSize: '0.88rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.25s ease',
-                      boxShadow: '0 4px 15px rgba(14, 165, 233, 0.15)'
-                    }}
-                    onClick={() => setRsvpModalEvent(evt)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--neon-cyan)';
-                      e.currentTarget.style.color = '#040914';
-                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(14, 165, 233, 0.4)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(14, 165, 233, 0.12)';
-                      e.currentTarget.style.color = 'var(--neon-cyan)';
-                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(14, 165, 233, 0.15)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <span>RSVP / Info Detail Kegiatan</span>
-                    <ChevronRight size={17} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <button
+                      className="btn-rsvp-action"
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        background: 'rgba(14, 165, 233, 0.12)',
+                        color: 'var(--neon-cyan)',
+                        border: '1.5px solid var(--neon-cyan)',
+                        padding: '11px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        fontWeight: 800,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.25s ease',
+                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.15)'
+                      }}
+                      onClick={() => handleOpenEventModal(evt)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--neon-cyan)';
+                        e.currentTarget.style.color = '#040914';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(14, 165, 233, 0.4)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(14, 165, 233, 0.12)';
+                        e.currentTarget.style.color = 'var(--neon-cyan)';
+                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(14, 165, 233, 0.15)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <span>RSVP / Info Detail</span>
+                      <ChevronRight size={16} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopyEventLink(evt)}
+                      title="Salin Link Undangan Event"
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-md)',
+                        background: copiedEventId === evt.id ? 'rgba(16, 185, 129, 0.16)' : 'var(--input-bg)',
+                        border: `1px solid ${copiedEventId === evt.id ? '#10b981' : 'var(--border-card)'}`,
+                        color: copiedEventId === evt.id ? '#10b981' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {copiedEventId === evt.id ? <CheckCircle2 size={15} /> : <Share2 size={15} />}
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -516,8 +603,9 @@ export default function ProgramSection({
                 <button
                   type="button"
                   onClick={() => {
-                    setCurrentMonth(2); // Maret 2026
-                    setCurrentYear(2026);
+                    const now = new Date();
+                    setCurrentMonth(now.getMonth());
+                    setCurrentYear(now.getFullYear());
                   }}
                   style={{
                     padding: '8px 14px',
@@ -530,7 +618,7 @@ export default function ProgramSection({
                     cursor: 'pointer'
                   }}
                 >
-                  Hari Ini
+                  Bulan Ini
                 </button>
                 <button
                   type="button"
@@ -625,7 +713,7 @@ export default function ProgramSection({
                       <div
                         key={dayNum}
                         onClick={() => {
-                          if (hasEvents) setRsvpModalEvent(dayEvents[0]);
+                          if (hasEvents) handleOpenEventModal(dayEvents[0], dayEvents);
                         }}
                         onMouseEnter={() => {
                           if (hasEvents) setHoveredDate(fullDateStr);
@@ -912,6 +1000,91 @@ export default function ProgramSection({
                     {rsvpModalEvent.title}
                   </h3>
                 </div>
+              </div>
+
+              {/* Multi-Agenda Switcher if multiple events occur on the clicked calendar date */}
+              {sameDayModalEvents.length > 1 && (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 184, 0, 0.08)',
+                  border: '1px solid rgba(255, 184, 0, 0.35)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                    📅 Terdapat {sameDayModalEvents.length} Agenda pada Tanggal Ini (Pilih untuk Melihat):
+                  </span>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {sameDayModalEvents.map((evItem) => {
+                      const isCurrent = evItem.id === rsvpModalEvent.id;
+                      return (
+                        <button
+                          key={evItem.id}
+                          type="button"
+                          onClick={() => setRsvpModalEvent(evItem)}
+                          style={{
+                            padding: '5px 11px',
+                            borderRadius: 'var(--radius-full)',
+                            border: isCurrent ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                            background: isCurrent ? 'var(--mandiri-gold)' : 'var(--bg-card)',
+                            color: isCurrent ? '#040914' : 'var(--text-main)',
+                            fontSize: '0.73rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {evItem.title}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Share Event Link & WhatsApp Invitation Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleShareEventWa(rsvpModalEvent)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 13px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(37, 211, 102, 0.15)',
+                    border: '1px solid rgba(37, 211, 102, 0.45)',
+                    color: '#25d366',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Share2 size={13} />
+                  <span>📲 Bagikan Undangan ke WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCopyEventLink(rsvpModalEvent)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 13px',
+                    borderRadius: 'var(--radius-full)',
+                    background: copiedEventId === rsvpModalEvent.id ? 'rgba(16, 185, 129, 0.15)' : 'var(--input-bg)',
+                    border: `1px solid ${copiedEventId === rsvpModalEvent.id ? '#10b981' : 'var(--border-card)'}`,
+                    color: copiedEventId === rsvpModalEvent.id ? '#10b981' : 'var(--text-muted)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Link2 size={13} />
+                  <span>{copiedEventId === rsvpModalEvent.id ? '✓ Link Undangan Tersalin!' : 'Salin Link Event'}</span>
+                </button>
               </div>
 
               <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.55, margin: 0 }}>

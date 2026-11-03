@@ -376,6 +376,8 @@ export const rowMappers = {
       question: item.question || '',
       answer: item.answer || '',
       category: item.category || 'Umum',
+      asked_by: item.askedBy || 'Admin CNT',
+      submitted_at: item.submittedAt || '',
       is_published: item.isPublished !== false,
       sort_order: idx,
       updated_at: new Date().toISOString()
@@ -385,6 +387,8 @@ export const rowMappers = {
       question: row.question || '',
       answer: row.answer || '',
       category: row.category || 'Umum',
+      askedBy: row.asked_by || 'Admin CNT',
+      submittedAt: row.submitted_at || '',
       isPublished: row.is_published !== false
     })
   }

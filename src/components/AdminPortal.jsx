@@ -127,7 +127,8 @@ export default function AdminPortal({
   onUpdateAnnouncementBar,
   syncStatus = 'synced',
   onForceSync,
-  onResetDefault
+  onResetDefault,
+  onRestoreBackup
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
@@ -962,6 +963,107 @@ export default function AdminPortal({
             <ClipboardList size={14} />
             <span>📄 Laporan Eksekutif / LPJ</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const snapshot = {
+                meta: {
+                  app: 'CNT IT APD Portal',
+                  exportedAt: new Date().toISOString(),
+                  activeTenureId: activeTenure?.id || 'tenure-2026'
+                },
+                tenures,
+                divisions,
+                members,
+                events,
+                galleries,
+                kudosList,
+                aspirasiList,
+                forms,
+                submissions,
+                brandAssets,
+                eventRsvps,
+                faqs,
+                pageVisibility,
+                announcementBar
+              };
+              const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute('download', `Backup_CNT_IT_APD_${new Date().toISOString().slice(0, 10)}.json`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              showToast('Snapshot Backup Penuh (.json) seluruh 13 tabel berhasil diunduh!');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(168, 85, 247, 0.14)',
+              color: '#c084fc',
+              border: '1px solid rgba(168, 85, 247, 0.4)',
+              padding: '7px 13px',
+              borderRadius: 'var(--radius-full)',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              cursor: 'pointer'
+            }}
+            title="Unduh Backup Penuh (.json) seluruh data 13 tabel database CNT IT APD"
+          >
+            <Download size={13} />
+            <span>💾 Backup (.json)</span>
+          </button>
+
+          {onRestoreBackup && (
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(14, 165, 233, 0.12)',
+                color: '#38bdf8',
+                border: '1px solid rgba(14, 165, 233, 0.35)',
+                padding: '7px 13px',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer'
+              }}
+              title="Pulihkan (Restore) seluruh data dari file Backup (.json)"
+            >
+              <Upload size={13} />
+              <span>📂 Restore (.json)</span>
+              <input
+                type="file"
+                accept=".json,application/json"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = async (evt) => {
+                    try {
+                      const parsed = JSON.parse(String(evt.target?.result || '{}'));
+                      if (!parsed || typeof parsed !== 'object' || (!Array.isArray(parsed.members) && !Array.isArray(parsed.events))) {
+                        showToast('Format file Backup (.json) tidak valid', 'error');
+                        return;
+                      }
+                      await onRestoreBackup(parsed);
+                      showToast('Seluruh data berhasil dipulihkan dari file Backup & disinkronkan ke Cloud!');
+                    } catch (err) {
+                      showToast('Gagal membaca file Backup (.json)', 'error');
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          )}
 
           {onForceSync && (
             <button
@@ -4784,10 +4886,23 @@ export default function AdminPortal({
                       <span style={{
                         fontSize: '0.68rem',
                         fontWeight: 800,
-                        color: f.isPublished !== false ? '#10b981' : '#94a3b8'
+                        color: f.isPublished !== false ? '#10b981' : '#f59e0b'
                       }}>
-                        {f.isPublished !== false ? '● Ditampilkan di Publik' : '○ Disembunyikan'}
+                        {f.isPublished !== false ? '● Ditampilkan di Publik' : '⏳ Menunggu Jawaban / Draft'}
                       </span>
+                      {f.askedBy && f.askedBy !== 'Admin CNT' && (
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'rgba(255, 184, 0, 0.14)',
+                          border: '1px solid rgba(255, 184, 0, 0.4)',
+                          color: 'var(--mandiri-gold)'
+                        }}>
+                          💬 Ditanyakan oleh: {f.askedBy} {f.submittedAt ? `• ${f.submittedAt}` : ''}
+                        </span>
+                      )}
                     </div>
                     <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0' }}>
                       {f.question}

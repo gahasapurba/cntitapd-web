@@ -68,6 +68,10 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
   };
 
   useEffect(() => {
+    setCurrentPhotoIdx(0);
+  }, [activeEvent?.id, divFilter, tenureFilter, searchQuery]);
+
+  useEffect(() => {
     if (!isLightboxOpen) return;
     const handleKey = (e) => {
       if (e.key === 'Escape') setIsLightboxOpen(false);
@@ -78,7 +82,8 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
     return () => window.removeEventListener('keydown', handleKey);
   }, [isLightboxOpen, activeEvent]);
 
-  const currentPhotoUrl = activeEvent.photos[currentPhotoIdx] || activeEvent.photos[0];
+  const safePhotoIdx = activeEvent.photos && currentPhotoIdx < activeEvent.photos.length ? currentPhotoIdx : 0;
+  const currentPhotoUrl = activeEvent.photos[safePhotoIdx] || activeEvent.photos[0];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px' }}>
@@ -246,7 +251,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
             fontFamily: 'monospace',
             fontWeight: 700
           }}>
-            {currentPhotoIdx + 1} / {activeEvent.photos.length} Foto
+            {safePhotoIdx + 1} / {activeEvent.photos.length} Foto
           </div>
         </div>
 
