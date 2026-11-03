@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { Crown, Sparkles, UserCheck } from 'lucide-react';
 
+function formatWaNumber(raw = '') {
+  const digits = String(raw).replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0')) return '62' + digits.slice(1);
+  return digits;
+}
+
 export default function CrewMemberCard({ member, onClick, compact = false }) {
   const [imageError, setImageError] = useState(false);
 
@@ -148,7 +155,7 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
           {member.whatsapp && (
             <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center' }}>
               <a
-                href={`https://wa.me/${member.whatsapp.replace(/\D/g, '')}`}
+                href={`https://wa.me/${formatWaNumber(member.whatsapp)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}

@@ -5127,7 +5127,7 @@ export default function AdminPortal({
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
                       {tenures.map(t => (
-                        <option key={t.id} value={t.id}>{t.periodLabel} — {t.name}</option>
+                        <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
                       ))}
                     </select>
                   </div>
@@ -5769,13 +5769,33 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Teks Tanggal Tampilan (Display Date)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 15 Maret 2026 atau Maret - Mei 2026"
+                    value={editingItem.item.date || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal Mulai</label>
                     <input
                       type="date"
                       value={editingItem.item.startDate || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, startDate: e.target.value } })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            startDate: val,
+                            date: editingItem.item.date || val
+                          }
+                        });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />
                   </div>
@@ -6035,7 +6055,12 @@ export default function AdminPortal({
                   if (editingItem.type === 'tenure' && onUpdateTenure) onUpdateTenure(editingItem.item);
                   if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
                   if (editingItem.type === 'form' && onUpdateForm) onUpdateForm(editingItem.item);
-                  if (editingItem.type === 'event' && onUpdateEvent) onUpdateEvent(editingItem.item);
+                  if (editingItem.type === 'event' && onUpdateEvent) {
+                    onUpdateEvent({
+                      ...editingItem.item,
+                      date: (editingItem.item.date || '').trim() || editingItem.item.startDate || 'TBD'
+                    });
+                  }
                   if (editingItem.type === 'brand_asset' && onUpdateBrandAsset) onUpdateBrandAsset(editingItem.item);
                   if (editingItem.type === 'faq' && onUpdateFaq) onUpdateFaq(editingItem.item);
                   setEditingItem(null);
@@ -6268,7 +6293,7 @@ export default function AdminPortal({
                     Laporan Pertanggungjawaban & Progres CNT IT APD
                   </h2>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Periode: <strong>{activeTenure?.label || 'Kepengurusan 2026'}</strong> • Tema: <em>{activeTenure?.theme || 'Empowering Synergy'}</em>
+                    Periode: <strong>{activeTenure?.title || activeTenure?.code || 'Kepengurusan 2026'}</strong> • Tema: <em>"{activeTenure?.themeTagline || 'Empowering Synergy'}"</em>
                   </div>
                 </div>
 

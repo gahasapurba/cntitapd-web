@@ -91,8 +91,8 @@ export default function App() {
       setActiveFormIdFromUrl(null);
       window.history.replaceState(null, '', `#${targetTab}?event=${encodeURIComponent(eventIdParam)}`);
     } else {
-      if (targetTab !== 'oprec') setActiveFormIdFromUrl(null);
-      if (targetTab !== 'program') setActiveEventIdFromUrl(null);
+      setActiveFormIdFromUrl(null);
+      setActiveEventIdFromUrl(null);
       window.history.replaceState(null, '', `#${targetTab}`);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -127,12 +127,8 @@ export default function App() {
     const handleHash = () => {
       const parsed = parseLocationRoute();
       setCurrentTabState(parsed.tab);
-      if (parsed.formId) {
-        setActiveFormIdFromUrl(parsed.formId);
-      }
-      if (parsed.eventId) {
-        setActiveEventIdFromUrl(parsed.eventId);
-      }
+      setActiveFormIdFromUrl(parsed.formId);
+      setActiveEventIdFromUrl(parsed.eventId);
     };
     window.addEventListener('hashchange', handleHash);
     window.addEventListener('popstate', handleHash);
@@ -201,15 +197,15 @@ export default function App() {
       }
       if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) setDivisions(cloud.divisions);
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
-      if (Array.isArray(cloud.events) && cloud.events.length > 0) setEvents(cloud.events);
-      if (Array.isArray(cloud.galleries) && cloud.galleries.length > 0) setGalleries(cloud.galleries);
+      if (Array.isArray(cloud.events)) setEvents(cloud.events);
+      if (Array.isArray(cloud.galleries)) setGalleries(cloud.galleries);
       if (Array.isArray(cloud.kudosList)) setKudosList(cloud.kudosList);
-      if (Array.isArray(cloud.forms) && cloud.forms.length > 0) setForms(cloud.forms);
+      if (Array.isArray(cloud.forms)) setForms(cloud.forms);
       if (Array.isArray(cloud.submissions)) setSubmissions(cloud.submissions);
       if (Array.isArray(cloud.aspirasiList)) setAspirasiList(cloud.aspirasiList);
-      if (Array.isArray(cloud.brandAssets) && cloud.brandAssets.length > 0) setBrandAssets(cloud.brandAssets);
+      if (Array.isArray(cloud.brandAssets)) setBrandAssets(cloud.brandAssets);
       if (Array.isArray(cloud.eventRsvps)) setEventRsvps(cloud.eventRsvps);
-      if (Array.isArray(cloud.faqs) && cloud.faqs.length > 0) setFaqs(cloud.faqs);
+      if (Array.isArray(cloud.faqs)) setFaqs(cloud.faqs);
       if (cloud.announcementBar && typeof cloud.announcementBar === 'object') {
         setAnnouncementBar({ ...INITIAL_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
       }

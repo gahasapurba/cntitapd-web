@@ -443,11 +443,11 @@ export async function fetchAllCloudState() {
       result.members = membersRes.data.map(rowMappers.members.fromDb);
       saveLocalCache('members', result.members);
     }
-    if (!eventsRes.error && Array.isArray(eventsRes.data) && eventsRes.data.length > 0) {
+    if (!eventsRes.error && Array.isArray(eventsRes.data)) {
       result.events = eventsRes.data.map(rowMappers.events.fromDb);
       saveLocalCache('events', result.events);
     }
-    if (!galleriesRes.error && Array.isArray(galleriesRes.data) && galleriesRes.data.length > 0) {
+    if (!galleriesRes.error && Array.isArray(galleriesRes.data)) {
       result.galleries = galleriesRes.data.map(rowMappers.galleries.fromDb);
       saveLocalCache('galleries', result.galleries);
     }
@@ -459,7 +459,7 @@ export async function fetchAllCloudState() {
       result.aspirasiList = aspirasiRes.data.map(rowMappers.aspirasiList.fromDb);
       saveLocalCache('aspirasiList', result.aspirasiList);
     }
-    if (!formsRes.error && Array.isArray(formsRes.data) && formsRes.data.length > 0) {
+    if (!formsRes.error && Array.isArray(formsRes.data)) {
       result.forms = formsRes.data.map(rowMappers.forms.fromDb);
       saveLocalCache('forms', result.forms);
     }
@@ -467,7 +467,7 @@ export async function fetchAllCloudState() {
       result.submissions = submissionsRes.data.map(rowMappers.submissions.fromDb);
       saveLocalCache('submissions', result.submissions);
     }
-    if (!brandAssetsRes.error && Array.isArray(brandAssetsRes.data) && brandAssetsRes.data.length > 0) {
+    if (!brandAssetsRes.error && Array.isArray(brandAssetsRes.data)) {
       result.brandAssets = brandAssetsRes.data.map(rowMappers.brandAssets.fromDb);
       saveLocalCache('brandAssets', result.brandAssets);
     }
@@ -475,7 +475,7 @@ export async function fetchAllCloudState() {
       result.eventRsvps = eventRsvpsRes.data.map(rowMappers.eventRsvps.fromDb);
       saveLocalCache('eventRsvps', result.eventRsvps);
     }
-    if (!faqsRes.error && Array.isArray(faqsRes.data) && faqsRes.data.length > 0) {
+    if (!faqsRes.error && Array.isArray(faqsRes.data)) {
       result.faqs = faqsRes.data.map(rowMappers.faqs.fromDb);
       saveLocalCache('faqs', result.faqs);
     }

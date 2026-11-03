@@ -72,6 +72,8 @@ export default function ProgramSection({
       if (found) {
         setRsvpModalEvent(found);
       }
+    } else if (!initialEventId) {
+      setRsvpModalEvent(null);
     }
   }, [initialEventId, events]);
 
@@ -939,8 +941,18 @@ export default function ProgramSection({
             alignItems: 'center',
             justifyContent: 'center',
             padding: '16px'
-          }}>
-            <div className="glass-panel modal-container" style={{
+          }}
+          onClick={() => {
+            setRsvpModalEvent(null);
+            setRsvpErrors({});
+            setRsvpSuccess(false);
+            if (onSelectEventUrl) onSelectEventUrl(null);
+          }}
+        >
+          <div 
+            className="glass-panel modal-container" 
+            onClick={(e) => e.stopPropagation()}
+            style={{
               maxWidth: '580px',
               width: '100%',
               maxHeight: '92vh',
@@ -952,13 +964,15 @@ export default function ProgramSection({
               display: 'flex',
               flexDirection: 'column',
               gap: '16px'
-            }}>
-              <button
-                onClick={() => {
-                  setRsvpModalEvent(null);
-                  setRsvpErrors({});
-                  setRsvpSuccess(false);
-                }}
+            }}
+          >
+            <button
+              onClick={() => {
+                setRsvpModalEvent(null);
+                setRsvpErrors({});
+                setRsvpSuccess(false);
+                if (onSelectEventUrl) onSelectEventUrl(null);
+              }}
                 style={{
                   position: 'absolute',
                   top: '16px',

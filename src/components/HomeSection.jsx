@@ -101,10 +101,10 @@ export default function HomeSection({
   const ketua = activeMembers.find(m => m.role === 'Ketua');
   const wakil = activeMembers.find(m => m.role === 'Wakil Ketua');
 
-  const handleTabChange = (tabId, formIdParam = null) => {
+  const handleTabChange = (tabId, formIdParam = null, eventIdParam = null) => {
     if (pageVisibility[tabId] === false) return;
     soundFx.playClick();
-    setCurrentTab(tabId, formIdParam);
+    setCurrentTab(tabId, formIdParam, eventIdParam);
   };
 
   return (
@@ -831,7 +831,7 @@ export default function HomeSection({
                   return (
                     <div
                       key={evt.id}
-                      onClick={() => handleTabChange('program')}
+                      onClick={() => handleTabChange('program', null, evt.id)}
                       className="glass-panel glass-panel-hover"
                       style={{
                         padding: '22px',
