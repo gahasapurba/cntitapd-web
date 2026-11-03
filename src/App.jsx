@@ -541,10 +541,17 @@ export default function App() {
   const handleUpdateBrandAsset = (updatedAsset) => {
     const oldAsset = brandAssets.find(a => a.id === updatedAsset.id);
     if (oldAsset) {
-      if (oldAsset.fileUrl && oldAsset.fileUrl !== updatedAsset.fileUrl) {
+      // Hapus file asset lama hanya jika berubah DAN berkas lama tersebut tidak masih dipakai sebagai preview
+      if (oldAsset.fileUrl && oldAsset.fileUrl !== updatedAsset.fileUrl && oldAsset.fileUrl !== updatedAsset.previewUrl) {
         deleteMediaFromCloud(oldAsset.fileUrl);
       }
-      if (oldAsset.previewUrl && oldAsset.previewUrl !== updatedAsset.previewUrl && oldAsset.previewUrl !== updatedAsset.fileUrl) {
+      // Hapus preview lama hanya jika previewnya memang diganti DAN tidak dipakai sebagai file asset
+      if (
+        oldAsset.previewUrl &&
+        oldAsset.previewUrl !== updatedAsset.previewUrl &&
+        oldAsset.previewUrl !== updatedAsset.fileUrl &&
+        oldAsset.previewUrl !== oldAsset.fileUrl
+      ) {
         deleteMediaFromCloud(oldAsset.previewUrl);
       }
     }
