@@ -166,12 +166,13 @@ export default function ProgramSection({
     return matchesDiv && matchesTab;
   });
 
-  // Quarter breakdown for Calendar View
+  // Quarter breakdown for Calendar View (Dynamic based on activeTenure)
+  const tenureYear = activeTenure?.code || '';
   const quarters = [
-    { id: 'Q1', label: 'Q1 2026 (Jan - Mar)', color: '#0ea5e9', desc: 'Kick-off Budaya, Turnamen E-Sports & Aksi Donor Darah' },
-    { id: 'Q2', label: 'Q2 2026 (Apr - Jun)', color: '#10b981', desc: 'Ramadan Charity, Grand Gathering & Family Teambuilding' },
-    { id: 'Q3', label: 'Q3 2026 (Jul - Sep)', color: '#a855f7', desc: 'Tech Hackathon, Turnamen Olahraga & Wellness Sharing' },
-    { id: 'Q4', label: 'Q4 2026 (Okt - Des)', color: '#ffb800', desc: 'APD Got Talent, Townhall Akhir Tahun & Apresiasi Akbar' }
+    { id: 'Q1', label: tenureYear ? `Q1 ${tenureYear} (Jan - Mar)` : 'Q1 (Jan - Mar)', color: '#0ea5e9', desc: 'Kick-off Budaya, Turnamen E-Sports & Aksi Donor Darah' },
+    { id: 'Q2', label: tenureYear ? `Q2 ${tenureYear} (Apr - Jun)` : 'Q2 (Apr - Jun)', color: '#10b981', desc: 'Ramadan Charity, Grand Gathering & Family Teambuilding' },
+    { id: 'Q3', label: tenureYear ? `Q3 ${tenureYear} (Jul - Sep)` : 'Q3 (Jul - Sep)', color: '#a855f7', desc: 'Tech Hackathon, Turnamen Olahraga & Wellness Sharing' },
+    { id: 'Q4', label: tenureYear ? `Q4 ${tenureYear} (Okt - Des)` : 'Q4 (Okt - Des)', color: '#ffb800', desc: 'APD Got Talent, Townhall Akhir Tahun & Apresiasi Akbar' }
   ];
 
   return (
@@ -312,7 +313,7 @@ export default function ProgramSection({
                   cursor: 'pointer'
                 }}
               >
-                Periode {activeTenure?.code || activeTenure?.title || '2026'}
+                Periode {activeTenure?.code || activeTenure?.title || ''}
               </button>
               <button
                 type="button"

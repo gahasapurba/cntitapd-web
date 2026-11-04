@@ -1,6 +1,7 @@
 import html2pdf from 'html2pdf.js';
 
-export async function exportPresentationToPdf(elementId, filename = 'Presentasi_Kepengurusan_CNT_IT_APD_2026.pdf') {
+export async function exportPresentationToPdf(elementId, filename = null, activeTenure = null) {
+  const finalFilename = filename || (activeTenure?.code ? `Presentasi_Kepengurusan_CNT_IT_APD_${activeTenure.code}.pdf` : 'Presentasi_Kepengurusan_CNT_IT_APD.pdf');
   const targetElement = document.getElementById(elementId);
   
   if (!targetElement) {
@@ -25,7 +26,7 @@ export async function exportPresentationToPdf(elementId, filename = 'Presentasi_
 
   const opt = {
     margin: 0,
-    filename: filename,
+    filename: finalFilename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
       scale: 2,

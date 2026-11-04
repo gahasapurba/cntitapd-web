@@ -110,7 +110,7 @@ cnt-it-apd-web/
     │   └── StarfieldBackground.jsx   # Efek animasi latar belakang
     │
     ├── data/
-    │   └── initialData.js    # Data awal sistem (proker autentik, struktur, dll)
+    │   └── (Database-driven via Supabase)
     ├── lib/
     │   └── supabase.js       # Client connection Supabase
     ├── utils/

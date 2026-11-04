@@ -52,11 +52,11 @@ export const rowMappers = {
   tenures: {
     toDb: (item, idx = 0) => ({
       id: String(item.id),
-      code: item.code || '2026',
+      code: item.code || '',
       title: item.title || '',
       theme_tagline: item.themeTagline || '',
-      hero_headline: item.heroHeadline || 'COMMITTED TO CULTIVATE',
-      hero_highlight: item.heroHighlight || 'EXCELLENCE & SYNERGY',
+      hero_headline: item.heroHeadline || '',
+      hero_highlight: item.heroHighlight || '',
       visi: item.visi || '',
       misi: Array.isArray(item.misi) ? item.misi : [],
       is_active: Boolean(item.isActive),
@@ -82,7 +82,7 @@ export const rowMappers = {
   divisions: {
     toDb: (item, idx = 0) => ({
       id: String(item.id),
-      tenure_id: item.tenureId || 'tenure-2026',
+      tenure_id: item.tenureId || null,
       name: item.name || '',
       slug: item.slug || '',
       lead_name: item.leadName || '',
@@ -99,7 +99,7 @@ export const rowMappers = {
     }),
     fromDb: (row) => ({
       id: row.id,
-      tenureId: row.tenure_id || 'tenure-2026',
+      tenureId: row.tenure_id,
       name: row.name,
       slug: row.slug,
       leadName: row.lead_name,
@@ -118,7 +118,7 @@ export const rowMappers = {
   members: {
     toDb: (item, idx = 0) => ({
       id: String(item.id),
-      tenure_id: item.tenureId || 'tenure-2026',
+      tenure_id: item.tenureId || null,
       division_id: item.divisionId || null,
       category: item.category || 'anggota',
       name: item.name || '',
@@ -135,7 +135,7 @@ export const rowMappers = {
     }),
     fromDb: (row) => ({
       id: row.id,
-      tenureId: row.tenure_id || 'tenure-2026',
+      tenureId: row.tenure_id,
       divisionId: row.division_id || undefined,
       category: row.category,
       name: row.name,
@@ -154,7 +154,7 @@ export const rowMappers = {
   events: {
     toDb: (item, idx = 0) => ({
       id: String(item.id),
-      tenure_id: item.tenureId || 'tenure-2026',
+      tenure_id: item.tenureId || null,
       division_id: item.divisionId || null,
       division_name: item.divisionName || '',
       title: item.title || '',
@@ -171,7 +171,7 @@ export const rowMappers = {
     }),
     fromDb: (row) => ({
       id: row.id,
-      tenureId: row.tenure_id || 'tenure-2026',
+      tenureId: row.tenure_id,
       divisionId: row.division_id,
       divisionName: row.division_name,
       title: row.title,
@@ -190,7 +190,7 @@ export const rowMappers = {
   galleries: {
     toDb: (item, idx = 0) => ({
       id: String(item.id),
-      tenure_id: item.tenureId || 'tenure-2026',
+      tenure_id: item.tenureId || null,
       title: item.title || '',
       date: item.date || '',
       division: item.division || '',
@@ -201,7 +201,7 @@ export const rowMappers = {
     }),
     fromDb: (row) => ({
       id: row.id,
-      tenureId: row.tenure_id || 'tenure-2026',
+      tenureId: row.tenure_id,
       title: row.title,
       date: row.date,
       division: row.division,

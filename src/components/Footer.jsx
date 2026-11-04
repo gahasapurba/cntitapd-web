@@ -80,7 +80,7 @@ export default function Footer({ theme }) {
           gap: '12px'
         }}>
           <div>
-            © {new Date().getFullYear()} Culture Network Team Group IT APD. Satu Hati, Satu Mandiri.
+            © 2027 Culture Network Team Group IT APD. Satu Hati, Satu Mandiri.
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>

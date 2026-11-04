@@ -104,13 +104,17 @@ export default function RecruitmentSection({
       
       {/* 1. HERO HEADER */}
       <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '14px' }}>
-          <span className="badge-gold">
-            {recruitmentInfo.badge || 'OPEN RECRUITMENT 2026'}
-          </span>
-          <span className="badge-cyan">
-            Deadline: {recruitmentInfo.deadline}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          {recruitmentInfo.badge && (
+            <span className="badge-gold">
+              {recruitmentInfo.badge}
+            </span>
+          )}
+          {recruitmentInfo.deadline && (
+            <span className="badge-cyan">
+              Deadline: {recruitmentInfo.deadline}
+            </span>
+          )}
         </div>
         <h1 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px', lineHeight: 1.2 }}>
           {recruitmentInfo.title}

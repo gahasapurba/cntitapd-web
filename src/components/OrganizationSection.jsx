@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import CrewMemberCard from './CrewMemberCard';
 import { soundFx } from '../utils/audio';
+import { exportPresentationToPdf } from '../utils/exportPdf';
 
 function formatWaNumber(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -28,6 +29,19 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [divisionFilter, setDivisionFilter] = useState('all');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPdf = async () => {
+    soundFx.playClick();
+    setIsExporting(true);
+    try {
+      await exportPresentationToPdf('org-tree-export-container', null, activeTenure);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleDownloadVCard = (member) => {
     if (!member) return;
@@ -103,7 +117,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto', padding: '0 8px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(52, 211, 153, 0.15)', border: '1px solid rgba(52, 211, 153, 0.4)', color: 'var(--neon-emerald)', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', marginBottom: '16px' }}>
           <Sparkles size={14} />
-          <span>Struktur Hirarki Organigram • {activeTenure?.title || activeTenure?.code || '2026'}</span>
+          <span>Struktur Hirarki Organigram {activeTenure?.title || activeTenure?.code ? `• ${activeTenure.title || activeTenure.code}` : ''}</span>
         </div>
         <h1 style={{ fontSize: 'clamp(2.4rem, 4.5vw, 3.8rem)', fontWeight: 900, color: 'var(--text-main)', marginBottom: '14px', letterSpacing: '-0.02em' }}>
           ORGANIGRAM <span style={{
@@ -189,6 +203,30 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
             ))}
           </select>
 
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={isExporting}
+            style={{
+              padding: '9px 15px',
+              borderRadius: 'var(--radius-full)',
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              color: 'var(--neon-cyan)',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: isExporting ? 'wait' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+            title="Download Presentasi Bagan Struktur Organisasi ke File PDF"
+          >
+            <Download size={14} />
+            <span>{isExporting ? 'Mengekspor PDF...' : 'Download Bagan PDF'}</span>
+          </button>
+
           {isFiltering && (
             <button
               type="button"
@@ -242,7 +280,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       )}
 
       {/* HIERARCHICAL TREE CONTAINER WITH SEAMLESS CONNECTING NEON LINES (IDENTIK DENGAN PRESENTASI) */}
-      <div className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
         {/* LEVEL 1: PEMBINA (Top Center) */}
         {pembina && (

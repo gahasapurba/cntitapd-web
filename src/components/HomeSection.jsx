@@ -140,7 +140,7 @@ export default function HomeSection({
               textTransform: 'uppercase',
               letterSpacing: '0.08em'
             }}>
-              PORTAL RESMI • CNT GROUP IT APD {activeTenure?.code || '2026'}
+              PORTAL RESMI • CNT GROUP IT APD {activeTenure?.code || ''}
             </span>
           </div>
         </div>
@@ -308,7 +308,7 @@ export default function HomeSection({
                 <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
                   {activeMembers.length} Personel
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT ({activeTenure?.code || '2026'})</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT {activeTenure?.code ? `(${activeTenure.code})` : ''}</div>
               </div>
             )}
 
@@ -372,7 +372,7 @@ export default function HomeSection({
                 <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--mandiri-gold)', fontFamily: 'monospace' }}>
                   {activeEvents.length}+ Event
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Agenda Kerja {activeTenure?.code || '2026'}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Agenda Kerja {activeTenure?.code || ''}</div>
               </div>
             )}
 
@@ -460,11 +460,11 @@ export default function HomeSection({
                 <Target size={20} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Visi CNT IT {activeTenure?.code || '2026'}
+                Visi CNT IT {activeTenure?.code || ''}
               </h3>
             </div>
             <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', lineHeight: 1.7, fontStyle: 'italic' }}>
-              "{activeTenure?.visi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan profesional yang mendorong produktivitas engineering prima serta kebahagiaan insan IT Application Delivery.'}"
+              {activeTenure?.visi ? `"${activeTenure.visi}"` : <span style={{ color: 'var(--text-dim)' }}>Visi belum ditetapkan untuk periode ini.</span>}
             </p>
           </div>
 
@@ -490,20 +490,20 @@ export default function HomeSection({
                 <ShieldCheck size={20} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Misi CNT IT {activeTenure?.code || '2026'}
+                Misi CNT IT {activeTenure?.code || ''}
               </h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              {(activeTenure?.misi || [
-                'Memperkuat sinergi dan komunikasi terbuka antar squad delivery.',
-                'Menumbuhkan wellbeing jasmani dan rohani insan IT APD.',
-                'Menyediakan panggung kreativitas dan apresiasi prestasi (Kudos).'
-              ]).map((m, mIdx) => (
-                <div key={mIdx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--neon-cyan)', fontWeight: 800 }}>•</span>
-                  <span>{m}</span>
-                </div>
-              ))}
+              {Array.isArray(activeTenure?.misi) && activeTenure.misi.length > 0 ? (
+                activeTenure.misi.map((m, mIdx) => (
+                  <div key={mIdx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <span style={{ color: 'var(--neon-cyan)', fontWeight: 800 }}>•</span>
+                    <span>{m}</span>
+                  </div>
+                ))
+              ) : (
+                <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Misi belum ditetapkan untuk periode ini.</span>
+              )}
             </div>
           </div>
         </div>
@@ -515,7 +515,7 @@ export default function HomeSection({
           <div>
             <span className="badge-gold" style={{ marginBottom: '6px' }}>Leadership & BPH</span>
             <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>
-              Pimpinan & Pengurus Inti CNT {activeTenure?.code || '2026'}
+              Pimpinan & Pengurus Inti CNT {activeTenure?.code || ''}
             </h2>
           </div>
           {isOrganisasiVisible && (
@@ -901,7 +901,7 @@ export default function HomeSection({
                     📅 Kalender & Agenda Budaya
                   </span>
                   <h2 style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
-                    Program Kerja & Kegiatan Terdekat ({activeTenure?.code || '2026'})
+                    Program Kerja & Kegiatan Terdekat {activeTenure?.code ? `(${activeTenure.code})` : ''}
                   </h2>
                 </div>
                 <button

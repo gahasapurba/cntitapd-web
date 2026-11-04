@@ -13,21 +13,13 @@ const AssetKitSection = lazy(() => import('./components/AssetKitSection'));
 const DynamicFormSection = lazy(() => import('./components/DynamicFormSection'));
 const AdminPortal = lazy(() => import('./components/AdminPortal'));
 
-import { 
-  INITIAL_TENURES, 
-  INITIAL_DIVISIONS, 
-  INITIAL_MEMBERS, 
-  INITIAL_EVENTS, 
-  INITIAL_KUDOS, 
-  INITIAL_ASPIRASI,
-  INITIAL_GALLERIES,
-  INITIAL_FORMS,
-  INITIAL_SUBMISSIONS,
-  INITIAL_BRAND_ASSETS,
-  INITIAL_EVENT_RSVPS,
-  INITIAL_ANNOUNCEMENT_BAR,
-  INITIAL_FAQS
-} from './data/initialData';
+const DEFAULT_ANNOUNCEMENT_BAR = {
+  badge: '',
+  message: '',
+  ctaText: '',
+  ctaTab: 'home',
+  isActive: false,
+};
 import {
   supabase,
   loadLocalCache,
@@ -152,28 +144,28 @@ export default function App() {
   };
 
   // Master Dynamic States (Loaded from LocalCache immediately + Synced with Supabase Cloud)
-  const [tenures, setTenures] = useState(() => loadLocalCache('tenures', INITIAL_TENURES));
+  const [tenures, setTenures] = useState(() => loadLocalCache('tenures', []));
   const [activeTenure, setActiveTenure] = useState(() => {
-    const savedTenures = loadLocalCache('tenures', INITIAL_TENURES);
+    const savedTenures = loadLocalCache('tenures', []);
     const savedActiveId = loadLocalCache('activeTenureId', null);
-    if (savedActiveId) {
+    if (savedActiveId && Array.isArray(savedTenures)) {
       const found = savedTenures.find(t => t.id === savedActiveId);
       if (found) return found;
     }
-    return savedTenures.find(t => t.isActive) || savedTenures[0] || INITIAL_TENURES[0];
+    return (Array.isArray(savedTenures) ? savedTenures.find(t => t.isActive) || savedTenures[0] : null) || null;
   });
-  const [divisions, setDivisions] = useState(() => loadLocalCache('divisions', INITIAL_DIVISIONS));
-  const [members, setMembers] = useState(() => loadLocalCache('members', INITIAL_MEMBERS));
-  const [events, setEvents] = useState(() => loadLocalCache('events', INITIAL_EVENTS));
-  const [galleries, setGalleries] = useState(() => loadLocalCache('galleries', INITIAL_GALLERIES));
-  const [kudosList, setKudosList] = useState(() => loadLocalCache('kudosList', INITIAL_KUDOS));
-  const [forms, setForms] = useState(() => loadLocalCache('forms', INITIAL_FORMS));
-  const [submissions, setSubmissions] = useState(() => loadLocalCache('submissions', INITIAL_SUBMISSIONS));
-  const [aspirasiList, setAspirasiList] = useState(() => loadLocalCache('aspirasiList', INITIAL_ASPIRASI));
-  const [brandAssets, setBrandAssets] = useState(() => loadLocalCache('brandAssets', INITIAL_BRAND_ASSETS));
-  const [eventRsvps, setEventRsvps] = useState(() => loadLocalCache('eventRsvps', INITIAL_EVENT_RSVPS));
-  const [faqs, setFaqs] = useState(() => loadLocalCache('faqs', INITIAL_FAQS));
-  const [announcementBar, setAnnouncementBar] = useState(() => loadLocalCache('announcementBar', INITIAL_ANNOUNCEMENT_BAR));
+  const [divisions, setDivisions] = useState(() => loadLocalCache('divisions', []));
+  const [members, setMembers] = useState(() => loadLocalCache('members', []));
+  const [events, setEvents] = useState(() => loadLocalCache('events', []));
+  const [galleries, setGalleries] = useState(() => loadLocalCache('galleries', []));
+  const [kudosList, setKudosList] = useState(() => loadLocalCache('kudosList', []));
+  const [forms, setForms] = useState(() => loadLocalCache('forms', []));
+  const [submissions, setSubmissions] = useState(() => loadLocalCache('submissions', []));
+  const [aspirasiList, setAspirasiList] = useState(() => loadLocalCache('aspirasiList', []));
+  const [brandAssets, setBrandAssets] = useState(() => loadLocalCache('brandAssets', []));
+  const [eventRsvps, setEventRsvps] = useState(() => loadLocalCache('eventRsvps', []));
+  const [faqs, setFaqs] = useState(() => loadLocalCache('faqs', []));
+  const [announcementBar, setAnnouncementBar] = useState(() => loadLocalCache('announcementBar', DEFAULT_ANNOUNCEMENT_BAR));
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [syncStatus, setSyncStatus] = useState('synced');
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
@@ -216,7 +208,7 @@ export default function App() {
       if (Array.isArray(cloud.eventRsvps)) setEventRsvps(cloud.eventRsvps);
       if (Array.isArray(cloud.faqs)) setFaqs(cloud.faqs);
       if (cloud.announcementBar && typeof cloud.announcementBar === 'object') {
-        setAnnouncementBar({ ...INITIAL_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
+        setAnnouncementBar({ ...DEFAULT_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
       }
       if (cloud.pageVisibility && typeof cloud.pageVisibility === 'object') {
         const mergedVis = { ...DEFAULT_PAGE_VISIBILITY, ...cloud.pageVisibility };
@@ -646,7 +638,7 @@ export default function App() {
   // Announcement Bar Handler
   const handleUpdateAnnouncementBar = (nextBar) => {
     const resolved = typeof nextBar === 'function' ? nextBar(announcementBar) : nextBar;
-    const merged = { ...INITIAL_ANNOUNCEMENT_BAR, ...resolved };
+    const merged = { ...DEFAULT_ANNOUNCEMENT_BAR, ...resolved };
     setAnnouncementBar(merged);
     setIsBannerDismissed(false);
     pushCloudState('announcementBar', merged);
@@ -742,7 +734,7 @@ export default function App() {
       tasks.push(pushCloudState('faqs', backupData.faqs));
     }
     if (backupData.announcementBar && typeof backupData.announcementBar === 'object') {
-      const mergedBar = { ...INITIAL_ANNOUNCEMENT_BAR, ...backupData.announcementBar };
+      const mergedBar = { ...DEFAULT_ANNOUNCEMENT_BAR, ...backupData.announcementBar };
       setAnnouncementBar(mergedBar);
       tasks.push(pushCloudState('announcementBar', mergedBar));
     }
@@ -756,42 +748,11 @@ export default function App() {
     await Promise.all(tasks);
   };
 
-  // Reset all collections back to initial defaults
+  // Reset / Refresh all collections directly from database
   const handleResetDefault = async () => {
-    setTenures(INITIAL_TENURES);
-    setActiveTenure(INITIAL_TENURES[0]);
-    setDivisions(INITIAL_DIVISIONS);
-    setMembers(INITIAL_MEMBERS);
-    setEvents(INITIAL_EVENTS);
-    setGalleries(INITIAL_GALLERIES);
-    setKudosList(INITIAL_KUDOS);
-    setForms(INITIAL_FORMS);
-    setSubmissions(INITIAL_SUBMISSIONS);
-    setAspirasiList(INITIAL_ASPIRASI);
-    setBrandAssets(INITIAL_BRAND_ASSETS);
-    setEventRsvps(INITIAL_EVENT_RSVPS);
-    setFaqs(INITIAL_FAQS);
-    setAnnouncementBar(INITIAL_ANNOUNCEMENT_BAR);
-    setPageVisibilityState(DEFAULT_PAGE_VISIBILITY);
-    try { localStorage.setItem('cnt_page_visibility', JSON.stringify(DEFAULT_PAGE_VISIBILITY)); } catch (e) {}
-
-    await Promise.all([
-      pushCloudState('tenures', INITIAL_TENURES),
-      pushCloudState('activeTenureId', INITIAL_TENURES[0].id),
-      pushCloudState('divisions', INITIAL_DIVISIONS),
-      pushCloudState('members', INITIAL_MEMBERS),
-      pushCloudState('events', INITIAL_EVENTS),
-      pushCloudState('galleries', INITIAL_GALLERIES),
-      pushCloudState('kudosList', INITIAL_KUDOS),
-      pushCloudState('forms', INITIAL_FORMS),
-      pushCloudState('submissions', INITIAL_SUBMISSIONS),
-      pushCloudState('aspirasiList', INITIAL_ASPIRASI),
-      pushCloudState('brandAssets', INITIAL_BRAND_ASSETS),
-      pushCloudState('eventRsvps', INITIAL_EVENT_RSVPS),
-      pushCloudState('faqs', INITIAL_FAQS),
-      pushCloudState('announcementBar', INITIAL_ANNOUNCEMENT_BAR),
-      pushCloudState('pageVisibility', DEFAULT_PAGE_VISIBILITY)
-    ]);
+    if (!window.confirm('Muat ulang seluruh data terbaru dari database Supabase?')) return;
+    localStorage.clear();
+    await syncFromCloud();
   };
 
   // Determine visible public pages and effective active tab

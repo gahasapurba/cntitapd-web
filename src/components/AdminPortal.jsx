@@ -70,7 +70,7 @@ export default function AdminPortal({
   onAddDivision, 
   onUpdateDivision,
   onDeleteDivision,
-  recruitmentInfo = { isOpen: true, deadline: '31 Maret 2026' }, 
+  recruitmentInfo = { isOpen: true, deadline: '' }, 
   onUpdateRecruitment, 
   applications = [],
   galleries = [],
@@ -122,11 +122,11 @@ export default function AdminPortal({
   onUpdateFaq,
   onDeleteFaq,
   announcementBar = {
-    isActive: true,
+    isActive: false,
     badge: 'INFO TERBARU',
-    message: 'Pendaftaran Open Recruitment Crew CNT IT APD 2026 & Turnamen E-Sports sedang dibuka!',
-    ctaText: 'Buka Hub Registrasi',
-    ctaTab: 'oprec'
+    message: '',
+    ctaText: '',
+    ctaTab: 'home'
   },
   onUpdateAnnouncementBar,
   syncStatus = 'synced',
@@ -250,7 +250,7 @@ export default function AdminPortal({
 
   // Recruitment controls
   const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo?.isOpen ?? true);
-  const [recruitDeadline, setRecruitDeadline] = useState(recruitmentInfo?.deadline ?? '31 Maret 2026');
+  const [recruitDeadline, setRecruitDeadline] = useState(recruitmentInfo?.deadline ?? '');
 
   // Form Creator & Field Builder States
   const [newFormTitle, setNewFormTitle] = useState('');
@@ -372,7 +372,7 @@ export default function AdminPortal({
     if (onAddEvent) {
       onAddEvent({
         id: 'evt-' + Date.now(),
-        tenureId: activeTenure?.id || 'tenure-2026',
+        tenureId: activeTenure?.id || '',
         divisionId: eventDivId,
         divisionName: divObj?.name || 'CNT IT APD',
         title: eventTitle.trim(),
@@ -473,7 +473,7 @@ export default function AdminPortal({
 
     onAddMember({
       id: 'mem-' + Date.now(),
-      tenureId: activeTenure?.id || 'tenure-2026',
+      tenureId: activeTenure?.id || '',
       divisionId: memCategory === 'anggota' || memCategory === 'pimpro' ? memDivisionId : undefined,
       category: memCategory,
       name: memName,
@@ -783,9 +783,9 @@ export default function AdminPortal({
 
     onAddGallery({
       id: 'gal-' + Date.now(),
-      tenureId: activeTenure?.id || 'tenure-2026',
+      tenureId: activeTenure?.id || '',
       title: galTitle,
-      date: galDate || '2026',
+      date: galDate || '',
       division: galDivision,
       description: galDesc,
       photos: photoList,
@@ -1095,7 +1095,7 @@ export default function AdminPortal({
                 meta: {
                   app: 'CNT IT APD Portal',
                   exportedAt: new Date().toISOString(),
-                  activeTenureId: activeTenure?.id || 'tenure-2026'
+                  activeTenureId: activeTenure?.id || ''
                 },
                 tenures,
                 divisions,
@@ -4043,7 +4043,7 @@ export default function AdminPortal({
                     const dataRows = itemsToExport.map(s => {
                       const baseCols = [
                         s.id,
-                        s.formTitle || 'Oprec 2026',
+                        s.formTitle || 'Formulir',
                         s.status || 'Submitted',
                         s.adminNotes || '',
                         s.submittedAt || ''
@@ -5678,7 +5678,7 @@ export default function AdminPortal({
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
                     <select
-                      value={editingItem.item.tenureId || activeTenure?.id || 'tenure-2026'}
+                      value={editingItem.item.tenureId || activeTenure?.id || ''}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
@@ -6397,7 +6397,7 @@ export default function AdminPortal({
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
                     <select
-                      value={editingItem.item.tenureId || activeTenure?.id || 'tenure-2026'}
+                      value={editingItem.item.tenureId || activeTenure?.id || ''}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
