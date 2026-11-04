@@ -3622,13 +3622,13 @@ export default function AdminPortal({
                 deadline: newFormDeadline.trim() || 'Menyesuaikan',
                 isOpen: true,
                 fields: [
-                  { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true },
-                  { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true },
-                  { id: 'f-squad', label: 'Squad / Unit Kerja', type: 'text', placeholder: 'Squad asal', required: true },
-                  { id: 'f-wa', label: 'Nomor WhatsApp Aktif', type: 'text', placeholder: '0812xxxxxxxx', required: true },
-                  { id: 'f-divisi', label: 'Pilihan Divisi Terkait', type: 'select', source: 'divisions', required: true },
-                  { id: 'f-notes', label: 'Catatan / Alasan Pendaftaran', type: 'textarea', placeholder: 'Tuliskan keterangan pendukung...', required: true },
-                  { id: 'f-doc', label: 'Upload Dokumen / File Pendukung', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false }
+                  { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
+                  { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true },
+                  { id: 'f-squad', label: 'Squad / Unit Kerja', type: 'text', placeholder: 'Squad asal', required: true, isSearchIndex: false },
+                  { id: 'f-wa', label: 'Nomor WhatsApp Aktif', type: 'text', placeholder: '0812xxxxxxxx', required: true, isSearchIndex: false },
+                  { id: 'f-divisi', label: 'Pilihan Divisi Terkait', type: 'select', source: 'divisions', required: true, isSearchIndex: false },
+                  { id: 'f-notes', label: 'Catatan / Alasan Pendaftaran', type: 'textarea', placeholder: 'Tuliskan keterangan pendukung...', required: true, isSearchIndex: false },
+                  { id: 'f-doc', label: 'Upload Dokumen / File Pendukung', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false, isSearchIndex: false }
                 ]
               };
 
@@ -6291,17 +6291,83 @@ export default function AdminPortal({
                             />
                             <span>Wajib</span>
                           </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const nextFields = editingItem.item.fields.filter((_, i) => i !== idx);
-                              setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+
+                          {/* Search Index Toggle (Kunci Pencarian Status) */}
+                          <label
+                            title="Kunci Pencarian Status: Centang jika field ini dijadikan kredensial pendaftar untuk mengecek status seleksi (hanya field bertanda ini dan ID Pendaftaran yang dapat dicari di web demi menjaga kerahasiaan data)"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              color: fld.isSearchIndex ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                              background: fld.isSearchIndex ? 'rgba(255, 184, 0, 0.14)' : 'rgba(255, 255, 255, 0.04)',
+                              border: fld.isSearchIndex ? '1px solid rgba(255, 184, 0, 0.45)' : '1px solid var(--border-card)',
+                              padding: '3px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              fontWeight: fld.isSearchIndex ? 700 : 500,
+                              transition: 'all 0.15s ease'
                             }}
-                            style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '2px' }}
-                            title="Hapus pertanyaan"
                           >
-                            <Trash2 size={14} />
-                          </button>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(fld.isSearchIndex)}
+                              onChange={(e) => {
+                                const nextFields = editingItem.item.fields.map((item, i) =>
+                                  i === idx ? { ...item, isSearchIndex: e.target.checked } : item
+                                );
+                                setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                              }}
+                            />
+                            <span>🔑 Kunci Status</span>
+                          </label>
+
+                          {/* Field Delete Button with Protection */}
+                          {(() => {
+                            const isOnlyIndex = fld.isSearchIndex && (editingItem.item.fields || []).filter(f => f.isSearchIndex).length === 1;
+                            const subCount = submissions.filter(s => s.formId === editingItem.item.id).length;
+
+                            return (
+                              <button
+                                type="button"
+                                disabled={isOnlyIndex}
+                                onClick={() => {
+                                  if (isOnlyIndex) {
+                                    showToast('Field ini adalah satu-satunya Kunci Pencarian Status. Tentukan field lain sebagai kunci status sebelum menghapus field ini.', 'error');
+                                    return;
+                                  }
+
+                                  if (subCount > 0) {
+                                    const ok = window.confirm(
+                                      `Formulir ini sudah memiliki ${subCount} berkas pendaftar.\n\n` +
+                                      `Menghapus field "${fld.label}" TIDAK AKAN MENGHAPUS data pendaftar yang sudah ada di database, namun pertanyaan ini tidak akan muncul lagi bagi pendaftar baru.\n\n` +
+                                      `Lanjutkan menghapus pertanyaan ini?`
+                                    );
+                                    if (!ok) return;
+                                  }
+
+                                  const nextFields = editingItem.item.fields.filter((_, i) => i !== idx);
+                                  setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                                }}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: isOnlyIndex ? 'var(--text-dim)' : '#f43f5e',
+                                  cursor: isOnlyIndex ? 'not-allowed' : 'pointer',
+                                  padding: '2px',
+                                  opacity: isOnlyIndex ? 0.35 : 1
+                                }}
+                                title={
+                                  isOnlyIndex 
+                                    ? "Tidak dapat dihapus: Ini satu-satunya kunci pencarian status" 
+                                    : (subCount > 0 ? "Form ini sudah ada pendaftar (konfirmasi akan muncul)" : "Hapus pertanyaan")
+                                }
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            );
+                          })()}
                         </div>
 
                         {/* Option Editor for Dropdown & Multiple Choice (Radio) */}
@@ -6793,9 +6859,17 @@ export default function AdminPortal({
                     onUpdateTenure({ ...cleanItem, misi: finalMisi });
                   }
                   if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
-                  if (editingItem.type === 'form' && onUpdateForm) {
-                    const cleanFields = (editingItem.item.fields || []).map(({ rawOptions, ...rest }) => rest);
-                    onUpdateForm({ ...editingItem.item, fields: cleanFields });
+                  if (editingItem.type === 'form') {
+                    const fields = editingItem.item.fields || [];
+                    const hasIndex = fields.some(f => Boolean(f.isSearchIndex));
+                    if (!hasIndex) {
+                      showToast('Wajib memilih minimal 1 field sebagai Kunci Status (centang 🔑 Kunci Status pada field seperti NIP) sebelum menyimpan!', 'error');
+                      return;
+                    }
+                    if (onUpdateForm) {
+                      const cleanFields = fields.map(({ rawOptions, ...rest }) => rest);
+                      onUpdateForm({ ...editingItem.item, fields: cleanFields });
+                    }
                   }
                   if (editingItem.type === 'event' && onUpdateEvent) {
                     onUpdateEvent({

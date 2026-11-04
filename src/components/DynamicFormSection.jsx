@@ -66,6 +66,7 @@ export default function DynamicFormSection({
   const [lastSubmittedId, setLastSubmittedId] = useState('');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [honeypotVal, setHoneypotVal] = useState('');
 
   // Self-Service Status Tracker state
   const [statusQuery, setStatusQuery] = useState('');
@@ -145,6 +146,10 @@ export default function DynamicFormSection({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Anti-spam Bot Protection: silent rejection if honeypot is filled
+    if (honeypotVal && honeypotVal.trim()) {
+      return;
+    }
     if (!validate()) return;
     setIsConfirmOpen(true);
   };
@@ -205,13 +210,58 @@ export default function DynamicFormSection({
     setTimeout(() => setIsSubmitting(false), 600);
   };
 
-  // Filtered submissions for Self-Service Status Tracker (requires >= 3 chars)
+  // Filtered submissions for Self-Service Status Tracker (strictly matching Index Keys & Registration ID only)
   const trimmedStatusQuery = statusQuery.trim().toLowerCase();
   const matchedSubmissions = trimmedStatusQuery.length >= 3
     ? submissions.filter((sub) => {
+        // 1. Always allow exact or partial match on unique Registration ID (sub.id)
         if ((sub.id || '').toLowerCase().includes(trimmedStatusQuery)) return true;
-        const vals = Object.values(sub.data || {});
-        return vals.some((val) => String(val || '').toLowerCase().includes(trimmedStatusQuery));
+
+        // 2. Identify the parent form schema for this submission
+        const parentForm = forms.find((f) => f.id === sub.formId);
+        const formFields = parentForm?.fields || [];
+
+        // 3. Find field IDs designated as search index keys
+        const indexFieldIds = formFields
+          .filter((fld) => fld.isSearchIndex === true)
+          .map((fld) => fld.id);
+
+        if (indexFieldIds.length > 0) {
+          // Strictly ONLY check designated index fields (e.g. NIP)
+          return indexFieldIds.some((fid) => {
+            const val = sub.data?.[fid];
+            return String(val || '').toLowerCase().includes(trimmedStatusQuery);
+          });
+        }
+
+        // 4. Safe Fallback: if form has no field explicitly flagged yet,
+        // protect privacy by only matching fields labeled NIP/Employee ID
+        const nipFields = formFields
+          .filter((fld) => {
+            const l = (fld.label || '').toLowerCase();
+            return l.includes('nip') || l.includes('employee id') || l.includes('nomor induk');
+          })
+          .map((fld) => fld.id);
+
+        if (nipFields.length > 0) {
+          return nipFields.some((fid) => {
+            const val = sub.data?.[fid];
+            return String(val || '').toLowerCase().includes(trimmedStatusQuery);
+          });
+        }
+
+        // Strict fallback if form has neither: match only phone or email, NEVER general name
+        const contactFields = formFields
+          .filter((fld) => {
+            const l = (fld.label || '').toLowerCase();
+            return l.includes('whatsapp') || l.includes('email') || l.includes('telepon');
+          })
+          .map((fld) => fld.id);
+
+        return contactFields.some((fid) => {
+          const val = sub.data?.[fid];
+          return String(val || '').toLowerCase().includes(trimmedStatusQuery);
+        });
       })
     : [];
 
@@ -569,6 +619,17 @@ export default function DynamicFormSection({
 
                 {/* Dynamic Form Generator */}
                 <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Honeypot Anti-Bot Security Field (Hidden from humans) */}
+                  <div style={{ position: 'absolute', opacity: 0, zIndex: -1, pointerEvents: 'none', height: 0, overflow: 'hidden' }} aria-hidden="true">
+                    <input
+                      type="text"
+                      name="mandiri_corp_security_check"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={honeypotVal}
+                      onChange={(e) => setHoneypotVal(e.target.value)}
+                    />
+                  </div>
                   {(currentForm.fields || []).map((field) => {
                     const hasError = !!errors[field.id];
 
@@ -987,8 +1048,23 @@ export default function DynamicFormSection({
                 🔍 Cek Status Pendaftaran & Seleksi Saya
               </h3>
               <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
-                Sudah pernah mengisi formulir? Ketik <strong>NIP, Nomor WhatsApp, Email, Nama Lengkap / Squad, atau ID Pendaftaran</strong> Anda untuk melihat progres seleksi & catatan resmi panitia.
+                Sudah pernah mengisi formulir? Ketik <strong>NIP atau ID Pendaftaran (sub-...)</strong> Anda untuk melihat progres seleksi & catatan panitia.
               </p>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '6px',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                fontSize: '0.74rem',
+                color: 'var(--neon-cyan)'
+              }}>
+                <span>🔒</span>
+                <span><strong>Privasi Terjamin:</strong> Pencarian hanya merespons Kunci Indeks Resmi (NIP) & ID Unik, tidak dapat dicari dengan Nama Umum demi menjaga privasi pelamar.</span>
+              </div>
             </div>
           </div>
 
@@ -996,7 +1072,7 @@ export default function DynamicFormSection({
             <Search size={17} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Ketik minimal 3 karakter (Contoh: NIP 2402..., No WA 0812..., Nama, atau ID sub-...)"
+              placeholder="Ketik NIP Anda (Contoh: 2402...) atau ID Pendaftaran (sub-...)"
               value={statusQuery}
               onChange={(e) => setStatusQuery(e.target.value)}
               style={{
@@ -1034,7 +1110,7 @@ export default function DynamicFormSection({
 
           {statusQuery.trim().length > 0 && statusQuery.trim().length < 3 && (
             <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '6px' }}>
-              Ketik minimal 3 karakter untuk mulai mencari data pendaftaran Anda...
+              Ketik minimal 3 digit NIP atau ID Pendaftaran Anda...
             </div>
           )}
 
@@ -1050,7 +1126,7 @@ export default function DynamicFormSection({
                   color: 'var(--text-muted)',
                   fontSize: '0.85rem'
                 }}>
-                  Tidak ditemukan data pendaftaran dengan kata kunci <strong>"{statusQuery}"</strong>. Pastikan ejaan NIP, Nomor WhatsApp, atau Nama sesuai saat mendaftar.
+                  Tidak ditemukan data pendaftaran dengan kunci <strong>"{statusQuery}"</strong>. Pastikan Anda memasukkan NIP atau ID Pendaftaran (sub-...) yang valid sesuai saat mendaftar.
                 </div>
               ) : (
                 matchedSubmissions.map((sub) => {
