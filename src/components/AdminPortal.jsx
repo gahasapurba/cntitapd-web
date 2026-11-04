@@ -478,7 +478,6 @@ export default function AdminPortal({
       divisionId: memCategory === 'anggota' || memCategory === 'pimpro' ? memDivisionId : undefined,
       category: memCategory,
       name: memName,
-      shortName: memName.split(' ')[0],
       role: memRole || (memCategory === 'anggota' ? 'Anggota Divisi' : 'Pengurus'),
       title: memCategory === 'anggota' ? `Anggota ${divObj?.name || 'CNT'}` : memRole,
       image: finalImageUrl,
@@ -511,14 +510,11 @@ export default function AdminPortal({
       name: newDivName,
       slug: newDivName.toLowerCase().replace(/\s+/g, '-'),
       leadName: newDivLead || 'TBD',
-      leadRole: `Pimpro ${newDivName}`,
-      badge: `${newDivName} Lead`,
       color: newDivColor,
       motto: 'Mendorong Transformasi Budaya Berkelanjutan',
       description: newDivDesc || 'Divisi pengembangan inisiatif budaya di Group IT APD.',
       focusAreas: newDivFocus ? newDivFocus.split(',').map(s => s.trim()).filter(Boolean) : ['Program Kerja Baru'],
-      isRecruiting: true,
-      requirements: ['Memiliki komitmen tinggi', 'Aktif dan kolaboratif']
+      isRecruiting: true
     });
 
     const savedDiv = newDivName;
@@ -4559,7 +4555,7 @@ export default function AdminPortal({
                             </span>
                           </div>
                           <div style={{ fontSize: '0.96rem', color: 'var(--text-main)', fontWeight: 800, marginBottom: '4px' }}>
-                            {asp.title || asp.text}
+                            {asp.title || asp.description}
                           </div>
                           {asp.description && asp.description !== asp.title && (
                             <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -4627,7 +4623,7 @@ export default function AdminPortal({
                               onClick={() => setDeleteConfirm({
                                 type: 'aspirasi',
                                 id: asp.id,
-                                name: `Aspirasi "${asp.title || asp.text || 'Kotak Saran'}" dari ${asp.sender || 'Anonim'}`
+                                name: `Aspirasi "${asp.title || asp.description || 'Kotak Saran'}" dari ${asp.sender || 'Anonim'}`
                               })}
                               style={{
                                 padding: '6px 10px',
@@ -5370,7 +5366,7 @@ export default function AdminPortal({
                     <input
                       type="text"
                       value={editingItem.item.name || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value, shortName: e.target.value.split(' ')[0] } })}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />
                   </div>

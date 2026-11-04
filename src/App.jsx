@@ -1188,7 +1188,6 @@ export default function App() {
               asp.isPublic !== false && (
                 (asp.title || '').toLowerCase().includes(q) ||
                 (asp.description || '').toLowerCase().includes(q) ||
-                (asp.text || '').toLowerCase().includes(q) ||
                 (asp.adminReply || '').toLowerCase().includes(q)
               )
             ).slice(0, 3)
@@ -1545,7 +1544,7 @@ export default function App() {
                             }}
                           >
                             <div>
-                              <div style={{ fontSize: '0.86rem', fontWeight: 800 }}>💡 Aspirasi: {asp.title || asp.text}</div>
+                              <div style={{ fontSize: '0.86rem', fontWeight: 800 }}>💡 Aspirasi: {asp.title || asp.description}</div>
                               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Status: {asp.status} • {asp.category}</div>
                             </div>
                             <ChevronRight size={15} color="var(--text-dim)" />

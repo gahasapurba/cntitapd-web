@@ -93,7 +93,6 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       (m.name || '').toLowerCase().includes(q) ||
       (m.role || '').toLowerCase().includes(q) ||
       (m.title || '').toLowerCase().includes(q) ||
-      (m.badge || '').toLowerCase().includes(q) ||
       (Array.isArray(m.responsibilities) && m.responsibilities.some(r => r.toLowerCase().includes(q)));
     const matchesCat = categoryFilter === 'all' || m.category === categoryFilter;
     const matchesDiv = divisionFilter === 'all' || m.divisionId === divisionFilter;
