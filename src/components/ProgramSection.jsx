@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Calendar as CalendarIcon, 
-  MapPin, 
-  Target, 
-  CheckCircle2, 
-  Clock, 
-  Sparkles, 
+import {
+  Calendar as CalendarIcon,
+  MapPin,
+  Target,
+  CheckCircle2,
+  Clock,
+  Sparkles,
   ChevronRight,
   Filter,
   Grid,
@@ -97,7 +97,7 @@ export default function ProgramSection({
       navigator.clipboard.writeText(getEventDirectUrl(evt.id));
       setCopiedEventId(evt.id);
       setTimeout(() => setCopiedEventId(null), 2200);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleShareEventWa = (evt) => {
@@ -184,7 +184,7 @@ export default function ProgramSection({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px' }}>
-      
+
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto' }}>
         <span className="badge-cyan" style={{ marginBottom: '12px' }}>
@@ -336,7 +336,7 @@ export default function ProgramSection({
                   cursor: 'pointer'
                 }}
               >
-                 lintas Tahun ({events.length})
+                lintas Tahun ({events.length})
               </button>
             </div>
           )}
@@ -433,142 +433,142 @@ export default function ProgramSection({
             gap: '24px',
           }}>
             {filteredEvents.map((evt) => {
-            const divInfo = divisions.find(d => d.id === evt.divisionId);
-            const isCompleted = evt.status === 'Completed';
+              const divInfo = divisions.find(d => d.id === evt.divisionId);
+              const isCompleted = evt.status === 'Completed';
 
-            return (
-              <div 
-                key={evt.id}
-                className="glass-panel"
-                style={{
-                  padding: '28px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                  borderLeft: `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
-                  opacity: isCompleted ? 0.75 : 1,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    color: divInfo?.color || 'var(--mandiri-gold)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em'
-                  }}>
-                    {evt.divisionName || divInfo?.name || 'CNT IT APD'}
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="badge-gold" style={{ fontSize: '0.7rem' }}>
-                      {evt.date}
+              return (
+                <div
+                  key={evt.id}
+                  className="glass-panel"
+                  style={{
+                    padding: '28px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    borderLeft: `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
+                    opacity: isCompleted ? 0.75 : 1,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: divInfo?.color || 'var(--mandiri-gold)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em'
+                    }}>
+                      {evt.divisionName || divInfo?.name || 'CNT IT APD'}
                     </span>
-                    {evt.badge && (
-                      <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                        {evt.badge}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge-gold" style={{ fontSize: '0.7rem' }}>
+                        {evt.date}
                       </span>
-                    )}
+                      {evt.badge && (
+                        <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                          {evt.badge}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px', lineHeight: 1.3 }}>
+                      {evt.title}
+                    </h3>
+                    <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                      {evt.description}
+                    </p>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    paddingTop: '12px',
+                    borderTop: '1px solid var(--border-card)',
+                    fontSize: '0.82rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                      <MapPin size={15} color="var(--mandiri-blue)" />
+                      <span>{evt.location}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                      <Target size={15} color="var(--mandiri-gold)" />
+                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Target: {evt.kpi}</span>
+                    </div>
+                    {(() => {
+                      const count = eventRsvps.filter(r => r.eventId === evt.id).length;
+                      return count > 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--neon-cyan)', fontWeight: 700 }}>
+                          <Users size={15} color="var(--neon-cyan)" />
+                          <span>{count} Insan IT APD telah konfirmasi hadir (RSVP)</span>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+
+                  {!isCompleted && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                      <button
+                        className="btn-rsvp-action"
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          background: 'rgba(14, 165, 233, 0.12)',
+                          color: 'var(--neon-cyan)',
+                          border: '1.5px solid var(--neon-cyan)',
+                          padding: '11px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          fontWeight: 800,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.25s ease',
+                          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.15)'
+                        }}
+                        onClick={() => handleOpenEventModal(evt)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--neon-cyan)';
+                          e.currentTarget.style.color = '#040914';
+                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(14, 165, 233, 0.4)';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(14, 165, 233, 0.12)';
+                          e.currentTarget.style.color = 'var(--neon-cyan)';
+                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(14, 165, 233, 0.15)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <span>RSVP / Info Detail</span>
+                        <ChevronRight size={16} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCopyEventLink(evt)}
+                        title="Salin Link Undangan Event"
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-md)',
+                          background: copiedEventId === evt.id ? 'rgba(16, 185, 129, 0.16)' : 'var(--input-bg)',
+                          border: `1px solid ${copiedEventId === evt.id ? '#10b981' : 'var(--border-card)'}`,
+                          color: copiedEventId === evt.id ? '#10b981' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {copiedEventId === evt.id ? <CheckCircle2 size={15} /> : <Share2 size={15} />}
+                      </button>
+                    </div>
+                  )}
                 </div>
-
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px', lineHeight: 1.3 }}>
-                    {evt.title}
-                  </h3>
-                  <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                    {evt.description}
-                  </p>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  paddingTop: '12px',
-                  borderTop: '1px solid var(--border-card)',
-                  fontSize: '0.82rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
-                    <MapPin size={15} color="var(--mandiri-blue)" />
-                    <span>{evt.location}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
-                    <Target size={15} color="var(--mandiri-gold)" />
-                    <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Target: {evt.kpi}</span>
-                  </div>
-                  {(() => {
-                    const count = eventRsvps.filter(r => r.eventId === evt.id).length;
-                    return count > 0 ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--neon-cyan)', fontWeight: 700 }}>
-                        <Users size={15} color="var(--neon-cyan)" />
-                        <span>{count} Insan IT APD telah konfirmasi hadir (RSVP)</span>
-                      </div>
-                    ) : null;
-                  })()}
-                </div>
-
-                {!isCompleted && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                    <button
-                      className="btn-rsvp-action"
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        background: 'rgba(14, 165, 233, 0.12)',
-                        color: 'var(--neon-cyan)',
-                        border: '1.5px solid var(--neon-cyan)',
-                        padding: '11px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        fontWeight: 800,
-                        fontSize: '0.84rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.25s ease',
-                        boxShadow: '0 4px 15px rgba(14, 165, 233, 0.15)'
-                      }}
-                      onClick={() => handleOpenEventModal(evt)}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'var(--neon-cyan)';
-                        e.currentTarget.style.color = '#040914';
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(14, 165, 233, 0.4)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(14, 165, 233, 0.12)';
-                        e.currentTarget.style.color = 'var(--neon-cyan)';
-                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(14, 165, 233, 0.15)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      <span>RSVP / Info Detail</span>
-                      <ChevronRight size={16} />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleCopyEventLink(evt)}
-                      title="Salin Link Undangan Event"
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        background: copiedEventId === evt.id ? 'rgba(16, 185, 129, 0.16)' : 'var(--input-bg)',
-                        border: `1px solid ${copiedEventId === evt.id ? '#10b981' : 'var(--border-card)'}`,
-                        color: copiedEventId === evt.id ? '#10b981' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {copiedEventId === evt.id ? <CheckCircle2 size={15} /> : <Share2 size={15} />}
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
           </div>
         )
       )}
@@ -793,11 +793,11 @@ export default function ProgramSection({
                           minHeight: '78px',
                           maxHeight: '78px',
                           borderRadius: 'var(--radius-sm)',
-                          background: hasEvents 
-                            ? (isDark ? `${tagColor}22` : `${tagColor}15`) 
+                          background: hasEvents
+                            ? (isDark ? `${tagColor}22` : `${tagColor}15`)
                             : 'var(--bg-card)',
-                          border: hasEvents 
-                            ? `2px solid ${tagColor}` 
+                          border: hasEvents
+                            ? `2px solid ${tagColor}`
                             : '1px solid var(--border-card)',
                           padding: '6px 8px',
                           display: 'flex',
@@ -1010,37 +1010,37 @@ export default function ProgramSection({
             justifyContent: 'center',
             padding: '16px'
           }}
-          onClick={() => {
-            setRsvpModalEvent(null);
-            setRsvpErrors({});
-            setRsvpSuccess(false);
-            if (onSelectEventUrl) onSelectEventUrl(null);
-          }}
-        >
-          <div 
-            className="glass-panel modal-container" 
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: '580px',
-              width: '100%',
-              maxHeight: '92vh',
-              overflowY: 'auto',
-              padding: '28px',
-              position: 'relative',
-              border: '1.5px solid var(--mandiri-blue)',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px'
+            onClick={() => {
+              setRsvpModalEvent(null);
+              setRsvpErrors({});
+              setRsvpSuccess(false);
+              if (onSelectEventUrl) onSelectEventUrl(null);
             }}
           >
-            <button
-              onClick={() => {
-                setRsvpModalEvent(null);
-                setRsvpErrors({});
-                setRsvpSuccess(false);
-                if (onSelectEventUrl) onSelectEventUrl(null);
+            <div
+              className="glass-panel modal-container"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: '580px',
+                width: '100%',
+                maxHeight: '92vh',
+                overflowY: 'auto',
+                padding: '28px',
+                position: 'relative',
+                border: '1.5px solid var(--mandiri-blue)',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
               }}
+            >
+              <button
+                onClick={() => {
+                  setRsvpModalEvent(null);
+                  setRsvpErrors({});
+                  setRsvpSuccess(false);
+                  if (onSelectEventUrl) onSelectEventUrl(null);
+                }}
                 style={{
                   position: 'absolute',
                   top: '16px',

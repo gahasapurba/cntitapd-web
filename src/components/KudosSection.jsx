@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  Heart, 
-  Send, 
-  Sparkles, 
-  MessageSquare, 
-  ThumbsUp, 
-  Lightbulb, 
+import {
+  Heart,
+  Send,
+  Sparkles,
+  MessageSquare,
+  ThumbsUp,
+  Lightbulb,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
@@ -17,15 +17,15 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function KudosSection({ 
-  kudosList = [], 
-  onAddKudos, 
+export default function KudosSection({
+  kudosList = [],
+  onAddKudos,
   onUpdateKudos,
   aspirasiList = [],
   onAddAspirasi
 }) {
   const [activeSubTab, setActiveSubTab] = useState('kudos'); // 'kudos' | 'aspirasi'
-  
+
   // Search & Category Filter for Kudos Wall
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -67,7 +67,7 @@ export default function KudosSection({
     setLikedMap(nextLikedMap);
     try {
       localStorage.setItem('cnt_liked_kudos', JSON.stringify(nextLikedMap));
-    } catch (e) {}
+    } catch (e) { }
 
     if (onUpdateKudos) {
       const currentLikes = kudosItem.likes || 1;
@@ -179,7 +179,7 @@ export default function KudosSection({
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const validateKudos = () => {
@@ -322,7 +322,7 @@ export default function KudosSection({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '48px', paddingBottom: '80px' }}>
-      
+
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto' }}>
         <span className="badge-gold" style={{ marginBottom: '12px' }}>
@@ -519,317 +519,317 @@ export default function KudosSection({
           })()}
 
           <div className="kudos-grid">
-          {/* Send Form */}
-          <div className="glass-panel" style={{ padding: '32px', border: '1.5px solid var(--border-card)' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
-              Beri Shoutout Apresiasi 🌟
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Ucapan tulusmu bisa mencerahkan hari rekan kerja dan menyalakan api semangat tim.
-            </p>
+            {/* Send Form */}
+            <div className="glass-panel" style={{ padding: '32px', border: '1.5px solid var(--border-card)' }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
+                Beri Shoutout Apresiasi 🌟
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                Ucapan tulusmu bisa mencerahkan hari rekan kerja dan menyalakan api semangat tim.
+              </p>
 
-            {isSuccess && (
-              <div style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid #10b981',
-                color: '#10b981',
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.85rem',
-                marginBottom: '18px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <CheckCircle2 size={16} />
-                <span>Kudos berhasil dikirim ke Wall of Appreciation! 🎉</span>
-              </div>
-            )}
-
-            <form onSubmit={handleOpenConfirm} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Dari Siapa? (Nama / Squad Kamu) *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Dimas (Squad Wealth)"
-                  value={sender}
-                  onChange={(e) => {
-                    setSender(e.target.value);
-                    if (kudosErrors.sender) setKudosErrors(prev => ({ ...prev, sender: null }));
-                  }}
-                  style={inputStyle(kudosErrors.sender)}
-                />
-                {kudosErrors.sender && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
-                    <AlertCircle size={12} />
-                    <span>{kudosErrors.sender}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Apresiasi Untuk Siapa? *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Sarah (QA Lead) / Tim Backend Core"
-                  value={recipient}
-                  onChange={(e) => {
-                    setRecipient(e.target.value);
-                    if (kudosErrors.recipient) setKudosErrors(prev => ({ ...prev, recipient: null }));
-                  }}
-                  style={inputStyle(kudosErrors.recipient)}
-                />
-                {kudosErrors.recipient && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
-                    <AlertCircle size={12} />
-                    <span>{kudosErrors.recipient}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Kategori Nilai Budaya
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  style={inputStyle(false)}
-                >
-                  <option value="Kolaboratif">Kolaboratif (Sinergi & Kerjasama Tim)</option>
-                  <option value="Inovatif">Inovatif & Solutif (Excellence & Agility)</option>
-                  <option value="Harmonis">Harmonis (Saling Peduli & Menghargai)</option>
-                  <option value="Integritas">Integritas (Komitmen & Tanggung Jawab)</option>
-                  <option value="Dedikasi">Dedikasi (Customer Centric & Prima)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Pesan Apresiasimu *
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Tuliskan ucapan terima kasih atau apresiasi terbaikmu..."
-                  value={message}
-                  onChange={(e) => {
-                    setMessage(e.target.value);
-                    if (kudosErrors.message) setKudosErrors(prev => ({ ...prev, message: null }));
-                  }}
-                  style={{
-                    ...inputStyle(kudosErrors.message),
-                    resize: 'vertical'
-                  }}
-                />
-                {kudosErrors.message && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
-                    <AlertCircle size={12} />
-                    <span>{kudosErrors.message}</span>
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                style={{
+              {isSuccess && (
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid #10b981',
+                  color: '#10b981',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.85rem',
+                  marginBottom: '18px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  background: 'var(--mandiri-gold)',
-                  color: '#0a1128',
-                  padding: '13px 24px',
-                  borderRadius: 'var(--radius-full)',
-                  fontWeight: 800,
-                  fontSize: '0.92rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                  marginTop: '6px',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <Send size={16} />
-                <span>Kirimkan Apresiasi</span>
-              </button>
-            </form>
-          </div>
-
-          {/* Wall List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={18} color="var(--mandiri-gold)" />
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Wall of Appreciation
-                </h3>
-              </div>
-              <span className="badge-cyan" style={{ fontSize: '0.72rem' }}>
-                {totalApresiasi} Apresiasi Aktif
-              </span>
-            </div>
-
-            {/* Search & Category Filter Bar */}
-            <div className="glass-panel" style={{
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              flexWrap: 'wrap',
-              border: '1px solid var(--border-card)'
-            }}>
-              <div style={{ position: 'relative', flex: '1 1 180px' }}>
-                <Search size={15} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                <input
-                  type="text"
-                  placeholder="Cari nama penerima, pengirim, atau isi apresiasi..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 34px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--input-border)',
-                    color: 'var(--text-main)',
-                    fontSize: '0.82rem',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Filter size={14} color="var(--text-dim)" />
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--input-border)',
-                    color: 'var(--text-main)',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="all">Semua Kategori ({kudosList.length})</option>
-                  <option value="Kolaboratif">Kolaboratif</option>
-                  <option value="Inovatif">Inovatif</option>
-                  <option value="Harmonis">Harmonis</option>
-                  <option value="Integritas">Integritas</option>
-                  <option value="Dedikasi">Dedikasi</option>
-                </select>
-              </div>
-            </div>
-
-            {filteredKudos.length === 0 ? (
-              <div className="glass-panel" style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                Tidak ada kiriman apresiasi yang cocok dengan pencarian atau filter kategori.
-              </div>
-            ) : filteredKudos.map((kudos) => {
-              const isLiked = likedMap[kudos.id] || false;
-              const currentLikes = kudos.likes || 1;
-
-              return (
-                <div
-                  key={kudos.id}
-                  className="glass-panel glass-panel-hover"
-                  style={{
-                    padding: '20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    borderLeft: '4px solid var(--mandiri-gold)',
-                    border: '1px solid var(--border-card)'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                      <strong style={{ color: 'var(--neon-cyan)', fontWeight: 800, letterSpacing: '0.2px' }}>
-                        {kudos.sender}
-                      </strong>
-                      <span style={{ color: 'var(--text-dim)' }}>apresiasi kepada</span>
-                      <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>
-                        {kudos.recipient}
-                      </strong>
-                    </div>
-                    <span className="badge-gold" style={{ fontSize: '0.68rem' }}>
-                      {kudos.category}
-                    </span>
-                  </div>
-
-                  <p style={{ fontSize: '0.92rem', color: 'var(--text-main)', lineHeight: 1.6, fontStyle: 'italic', margin: 0 }}>
-                    "{kudos.message}"
-                  </p>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '0.74rem', color: 'var(--text-dim)', paddingTop: '10px', borderTop: '1px solid var(--border-card)' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        <Clock size={12} color="var(--mandiri-gold)" />
-                        <span>{kudos.exactTimestamp || kudos.date}</span>
-                      </div>
-                      {kudos.exactTimestamp && kudos.date !== 'Baru saja' && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>({kudos.date})</span>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadKudosCard(kudos)}
-                        title="Unduh kartu ucapan Kudos beresolusi tinggi (PNG) untuk dibagikan ke WhatsApp / Teams"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          background: 'rgba(255, 184, 0, 0.12)',
-                          border: '1px solid rgba(255, 184, 0, 0.45)',
-                          color: 'var(--mandiri-gold)',
-                          padding: '4px 11px',
-                          borderRadius: 'var(--radius-full)',
-                          cursor: 'pointer',
-                          fontSize: '0.72rem',
-                          fontWeight: 800
-                        }}
-                      >
-                        <Download size={12} />
-                        <span>Unduh Kartu (PNG)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleToggleLike(kudos)}
-                        title="Beri like apresiasi"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          background: isLiked ? 'rgba(244, 63, 94, 0.15)' : 'transparent',
-                          border: isLiked ? '1px solid #f43f5e' : '1px solid var(--border-card)',
-                          color: isLiked ? '#f43f5e' : 'var(--text-muted)',
-                          padding: '4px 12px',
-                          borderRadius: 'var(--radius-full)',
-                          cursor: 'pointer',
-                          fontSize: '0.74rem',
-                          fontWeight: 700,
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <Heart size={13} fill={isLiked ? '#f43f5e' : 'none'} color={isLiked ? '#f43f5e' : 'currentColor'} />
-                        <span>{currentLikes} apresiasi</span>
-                      </button>
-                    </div>
-                  </div>
+                  gap: '8px'
+                }}>
+                  <CheckCircle2 size={16} />
+                  <span>Kudos berhasil dikirim ke Wall of Appreciation! 🎉</span>
                 </div>
-              );
-            })}
-          </div>
+              )}
+
+              <form onSubmit={handleOpenConfirm} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Dari Siapa? (Nama / Squad Kamu) *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Dimas (Squad Wealth)"
+                    value={sender}
+                    onChange={(e) => {
+                      setSender(e.target.value);
+                      if (kudosErrors.sender) setKudosErrors(prev => ({ ...prev, sender: null }));
+                    }}
+                    style={inputStyle(kudosErrors.sender)}
+                  />
+                  {kudosErrors.sender && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                      <AlertCircle size={12} />
+                      <span>{kudosErrors.sender}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Apresiasi Untuk Siapa? *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Sarah (QA Lead) / Tim Backend Core"
+                    value={recipient}
+                    onChange={(e) => {
+                      setRecipient(e.target.value);
+                      if (kudosErrors.recipient) setKudosErrors(prev => ({ ...prev, recipient: null }));
+                    }}
+                    style={inputStyle(kudosErrors.recipient)}
+                  />
+                  {kudosErrors.recipient && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                      <AlertCircle size={12} />
+                      <span>{kudosErrors.recipient}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Kategori Nilai Budaya
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    style={inputStyle(false)}
+                  >
+                    <option value="Kolaboratif">Kolaboratif (Sinergi & Kerjasama Tim)</option>
+                    <option value="Inovatif">Inovatif & Solutif (Excellence & Agility)</option>
+                    <option value="Harmonis">Harmonis (Saling Peduli & Menghargai)</option>
+                    <option value="Integritas">Integritas (Komitmen & Tanggung Jawab)</option>
+                    <option value="Dedikasi">Dedikasi (Customer Centric & Prima)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Pesan Apresiasimu *
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="Tuliskan ucapan terima kasih atau apresiasi terbaikmu..."
+                    value={message}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
+                      if (kudosErrors.message) setKudosErrors(prev => ({ ...prev, message: null }));
+                    }}
+                    style={{
+                      ...inputStyle(kudosErrors.message),
+                      resize: 'vertical'
+                    }}
+                  />
+                  {kudosErrors.message && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
+                      <AlertCircle size={12} />
+                      <span>{kudosErrors.message}</span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: 'var(--mandiri-gold)',
+                    color: '#0a1128',
+                    padding: '13px 24px',
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    marginTop: '6px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <Send size={16} />
+                  <span>Kirimkan Apresiasi</span>
+                </button>
+              </form>
+            </div>
+
+            {/* Wall List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Sparkles size={18} color="var(--mandiri-gold)" />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Wall of Appreciation
+                  </h3>
+                </div>
+                <span className="badge-cyan" style={{ fontSize: '0.72rem' }}>
+                  {totalApresiasi} Apresiasi Aktif
+                </span>
+              </div>
+
+              {/* Search & Category Filter Bar */}
+              <div className="glass-panel" style={{
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                flexWrap: 'wrap',
+                border: '1px solid var(--border-card)'
+              }}>
+                <div style={{ position: 'relative', flex: '1 1 180px' }}>
+                  <Search size={15} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    placeholder="Cari nama penerima, pengirim, atau isi apresiasi..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 34px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--input-border)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.82rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Filter size={14} color="var(--text-dim)" />
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--input-border)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">Semua Kategori ({kudosList.length})</option>
+                    <option value="Kolaboratif">Kolaboratif</option>
+                    <option value="Inovatif">Inovatif</option>
+                    <option value="Harmonis">Harmonis</option>
+                    <option value="Integritas">Integritas</option>
+                    <option value="Dedikasi">Dedikasi</option>
+                  </select>
+                </div>
+              </div>
+
+              {filteredKudos.length === 0 ? (
+                <div className="glass-panel" style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                  Tidak ada kiriman apresiasi yang cocok dengan pencarian atau filter kategori.
+                </div>
+              ) : filteredKudos.map((kudos) => {
+                const isLiked = likedMap[kudos.id] || false;
+                const currentLikes = kudos.likes || 1;
+
+                return (
+                  <div
+                    key={kudos.id}
+                    className="glass-panel glass-panel-hover"
+                    style={{
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      borderLeft: '4px solid var(--mandiri-gold)',
+                      border: '1px solid var(--border-card)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                        <strong style={{ color: 'var(--neon-cyan)', fontWeight: 800, letterSpacing: '0.2px' }}>
+                          {kudos.sender}
+                        </strong>
+                        <span style={{ color: 'var(--text-dim)' }}>apresiasi kepada</span>
+                        <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>
+                          {kudos.recipient}
+                        </strong>
+                      </div>
+                      <span className="badge-gold" style={{ fontSize: '0.68rem' }}>
+                        {kudos.category}
+                      </span>
+                    </div>
+
+                    <p style={{ fontSize: '0.92rem', color: 'var(--text-main)', lineHeight: 1.6, fontStyle: 'italic', margin: 0 }}>
+                      "{kudos.message}"
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '0.74rem', color: 'var(--text-dim)', paddingTop: '10px', borderTop: '1px solid var(--border-card)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          <Clock size={12} color="var(--mandiri-gold)" />
+                          <span>{kudos.exactTimestamp || kudos.date}</span>
+                        </div>
+                        {kudos.exactTimestamp && kudos.date !== 'Baru saja' && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>({kudos.date})</span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadKudosCard(kudos)}
+                          title="Unduh kartu ucapan Kudos beresolusi tinggi (PNG) untuk dibagikan ke WhatsApp / Teams"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: 'rgba(255, 184, 0, 0.12)',
+                            border: '1px solid rgba(255, 184, 0, 0.45)',
+                            color: 'var(--mandiri-gold)',
+                            padding: '4px 11px',
+                            borderRadius: 'var(--radius-full)',
+                            cursor: 'pointer',
+                            fontSize: '0.72rem',
+                            fontWeight: 800
+                          }}
+                        >
+                          <Download size={12} />
+                          <span>Unduh Kartu (PNG)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleLike(kudos)}
+                          title="Beri like apresiasi"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: isLiked ? 'rgba(244, 63, 94, 0.15)' : 'transparent',
+                            border: isLiked ? '1px solid #f43f5e' : '1px solid var(--border-card)',
+                            color: isLiked ? '#f43f5e' : 'var(--text-muted)',
+                            padding: '4px 12px',
+                            borderRadius: 'var(--radius-full)',
+                            cursor: 'pointer',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <Heart size={13} fill={isLiked ? '#f43f5e' : 'none'} color={isLiked ? '#f43f5e' : 'currentColor'} />
+                          <span>{currentLikes} apresiasi</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
