@@ -534,7 +534,7 @@ export default function HomeSection({
                 gap: '6px',
                 background: 'transparent',
                 border: 'none',
-                color: 'var(--mandiri-blue)',
+                color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
                 fontWeight: 700,
                 fontSize: '0.88rem',
                 cursor: 'pointer'
@@ -628,7 +628,7 @@ export default function HomeSection({
                   gap: '6px',
                   background: 'transparent',
                   border: 'none',
-                  color: 'var(--mandiri-blue)',
+                  color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
                   fontWeight: 700,
                   fontSize: '0.88rem',
                   cursor: 'pointer'
@@ -920,7 +920,7 @@ export default function HomeSection({
                     gap: '6px',
                     background: 'transparent',
                     border: 'none',
-                    color: 'var(--mandiri-blue)',
+                    color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
                     fontWeight: 800,
                     fontSize: '0.88rem',
                     cursor: 'pointer'
@@ -1019,7 +1019,7 @@ export default function HomeSection({
                     gap: '6px',
                     background: 'transparent',
                     border: 'none',
-                    color: 'var(--mandiri-blue)',
+                    color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
                     fontWeight: 800,
                     fontSize: '0.88rem',
                     cursor: 'pointer'

@@ -14,7 +14,8 @@ import {
   X
 } from 'lucide-react';
 
-export default function GallerySection({ galleries = [], divisions = [], activeTenure = null }) {
+export default function GallerySection({ galleries = [], divisions = [], activeTenure = null, theme }) {
+  const isDark = theme === 'dark';
   const [selectedGalleryId, setSelectedGalleryId] = useState(null);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -305,20 +306,39 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: 'rgba(0, 61, 121, 0.08)',
-                    border: '1px solid var(--mandiri-blue)',
-                    color: 'var(--mandiri-blue)',
+                    background: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(0, 61, 121, 0.08)',
+                    border: isDark ? '1.5px solid rgba(56, 189, 248, 0.55)' : '1.5px solid var(--mandiri-blue)',
+                    color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
                     padding: '8px 16px',
                     borderRadius: 'var(--radius-full)',
                     fontSize: '0.84rem',
                     fontWeight: 700,
                     textDecoration: 'none',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    boxShadow: isDark ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    if (isDark) {
+                      e.currentTarget.style.background = 'rgba(56, 189, 248, 0.22)';
+                      e.currentTarget.style.boxShadow = '0 0 20px rgba(56, 189, 248, 0.3)';
+                    } else {
+                      e.currentTarget.style.background = 'rgba(0, 61, 121, 0.14)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    if (isDark) {
+                      e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                      e.currentTarget.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.15)';
+                    } else {
+                      e.currentTarget.style.background = 'rgba(0, 61, 121, 0.08)';
+                    }
                   }}
                 >
                   <FolderDown size={15} />
                   <span>{doc.text}</span>
-                  <ExternalLink size={13} style={{ opacity: 0.7 }} />
+                  <ExternalLink size={13} style={{ opacity: isDark ? 0.95 : 0.7 }} />
                 </a>
               ))}
             </div>
