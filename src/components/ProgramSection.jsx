@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Calendar as CalendarIcon,
   MapPin,
@@ -67,20 +67,49 @@ export default function ProgramSection({
   });
   const [hoveredDate, setHoveredDate] = useState(null);
 
+  const lastHandledInitialId = useRef(null);
+
+  const handleCloseEventModal = useCallback(() => {
+    setRsvpModalEvent(null);
+    setSameDayModalEvents([]);
+    setRsvpErrors({});
+    setRsvpSuccess(false);
+    lastHandledInitialId.current = null;
+    if (onSelectEventUrl) onSelectEventUrl(null);
+  }, [onSelectEventUrl]);
+
+  // Handle initial event from direct deep link only once
   useEffect(() => {
     if (initialEventId && events.length > 0) {
-      const found = events.find(e => e.id === initialEventId);
-      if (found) {
-        setRsvpModalEvent(found);
+      if (lastHandledInitialId.current !== initialEventId) {
+        lastHandledInitialId.current = initialEventId;
+        const found = events.find(e => e.id === initialEventId);
+        if (found) {
+          setRsvpModalEvent(found);
+        }
       }
     } else if (!initialEventId) {
+      lastHandledInitialId.current = null;
       setRsvpModalEvent(null);
     }
   }, [initialEventId, events]);
 
+  // Close modal on Escape key
+  useEffect(() => {
+    if (!rsvpModalEvent) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleCloseEventModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [rsvpModalEvent, handleCloseEventModal]);
+
   const handleOpenEventModal = (evt, dayEventsList = []) => {
     setRsvpModalEvent(evt);
     setSameDayModalEvents(dayEventsList.length > 1 ? dayEventsList : []);
+    lastHandledInitialId.current = evt?.id || null;
     if (onSelectEventUrl && evt?.id) {
       onSelectEventUrl(evt.id);
     }
@@ -950,7 +979,7 @@ export default function ProgramSection({
                     return (
                       <div
                         key={evt.id}
-                        onClick={() => setRsvpModalEvent(evt)}
+                        onClick={() => handleOpenEventModal(evt)}
                         className="glass-panel glass-panel-hover"
                         style={{
                           padding: '18px',
@@ -1010,12 +1039,7 @@ export default function ProgramSection({
             justifyContent: 'center',
             padding: '16px'
           }}
-            onClick={() => {
-              setRsvpModalEvent(null);
-              setRsvpErrors({});
-              setRsvpSuccess(false);
-              if (onSelectEventUrl) onSelectEventUrl(null);
-            }}
+            onClick={handleCloseEventModal}
           >
             <div
               className="glass-panel modal-container"
@@ -1035,12 +1059,7 @@ export default function ProgramSection({
               }}
             >
               <button
-                onClick={() => {
-                  setRsvpModalEvent(null);
-                  setRsvpErrors({});
-                  setRsvpSuccess(false);
-                  if (onSelectEventUrl) onSelectEventUrl(null);
-                }}
+                onClick={handleCloseEventModal}
                 style={{
                   position: 'absolute',
                   top: '16px',
@@ -1477,7 +1496,7 @@ export default function ProgramSection({
                   <button
                     type="button"
                     onClick={() => {
-                      setRsvpModalEvent(null);
+                      handleCloseEventModal();
                       onNavigateOprec();
                     }}
                     style={{
@@ -1497,7 +1516,7 @@ export default function ProgramSection({
                 )}
                 <button
                   type="button"
-                  onClick={() => setRsvpModalEvent(null)}
+                  onClick={handleCloseEventModal}
                   style={{
                     flex: 1,
                     background: 'var(--mandiri-blue)',

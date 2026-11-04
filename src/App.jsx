@@ -73,7 +73,7 @@ export default function App() {
   const [activeFormIdFromUrl, setActiveFormIdFromUrl] = useState(() => parseLocationRoute().formId);
   const [activeEventIdFromUrl, setActiveEventIdFromUrl] = useState(() => parseLocationRoute().eventId);
 
-  const setCurrentTab = useCallback((nextTab, formIdParam = null, eventIdParam = null) => {
+  const setCurrentTab = useCallback((nextTab, formIdParam = null, eventIdParam = null, shouldScroll = true) => {
     const targetTab = VALID_TABS.includes(nextTab) ? nextTab : 'home';
     setCurrentTabState(targetTab);
     const isPathAdmin = (window.location.pathname || '').replace(/\/+$/, '') === '/admin';
@@ -96,7 +96,9 @@ export default function App() {
         window.history.replaceState(null, '', `${basePrefix}#${targetTab}`);
       }
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (shouldScroll) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, []);
 
   // Page & Navbar Visibility State (View / Hide per page & navbar)
@@ -1021,7 +1023,7 @@ export default function App() {
               eventRsvps={eventRsvps}
               onAddEventRsvp={handleAddEventRsvp}
               initialEventId={activeEventIdFromUrl}
-              onSelectEventUrl={(eId) => setCurrentTab('program', null, eId)}
+              onSelectEventUrl={(eId) => setCurrentTab('program', null, eId, false)}
             />
           )}
 
