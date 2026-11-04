@@ -347,6 +347,16 @@ export default function AdminPortal({
     if (!eventStartDate) errs.eventStartDate = 'Tanggal Mulai wajib dipilih';
     if (!eventEndDate) errs.eventEndDate = 'Tanggal Berakhir wajib dipilih';
     if (!eventDesc.trim()) errs.eventDesc = 'Deskripsi Program Kerja wajib diisi';
+
+    const targetEventTenureId = eventTenureId || activeTenure?.id || '';
+    const availableDivsForEvent = divisions.filter(d => d.tenureId === targetEventTenureId);
+
+    if (availableDivsForEvent.length === 0) {
+      errs.eventDivId = 'Divisi masih kosong pada periode ini. Silakan buat divisi baru terlebih dahulu di tab Divisi.';
+    } else if (!eventDivId || !availableDivsForEvent.some(d => d.id === eventDivId)) {
+      errs.eventDivId = 'Divisi penyelenggara wajib dipilih';
+    }
+
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
       showToast('Mohon lengkapi kolom wajib pada form Program Kerja', 'error');
@@ -453,9 +463,23 @@ export default function AdminPortal({
 
   const handleCreateMember = async (e) => {
     e.preventDefault();
-    if (!memName.trim()) {
-      setFormErrors((prev) => ({ ...prev, memName: 'Nama Lengkap pengurus/anggota wajib diisi' }));
-      showToast('Mohon isi Nama Lengkap pengurus/anggota', 'error');
+    const errs = {};
+    if (!memName.trim()) errs.memName = 'Nama Lengkap pengurus/anggota wajib diisi';
+
+    const targetTenureId = memTenureId || activeTenure?.id || '';
+    const availableDivsForMember = divisions.filter(d => d.tenureId === targetTenureId);
+
+    if (memCategory === 'anggota' || memCategory === 'pimpro') {
+      if (availableDivsForMember.length === 0) {
+        errs.memDivisionId = 'Divisi masih kosong pada periode ini. Silakan buat divisi baru pada tahun kepengurusan yang dipilih.';
+      } else if (!memDivisionId || !availableDivsForMember.some(d => d.id === memDivisionId)) {
+        errs.memDivisionId = 'Divisi wajib dipilih untuk posisi Anggota / Pimpro';
+      }
+    }
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors((prev) => ({ ...prev, ...errs }));
+      showToast('Mohon lengkapi kolom wajib pada form Personel', 'error');
       return;
     }
 
@@ -748,9 +772,18 @@ export default function AdminPortal({
     const errs = {};
     if (!galTitle.trim()) errs.galTitle = 'Judul Kegiatan wajib diisi';
     if (!galDesc.trim()) errs.galDesc = 'Deskripsi Singkat Acara wajib diisi';
+
+    const targetGalTenureId = galTenureId || activeTenure?.id || '';
+    const availableDivsForGal = divisions.filter(d => d.tenureId === targetGalTenureId);
+    if (availableDivsForGal.length === 0) {
+      errs.galDivision = 'Divisi masih kosong pada periode ini. Silakan buat divisi baru terlebih dahulu di tab Divisi.';
+    } else if (!galDivision || !availableDivsForGal.some(d => d.name === galDivision)) {
+      errs.galDivision = 'Divisi penyelenggara wajib dipilih';
+    }
+
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
-      showToast('Mohon lengkapi Judul dan Deskripsi Kegiatan', 'error');
+      showToast('Mohon lengkapi kolom wajib pada form Galeri', 'error');
       return;
     }
 
@@ -1852,7 +1885,11 @@ export default function AdminPortal({
               </label>
               <select
                 value={memTenureId || activeTenure?.id || ''}
-                onChange={(e) => setMemTenureId(e.target.value)}
+                onChange={(e) => {
+                  setMemTenureId(e.target.value);
+                  setMemDivisionId('');
+                  clearFieldError('memDivisionId');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -1914,30 +1951,49 @@ export default function AdminPortal({
               />
             </div>
 
-            {(memCategory === 'anggota' || memCategory === 'pimpro') && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Divisi / Squad
-                </label>
-                <select
-                  value={memDivisionId}
-                  onChange={(e) => setMemDivisionId(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-card)',
-                    color: 'var(--text-main)',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  {divisions.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {(memCategory === 'anggota' || memCategory === 'pimpro') && (() => {
+              const availableDivsForMember = divisions.filter(d => d.tenureId === (memTenureId || activeTenure?.id));
+              return (
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Divisi / Squad <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <select
+                    value={memDivisionId}
+                    onChange={(e) => {
+                      setMemDivisionId(e.target.value);
+                      clearFieldError('memDivisionId');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: `1.5px solid ${formErrors.memDivisionId ? '#f43f5e' : 'var(--border-card)'}`,
+                      color: 'var(--text-main)',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    {availableDivsForMember.length === 0 ? (
+                      <option value="" disabled>-- Divisi masih kosong di periode ini. Silakan buat divisi baru pada tahun kepengurusan yang dipilih --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Pilih Divisi / Squad (Wajib) --</option>
+                        {availableDivsForMember.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                  {availableDivsForMember.length === 0 && (
+                    <div style={{ fontSize: '0.74rem', color: '#f59e0b', marginTop: '6px', lineHeight: 1.4 }}>
+                      ⚠️ <strong>Divisi masih kosong</strong> pada periode kepengurusan ini. Silakan buat divisi baru terlebih dahulu di tab <strong>Divisi</strong>.
+                    </div>
+                  )}
+                  {renderFieldError('memDivisionId')}
+                </div>
+              );
+            })()}
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
@@ -2268,34 +2324,15 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Divisi Penyelenggara <span style={{ color: '#f43f5e' }}>*</span>
-              </label>
-              <select
-                value={eventDivId}
-                onChange={(e) => setEventDivId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.85rem'
-                }}
-              >
-                {divisions.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Periode Kepengurusan *
               </label>
               <select
                 value={eventTenureId || activeTenure?.id || ''}
-                onChange={(e) => setEventTenureId(e.target.value)}
+                onChange={(e) => {
+                  setEventTenureId(e.target.value);
+                  setEventDivId('');
+                  clearFieldError('eventDivId');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -2311,6 +2348,50 @@ export default function AdminPortal({
                 ))}
               </select>
             </div>
+
+            {(() => {
+              const availableDivsForEvent = divisions.filter(d => d.tenureId === (eventTenureId || activeTenure?.id));
+              return (
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Divisi Penyelenggara <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <select
+                    value={eventDivId}
+                    onChange={(e) => {
+                      setEventDivId(e.target.value);
+                      clearFieldError('eventDivId');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: `1.5px solid ${formErrors.eventDivId ? '#f43f5e' : 'var(--border-card)'}`,
+                      color: 'var(--text-main)',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    {availableDivsForEvent.length === 0 ? (
+                      <option value="" disabled>-- Divisi masih kosong di periode ini. Silakan buat divisi baru pada tahun kepengurusan yang dipilih --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Pilih Divisi Penyelenggara * --</option>
+                        {availableDivsForEvent.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                  {availableDivsForEvent.length === 0 && (
+                    <div style={{ fontSize: '0.74rem', color: '#f59e0b', marginTop: '6px', lineHeight: 1.4 }}>
+                      ⚠️ <strong>Divisi masih kosong</strong> pada periode kepengurusan ini. Silakan buat divisi baru terlebih dahulu di tab <strong>Divisi</strong>.
+                    </div>
+                  )}
+                  {renderFieldError('eventDivId')}
+                </div>
+              );
+            })()}
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
@@ -2769,34 +2850,14 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Divisi Penyelenggara
-              </label>
-              <select
-                value={galDivision}
-                onChange={(e) => setGalDivision(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.85rem'
-                }}
-              >
-                {divisions.map((d) => (
-                  <option key={d.id} value={d.name}>{d.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Periode Kepengurusan *
               </label>
               <select
                 value={galTenureId || activeTenure?.id || ''}
-                onChange={(e) => setGalTenureId(e.target.value)}
+                onChange={(e) => {
+                  setGalTenureId(e.target.value);
+                  setGalDivision('');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -2812,6 +2873,46 @@ export default function AdminPortal({
                 ))}
               </select>
             </div>
+
+            {(() => {
+              const availableDivsForGal = divisions.filter(d => d.tenureId === (galTenureId || activeTenure?.id));
+              return (
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Divisi Penyelenggara
+                  </label>
+                  <select
+                    value={galDivision}
+                    onChange={(e) => setGalDivision(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    {availableDivsForGal.length === 0 ? (
+                      <option value="" disabled>-- Divisi masih kosong di periode ini. Silakan buat divisi baru pada tahun kepengurusan yang dipilih --</option>
+                    ) : (
+                      <>
+                        <option value="">-- Pilih Divisi Penyelenggara --</option>
+                        {availableDivsForGal.map((d) => (
+                          <option key={d.id} value={d.name}>{d.name}</option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                  {availableDivsForGal.length === 0 && (
+                    <div style={{ fontSize: '0.74rem', color: '#f59e0b', marginTop: '6px', lineHeight: 1.4 }}>
+                      ⚠️ <strong>Divisi masih kosong</strong> pada periode kepengurusan ini. Silakan buat divisi baru terlebih dahulu di tab <strong>Divisi</strong>.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
@@ -5499,16 +5600,33 @@ export default function AdminPortal({
                   </div>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Divisi Penugasan</label>
-                    <select
-                      value={editingItem.item.divisionId || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, divisionId: e.target.value || undefined } })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    >
-                      <option value="">-- Lintas Divisi / BPH --</option>
-                      {divisions.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const editMemberTenureId = editingItem.item.tenureId || activeTenure?.id || '';
+                      const editMemberDivs = divisions.filter(d => d.tenureId === editMemberTenureId);
+                      return (
+                        <>
+                          <select
+                            value={editingItem.item.divisionId || ''}
+                            onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, divisionId: e.target.value || undefined } })}
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                          >
+                            <option value="">-- Lintas Divisi / BPH --</option>
+                            {editMemberDivs.length === 0 ? (
+                              <option value="" disabled>-- Divisi masih kosong di periode ini --</option>
+                            ) : (
+                              editMemberDivs.map(d => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                              ))
+                            )}
+                          </select>
+                          {editMemberDivs.length === 0 && (
+                            <span style={{ fontSize: '0.72rem', color: '#f59e0b', display: 'block', marginTop: '3px' }}>
+                              ⚠️ Periode ini belum memiliki divisi. Silakan buat divisi baru di tab Divisi.
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -5547,7 +5665,19 @@ export default function AdminPortal({
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
                     <select
                       value={editingItem.item.tenureId || activeTenure?.id || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                      onChange={(e) => {
+                        const newTenure = e.target.value;
+                        const validDivs = divisions.filter(d => d.tenureId === newTenure);
+                        const keepDiv = validDivs.some(d => d.id === editingItem.item.divisionId);
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            tenureId: newTenure,
+                            divisionId: keepDiv ? editingItem.item.divisionId : undefined
+                          }
+                        });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
                       {tenures.map(t => (
@@ -5671,7 +5801,19 @@ export default function AdminPortal({
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
                     <select
                       value={editingItem.item.tenureId || activeTenure?.id || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                      onChange={(e) => {
+                        const newTenure = e.target.value;
+                        const validDivs = divisions.filter(d => d.tenureId === newTenure);
+                        const keepDiv = validDivs.some(d => d.id === editingItem.item.divisionId);
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            tenureId: newTenure,
+                            divisionId: keepDiv ? editingItem.item.divisionId : undefined
+                          }
+                        });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
                       {tenures.map(t => (
@@ -5778,11 +5920,23 @@ export default function AdminPortal({
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
                     <select
                       value={editingItem.item.tenureId || activeTenure?.id || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                      onChange={(e) => {
+                        const newTenure = e.target.value;
+                        const validDivs = divisions.filter(d => d.tenureId === newTenure);
+                        const keepDiv = validDivs.some(d => d.name === editingItem.item.division);
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            tenureId: newTenure,
+                            division: keepDiv ? editingItem.item.division : ''
+                          }
+                        });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
                       {tenures.map(t => (
-                        <option key={t.id} value={t.id}>{t.title || t.code}</option>
+                        <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
                       ))}
                     </select>
                   </div>
@@ -5800,15 +5954,35 @@ export default function AdminPortal({
                   </div>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Divisi Penyelenggara</label>
-                    <select
-                      value={editingItem.item.division || 'Creative Media'}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, division: e.target.value } })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    >
-                      {divisions.map(d => (
-                        <option key={d.id} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const editGalTenure = editingItem.item.tenureId || activeTenure?.id || '';
+                      const editGalDivs = divisions.filter(d => d.tenureId === editGalTenure);
+                      return (
+                        <>
+                          <select
+                            value={editingItem.item.division || ''}
+                            onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, division: e.target.value } })}
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                          >
+                            {editGalDivs.length === 0 ? (
+                              <option value="" disabled>-- Divisi masih kosong di periode ini --</option>
+                            ) : (
+                              <>
+                                <option value="">-- Pilih Divisi Penyelenggara --</option>
+                                {editGalDivs.map(d => (
+                                  <option key={d.id} value={d.name}>{d.name}</option>
+                                ))}
+                              </>
+                            )}
+                          </select>
+                          {editGalDivs.length === 0 && (
+                            <span style={{ fontSize: '0.72rem', color: '#f59e0b', display: 'block', marginTop: '3px' }}>
+                              ⚠️ Periode ini belum memiliki divisi. Silakan buat divisi baru di tab Divisi.
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -6563,14 +6737,71 @@ export default function AdminPortal({
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
                     <select
                       value={editingItem.item.tenureId || activeTenure?.id || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                      onChange={(e) => {
+                        const newTenure = e.target.value;
+                        const validDivs = divisions.filter(d => d.tenureId === newTenure);
+                        const keepDiv = validDivs.some(d => d.id === editingItem.item.divisionId);
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            tenureId: newTenure,
+                            divisionId: keepDiv ? editingItem.item.divisionId : '',
+                            divisionName: keepDiv ? editingItem.item.divisionName : ''
+                          }
+                        });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
                       {tenures.map(t => (
-                        <option key={t.id} value={t.id}>{t.title || t.code}</option>
+                        <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Divisi Penyelenggara</label>
+                    {(() => {
+                      const editEventTenure = editingItem.item.tenureId || activeTenure?.id || '';
+                      const editEventDivs = divisions.filter(d => d.tenureId === editEventTenure);
+                      return (
+                        <>
+                          <select
+                            value={editingItem.item.divisionId || ''}
+                            onChange={(e) => {
+                              const selDiv = editEventDivs.find(d => d.id === e.target.value);
+                              setEditingItem({
+                                ...editingItem,
+                                item: {
+                                  ...editingItem.item,
+                                  divisionId: e.target.value,
+                                  divisionName: selDiv?.name || editingItem.item.divisionName || ''
+                                }
+                              });
+                            }}
+                            style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                          >
+                            {editEventDivs.length === 0 ? (
+                              <option value="" disabled>-- Divisi masih kosong di periode ini --</option>
+                            ) : (
+                              <>
+                                <option value="">-- Pilih Divisi Penyelenggara --</option>
+                                {editEventDivs.map(d => (
+                                  <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                              </>
+                            )}
+                          </select>
+                          {editEventDivs.length === 0 && (
+                            <span style={{ fontSize: '0.72rem', color: '#f59e0b', display: 'block', marginTop: '3px' }}>
+                              ⚠️ Periode ini belum memiliki divisi. Silakan buat divisi baru di tab Divisi.
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Pelaksanaan</label>
                     <select
@@ -6583,15 +6814,15 @@ export default function AdminPortal({
                       <option value="Completed">Completed (Selesai)</option>
                     </select>
                   </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Estimasi RAB (Rp)</label>
-                  <input
-                    type="number"
-                    value={editingItem.item.totalRab ?? 0}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, totalRab: Number(e.target.value || 0) } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Estimasi RAB (Rp)</label>
+                    <input
+                      type="number"
+                      value={editingItem.item.totalRab ?? 0}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, totalRab: Number(e.target.value || 0) } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    />
+                  </div>
                 </div>
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
@@ -6896,6 +7127,13 @@ export default function AdminPortal({
                   }
 
                   if (editingItem.type === 'member' && onUpdateMember) {
+                    const cat = editingItem.item.category || 'anggota';
+                    if (cat === 'anggota' || cat === 'pimpro') {
+                      if (!editingItem.item.divisionId) {
+                        showToast('Divisi wajib dipilih untuk posisi Anggota / Pimpro', 'error');
+                        return;
+                      }
+                    }
                     let finalImage = editingItem.item.image || '';
                     if (editingItem.pendingPhoto) {
                       setIsUploadingMedia(true);
@@ -6971,6 +7209,10 @@ export default function AdminPortal({
                     }
                   }
                   if (editingItem.type === 'event' && onUpdateEvent) {
+                    if (!editingItem.item.divisionId) {
+                      showToast('Divisi penyelenggara wajib dipilih untuk Program Kerja', 'error');
+                      return;
+                    }
                     onUpdateEvent({
                       ...editingItem.item,
                       date: (editingItem.item.date || '').trim() || editingItem.item.startDate || 'TBD'

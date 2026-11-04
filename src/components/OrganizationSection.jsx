@@ -78,11 +78,8 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
     } catch (e) {}
   };
 
-  const matchingTenureDivisions = (divisions || []).filter(d => !d.tenureId || d.tenureId === activeTenure?.id);
-  const activeDivisions = matchingTenureDivisions.length > 0 ? matchingTenureDivisions : divisions;
-
-  const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
-  const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
+  const activeDivisions = (divisions || []).filter(d => d.tenureId === activeTenure?.id);
+  const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
 
   const pembinas = activeMembers.filter(m => m.category === 'pembina');
   const inti = activeMembers.filter(m => m.category === 'inti');
@@ -289,7 +286,26 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       )}
 
       {/* HIERARCHICAL TREE CONTAINER WITH SEAMLESS CONNECTING NEON LINES (IDENTIK DENGAN PRESENTASI) */}
-      <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1240px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {activeMembers.length === 0 ? (
+        <div className="glass-panel" style={{
+          padding: '60px 24px',
+          textAlign: 'center',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px dashed var(--border-card)',
+          maxWidth: '700px',
+          margin: '0 auto',
+          width: '100%',
+          background: 'rgba(255, 255, 255, 0.02)'
+        }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>
+            Belum Ada Struktur Organigram
+          </h3>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0 }}>
+            Belum ada anggota atau pengurus yang terdaftar pada periode kepengurusan ini ({activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}). Silakan tambahkan anggota baru melalui Admin Portal.
+          </p>
+        </div>
+      ) : (
+        <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1240px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
         {/* LEVEL 1: PEMBINA (Top Center - Mendukung 1 atau Banyak Pembina) */}
         {pembinas.length > 0 && (
@@ -523,6 +539,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
         </div>
 
       </div>
+      )}
 
       {/* MEMBER DETAIL MODAL */}
       {selectedMember && (

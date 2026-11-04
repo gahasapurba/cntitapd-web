@@ -103,8 +103,7 @@ export default function HomeSection({
     ? forms.filter(f => f.isOpen !== false && !getDeadlineStatus(f.deadline).isExpired) 
     : [];
   const primaryForm = activeForms[0] || recruitmentInfo || null;
-  const matchingTenureDivisions = divisions.filter(d => !d.tenureId || d.tenureId === activeTenure?.id);
-  const activeDivisions = matchingTenureDivisions.length > 0 ? matchingTenureDivisions : divisions;
+  const activeDivisions = divisions.filter(d => d.tenureId === activeTenure?.id);
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
   const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
   const matchingTenureEvents = events.filter(e => !e.tenureId || e.tenureId === activeTenure?.id);
@@ -794,12 +793,28 @@ export default function HomeSection({
           </p>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '24px',
-        }}>
-          {activeDivisions.map((div) => {
+        {activeDivisions.length === 0 ? (
+          <div className="glass-panel" style={{
+            padding: '48px 24px',
+            textAlign: 'center',
+            borderRadius: 'var(--radius-md)',
+            border: '1px dashed var(--border-card)',
+            background: 'rgba(255, 255, 255, 0.02)'
+          }}>
+            <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px' }}>
+              Belum Ada Divisi Terdaftar
+            </p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, maxWidth: '500px', marginInline: 'auto' }}>
+              Divisi masih kosong pada tahun kepengurusan ini ({activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}). Silakan buat divisi baru pada tab Divisi di Admin Portal.
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '24px',
+          }}>
+            {activeDivisions.map((div) => {
             const getIcon = () => {
               if (div.slug.includes('exp')) return <Activity size={24} color={div.color} />;
               if (div.slug.includes('wellbeing')) return <Heart size={24} color={div.color} />;
@@ -931,6 +946,7 @@ export default function HomeSection({
             );
           })}
         </div>
+        )}
       </section>
 
       {/* 5. AGENDA TERDEKAT & SPOTLIGHT KUDOS TERBARU (Dynamic Activity Hub) */}
