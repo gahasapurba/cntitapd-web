@@ -2495,27 +2495,37 @@ export default function AdminPortal({
                         <span>Edit</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setDeleteConfirm({ type: 'event', id: evt.id, name: evt.title })}
-                        title="Hapus Proker"
-                        style={{
-                          padding: '6px 12px',
-                          background: 'rgba(244, 63, 94, 0.1)',
-                          border: '1px solid #f43f5e',
-                          color: '#f43f5e',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700
-                        }}
-                      >
-                        <Trash2 size={13} />
-                        <span>Hapus</span>
-                      </button>
+                      {onDeleteEvent && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const relatedRsvps = (eventRsvps || []).filter(r => r.eventId === evt.id);
+                            setDeleteConfirm({
+                              type: 'event',
+                              id: evt.id,
+                              name: evt.title,
+                              rsvpCount: relatedRsvps.length
+                            });
+                          }}
+                          title="Hapus Program Kerja & data RSVP terkait"
+                          style={{
+                            padding: '6px 12px',
+                            background: 'rgba(244, 63, 94, 0.1)',
+                            border: '1px solid #f43f5e',
+                            color: '#f43f5e',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          <span>Hapus</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -6878,12 +6888,39 @@ export default function AdminPortal({
             </div>
 
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-              Konfirmasi Penghapusan Data
+              {deleteConfirm.type === 'event' ? 'Konfirmasi Hapus Program Kerja' : 'Konfirmasi Penghapusan Data'}
             </h3>
 
             <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-              Apakah Anda yakin ingin menghapus <strong>"{deleteConfirm.name}"</strong>?
+              Apakah Anda yakin ingin menghapus {deleteConfirm.type === 'event' ? 'program kerja' : ''} <strong>"{deleteConfirm.name}"</strong>?
             </p>
+
+            {deleteConfirm.type === 'event' && (
+              <div style={{
+                background: 'rgba(244, 63, 94, 0.12)',
+                border: '1.5px solid rgba(244, 63, 94, 0.4)',
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.8rem',
+                color: '#f43f5e',
+                textAlign: 'left',
+                lineHeight: 1.45
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, marginBottom: '4px' }}>
+                  <AlertTriangle size={15} />
+                  <span>PERINGATAN RSVP KEHADIRAN:</span>
+                </div>
+                {deleteConfirm.rsvpCount > 0 ? (
+                  <span>
+                    Program kerja ini memiliki <strong>{deleteConfirm.rsvpCount} data konfirmasi RSVP</strong> dari pegawai. Menghapus event ini akan <strong>otomatis menghapus seluruh data pendaftar & riwayat kehadiran RSVP terkait secara permanen</strong> dari database Supabase!
+                  </span>
+                ) : (
+                  <span>
+                    Menghapus program kerja ini juga akan <strong>otomatis menghapus seluruh data daftar hadir / konfirmasi RSVP terkait</strong> secara permanen dari database Supabase.
+                  </span>
+                )}
+              </div>
+            )}
 
             {deleteConfirm.submissionCount > 0 && (
               <div style={{
@@ -6978,8 +7015,15 @@ export default function AdminPortal({
                     if (deleteConfirm.type === 'brand_asset' && onDeleteBrandAsset) onDeleteBrandAsset(deleteConfirm.id);
                     if (deleteConfirm.type === 'faq' && onDeleteFaq) onDeleteFaq(deleteConfirm.id);
                     if (deleteConfirm.type === 'reset_all' && onResetDefault) onResetDefault();
+                    const toastMsg = deleteConfirm.type === 'reset_all' 
+                      ? 'Data berhasil dikembalikan ke bawaan awal!' 
+                      : (deleteConfirm.type === 'event' 
+                          ? (deleteConfirm.rsvpCount > 0 
+                              ? `Program kerja dan ${deleteConfirm.rsvpCount} data RSVP terkait berhasil dihapus!` 
+                              : 'Program kerja berhasil dihapus!')
+                          : 'Data berhasil dihapus & disinkronkan!');
                     setDeleteConfirm(null);
-                    showToast(deleteConfirm.type === 'reset_all' ? 'Data berhasil dikembalikan ke bawaan awal!' : 'Data berhasil dihapus & disinkronkan!');
+                    showToast(toastMsg);
                   }}
                   style={{
                     padding: '9px 20px',
@@ -6992,7 +7036,9 @@ export default function AdminPortal({
                     cursor: 'pointer'
                   }}
                 >
-                  Ya, Hapus Data
+                  {deleteConfirm.type === 'event' 
+                    ? (deleteConfirm.rsvpCount > 0 ? `Ya, Hapus Event & ${deleteConfirm.rsvpCount} Data RSVP` : 'Ya, Hapus Event & Data RSVP')
+                    : 'Ya, Hapus Data'}
                 </button>
               )}
             </div>
