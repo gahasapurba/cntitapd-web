@@ -130,6 +130,34 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
           Struktur organisasi Culture Network Team Group IT APD Direktorat IT Bank Mandiri. Klik pada setiap personel untuk melihat detail tanggung jawab & profil lengkap.
         </p>
 
+        {/* Prominent Action Button: Download Bagan Organisasi PDF */}
+        <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'center' }}>
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={isExporting}
+            style={{
+              padding: '11px 24px',
+              borderRadius: 'var(--radius-full)',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff',
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              cursor: isExporting ? 'wait' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 20px rgba(2, 132, 199, 0.45)',
+              border: '1px solid rgba(56, 189, 248, 0.5)',
+              transition: 'all 0.2s ease'
+            }}
+            title="Download Presentasi Bagan Struktur Organisasi ke File PDF"
+          >
+            <Download size={16} />
+            <span>{isExporting ? 'Sedang Menyiapkan PDF...' : 'Download Bagan Organisasi (PDF)'}</span>
+          </button>
+        </div>
+
         {/* Search & Filter Directory Bar */}
         <div className="glass-panel" style={{
           marginTop: '24px',
