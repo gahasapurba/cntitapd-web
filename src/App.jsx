@@ -364,13 +364,18 @@ export default function App() {
     }
   };
   const handleDeleteTenure = (tenureId) => {
+    // Defense-in-depth safety checks: do not delete if only 1 tenure, active, or has dependencies
+    if (tenures.length <= 1) return;
+    if (activeTenure?.id === tenureId) return;
+    const hasDiv = divisions.some(d => d.tenureId === tenureId);
+    const hasMem = members.some(m => m.tenureId === tenureId);
+    const hasEvt = events.some(e => e.tenureId === tenureId);
+    const hasGal = galleries.some(g => g.tenureId === tenureId);
+    if (hasDiv || hasMem || hasEvt || hasGal) return;
+
     setTenures((prev) => {
       const next = prev.filter(t => t.id !== tenureId);
       pushCloudState('tenures', next);
-      if (activeTenure?.id === tenureId && next.length > 0) {
-        setActiveTenure(next[0]);
-        pushCloudState('activeTenureId', next[0].id);
-      }
       return next;
     });
   };

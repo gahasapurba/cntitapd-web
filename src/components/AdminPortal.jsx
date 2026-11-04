@@ -280,6 +280,32 @@ export default function AdminPortal({
     });
   };
 
+  // Helper to initiate tenure deletion with dependency checks and protection validation
+  const handleDeleteTenureClick = (t) => {
+    const isOnlyTenure = (tenures || []).length <= 1;
+    const isActiveTenure = (activeTenure?.id === t.id) || Boolean(t.isActive);
+    const divCount = (divisions || []).filter(d => d.tenureId === t.id).length;
+    const memCount = (members || []).filter(m => m.tenureId === t.id).length;
+    const evtCount = (events || []).filter(e => e.tenureId === t.id).length;
+    const galCount = (galleries || []).filter(g => g.tenureId === t.id).length;
+    const totalDependentCount = divCount + memCount + evtCount + galCount;
+
+    setDeleteConfirm({
+      type: 'tenure',
+      id: t.id,
+      name: t.title || t.code || 'Periode Kepengurusan',
+      code: t.code,
+      isOnlyTenure,
+      isActiveTenure,
+      divCount,
+      memCount,
+      evtCount,
+      galCount,
+      totalDependentCount,
+      isBlocked: isOnlyTenure || isActiveTenure || totalDependentCount > 0
+    });
+  };
+
   // Close modals on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -3813,7 +3839,7 @@ export default function AdminPortal({
 
                   <button
                     type="button"
-                    onClick={() => setDeleteConfirm({ type: 'tenure', id: t.id, name: t.title })}
+                    onClick={() => handleDeleteTenureClick(t)}
                     title="Hapus Periode"
                     style={{
                       padding: '6px',
@@ -7397,13 +7423,21 @@ export default function AdminPortal({
           padding: '20px'
         }}>
           <div className="glass-panel modal-container" style={{
-            maxWidth: '440px',
+            maxWidth: deleteConfirm.type === 'tenure' && deleteConfirm.totalDependentCount > 0 ? '480px' : '440px',
             width: '100%',
             maxHeight: '92vh',
             overflowY: 'auto',
             padding: '24px',
-            border: deleteConfirm.type === 'reset_all' ? '1.5px solid rgba(56, 189, 248, 0.55)' : '1.5px solid #f43f5e',
-            boxShadow: deleteConfirm.type === 'reset_all' ? '0 10px 40px rgba(56, 189, 248, 0.25)' : '0 10px 40px rgba(244, 63, 94, 0.3)',
+            border: deleteConfirm.type === 'reset_all' 
+              ? '1.5px solid rgba(56, 189, 248, 0.55)' 
+              : (deleteConfirm.type === 'tenure' && (deleteConfirm.isOnlyTenure || deleteConfirm.isActiveTenure)
+                  ? '1.5px solid rgba(255, 184, 0, 0.55)'
+                  : '1.5px solid #f43f5e'),
+            boxShadow: deleteConfirm.type === 'reset_all' 
+              ? '0 10px 40px rgba(56, 189, 248, 0.25)' 
+              : (deleteConfirm.type === 'tenure' && (deleteConfirm.isOnlyTenure || deleteConfirm.isActiveTenure)
+                  ? '0 10px 40px rgba(255, 184, 0, 0.25)'
+                  : '0 10px 40px rgba(244, 63, 94, 0.3)'),
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
@@ -7413,29 +7447,209 @@ export default function AdminPortal({
               width: '54px',
               height: '54px',
               borderRadius: '50%',
-              background: deleteConfirm.type === 'reset_all' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(244, 63, 94, 0.15)',
-              color: deleteConfirm.type === 'reset_all' ? 'var(--neon-cyan)' : '#f43f5e',
+              background: deleteConfirm.type === 'reset_all' 
+                ? 'rgba(56, 189, 248, 0.15)' 
+                : (deleteConfirm.type === 'tenure' && (deleteConfirm.isOnlyTenure || deleteConfirm.isActiveTenure)
+                    ? 'rgba(255, 184, 0, 0.15)'
+                    : 'rgba(244, 63, 94, 0.15)'),
+              color: deleteConfirm.type === 'reset_all' 
+                ? 'var(--neon-cyan)' 
+                : (deleteConfirm.type === 'tenure' && (deleteConfirm.isOnlyTenure || deleteConfirm.isActiveTenure)
+                    ? 'var(--mandiri-gold)'
+                    : '#f43f5e'),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto'
             }}>
-              {deleteConfirm.type === 'reset_all' ? <RefreshCw size={26} /> : <AlertTriangle size={28} />}
+              {deleteConfirm.type === 'reset_all' ? <RefreshCw size={26} /> : (deleteConfirm.isBlocked ? <AlertCircle size={28} /> : <AlertTriangle size={28} />)}
             </div>
 
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-              {deleteConfirm.type === 'reset_all' ? 'Konfirmasi Sync Data' : (deleteConfirm.type === 'event' ? 'Konfirmasi Hapus Program Kerja' : 'Konfirmasi Penghapusan Data')}
+              {deleteConfirm.type === 'reset_all' 
+                ? 'Konfirmasi Sync Data' 
+                : (deleteConfirm.type === 'event' 
+                    ? 'Konfirmasi Hapus Program Kerja' 
+                    : (deleteConfirm.type === 'tenure'
+                        ? (deleteConfirm.isOnlyTenure
+                            ? 'Tidak Dapat Menghapus Periode'
+                            : (deleteConfirm.isActiveTenure
+                                ? 'Periode Sedang Aktif'
+                                : (deleteConfirm.totalDependentCount > 0
+                                    ? 'Periode Masih Memiliki Data Terkait'
+                                    : 'Konfirmasi Hapus Periode')))
+                        : 'Konfirmasi Penghapusan Data'))}
             </h3>
 
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-              {deleteConfirm.type === 'reset_all' ? (
-                <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
-                  Clear Cache dan Reload Data? Data tidak akan terhapus melainkan akan dimuat ulang
-                </span>
+            {deleteConfirm.type === 'tenure' ? (
+              deleteConfirm.isOnlyTenure ? (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Periode <strong>"{deleteConfirm.name}"</strong> adalah satu-satunya periode kepengurusan yang tersisa di sistem.
+                  </p>
+                  <div style={{
+                    background: 'rgba(255, 184, 0, 0.12)',
+                    border: '1px solid rgba(255, 184, 0, 0.35)',
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem',
+                    color: 'var(--mandiri-gold)',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    ⚠️ <strong>Proteksi Sistem:</strong> Website mewajibkan minimal <strong>1 periode kepengurusan</strong> tetap ada agar struktur organisasi, program kerja, dan informasi kabinet dapat beroperasi dengan normal.
+                  </div>
+                </>
+              ) : deleteConfirm.isActiveTenure ? (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Periode <strong>"{deleteConfirm.name}"</strong> saat ini berstatus sebagai <strong>Periode Aktif Utama</strong> (Default Website).
+                  </p>
+                  <div style={{
+                    background: 'rgba(255, 184, 0, 0.12)',
+                    border: '1px solid rgba(255, 184, 0, 0.35)',
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem',
+                    color: 'var(--mandiri-gold)',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    ⚠️ <strong>Proteksi Periode Aktif:</strong> Anda tidak dapat menghapus periode yang sedang aktif. Silakan klik tombol <strong>"Jadikan Aktif"</strong> pada periode lain terlebih dahulu sebelum menghapus periode ini.
+                  </div>
+                </>
+              ) : deleteConfirm.totalDependentCount > 0 ? (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Periode <strong>"{deleteConfirm.name}"</strong> belum dapat dihapus karena masih menaungi <strong>{deleteConfirm.totalDependentCount} data kepengurusan</strong>. Harap hapus atau pindahkan data berikut terlebih dahulu:
+                  </p>
+
+                  <div style={{
+                    background: 'rgba(15, 23, 42, 0.65)',
+                    border: '1px solid rgba(244, 63, 94, 0.35)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '8px',
+                    textAlign: 'left'
+                  }}>
+                    <div style={{
+                      background: deleteConfirm.divCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                      border: deleteConfirm.divCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <Layers size={18} color={deleteConfirm.divCount > 0 ? '#f43f5e' : 'var(--text-muted)'} />
+                      <div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Divisi Terkait</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: deleteConfirm.divCount > 0 ? '#f43f5e' : 'var(--text-muted)' }}>
+                          {deleteConfirm.divCount} Divisi
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      background: deleteConfirm.memCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                      border: deleteConfirm.memCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <Users size={18} color={deleteConfirm.memCount > 0 ? '#f43f5e' : 'var(--text-muted)'} />
+                      <div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Anggota / Pengurus</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: deleteConfirm.memCount > 0 ? '#f43f5e' : 'var(--text-muted)' }}>
+                          {deleteConfirm.memCount} Orang
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      background: deleteConfirm.evtCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                      border: deleteConfirm.evtCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <CalendarDays size={18} color={deleteConfirm.evtCount > 0 ? '#f43f5e' : 'var(--text-muted)'} />
+                      <div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Program Kerja</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: deleteConfirm.evtCount > 0 ? '#f43f5e' : 'var(--text-muted)' }}>
+                          {deleteConfirm.evtCount} Event
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      background: deleteConfirm.galCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                      border: deleteConfirm.galCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <ImageIcon size={18} color={deleteConfirm.galCount > 0 ? '#f43f5e' : 'var(--text-muted)'} />
+                      <div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Galeri Kegiatan</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: deleteConfirm.galCount > 0 ? '#f43f5e' : 'var(--text-muted)' }}>
+                          {deleteConfirm.galCount} Album
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: 'rgba(255, 184, 0, 0.1)',
+                    border: '1px solid rgba(255, 184, 0, 0.3)',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.78rem',
+                    color: 'var(--mandiri-gold)',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    💡 <strong>Petunjuk:</strong> Buka tab data terkait di menu navigasi atas untuk menghapus atau mengalihkan periode data-data di atas sebelum menghapus periode ini.
+                  </div>
+                </>
               ) : (
-                <>Apakah Anda yakin ingin menghapus {deleteConfirm.type === 'event' ? 'program kerja' : ''} <strong>"{deleteConfirm.name}"</strong>?</>
-              )}
-            </p>
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Apakah Anda yakin ingin menghapus periode <strong>"{deleteConfirm.name}"</strong>? Data periode ini akan dihapus permanen dari sistem.
+                  </p>
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    color: '#10b981',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    ✓ <strong>Aman Dihapus:</strong> Periode ini tidak aktif dan tidak memiliki dependensi data (0 Divisi, 0 Anggota, 0 Program Kerja, 0 Galeri).
+                  </div>
+                </>
+              )
+            ) : (
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                {deleteConfirm.type === 'reset_all' ? (
+                  <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                    Clear Cache dan Reload Data? Data tidak akan terhapus melainkan akan dimuat ulang
+                  </span>
+                ) : (
+                  <>Apakah Anda yakin ingin menghapus {deleteConfirm.type === 'event' ? 'program kerja' : ''} <strong>"{deleteConfirm.name}"</strong>?</>
+                )}
+              </p>
+            )}
 
             {deleteConfirm.type === 'event' && (
               <div style={{
@@ -7480,111 +7694,135 @@ export default function AdminPortal({
             )}
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => setDeleteConfirm(null)}
-                style={{
-                  padding: '9px 18px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'transparent',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-muted)',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Batalkan
-              </button>
-
-              {deleteConfirm.type === 'form' && deleteConfirm.submissionCount > 0 ? (
+              {deleteConfirm.type === 'tenure' && deleteConfirm.isBlocked ? (
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  style={{
+                    padding: '9px 24px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--mandiri-blue)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(0, 82, 155, 0.35)'
+                  }}
+                >
+                  Mengerti & Tutup
+                </button>
+              ) : (
                 <>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (onDeleteForm) onDeleteForm(deleteConfirm.id, false); // preserve submissions
-                      setDeleteConfirm(null);
-                    }}
+                    onClick={() => setDeleteConfirm(null)}
                     style={{
-                      padding: '9px 16px',
+                      padding: '9px 18px',
                       borderRadius: 'var(--radius-full)',
-                      background: 'var(--mandiri-blue)',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
+                      background: 'transparent',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
                       cursor: 'pointer'
                     }}
-                    title="Hapus form dari website, tapi berkas peserta tetap tersimpan di riwayat"
                   >
-                    Hapus Form Saja (Arsipkan Data)
+                    Batalkan
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onDeleteForm) onDeleteForm(deleteConfirm.id, true); // delete submissions too
-                      setDeleteConfirm(null);
-                    }}
-                    style={{
-                      padding: '9px 16px',
-                      borderRadius: 'var(--radius-full)',
-                      background: '#f43f5e',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Hapus Permanen + Berkas
-                  </button>
+                  {deleteConfirm.type === 'form' && deleteConfirm.submissionCount > 0 ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onDeleteForm) onDeleteForm(deleteConfirm.id, false); // preserve submissions
+                          setDeleteConfirm(null);
+                        }}
+                        style={{
+                          padding: '9px 16px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--mandiri-blue)',
+                          border: 'none',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer'
+                        }}
+                        title="Hapus form dari website, tapi berkas peserta tetap tersimpan di riwayat"
+                      >
+                        Hapus Form Saja (Arsipkan Data)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onDeleteForm) onDeleteForm(deleteConfirm.id, true); // delete submissions too
+                          setDeleteConfirm(null);
+                        }}
+                        style={{
+                          padding: '9px 16px',
+                          borderRadius: 'var(--radius-full)',
+                          background: '#f43f5e',
+                          border: 'none',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Hapus Permanen + Berkas
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (deleteConfirm.type === 'member' && onDeleteMember) onDeleteMember(deleteConfirm.id);
+                        if (deleteConfirm.type === 'division' && onDeleteDivision) onDeleteDivision(deleteConfirm.id);
+                        if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
+                        if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
+                        if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
+                        if (deleteConfirm.type === 'aspirasi' && onDeleteAspirasi) onDeleteAspirasi(deleteConfirm.id);
+                        if (deleteConfirm.type === 'event_rsvp' && onDeleteEventRsvp) onDeleteEventRsvp(deleteConfirm.id);
+                        if (deleteConfirm.type === 'form' && onDeleteForm) onDeleteForm(deleteConfirm.id, true);
+                        if (deleteConfirm.type === 'event' && onDeleteEvent) onDeleteEvent(deleteConfirm.id);
+                        if (deleteConfirm.type === 'submission' && onDeleteSubmission) onDeleteSubmission(deleteConfirm.id);
+                        if (deleteConfirm.type === 'brand_asset' && onDeleteBrandAsset) onDeleteBrandAsset(deleteConfirm.id);
+                        if (deleteConfirm.type === 'faq' && onDeleteFaq) onDeleteFaq(deleteConfirm.id);
+                        if (deleteConfirm.type === 'reset_all' && onResetDefault) onResetDefault();
+                        const toastMsg = deleteConfirm.type === 'reset_all' 
+                          ? 'Cache berhasil dibersihkan & data berhasil dimuat ulang!' 
+                          : (deleteConfirm.type === 'event' 
+                              ? (deleteConfirm.rsvpCount > 0 
+                                  ? `Program kerja dan ${deleteConfirm.rsvpCount} data RSVP terkait berhasil dihapus!` 
+                                  : 'Program kerja berhasil dihapus!')
+                              : (deleteConfirm.type === 'tenure'
+                                  ? `Periode "${deleteConfirm.name}" berhasil dihapus!`
+                                  : 'Data berhasil dihapus & disinkronkan!'));
+                        setDeleteConfirm(null);
+                        showToast(toastMsg);
+                      }}
+                      style={{
+                        padding: '9px 20px',
+                        borderRadius: 'var(--radius-full)',
+                        background: deleteConfirm.type === 'reset_all' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : '#f43f5e',
+                        border: deleteConfirm.type === 'reset_all' ? '1px solid rgba(56, 189, 248, 0.45)' : 'none',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        boxShadow: deleteConfirm.type === 'reset_all' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none'
+                      }}
+                    >
+                      {deleteConfirm.type === 'reset_all' 
+                        ? 'Ya, Sync Data' 
+                        : (deleteConfirm.type === 'event' 
+                            ? (deleteConfirm.rsvpCount > 0 ? `Ya, Hapus Event & ${deleteConfirm.rsvpCount} Data RSVP` : 'Ya, Hapus Event & Data RSVP')
+                            : (deleteConfirm.type === 'tenure' ? 'Ya, Hapus Periode' : 'Ya, Hapus Data'))}
+                    </button>
+                  )}
                 </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (deleteConfirm.type === 'member' && onDeleteMember) onDeleteMember(deleteConfirm.id);
-                    if (deleteConfirm.type === 'division' && onDeleteDivision) onDeleteDivision(deleteConfirm.id);
-                    if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
-                    if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
-                    if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
-                    if (deleteConfirm.type === 'aspirasi' && onDeleteAspirasi) onDeleteAspirasi(deleteConfirm.id);
-                    if (deleteConfirm.type === 'event_rsvp' && onDeleteEventRsvp) onDeleteEventRsvp(deleteConfirm.id);
-                    if (deleteConfirm.type === 'form' && onDeleteForm) onDeleteForm(deleteConfirm.id, true);
-                    if (deleteConfirm.type === 'event' && onDeleteEvent) onDeleteEvent(deleteConfirm.id);
-                    if (deleteConfirm.type === 'submission' && onDeleteSubmission) onDeleteSubmission(deleteConfirm.id);
-                    if (deleteConfirm.type === 'brand_asset' && onDeleteBrandAsset) onDeleteBrandAsset(deleteConfirm.id);
-                    if (deleteConfirm.type === 'faq' && onDeleteFaq) onDeleteFaq(deleteConfirm.id);
-                    if (deleteConfirm.type === 'reset_all' && onResetDefault) onResetDefault();
-                    const toastMsg = deleteConfirm.type === 'reset_all' 
-                      ? 'Cache berhasil dibersihkan & data berhasil dimuat ulang!' 
-                      : (deleteConfirm.type === 'event' 
-                          ? (deleteConfirm.rsvpCount > 0 
-                              ? `Program kerja dan ${deleteConfirm.rsvpCount} data RSVP terkait berhasil dihapus!` 
-                              : 'Program kerja berhasil dihapus!')
-                          : 'Data berhasil dihapus & disinkronkan!');
-                    setDeleteConfirm(null);
-                    showToast(toastMsg);
-                  }}
-                  style={{
-                    padding: '9px 20px',
-                    borderRadius: 'var(--radius-full)',
-                    background: deleteConfirm.type === 'reset_all' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : '#f43f5e',
-                    border: deleteConfirm.type === 'reset_all' ? '1px solid rgba(56, 189, 248, 0.45)' : 'none',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    boxShadow: deleteConfirm.type === 'reset_all' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none'
-                  }}
-                >
-                  {deleteConfirm.type === 'reset_all' 
-                    ? 'Ya, Sync Data' 
-                    : (deleteConfirm.type === 'event' 
-                        ? (deleteConfirm.rsvpCount > 0 ? `Ya, Hapus Event & ${deleteConfirm.rsvpCount} Data RSVP` : 'Ya, Hapus Event & Data RSVP')
-                        : 'Ya, Hapus Data')}
-                </button>
               )}
             </div>
           </div>
