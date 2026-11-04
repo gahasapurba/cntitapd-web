@@ -141,6 +141,16 @@ select option {
   padding: 0 24px;
 }
 
+/* Modals & Dialogs */
+.modal-container {
+  max-height: 90vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
 /* Badges */
 .badge-gold {
   background: var(--badge-bg);
@@ -478,17 +488,28 @@ select option {
     font-size: 16px !important;
   }
 
-  /* Make sure modal fits screen comfortably with margins */
+  /* Make sure modal fits screen comfortably with margins without being cut off */
   .modal-container {
-    max-height: 94vh !important;
+    max-height: 90vh !important;
+    max-width: calc(100vw - 24px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
   }
   .modal-container:not(.modal-structured) {
-    padding: 16px 12px !important;
+    padding: 20px 16px !important;
   }
 }
 
 /* EXTRA SMALL MOBILE (< 480px) */
 @media screen and (max-width: 480px) {
+  .modal-container {
+    max-height: 92vh !important;
+    max-width: calc(100vw - 16px) !important;
+    padding: 16px 12px !important;
+  }
   .container {
     padding-left: max(10px, env(safe-area-inset-left)) !important;
     padding-right: max(10px, env(safe-area-inset-right)) !important;

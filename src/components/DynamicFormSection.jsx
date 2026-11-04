@@ -1019,7 +1019,7 @@ export default function DynamicFormSection({
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setIsConfirmOpen(false)}

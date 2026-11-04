@@ -1526,18 +1526,21 @@ export default function ProgramSection({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
+          background: 'rgba(0, 0, 0, 0.78)',
           backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           zIndex: 99999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '20px'
+          padding: '16px'
         }}>
           <div className="glass-panel modal-container" style={{
             maxWidth: '520px',
             width: '100%',
-            padding: '28px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px',
             border: '1.5px solid var(--mandiri-gold)',
             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
             display: 'flex',
@@ -1622,7 +1625,8 @@ export default function ProgramSection({
               alignItems: 'center',
               justifyContent: 'flex-end',
               gap: '10px',
-              marginTop: '4px'
+              marginTop: '4px',
+              flexWrap: 'wrap'
             }}>
               <button
                 type="button"

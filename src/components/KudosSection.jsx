@@ -842,18 +842,21 @@ export default function KudosSection({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
+          background: 'rgba(0, 0, 0, 0.78)',
           backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           zIndex: 99999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '20px'
+          padding: '16px'
         }}>
-          <div className="glass-panel" style={{
+          <div className="glass-panel modal-container" style={{
             maxWidth: '520px',
             width: '100%',
-            padding: '28px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px',
             border: '1.5px solid var(--mandiri-gold)',
             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
             display: 'flex',
@@ -933,7 +936,7 @@ export default function KudosSection({
               💡 <em>Catatan:</em> Setelah dikirim, apresiasi ini akan langsung muncul secara publik dan tidak dapat diedit sendiri (hanya dapat dikelola atau dihapus oleh Admin di Portal).
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setConfirmModalOpen(false)}
@@ -1260,18 +1263,21 @@ export default function KudosSection({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
+          background: 'rgba(0, 0, 0, 0.78)',
           backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           zIndex: 99999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '20px'
+          padding: '16px'
         }}>
           <div className="glass-panel modal-container" style={{
             maxWidth: '520px',
             width: '100%',
-            padding: '28px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px',
             border: '1.5px solid var(--mandiri-gold)',
             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
             display: 'flex',
@@ -1351,7 +1357,7 @@ export default function KudosSection({
               💡 <em>Catatan:</em> Usulan Anda akan masuk ke antrean pengurus CNT IT APD untuk direview dan ditindaklanjuti pada rapat koordinasi budaya kerja.
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setConfirmAspirasiOpen(false)}
