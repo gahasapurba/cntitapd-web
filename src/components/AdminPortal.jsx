@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Lock, 
   KeyRound, 
+  Loader2,
   ArrowLeft, 
   Plus, 
   Settings, 
@@ -146,6 +147,7 @@ export default function AdminPortal({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [showExecutiveReportModal, setShowExecutiveReportModal] = useState(false);
 
@@ -416,6 +418,7 @@ export default function AdminPortal({
   // Secure SHA-256 Authentication (Zero plaintext in code)
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (isLoggingIn) return;
     const errs = {};
     if (!username.trim()) errs.loginUsername = 'Username wajib diisi';
     if (!password) errs.loginPassword = 'Password wajib diisi';
@@ -423,7 +426,12 @@ export default function AdminPortal({
       setFormErrors((prev) => ({ ...prev, ...errs }));
       return;
     }
+    setLoginError('');
+    setIsLoggingIn(true);
     try {
+      // Natural verification pause so the user perceives credential verification
+      await new Promise((resolve) => setTimeout(resolve, 850));
+
       const uHash = await sha256(username.trim());
       const pHash = await sha256(password);
 
@@ -434,11 +442,16 @@ export default function AdminPortal({
         } catch (e) {}
         setLoginError('');
         setFormErrors({});
+        showToast('Berhasil masuk! Selamat datang di Admin Portal', 'success');
       } else {
         setLoginError('Username atau password salah');
+        showToast('Verifikasi gagal: Username atau password salah', 'error');
       }
     } catch (err) {
       setLoginError('Gagal memverifikasi kredensial');
+      showToast('Gagal memverifikasi kredensial', 'error');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -852,7 +865,40 @@ export default function AdminPortal({
   // IF NOT AUTHENTICATED: SHOW LOGIN FORM
   if (!isAuthenticated) {
     return (
-      <div style={{ maxWidth: '440px', margin: '40px auto 80px auto', padding: '0 16px' }}>
+      <div style={{ maxWidth: '440px', margin: '40px auto 80px auto', padding: '0 16px', position: 'relative' }}>
+        {/* Floating Toast Notification Banner */}
+        {toast && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: '24px',
+              right: '24px',
+              zIndex: 2500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '13px 20px',
+              borderRadius: 'var(--radius-full)',
+              background: toast.type === 'error' ? 'rgba(244, 63, 94, 0.96)' : 'rgba(16, 185, 129, 0.96)',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '0.86rem',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.45)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              backdropFilter: 'blur(12px)'
+            }}
+          >
+            {toast.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+            <span>{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', padding: '2px' }}
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
         <button
           onClick={onBack}
           style={{
@@ -920,6 +966,7 @@ export default function AdminPortal({
                 type="text"
                 placeholder="Masukkan Username"
                 value={username}
+                disabled={isLoggingIn}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   clearFieldError('loginUsername');
@@ -932,7 +979,8 @@ export default function AdminPortal({
                   border: `1.5px solid ${formErrors.loginUsername ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   outline: 'none',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  opacity: isLoggingIn ? 0.7 : 1
                 }}
               />
               {renderFieldError('loginUsername')}
@@ -947,6 +995,7 @@ export default function AdminPortal({
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Masukkan Password"
                   value={password}
+                  disabled={isLoggingIn}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     clearFieldError('loginPassword');
@@ -959,7 +1008,8 @@ export default function AdminPortal({
                     border: `1.5px solid ${formErrors.loginPassword ? '#f43f5e' : 'var(--border-card)'}`,
                     color: 'var(--text-main)',
                     outline: 'none',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    opacity: isLoggingIn ? 0.7 : 1
                   }}
                 />
                 <button
@@ -987,24 +1037,36 @@ export default function AdminPortal({
 
             <button
               type="submit"
+              disabled={isLoggingIn}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                background: 'var(--mandiri-gold)',
+                background: isLoggingIn ? 'rgba(255, 184, 0, 0.75)' : 'var(--mandiri-gold)',
                 color: '#040914',
                 padding: '13px',
                 borderRadius: 'var(--radius-full)',
                 fontWeight: 800,
                 fontSize: '0.95rem',
                 border: 'none',
-                cursor: 'pointer',
-                marginTop: '8px'
+                cursor: isLoggingIn ? 'not-allowed' : 'pointer',
+                marginTop: '8px',
+                transition: 'all 0.2s ease',
+                opacity: isLoggingIn ? 0.85 : 1
               }}
             >
-              <KeyRound size={17} />
-              <span>Masuk ke Dashboard</span>
+              {isLoggingIn ? (
+                <>
+                  <Loader2 size={18} className="spin" />
+                  <span>Memverifikasi Kredensial...</span>
+                </>
+              ) : (
+                <>
+                  <KeyRound size={17} />
+                  <span>Masuk ke Dashboard</span>
+                </>
+              )}
             </button>
           </form>
         </div>
@@ -1037,7 +1099,7 @@ export default function AdminPortal({
             backdropFilter: 'blur(12px)'
           }}
         >
-          <CheckCircle2 size={18} />
+          {toast.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
           <span>{toast.message}</span>
           <button
             type="button"
