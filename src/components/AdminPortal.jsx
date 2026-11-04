@@ -2434,85 +2434,76 @@ export default function AdminPortal({
               Daftar Program Kerja Aktif ({events.length})
             </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-              {events.map((evt) => {
-                const divObj = divisions.find(d => d.id === evt.divisionId);
-                return (
-                  <div
-                    key={evt.id}
-                    style={{
-                      background: 'rgba(255,255,255,0.02)',
-                      padding: '16px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-card)',
-                      borderLeft: `4px solid ${divObj?.color || 'var(--mandiri-gold)'}`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: '10px'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '0.7rem', color: divObj?.color || 'var(--mandiri-gold)', fontWeight: 800, textTransform: 'uppercase' }}>
-                          {evt.divisionName || divObj?.name}
-                        </span>
-                        <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
-                          {evt.status}
-                        </span>
+            {events.length === 0 ? (
+              <div style={{
+                padding: '36px 20px',
+                textAlign: 'center',
+                color: 'var(--text-dim)',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px dashed var(--border-card)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Calendar size={32} color="var(--text-dim)" />
+                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  Belum ada program kerja yang ditambahkan.
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  Gunakan formulir di atas untuk menambahkan program kerja atau event budaya baru.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+                {events.map((evt) => {
+                  const divObj = divisions.find(d => d.id === evt.divisionId);
+                  return (
+                    <div
+                      key={evt.id}
+                      style={{
+                        background: 'rgba(255,255,255,0.02)',
+                        padding: '16px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-card)',
+                        borderLeft: `4px solid ${divObj?.color || 'var(--mandiri-gold)'}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '10px'
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '0.7rem', color: divObj?.color || 'var(--mandiri-gold)', fontWeight: 800, textTransform: 'uppercase' }}>
+                            {evt.divisionName || divObj?.name}
+                          </span>
+                          <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
+                            {evt.status}
+                          </span>
+                        </div>
+                        <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '4px' }}>
+                          {evt.title}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                          📅 {evt.startDate} s/d {evt.endDate}
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          📍 {evt.location}
+                        </div>
                       </div>
-                      <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '4px' }}>
-                        {evt.title}
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
-                        📅 {evt.startDate} s/d {evt.endDate}
-                      </div>
-                      <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        📍 {evt.location}
-                      </div>
-                    </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-card)', paddingTop: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setEditingItem({ type: 'event', item: { ...evt } })}
-                        title="Edit Proker"
-                        style={{
-                          padding: '6px 12px',
-                          background: 'rgba(56, 189, 248, 0.1)',
-                          border: '1px solid var(--mandiri-blue)',
-                          color: 'var(--neon-cyan)',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700
-                        }}
-                      >
-                        <Edit2 size={13} />
-                        <span>Edit</span>
-                      </button>
-
-                      {onDeleteEvent && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-card)', paddingTop: '8px' }}>
                         <button
                           type="button"
-                          onClick={() => {
-                            const relatedRsvps = (eventRsvps || []).filter(r => r.eventId === evt.id);
-                            setDeleteConfirm({
-                              type: 'event',
-                              id: evt.id,
-                              name: evt.title,
-                              rsvpCount: relatedRsvps.length
-                            });
-                          }}
-                          title="Hapus Program Kerja & data RSVP terkait"
+                          onClick={() => setEditingItem({ type: 'event', item: { ...evt } })}
+                          title="Edit Proker"
                           style={{
                             padding: '6px 12px',
-                            background: 'rgba(244, 63, 94, 0.1)',
-                            border: '1px solid #f43f5e',
-                            color: '#f43f5e',
+                            background: 'rgba(56, 189, 248, 0.1)',
+                            border: '1px solid var(--mandiri-blue)',
+                            color: 'var(--neon-cyan)',
                             borderRadius: '6px',
                             cursor: 'pointer',
                             display: 'flex',
@@ -2522,15 +2513,47 @@ export default function AdminPortal({
                             fontWeight: 700
                           }}
                         >
-                          <Trash2 size={13} />
-                          <span>Hapus</span>
+                          <Edit2 size={13} />
+                          <span>Edit</span>
                         </button>
-                      )}
+
+                        {onDeleteEvent && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const relatedRsvps = (eventRsvps || []).filter(r => r.eventId === evt.id);
+                              setDeleteConfirm({
+                                type: 'event',
+                                id: evt.id,
+                                name: evt.title,
+                                rsvpCount: relatedRsvps.length
+                              });
+                            }}
+                            title="Hapus Program Kerja & data RSVP terkait"
+                            style={{
+                              padding: '6px 12px',
+                              background: 'rgba(244, 63, 94, 0.1)',
+                              border: '1px solid #f43f5e',
+                              color: '#f43f5e',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700
+                            }}
+                          >
+                            <Trash2 size={13} />
+                            <span>Hapus</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Daftar Hadir & Konfirmasi RSVP Kegiatan (public.event_rsvps) */}

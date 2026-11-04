@@ -360,12 +360,71 @@ export default function ProgramSection({
 
       {/* VIEW MODE 1: GRID VIEW */}
       {viewMode === 'grid' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))',
-          gap: '24px',
-        }}>
-          {filteredEvents.map((evt) => {
+        filteredEvents.length === 0 ? (
+          <div
+            className="glass-panel"
+            style={{
+              padding: '48px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px'
+            }}
+          >
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'rgba(255, 184, 0, 0.12)',
+              color: 'var(--mandiri-gold)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <CalendarIcon size={26} />
+            </div>
+            <div style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--text-main)' }}>
+              Belum ada program kerja di daftar ini
+            </div>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', maxWidth: '480px', margin: 0, lineHeight: 1.6 }}>
+              {filterDiv !== 'all' || activeTab !== 'all' || tenureFilter === 'active'
+                ? 'Tidak ada agenda kegiatan yang cocok dengan pilihan filter divisi, status, atau periode saat ini. Coba pilih filter lain atau reset filter.'
+                : 'Belum ada agenda kegiatan atau program kerja budaya yang dipublikasikan. Pantau terus informasi terbaru dari pengurus CNT IT APD!'}
+            </p>
+            {(filterDiv !== 'all' || activeTab !== 'all' || (tenureFilter === 'active' && hasTenureEvents)) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterDiv('all');
+                  setActiveTab('all');
+                  setTenureFilter('all');
+                }}
+                style={{
+                  marginTop: '6px',
+                  padding: '7px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid var(--mandiri-blue)',
+                  color: 'var(--neon-cyan)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Reset Semua Filter
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))',
+            gap: '24px',
+          }}>
+            {filteredEvents.map((evt) => {
             const divInfo = divisions.find(d => d.id === evt.divisionId);
             const isCompleted = evt.status === 'Completed';
 
@@ -502,7 +561,8 @@ export default function ProgramSection({
               </div>
             );
           })}
-        </div>
+          </div>
+        )
       )}
 
       {/* VIEW MODE 2: AUTHENTIC MONTHLY CALENDAR GRID WITH DATE RANGE MARKING & HOVER TOOLTIPS */}
