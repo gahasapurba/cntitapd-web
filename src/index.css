@@ -304,6 +304,9 @@ select option {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
+  .org-tree-line {
+    display: none !important;
+  }
 }
 
 .org-tree-line {
@@ -318,6 +321,10 @@ select option {
 
 /* TABLET & MOBILE (< 868px) */
 @media screen and (max-width: 868px) {
+  .org-tree-line {
+    display: none !important;
+  }
+
   .desktop-nav {
     display: none !important;
   }
@@ -464,6 +471,11 @@ select option {
   /* General glass panel mobile padding */
   .glass-panel {
     padding: 20px 16px !important;
+  }
+
+  /* Prevent iOS Safari auto-zoom when tapping inputs */
+  input, select, textarea {
+    font-size: 16px !important;
   }
 
   /* Make sure modal fits screen comfortably with margins */

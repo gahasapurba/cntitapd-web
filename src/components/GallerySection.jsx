@@ -415,7 +415,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
               </div>
             )}
 
-            <div style={{ position: 'relative', minWidth: '210px' }}>
+            <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 0, width: '100%' }}>
               <Search size={14} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"

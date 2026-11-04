@@ -131,7 +131,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
         </p>
 
         {/* Prominent Action Button: Download Bagan Organisasi PDF */}
-        <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'center', width: '100%', padding: '0 10px' }}>
           <button
             type="button"
             onClick={handleExportPdf}
@@ -146,7 +146,10 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
               cursor: isExporting ? 'wait' : 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
               gap: '8px',
+              maxWidth: '100%',
               boxShadow: '0 4px 20px rgba(2, 132, 199, 0.45)',
               border: '1px solid rgba(56, 189, 248, 0.5)',
               transition: 'all 0.2s ease'
