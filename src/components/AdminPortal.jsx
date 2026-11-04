@@ -3225,8 +3225,20 @@ export default function AdminPortal({
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>
-                      {d.isRecruiting ? 'Oprec Buka' : 'Oprec Tutup'}
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '3px 9px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      background: d.isRecruiting ? 'rgba(16, 185, 129, 0.14)' : 'rgba(148, 163, 184, 0.12)',
+                      color: d.isRecruiting ? '#10b981' : 'var(--text-muted)',
+                      border: d.isRecruiting ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)'
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: d.isRecruiting ? '#10b981' : 'var(--text-muted)' }} />
+                      <span>{d.isRecruiting ? 'Rekrutmen Buka' : 'Kuota Penuh'}</span>
                     </span>
 
                     <button
@@ -5575,14 +5587,14 @@ export default function AdminPortal({
                     </div>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Open Recruitment</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Rekrutmen Divisi (Publik)</label>
                     <select
                       value={editingItem.item.isRecruiting !== false ? 'open' : 'closed'}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, isRecruiting: e.target.value === 'open' } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
-                      <option value="open">● Membuka Rekrutmen (Oprec Buka)</option>
-                      <option value="closed">○ Ditutup Sementara (Oprec Tutup)</option>
+                      <option value="open">● Membuka Rekrutmen (Rekrutmen Buka)</option>
+                      <option value="closed">○ Ditutup Sementara (Kuota Penuh)</option>
                     </select>
                   </div>
                 </div>

@@ -819,10 +819,10 @@ export default function HomeSection({
                 }}
                 onClick={() => isOrganisasiVisible && handleTabChange('organisasi')}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
                   <div style={{
-                    width: '48px',
-                    height: '48px',
+                    width: '46px',
+                    height: '46px',
                     borderRadius: '12px',
                     background: 'rgba(255,255,255,0.05)',
                     display: 'flex',
@@ -832,9 +832,44 @@ export default function HomeSection({
                   }}>
                     {getIcon()}
                   </div>
-                  <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: div.color, fontWeight: 800 }}>
-                    DIVISI 0{divisions.indexOf(div) + 1}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: div.color, fontWeight: 800 }}>
+                      DIVISI 0{divisions.indexOf(div) + 1}
+                    </span>
+                    {div.isRecruiting !== false ? (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '3px 9px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        background: 'rgba(16, 185, 129, 0.14)',
+                        color: '#10b981',
+                        border: '1px solid rgba(16, 185, 129, 0.4)'
+                      }} title="Divisi ini membuka kesempatan bergabung untuk anggota baru">
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+                        <span>Rekrutmen Buka</span>
+                      </span>
+                    ) : (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '3px 9px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        background: 'rgba(148, 163, 184, 0.12)',
+                        color: 'var(--text-muted)',
+                        border: '1px solid var(--border-card)'
+                      }} title="Rekrutmen divisi ini ditutup sementara / kuota terpenuhi">
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)' }} />
+                        <span>Kuota Penuh</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div>
