@@ -222,6 +222,7 @@ export default function AdminPortal({
 
   // Generic Edit Modal State: { type: 'member'|'division'|'tenure'|'gallery', item: {...} }
   const [editingItem, setEditingItem] = useState(null);
+  const [editModalError, setEditModalError] = useState('');
 
   // Generic Delete Confirmation Modal State: { type: 'member'|'division'|'tenure'|'gallery', id: string, name: string }
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -873,7 +874,7 @@ export default function AdminPortal({
               position: 'fixed',
               bottom: '24px',
               right: '24px',
-              zIndex: 2500,
+              zIndex: 1000000,
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
@@ -1084,7 +1085,7 @@ export default function AdminPortal({
             position: 'fixed',
             bottom: '24px',
             right: '24px',
-            zIndex: 2500,
+            zIndex: 1000000,
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
@@ -5592,7 +5593,10 @@ export default function AdminPortal({
               </div>
               <button
                 type="button"
-                onClick={() => setEditingItem(null)}
+                onClick={() => {
+                  setEditingItem(null);
+                  setEditModalError('');
+                }}
                 style={{
                   background: 'rgba(255, 255, 255, 0.06)',
                   border: '1px solid var(--border-card)',
@@ -5611,6 +5615,26 @@ export default function AdminPortal({
                 <X size={18} />
               </button>
             </div>
+
+            {/* Inline Error Alert if Required Validation Fails */}
+            {editModalError && (
+              <div style={{
+                margin: '14px 22px 0 22px',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(244, 63, 94, 0.15)',
+                border: '1px solid #f43f5e',
+                color: '#f43f5e',
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontWeight: 600
+              }}>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span>{editModalError}</span>
+              </div>
+            )}
 
             {/* Scrollable Modal Content */}
             <div style={{
@@ -7152,7 +7176,10 @@ export default function AdminPortal({
             }}>
               <button
                 type="button"
-                onClick={() => setEditingItem(null)}
+                onClick={() => {
+                  setEditingItem(null);
+                  setEditModalError('');
+                }}
                 style={{
                   padding: '9px 18px',
                   borderRadius: 'var(--radius-full)',
@@ -7170,20 +7197,25 @@ export default function AdminPortal({
                 type="button"
                 disabled={isUploadingMedia}
                 onClick={async () => {
+                  setEditModalError('');
                   const it = editingItem.item || {};
                   if ((editingItem.type === 'member' || editingItem.type === 'division') && !(it.name || '').trim()) {
+                    setEditModalError('Nama wajib diisi sebelum menyimpan perubahan');
                     showToast('Nama wajib diisi sebelum menyimpan perubahan', 'error');
                     return;
                   }
                   if ((editingItem.type === 'gallery' || editingItem.type === 'tenure' || editingItem.type === 'form' || editingItem.type === 'event' || editingItem.type === 'brand_asset') && !(it.title || '').trim()) {
+                    setEditModalError('Judul wajib diisi sebelum menyimpan perubahan');
                     showToast('Judul wajib diisi sebelum menyimpan perubahan', 'error');
                     return;
                   }
                   if (editingItem.type === 'faq' && (!(it.question || '').trim() || !(it.answer || '').trim())) {
+                    setEditModalError('Pertanyaan dan jawaban FAQ wajib diisi');
                     showToast('Pertanyaan dan jawaban FAQ wajib diisi', 'error');
                     return;
                   }
                   if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {
+                    setEditModalError('Pengirim, penerima, dan pesan apresiasi wajib diisi');
                     showToast('Pengirim, penerima, dan pesan apresiasi wajib diisi', 'error');
                     return;
                   }
@@ -7192,6 +7224,7 @@ export default function AdminPortal({
                     const cat = editingItem.item.category || 'anggota';
                     if (cat === 'anggota' || cat === 'pimpro') {
                       if (!editingItem.item.divisionId) {
+                        setEditModalError('Divisi wajib dipilih untuk posisi Anggota / Pimpro');
                         showToast('Divisi wajib dipilih untuk posisi Anggota / Pimpro', 'error');
                         return;
                       }
@@ -7262,6 +7295,7 @@ export default function AdminPortal({
                     const fields = editingItem.item.fields || [];
                     const hasIndex = fields.some(f => Boolean(f.isSearchIndex));
                     if (!hasIndex) {
+                      setEditModalError('Wajib memilih minimal 1 field sebagai Kunci Status sebelum menyimpan!');
                       showToast('Wajib memilih minimal 1 field sebagai Kunci Status (centang 🔑 Kunci Status pada field seperti NIP) sebelum menyimpan!', 'error');
                       return;
                     }
@@ -7272,6 +7306,7 @@ export default function AdminPortal({
                   }
                   if (editingItem.type === 'event' && onUpdateEvent) {
                     if (!editingItem.item.divisionId) {
+                      setEditModalError('Divisi penyelenggara wajib dipilih untuk Program Kerja');
                       showToast('Divisi penyelenggara wajib dipilih untuk Program Kerja', 'error');
                       return;
                     }
@@ -7323,6 +7358,7 @@ export default function AdminPortal({
                   }
                   if (editingItem.type === 'faq' && onUpdateFaq) onUpdateFaq(editingItem.item);
                   setEditingItem(null);
+                  setEditModalError('');
                   showToast('Perubahan data berhasil disimpan & disinkronkan ke Cloud!');
                 }}
                 style={{
