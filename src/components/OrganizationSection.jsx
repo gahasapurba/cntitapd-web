@@ -330,7 +330,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
 
         {/* CONNECTING LINE 2 (Ketua & Wakil down to Sekben) */}
         <div className="org-tree-line" style={{ position: 'relative', width: '100%', maxWidth: '820px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
-          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div style={{ width: '5px', height: '24px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
             </div>
@@ -339,7 +339,17 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
             </div>
           </div>
           {/* Horizontal Bridge between Sekben 1 & 2 */}
-          <div style={{ width: '50%', height: '5px', background: '#c084fc', boxShadow: '0 0 15px #c084fc', marginTop: '-5px' }} />
+          <div style={{ position: 'relative', width: '100%', height: '5px' }}>
+            <div style={{
+              position: 'absolute',
+              left: 'calc((100% - 24px) / 4 - 2.5px)',
+              right: 'calc((100% - 24px) / 4 - 2.5px)',
+              height: '5px',
+              background: '#c084fc',
+              boxShadow: '0 0 15px #c084fc',
+              borderRadius: '3px'
+            }} />
+          </div>
         </div>
 
         {/* LEVEL 3: SEKBEN 1 & SEKBEN 2 */}
@@ -357,8 +367,9 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
         </div>
 
         {/* 4-WAY DISTRIBUTOR TREE LINE (Sekben down to 4 Pimpro) */}
-        <div className="org-tree-line" style={{ width: '100%', maxWidth: '1040px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
-          <div style={{ width: '75%', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+        <div className="org-tree-line" style={{ width: '100%', maxWidth: '1240px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+          {/* Incoming vertical lines from Sekben (matches Sekben's 820px grid exactly) */}
+          <div style={{ width: '100%', maxWidth: '820px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
             </div>
@@ -366,14 +377,18 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
               <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
             </div>
           </div>
-          {/* Continuous Horizontal bar spanning 4 columns */}
-          <div style={{
-            width: '75%',
-            height: '5px',
-            background: 'linear-gradient(to right, #38bdf8, #c084fc, #FFB800)',
-            boxShadow: '0 0 15px #38bdf8',
-            marginTop: '-5px'
-          }} />
+          {/* Continuous Horizontal bar spanning all 4 columns seamlessly */}
+          <div style={{ position: 'relative', width: '100%', height: '5px' }}>
+            <div style={{
+              position: 'absolute',
+              left: 'calc((100% - 48px) / 8 - 2.5px)',
+              right: 'calc((100% - 48px) / 8 - 2.5px)',
+              height: '5px',
+              background: 'linear-gradient(to right, #38bdf8 0%, #f87171 33%, #c084fc 66%, #FFB800 100%)',
+              boxShadow: '0 0 15px rgba(56, 189, 248, 0.4)',
+              borderRadius: '3px'
+            }} />
+          </div>
         </div>
 
         {/* LEVEL 4: PIMPRO 1 - 4 (Ketua Divisi) & ANGGOTA DIVISI */}
