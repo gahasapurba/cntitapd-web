@@ -231,30 +231,6 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
             ))}
           </select>
 
-          <button
-            type="button"
-            onClick={handleExportPdf}
-            disabled={isExporting}
-            style={{
-              padding: '9px 15px',
-              borderRadius: 'var(--radius-full)',
-              background: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: 'var(--neon-cyan)',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              cursor: isExporting ? 'wait' : 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease'
-            }}
-            title="Download Presentasi Bagan Struktur Organisasi ke File PDF"
-          >
-            <Download size={14} />
-            <span>{isExporting ? 'Mengekspor PDF...' : 'Download Bagan PDF'}</span>
-          </button>
-
           {isFiltering && (
             <button
               type="button"
