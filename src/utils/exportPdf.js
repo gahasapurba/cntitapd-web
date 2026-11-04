@@ -10,22 +10,11 @@ export async function exportPresentationToPdf(elementId, filename = null, active
     return;
   }
 
-  // Create temporary visible clone offscreen for html2pdf to measure exact dimensions
-  const clone = targetElement.cloneNode(true);
-  clone.id = 'temp-pdf-export-clone';
-  clone.className = 'block'; // Make visible to DOM layout engine
-  clone.style.position = 'absolute';
-  clone.style.top = '0';
-  clone.style.left = '-9999px';
-  clone.style.width = '1100px';
-  clone.style.zIndex = '-9999';
-  clone.style.backgroundColor = '#040914';
-  clone.style.color = '#f3f4f6';
-  
-  document.body.appendChild(clone);
+  // Scroll target element into view so html2canvas captures its active coordinates accurately
+  targetElement.scrollIntoView({ behavior: 'instant', block: 'start' });
 
   const opt = {
-    margin: 0,
+    margin: [8, 8, 8, 8],
     filename: finalFilename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
@@ -33,21 +22,18 @@ export async function exportPresentationToPdf(elementId, filename = null, active
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#040914',
-      windowWidth: 1050,
+      scrollX: 0,
+      scrollY: 0,
       logging: false,
     },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-    pagebreak: { mode: ['css', 'legacy'], after: '.pdf-page-break' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
   };
 
   try {
-    await html2pdf().set(opt).from(clone).save();
+    await html2pdf().set(opt).from(targetElement).save();
   } catch (error) {
     console.error('html2pdf error, triggering window.print fallback', error);
     window.print();
-  } finally {
-    if (document.body.contains(clone)) {
-      document.body.removeChild(clone);
-    }
   }
 }

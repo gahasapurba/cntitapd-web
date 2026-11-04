@@ -284,8 +284,29 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       )}
 
       {/* HIERARCHICAL TREE CONTAINER WITH SEAMLESS CONNECTING NEON LINES (IDENTIK DENGAN PRESENTASI) */}
-      <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', borderRadius: '20px', background: 'rgba(4, 9, 20, 0.4)' }}>
         
+        {/* Presentation Slide Header for PDF Export */}
+        <div style={{
+          width: '100%',
+          textAlign: 'center',
+          marginBottom: '24px',
+          padding: '14px 20px',
+          borderRadius: '14px',
+          background: 'rgba(2, 132, 199, 0.1)',
+          border: '1px solid rgba(56, 189, 248, 0.25)'
+        }}>
+          <div style={{ fontSize: '0.74rem', fontFamily: 'monospace', color: 'var(--neon-cyan)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '4px' }}>
+            CULTURE NETWORK TEAM • GROUP IT APPLICATION DELIVERY
+          </div>
+          <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
+            STRUKTUR ORGANISASI KEPENGURUSAN {activeTenure?.code || activeTenure?.title || ''}
+          </h2>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Direktorat Information Technology — PT Bank Mandiri (Persero) Tbk.
+          </div>
+        </div>
+
         {/* LEVEL 1: PEMBINA (Top Center) */}
         {pembina && (
           <div style={{ width: '100%', maxWidth: '440px', zIndex: 10 }}>
