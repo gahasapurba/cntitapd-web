@@ -1051,19 +1051,22 @@ export default function DynamicFormSection({
                 Sudah pernah mengisi formulir? Ketik <strong>NIP atau ID Pendaftaran (sub-...)</strong> Anda untuk melihat progres seleksi & catatan panitia.
               </p>
               <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginTop: '6px',
-                padding: '4px 10px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                marginTop: '8px',
+                padding: '8px 12px',
                 borderRadius: 'var(--radius-sm)',
                 background: 'rgba(56, 189, 248, 0.08)',
                 border: '1px solid rgba(56, 189, 248, 0.25)',
                 fontSize: '0.74rem',
-                color: 'var(--neon-cyan)'
+                lineHeight: 1.45,
+                color: 'var(--neon-cyan)',
+                width: '100%',
+                boxSizing: 'border-box'
               }}>
-                <span>🔒</span>
-                <span><strong>Privasi Terjamin:</strong> Pencarian hanya merespons Kunci Indeks Resmi (NIP) & ID Unik, tidak dapat dicari dengan Nama Umum demi menjaga privasi pelamar.</span>
+                <span style={{ flexShrink: 0, marginTop: '1px' }}>🔒</span>
+                <span><strong>Privasi Terjamin:</strong> Pencarian hanya merespons Kunci Indeks Resmi (NIP) & ID Unik pendaftaran, tidak dapat dicari menggunakan Nama Umum demi melindungi privasi seluruh pelamar.</span>
               </div>
             </div>
           </div>
