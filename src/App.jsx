@@ -193,10 +193,15 @@ export default function App() {
     const cloud = await fetchAllCloudState();
     if (cloud) {
       if (Array.isArray(cloud.tenures) && cloud.tenures.length > 0) {
-        setTenures(cloud.tenures);
         const targetId = cloud.activeTenureId || loadLocalCache('activeTenureId', null);
-        const found = cloud.tenures.find(t => t.id === targetId) || cloud.tenures.find(t => t.isActive) || cloud.tenures[0];
-        if (found) setActiveTenure(found);
+        const activeItem = cloud.tenures.find(t => t.id === targetId) || cloud.tenures.find(t => t.isActive) || cloud.tenures[0];
+        // Enforce strict single active tenure exclusivity
+        const normalizedTenures = cloud.tenures.map(t => ({
+          ...t,
+          isActive: t.id === activeItem.id
+        }));
+        setTenures(normalizedTenures);
+        if (activeItem) setActiveTenure({ ...activeItem, isActive: true });
       }
       if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) setDivisions(cloud.divisions);
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
@@ -321,19 +326,36 @@ export default function App() {
 
   const handleAddTenure = (newTenure) => {
     setTenures((prev) => {
-      const next = [...prev, newTenure];
+      const isActivating = Boolean(newTenure.isActive);
+      const sanitizedPrev = isActivating ? prev.map(t => ({ ...t, isActive: false })) : prev;
+      const next = [...sanitizedPrev, newTenure];
       pushCloudState('tenures', next);
+      if (isActivating) {
+        setActiveTenure(newTenure);
+        pushCloudState('activeTenureId', newTenure.id);
+      }
       return next;
     });
   };
   const handleUpdateTenure = (updatedTenure) => {
     setTenures((prev) => {
-      const next = prev.map(t => t.id === updatedTenure.id ? updatedTenure : t);
+      const isActivating = Boolean(updatedTenure.isActive);
+      const next = prev.map(t => {
+        if (t.id === updatedTenure.id) {
+          return updatedTenure;
+        }
+        // Strict exclusivity: when a tenure becomes active, all other tenures must become inactive
+        if (isActivating) {
+          return { ...t, isActive: false };
+        }
+        return t;
+      });
       pushCloudState('tenures', next);
       return next;
     });
-    if (activeTenure?.id === updatedTenure.id) {
+    if (updatedTenure.isActive || activeTenure?.id === updatedTenure.id) {
       setActiveTenure(updatedTenure);
+      pushCloudState('activeTenureId', updatedTenure.id);
     }
   };
   const handleDeleteTenure = (tenureId) => {

@@ -3759,8 +3759,8 @@ export default function AdminPortal({
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>"{t.themeTagline}"</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span className={t.isActive || activeTenure?.id === t.id ? "badge-gold" : "badge-cyan"}>
-                    {t.isActive || activeTenure?.id === t.id ? 'Periode Aktif' : 'Arsip'}
+                  <span className={activeTenure?.id === t.id ? "badge-gold" : "badge-cyan"}>
+                    {activeTenure?.id === t.id ? 'Periode Aktif' : 'Arsip'}
                   </span>
 
                   {activeTenure?.id !== t.id && (
