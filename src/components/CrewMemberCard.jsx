@@ -108,11 +108,6 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
             }}>
               {member.role}
             </span>
-            {member.badge && member.role !== 'Pembina' && member.role !== 'Ketua' && member.role !== 'Wakil Ketua' && (
-              <span style={{ fontSize: '0.7rem', color: 'var(--mandiri-gold)', fontWeight: 700, fontFamily: 'monospace' }}>
-                {member.badge}
-              </span>
-            )}
           </div>
 
           <h3 style={{
