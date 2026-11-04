@@ -13,6 +13,10 @@ export async function exportPresentationToPdf(elementId, filename = null, active
   // Scroll target element into view so html2canvas captures its active coordinates accurately
   targetElement.scrollIntoView({ behavior: 'instant', block: 'start' });
 
+  // Adapt PDF background to current active theme (light or dark)
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const bgColor = isDark ? '#040914' : '#f8fafc';
+
   const opt = {
     margin: [8, 8, 8, 8],
     filename: finalFilename,
@@ -21,7 +25,7 @@ export async function exportPresentationToPdf(elementId, filename = null, active
       scale: 2,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: '#040914',
+      backgroundColor: bgColor,
       scrollX: 0,
       scrollY: 0,
       logging: false,

@@ -284,29 +284,8 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       )}
 
       {/* HIERARCHICAL TREE CONTAINER WITH SEAMLESS CONNECTING NEON LINES (IDENTIK DENGAN PRESENTASI) */}
-      <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1100px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', borderRadius: '20px', background: 'rgba(4, 9, 20, 0.4)' }}>
+      <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1240px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
-        {/* Presentation Slide Header for PDF Export */}
-        <div style={{
-          width: '100%',
-          textAlign: 'center',
-          marginBottom: '24px',
-          padding: '14px 20px',
-          borderRadius: '14px',
-          background: 'rgba(2, 132, 199, 0.1)',
-          border: '1px solid rgba(56, 189, 248, 0.25)'
-        }}>
-          <div style={{ fontSize: '0.74rem', fontFamily: 'monospace', color: 'var(--neon-cyan)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '4px' }}>
-            CULTURE NETWORK TEAM • GROUP IT APPLICATION DELIVERY
-          </div>
-          <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
-            STRUKTUR ORGANISASI KEPENGURUSAN {activeTenure?.code || activeTenure?.title || ''}
-          </h2>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Direktorat Information Technology — PT Bank Mandiri (Persero) Tbk.
-          </div>
-        </div>
-
         {/* LEVEL 1: PEMBINA (Top Center) */}
         {pembina && (
           <div style={{ width: '100%', maxWidth: '440px', zIndex: 10 }}>
@@ -398,8 +377,8 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
         </div>
 
         {/* LEVEL 4: PIMPRO 1 - 4 (Ketua Divisi) & ANGGOTA DIVISI */}
-        <div style={{ width: '100%', maxWidth: '1180px', zIndex: 10 }}>
-          <div className="org-pimpro-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+        <div style={{ width: '100%', maxWidth: '1240px', zIndex: 10 }}>
+          <div className="org-pimpro-grid">
             {pimpro.map((lead, idx) => {
               const lineColor = idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800';
               // Find all squad members in this division
@@ -409,9 +388,9 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
                 <div key={lead.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div className="org-tree-line" style={{ width: '5px', height: '20px', background: lineColor, boxShadow: `0 0 10px ${lineColor}` }} />
                   
-                  {/* Ketua Divisi Card */}
+                  {/* Ketua Divisi Card (Sejajar 4 Divisi) */}
                   <div style={{ width: '100%' }}>
-                    <CrewMemberCard member={lead} onClick={() => handleMemberClick(lead)} />
+                    <CrewMemberCard member={lead} onClick={() => handleMemberClick(lead)} compact={true} />
                   </div>
 
                   {/* Connecting Line from Ketua Divisi down to Anggota */}
