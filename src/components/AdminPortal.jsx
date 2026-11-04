@@ -1273,7 +1273,7 @@ export default function AdminPortal({
                 {members.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Orang</span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {members.filter(m => m.category === 'inti').length} BPH • {members.filter(m => m.category === 'pimpro').length} Pimpro • {members.filter(m => m.category === 'anggota').length} Squad
+                {members.filter(m => m.category === 'pembina').length} Pembina • {members.filter(m => m.category === 'inti').length} BPH • {members.filter(m => m.category === 'pimpro').length} Pimpro • {members.filter(m => m.category === 'anggota').length} Squad
               </div>
             </div>
 
@@ -7224,7 +7224,7 @@ export default function AdminPortal({
                 <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>TOTAL PERSONEL</div>
                   <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px' }}>{members.length} Orang</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>4 Divisi & BPH Inti</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{members.filter(m => m.category === 'pembina').length} Pembina • 4 Divisi & BPH Inti</div>
                 </div>
                 <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>REALISASI PROKER</div>
