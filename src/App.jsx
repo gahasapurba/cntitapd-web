@@ -317,14 +317,14 @@ export default function App() {
     }
   };
   const handleDeleteDivision = (divId) => {
+    // Defense-in-depth safety checks: do not delete division if members or events still depend on it
+    const hasMem = members.some(m => m.divisionId === divId);
+    const hasEvt = events.some(e => e.divisionId === divId);
+    if (hasMem || hasEvt) return;
+
     setDivisions((prev) => {
       const next = prev.filter(d => d.id !== divId);
       pushCloudState('divisions', next);
-      return next;
-    });
-    setEvents((prev) => {
-      const next = prev.filter(e => e.divisionId !== divId);
-      pushCloudState('events', next);
       return next;
     });
   };
@@ -448,7 +448,13 @@ export default function App() {
   };
   const handleDeleteMember = (memId) => {
     const target = members.find(m => m.id === memId);
-    if (target?.image) deleteMediaFromCloud(target.image);
+    if (!target) return;
+    // Defense-in-depth safety check: do not delete a Pimpro if their division still has active squad members
+    if (target.category === 'pimpro' && target.divisionId) {
+      const hasSquad = members.some(m => m.category === 'anggota' && m.divisionId === target.divisionId);
+      if (hasSquad) return;
+    }
+    if (target.image) deleteMediaFromCloud(target.image);
     setMembers((prev) => {
       const next = prev.filter(m => m.id !== memId);
       pushCloudState('members', next);
@@ -471,14 +477,13 @@ export default function App() {
     });
   };
   const handleDeleteEvent = (evtId) => {
+    // Defense-in-depth safety check: do not delete event if RSVP records still exist
+    const hasRsvps = eventRsvps.some(r => r.eventId === evtId);
+    if (hasRsvps) return;
+
     setEvents((prev) => {
       const next = prev.filter(e => e.id !== evtId);
       pushCloudState('events', next);
-      return next;
-    });
-    setEventRsvps((prev) => {
-      const next = prev.filter(r => r.eventId !== evtId);
-      pushCloudState('eventRsvps', next);
       return next;
     });
   };
