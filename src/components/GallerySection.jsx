@@ -292,7 +292,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
             <div style={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: '10px',
+              gap: '8px',
               paddingTop: '8px',
               marginTop: '4px'
             }}>
@@ -309,13 +309,17 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                     background: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(0, 61, 121, 0.08)',
                     border: isDark ? '1.5px solid rgba(56, 189, 248, 0.55)' : '1.5px solid var(--mandiri-blue)',
                     color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
-                    padding: '8px 16px',
+                    padding: '8px 15px',
                     borderRadius: 'var(--radius-full)',
-                    fontSize: '0.84rem',
+                    fontSize: 'clamp(0.76rem, 2.4vw, 0.84rem)',
                     fontWeight: 700,
                     textDecoration: 'none',
                     transition: 'all 0.2s ease',
-                    boxShadow: isDark ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none'
+                    boxShadow: isDark ? '0 0 16px rgba(56, 189, 248, 0.15)' : 'none',
+                    maxWidth: '100%',
+                    wordBreak: 'break-word',
+                    minHeight: '38px',
+                    boxSizing: 'border-box'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
@@ -336,9 +340,9 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                     }
                   }}
                 >
-                  <FolderDown size={15} />
-                  <span>{doc.text}</span>
-                  <ExternalLink size={13} style={{ opacity: isDark ? 0.95 : 0.7 }} />
+                  <FolderDown size={15} style={{ flexShrink: 0 }} />
+                  <span style={{ lineHeight: 1.3 }}>{doc.text}</span>
+                  <ExternalLink size={13} style={{ opacity: isDark ? 0.95 : 0.7, flexShrink: 0 }} />
                 </a>
               ))}
             </div>

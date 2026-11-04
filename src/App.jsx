@@ -748,9 +748,8 @@ export default function App() {
     await Promise.all(tasks);
   };
 
-  // Reset / Refresh all collections directly from database
+  // Clear cache and reload all collections directly from database
   const handleResetDefault = async () => {
-    if (!window.confirm('Muat ulang seluruh data terbaru dari database Supabase?')) return;
     localStorage.clear();
     await syncFromCloud();
   };

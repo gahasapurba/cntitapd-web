@@ -1189,54 +1189,29 @@ export default function AdminPortal({
             </label>
           )}
 
-          {onForceSync && (
-            <button
-              type="button"
-              onClick={async () => {
-                await onForceSync();
-                showToast('Data berhasil disinkronkan dari Cloud!');
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: 'rgba(56, 189, 248, 0.12)',
-                color: 'var(--neon-cyan)',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-                padding: '7px 13px',
-                borderRadius: 'var(--radius-full)',
-                fontWeight: 700,
-                fontSize: '0.78rem',
-                cursor: 'pointer'
-              }}
-              title="Tarik & sinkronkan data terbaru dari Cloud"
-            >
-              <RefreshCw size={13} />
-              <span>Sync Cloud</span>
-            </button>
-          )}
-
           {onResetDefault && (
             <button
               type="button"
-              onClick={() => setDeleteConfirm({ type: 'reset_all', id: 'reset', name: 'Reset Seluruh Data ke Default Awal' })}
+              onClick={() => setDeleteConfirm({ type: 'reset_all', id: 'reset', name: 'Sync Data' })}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: 'rgba(255, 184, 0, 0.12)',
-                color: 'var(--mandiri-gold)',
-                border: '1px solid rgba(255, 184, 0, 0.35)',
+                background: 'rgba(56, 189, 248, 0.14)',
+                color: 'var(--neon-cyan)',
+                border: '1px solid rgba(56, 189, 248, 0.45)',
                 padding: '7px 13px',
                 borderRadius: 'var(--radius-full)',
                 fontWeight: 700,
                 fontSize: '0.78rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 0 12px rgba(56, 189, 248, 0.12)'
               }}
-              title="Kembalikan data ke bawaan awal"
+              title="Clear cache lokal dan reload data terbaru dari database"
             >
-              <RotateCcw size={13} />
-              <span>Reset Default</span>
+              <RefreshCw size={13} />
+              <span>Sync Data</span>
             </button>
           )}
 
@@ -6963,8 +6938,8 @@ export default function AdminPortal({
             maxHeight: '92vh',
             overflowY: 'auto',
             padding: '24px',
-            border: '1.5px solid #f43f5e',
-            boxShadow: '0 10px 40px rgba(244, 63, 94, 0.3)',
+            border: deleteConfirm.type === 'reset_all' ? '1.5px solid rgba(56, 189, 248, 0.55)' : '1.5px solid #f43f5e',
+            boxShadow: deleteConfirm.type === 'reset_all' ? '0 10px 40px rgba(56, 189, 248, 0.25)' : '0 10px 40px rgba(244, 63, 94, 0.3)',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
@@ -6974,22 +6949,28 @@ export default function AdminPortal({
               width: '54px',
               height: '54px',
               borderRadius: '50%',
-              background: 'rgba(244, 63, 94, 0.15)',
-              color: '#f43f5e',
+              background: deleteConfirm.type === 'reset_all' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(244, 63, 94, 0.15)',
+              color: deleteConfirm.type === 'reset_all' ? 'var(--neon-cyan)' : '#f43f5e',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto'
             }}>
-              <AlertTriangle size={28} />
+              {deleteConfirm.type === 'reset_all' ? <RefreshCw size={26} /> : <AlertTriangle size={28} />}
             </div>
 
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-              {deleteConfirm.type === 'event' ? 'Konfirmasi Hapus Program Kerja' : 'Konfirmasi Penghapusan Data'}
+              {deleteConfirm.type === 'reset_all' ? 'Konfirmasi Sync Data' : (deleteConfirm.type === 'event' ? 'Konfirmasi Hapus Program Kerja' : 'Konfirmasi Penghapusan Data')}
             </h3>
 
-            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-              Apakah Anda yakin ingin menghapus {deleteConfirm.type === 'event' ? 'program kerja' : ''} <strong>"{deleteConfirm.name}"</strong>?
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+              {deleteConfirm.type === 'reset_all' ? (
+                <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                  Clear Cache dan Reload Data? Data tidak akan terhapus melainkan akan dimuat ulang
+                </span>
+              ) : (
+                <>Apakah Anda yakin ingin menghapus {deleteConfirm.type === 'event' ? 'program kerja' : ''} <strong>"{deleteConfirm.name}"</strong>?</>
+              )}
             </p>
 
             {deleteConfirm.type === 'event' && (
@@ -7113,7 +7094,7 @@ export default function AdminPortal({
                     if (deleteConfirm.type === 'faq' && onDeleteFaq) onDeleteFaq(deleteConfirm.id);
                     if (deleteConfirm.type === 'reset_all' && onResetDefault) onResetDefault();
                     const toastMsg = deleteConfirm.type === 'reset_all' 
-                      ? 'Data berhasil dikembalikan ke bawaan awal!' 
+                      ? 'Cache berhasil dibersihkan & data berhasil dimuat ulang!' 
                       : (deleteConfirm.type === 'event' 
                           ? (deleteConfirm.rsvpCount > 0 
                               ? `Program kerja dan ${deleteConfirm.rsvpCount} data RSVP terkait berhasil dihapus!` 
@@ -7125,17 +7106,20 @@ export default function AdminPortal({
                   style={{
                     padding: '9px 20px',
                     borderRadius: 'var(--radius-full)',
-                    background: '#f43f5e',
-                    border: 'none',
+                    background: deleteConfirm.type === 'reset_all' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : '#f43f5e',
+                    border: deleteConfirm.type === 'reset_all' ? '1px solid rgba(56, 189, 248, 0.45)' : 'none',
                     color: '#ffffff',
                     fontWeight: 800,
                     fontSize: '0.85rem',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxShadow: deleteConfirm.type === 'reset_all' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none'
                   }}
                 >
-                  {deleteConfirm.type === 'event' 
-                    ? (deleteConfirm.rsvpCount > 0 ? `Ya, Hapus Event & ${deleteConfirm.rsvpCount} Data RSVP` : 'Ya, Hapus Event & Data RSVP')
-                    : 'Ya, Hapus Data'}
+                  {deleteConfirm.type === 'reset_all' 
+                    ? 'Ya, Sync Data' 
+                    : (deleteConfirm.type === 'event' 
+                        ? (deleteConfirm.rsvpCount > 0 ? `Ya, Hapus Event & ${deleteConfirm.rsvpCount} Data RSVP` : 'Ya, Hapus Event & Data RSVP')
+                        : 'Ya, Hapus Data')}
                 </button>
               )}
             </div>
