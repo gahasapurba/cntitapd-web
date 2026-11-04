@@ -81,7 +81,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
   const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
 
-  const pembina = activeMembers.find(m => m.category === 'pembina');
+  const pembinas = activeMembers.filter(m => m.category === 'pembina');
   const inti = activeMembers.filter(m => m.category === 'inti');
   const pimpro = activeMembers.filter(m => m.category === 'pimpro');
 
@@ -289,10 +289,23 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       {/* HIERARCHICAL TREE CONTAINER WITH SEAMLESS CONNECTING NEON LINES (IDENTIK DENGAN PRESENTASI) */}
       <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1240px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
-        {/* LEVEL 1: PEMBINA (Top Center) */}
-        {pembina && (
-          <div style={{ width: '100%', maxWidth: '440px', zIndex: 10 }}>
-            <CrewMemberCard member={pembina} onClick={() => handleMemberClick(pembina)} />
+        {/* LEVEL 1: PEMBINA (Top Center - Mendukung 1 atau Banyak Pembina) */}
+        {pembinas.length > 0 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '20px',
+            flexWrap: 'wrap',
+            width: '100%',
+            maxWidth: pembinas.length > 1 ? '900px' : '440px',
+            zIndex: 10
+          }}>
+            {pembinas.map(p => (
+              <div key={p.id} style={{ flex: pembinas.length > 1 ? '1 1 360px' : '1 1 auto', maxWidth: '440px', width: '100%' }}>
+                <CrewMemberCard member={p} onClick={() => handleMemberClick(p)} />
+              </div>
+            ))}
           </div>
         )}
 
