@@ -229,6 +229,7 @@ export default function AdminPortal({
   const [memCategory, setMemCategory] = useState('anggota'); // 'pembina' | 'inti' | 'pimpro' | 'anggota'
   const [memRole, setMemRole] = useState('');
   const [memDivisionId, setMemDivisionId] = useState(divisions[0]?.id || 'div-exp');
+  const [memTenureId, setMemTenureId] = useState(activeTenure?.id || '');
   const [memWhatsapp, setMemWhatsapp] = useState('');
   const [memMotto, setMemMotto] = useState('');
   const [memImage, setMemImage] = useState('');
@@ -239,6 +240,7 @@ export default function AdminPortal({
   const [newDivColor, setNewDivColor] = useState('#00529B');
   const [newDivDesc, setNewDivDesc] = useState('');
   const [newDivFocus, setNewDivFocus] = useState('');
+  const [newDivTenureId, setNewDivTenureId] = useState(activeTenure?.id || '');
 
   // Form states for new tenure
   const [newTenureCode, setNewTenureCode] = useState('');
@@ -292,12 +294,14 @@ export default function AdminPortal({
   const [galTitle, setGalTitle] = useState('');
   const [galDate, setGalDate] = useState('');
   const [galDivision, setGalDivision] = useState('Creative Media');
+  const [galTenureId, setGalTenureId] = useState(activeTenure?.id || '');
   const [galDesc, setGalDesc] = useState('');
   const [galPhotos, setGalPhotos] = useState('');
 
   // Form states for Proker / Event
   const [eventTitle, setEventTitle] = useState('');
   const [eventDivId, setEventDivId] = useState(divisions[0]?.id || 'div-exp');
+  const [eventTenureId, setEventTenureId] = useState(activeTenure?.id || '');
   const [eventStartDate, setEventStartDate] = useState('');
   const [eventEndDate, setEventEndDate] = useState('');
   const [eventLocation, setEventLocation] = useState('');
@@ -373,7 +377,7 @@ export default function AdminPortal({
     if (onAddEvent) {
       onAddEvent({
         id: 'evt-' + Date.now(),
-        tenureId: activeTenure?.id || '',
+        tenureId: eventTenureId || activeTenure?.id || '',
         divisionId: eventDivId,
         divisionName: divObj?.name || 'CNT IT APD',
         title: eventTitle.trim(),
@@ -474,7 +478,7 @@ export default function AdminPortal({
 
     onAddMember({
       id: 'mem-' + Date.now(),
-      tenureId: activeTenure?.id || '',
+      tenureId: memTenureId || activeTenure?.id || '',
       divisionId: memCategory === 'anggota' || memCategory === 'pimpro' ? memDivisionId : undefined,
       category: memCategory,
       name: memName,
@@ -507,6 +511,7 @@ export default function AdminPortal({
 
     onAddDivision({
       id: 'div-' + Date.now(),
+      tenureId: newDivTenureId || activeTenure?.id || '',
       name: newDivName,
       slug: newDivName.toLowerCase().replace(/\s+/g, '-'),
       leadName: newDivLead || 'TBD',
@@ -780,7 +785,7 @@ export default function AdminPortal({
 
     onAddGallery({
       id: 'gal-' + Date.now(),
-      tenureId: activeTenure?.id || '',
+      tenureId: galTenureId || activeTenure?.id || '',
       title: galTitle,
       date: galDate || '',
       division: galDivision,
@@ -1843,6 +1848,29 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Periode Kepengurusan *
+              </label>
+              <select
+                value={memTenureId || activeTenure?.id || ''}
+                onChange={(e) => setMemTenureId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                {tenures.map(t => (
+                  <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Kategori Posisi *
               </label>
               <select
@@ -2257,6 +2285,29 @@ export default function AdminPortal({
               >
                 {divisions.map((d) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Periode Kepengurusan *
+              </label>
+              <select
+                value={eventTenureId || activeTenure?.id || ''}
+                onChange={(e) => setEventTenureId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                {tenures.map((t) => (
+                  <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
                 ))}
               </select>
             </div>
@@ -2716,7 +2767,7 @@ export default function AdminPortal({
               />
             </div>
 
-            <div style={{ gridColumn: 'span 2' }}>
+            <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Divisi Penyelenggara
               </label>
@@ -2735,6 +2786,29 @@ export default function AdminPortal({
               >
                 {divisions.map((d) => (
                   <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Periode Kepengurusan *
+              </label>
+              <select
+                value={galTenureId || activeTenure?.id || ''}
+                onChange={(e) => setGalTenureId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                {tenures.map((t) => (
+                  <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
                 ))}
               </select>
             </div>
@@ -3134,6 +3208,29 @@ export default function AdminPortal({
               />
             </div>
 
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Periode Kepengurusan *
+              </label>
+              <select
+                value={newDivTenureId || activeTenure?.id || ''}
+                onChange={(e) => setNewDivTenureId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                {tenures.map((t) => (
+                  <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
+                ))}
+              </select>
+            </div>
+
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Deskripsi Tugas
@@ -3219,6 +3316,11 @@ export default function AdminPortal({
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
                       Pimpro: {d.leadName}
                     </span>
+                    {d.tenureId && (
+                      <span className="badge-gold" style={{ fontSize: '0.68rem', marginLeft: '8px', padding: '2px 8px' }}>
+                        {tenures.find(t => t.id === d.tenureId)?.code || d.tenureId}
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{
@@ -5566,21 +5668,16 @@ export default function AdminPortal({
 
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Warna Identitas Divisi</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="color"
-                        value={editingItem.item.color || '#0284c7'}
-                        onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
-                        style={{ width: '40px', height: '36px', border: 'none', background: 'transparent', cursor: 'pointer' }}
-                      />
-                      <input
-                        type="text"
-                        value={editingItem.item.color || '#0284c7'}
-                        onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
-                        style={{ flex: 1, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
-                      />
-                    </div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
+                    <select
+                      value={editingItem.item.tenureId || activeTenure?.id || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      {tenures.map(t => (
+                        <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Rekrutmen Divisi (Publik)</label>
@@ -5592,6 +5689,24 @@ export default function AdminPortal({
                       <option value="open">● Membuka Rekrutmen (Rekrutmen Buka)</option>
                       <option value="closed">○ Ditutup Sementara (Kuota Penuh)</option>
                     </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Warna Identitas Divisi</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="color"
+                      value={editingItem.item.color || '#0284c7'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
+                      style={{ width: '40px', height: '36px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                    />
+                    <input
+                      type="text"
+                      value={editingItem.item.color || '#0284c7'}
+                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
+                    />
                   </div>
                 </div>
 

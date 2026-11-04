@@ -103,6 +103,8 @@ export default function HomeSection({
     ? forms.filter(f => f.isOpen !== false && !getDeadlineStatus(f.deadline).isExpired) 
     : [];
   const primaryForm = activeForms[0] || recruitmentInfo || null;
+  const matchingTenureDivisions = divisions.filter(d => !d.tenureId || d.tenureId === activeTenure?.id);
+  const activeDivisions = matchingTenureDivisions.length > 0 ? matchingTenureDivisions : divisions;
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
   const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
   const matchingTenureEvents = events.filter(e => !e.tenureId || e.tenureId === activeTenure?.id);
@@ -345,7 +347,7 @@ export default function HomeSection({
                   <Zap size={22} />
                 </div>
                 <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
-                  {divisions.length} Divisi
+                  {activeDivisions.length} Divisi
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pilar Inisiatif Budaya</div>
               </div>
@@ -797,7 +799,7 @@ export default function HomeSection({
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '24px',
         }}>
-          {divisions.map((div) => {
+          {activeDivisions.map((div) => {
             const getIcon = () => {
               if (div.slug.includes('exp')) return <Activity size={24} color={div.color} />;
               if (div.slug.includes('wellbeing')) return <Heart size={24} color={div.color} />;
@@ -834,7 +836,7 @@ export default function HomeSection({
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: div.color, fontWeight: 800 }}>
-                      DIVISI 0{divisions.indexOf(div) + 1}
+                      DIVISI 0{activeDivisions.indexOf(div) + 1}
                     </span>
                     {div.isRecruiting !== false ? (
                       <span style={{

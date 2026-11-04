@@ -78,6 +78,9 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
     } catch (e) {}
   };
 
+  const matchingTenureDivisions = (divisions || []).filter(d => !d.tenureId || d.tenureId === activeTenure?.id);
+  const activeDivisions = matchingTenureDivisions.length > 0 ? matchingTenureDivisions : divisions;
+
   const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
   const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
 
@@ -228,7 +231,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
             }}
           >
             <option value="all">Semua Divisi</option>
-            {(divisions || []).map(div => (
+            {(activeDivisions || []).map(div => (
               <option key={div.id} value={div.id}>{div.name}</option>
             ))}
           </select>
