@@ -23,7 +23,8 @@ import {
   Search,
   Send,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 import { getDeadlineStatus } from '../utils/dateUtils';
@@ -53,8 +54,9 @@ export default function HomeSection({
   const [askErrors, setAskErrors] = useState({});
   const [askSuccess, setAskSuccess] = useState(false);
   const [isSubmittingAsk, setIsSubmittingAsk] = useState(false);
+  const [confirmFaqOpen, setConfirmFaqOpen] = useState(false);
 
-  const handleSubmitPublicFaqQuestion = (e) => {
+  const handleOpenConfirmFaq = (e) => {
     e.preventDefault();
     if (isSubmittingAsk) return;
     const errs = {};
@@ -63,7 +65,12 @@ export default function HomeSection({
     }
     setAskErrors(errs);
     if (Object.keys(errs).length > 0) return;
+    setConfirmFaqOpen(true);
+  };
 
+  const handleFinalSubmitFaq = () => {
+    if (isSubmittingAsk) return;
+    setConfirmFaqOpen(false);
     setIsSubmittingAsk(true);
     const now = new Date();
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -1266,7 +1273,7 @@ export default function HomeSection({
                   </div>
                 )}
 
-                <form onSubmit={handleSubmitPublicFaqQuestion} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <form onSubmit={handleOpenConfirmFaq} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <input
                       type="text"
@@ -1364,6 +1371,138 @@ export default function HomeSection({
           </section>
         );
       })()}
+
+      {/* CONFIRMATION PREVIEW MODAL SEBELUM KIRIM PERTANYAAN FAQ */}
+      {confirmFaqOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div className="glass-panel modal-container" style={{
+            maxWidth: '520px',
+            width: '100%',
+            padding: '28px',
+            border: '1.5px solid var(--mandiri-gold)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 184, 0, 0.15)',
+                  color: 'var(--mandiri-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <HelpCircle size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    Konfirmasi Pertanyaan FAQ
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                    Pastikan pertanyaan Anda sudah jelas sebelum dikirim ke pengurus
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmFaqOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-card)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Pengusul / Squad: </span>
+                <strong style={{ color: 'var(--neon-cyan)' }}>{askName.trim() || 'Anonim / Insan IT APD'}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Topik / Kategori: </span>
+                <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>{askCat}</span>
+              </div>
+              <div style={{ fontSize: '0.84rem', borderTop: '1px dashed var(--border-card)', paddingTop: '8px', marginTop: '2px' }}>
+                <span style={{ color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>Isi Pertanyaan:</span>
+                <div style={{ color: 'var(--text-main)', lineHeight: 1.5, fontSize: '0.85rem' }}>
+                  "{askQuestionText.trim()}"
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              marginTop: '4px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setConfirmFaqOpen(false)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-dim)',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Cek Ulang
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalSubmitFaq}
+                disabled={isSubmittingAsk}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: isSubmittingAsk ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Send size={14} />
+                <span>{isSubmittingAsk ? 'Mengirim...' : 'Ya, Kirim Sekarang'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

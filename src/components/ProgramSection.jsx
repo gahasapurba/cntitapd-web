@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Send,
   Share2,
-  Link2
+  Link2,
+  HelpCircle
 } from 'lucide-react';
 
 export default function ProgramSection({
@@ -114,8 +115,9 @@ export default function ProgramSection({
   const [rsvpErrors, setRsvpErrors] = useState({});
   const [rsvpSuccess, setRsvpSuccess] = useState(false);
   const [isSubmittingRsvp, setIsSubmittingRsvp] = useState(false);
+  const [confirmRsvpOpen, setConfirmRsvpOpen] = useState(false);
 
-  const handleSubmitQuickRsvp = (e) => {
+  const handleOpenConfirmRsvp = (e) => {
     e.preventDefault();
     if (!rsvpModalEvent || isSubmittingRsvp) return;
     const errs = {};
@@ -123,7 +125,12 @@ export default function ProgramSection({
     if (!rsvpSquad.trim()) errs.rsvpSquad = 'Squad / Unit wajib diisi';
     setRsvpErrors(errs);
     if (Object.keys(errs).length > 0) return;
+    setConfirmRsvpOpen(true);
+  };
 
+  const handleFinalSubmitRsvp = () => {
+    if (!rsvpModalEvent || isSubmittingRsvp) return;
+    setConfirmRsvpOpen(false);
     setIsSubmittingRsvp(true);
     const now = new Date();
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -1227,7 +1234,7 @@ export default function ProgramSection({
                   </div>
                 )}
 
-                <form onSubmit={handleSubmitQuickRsvp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <form onSubmit={handleOpenConfirmRsvp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <input
@@ -1510,6 +1517,154 @@ export default function ProgramSection({
           </div>
         );
       })()}
+
+      {/* CONFIRMATION PREVIEW MODAL SEBELUM KIRIM RSVP KEHADIRAN EVENT */}
+      {confirmRsvpOpen && rsvpModalEvent && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div className="glass-panel modal-container" style={{
+            maxWidth: '520px',
+            width: '100%',
+            padding: '28px',
+            border: '1.5px solid var(--mandiri-gold)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 184, 0, 0.15)',
+                  color: 'var(--mandiri-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <HelpCircle size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    Konfirmasi Kehadiran Event
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                    Pastikan rincian kehadiran Anda sudah sesuai sebelum disimpan
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmRsvpOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-card)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Kegiatan: </span>
+                <strong style={{ color: 'var(--text-main)' }}>{rsvpModalEvent.title}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Jadwal & Lokasi: </span>
+                <strong style={{ color: 'var(--mandiri-gold)' }}>{rsvpModalEvent.date} • {rsvpModalEvent.location || 'Plaza Mandiri'}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Nama Peserta: </span>
+                <strong style={{ color: 'var(--neon-cyan)' }}>{rsvpName}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Squad / Unit: </span>
+                <strong style={{ color: 'var(--text-main)' }}>{rsvpSquad}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Status Kehadiran: </span>
+                <span className={rsvpMode.toLowerCase().includes('onsite') ? 'badge-gold' : 'badge-cyan'} style={{ fontSize: '0.7rem' }}>
+                  {rsvpMode}
+                </span>
+              </div>
+              {rsvpNotes.trim() && (
+                <div style={{ fontSize: '0.84rem', borderTop: '1px dashed var(--border-card)', paddingTop: '8px', marginTop: '2px' }}>
+                  <span style={{ color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>Catatan Tambahan:</span>
+                  <div style={{ color: 'var(--text-main)', fontStyle: 'italic', lineHeight: 1.4, fontSize: '0.82rem' }}>
+                    "{rsvpNotes.trim()}"
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              marginTop: '4px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setConfirmRsvpOpen(false)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-dim)',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Cek Ulang
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalSubmitRsvp}
+                disabled={isSubmittingRsvp}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: isSubmittingRsvp ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Send size={14} />
+                <span>{isSubmittingRsvp ? 'Mengirim...' : 'Ya, Kirim Sekarang'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

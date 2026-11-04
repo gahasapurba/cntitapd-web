@@ -57,6 +57,7 @@ export default function KudosSection({
   const [ideaSuccess, setIdeaSuccess] = useState(false);
   const [ideaErrors, setIdeaErrors] = useState({});
   const [isSubmittingAspirasi, setIsSubmittingAspirasi] = useState(false);
+  const [confirmAspirasiOpen, setConfirmAspirasiOpen] = useState(false);
   const [aspirasiStatusFilter, setAspirasiStatusFilter] = useState('all');
 
   const handleToggleLike = (kudosItem) => {
@@ -252,11 +253,14 @@ export default function KudosSection({
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmitIdea = (e) => {
+  const handleOpenConfirmAspirasi = (e) => {
     e.preventDefault();
-    if (isSubmittingAspirasi) return;
     if (!validateIdea()) return;
+    setConfirmAspirasiOpen(true);
+  };
 
+  const handleFinalSubmitAspirasi = () => {
+    if (isSubmittingAspirasi) return;
     setIsSubmittingAspirasi(true);
 
     if (onAddAspirasi) {
@@ -284,6 +288,7 @@ export default function KudosSection({
     setIdeaTitle('');
     setIdeaDesc('');
     setIdeaErrors({});
+    setConfirmAspirasiOpen(false);
     setTimeout(() => setIsSubmittingAspirasi(false), 600);
     setTimeout(() => setIdeaSuccess(false), 4000);
   };
@@ -1018,7 +1023,7 @@ export default function KudosSection({
                 </div>
               )}
 
-              <form onSubmit={handleSubmitIdea} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <form onSubmit={handleOpenConfirmAspirasi} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
@@ -1246,6 +1251,145 @@ export default function KudosSection({
           </div>
         );
       })()}
+
+      {/* CONFIRMATION PREVIEW MODAL SEBELUM KIRIM ASPIRASI */}
+      {confirmAspirasiOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div className="glass-panel modal-container" style={{
+            maxWidth: '520px',
+            width: '100%',
+            padding: '28px',
+            border: '1.5px solid var(--mandiri-gold)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 184, 0, 0.15)',
+                  color: 'var(--mandiri-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <HelpCircle size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    Konfirmasi Pengiriman Aspirasi
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                    Pastikan usulan dan ide Anda sudah sesuai sebelum dikirim ke pengurus
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmAspirasiOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{
+              background: 'var(--input-bg)',
+              border: '1px solid var(--border-card)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Pengusul: </span>
+                <strong style={{ color: 'var(--neon-cyan)' }}>{ideaSender.trim() || 'Anonim'}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Kategori: </span>
+                <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>{ideaCategory}</span>
+              </div>
+              <div style={{ fontSize: '0.84rem' }}>
+                <span style={{ color: 'var(--text-dim)' }}>Judul Usulan: </span>
+                <strong style={{ color: 'var(--text-main)' }}>{ideaTitle}</strong>
+              </div>
+              <div style={{ fontSize: '0.84rem', borderTop: '1px solid var(--border-card)', paddingTop: '10px' }}>
+                <span style={{ color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>Deskripsi Aspirasi:</span>
+                <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                  "{ideaDesc}"
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '10px 14px',
+              fontSize: '0.78rem',
+              color: 'var(--text-muted)',
+              lineHeight: 1.4
+            }}>
+              💡 <em>Catatan:</em> Usulan Anda akan masuk ke antrean pengurus CNT IT APD untuk direview dan ditindaklanjuti pada rapat koordinasi budaya kerja.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmAspirasiOpen(false)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Cek Ulang
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalSubmitAspirasi}
+                disabled={isSubmittingAspirasi}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  cursor: isSubmittingAspirasi ? 'wait' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(255,184,0,0.3)'
+                }}
+              >
+                {isSubmittingAspirasi ? 'Mengirim...' : 'Ya, Kirim Aspirasi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
