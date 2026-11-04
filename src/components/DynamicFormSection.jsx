@@ -232,12 +232,33 @@ export default function DynamicFormSection({
 
   const dynamicSearchKeysString = dynamicIndexLabels.join(' / ');
 
-  // Filtered submissions for Self-Service Status Tracker (strictly matching Index Keys & Registration ID only)
+  // Filtered submissions for Self-Service Status Tracker (strictly EXACT matching Index Keys & Registration ID only)
   const trimmedStatusQuery = statusQuery.trim().toLowerCase();
+  const cleanStatusQuery = trimmedStatusQuery.replace(/\s+/g, '');
+  const digitsStatusQuery = cleanStatusQuery.replace(/\D/g, '');
+
+  const isExactFieldMatch = (rawVal) => {
+    if (!rawVal) return false;
+    const strVal = String(rawVal).trim().toLowerCase();
+    // 1. Direct trimmed string exact match
+    if (strVal === trimmedStatusQuery) return true;
+    // 2. Whitespace-insensitive exact match (e.g. "2402 1234" vs "24021234")
+    if (strVal.replace(/\s+/g, '') === cleanStatusQuery) return true;
+    // 3. For numeric IDs like NIP / Phone numbers, match exact normalized digits (min 4 digits)
+    if (digitsStatusQuery.length >= 4) {
+      const digitsVal = strVal.replace(/\D/g, '');
+      if (digitsVal === digitsStatusQuery) return true;
+    }
+    return false;
+  };
+
   const matchedSubmissions = trimmedStatusQuery.length >= 3
     ? submissions.filter((sub) => {
-        // 1. Always allow exact or partial match on unique Registration ID (sub.id)
-        if ((sub.id || '').toLowerCase().includes(trimmedStatusQuery)) return true;
+        // 1. Exact match on unique Registration ID (sub.id)
+        const subIdLower = (sub.id || '').trim().toLowerCase();
+        if (subIdLower === trimmedStatusQuery || subIdLower.replace(/\s+/g, '') === cleanStatusQuery) {
+          return true;
+        }
 
         // 2. Identify the parent form schema for this submission
         const parentForm = forms.find((f) => f.id === sub.formId);
@@ -249,11 +270,8 @@ export default function DynamicFormSection({
           .map((fld) => fld.id);
 
         if (indexFieldIds.length > 0) {
-          // Strictly ONLY check designated index fields (e.g. NIP)
-          return indexFieldIds.some((fid) => {
-            const val = sub.data?.[fid];
-            return String(val || '').toLowerCase().includes(trimmedStatusQuery);
-          });
+          // Strictly ONLY check designated index fields (e.g. NIP) using EXACT match
+          return indexFieldIds.some((fid) => isExactFieldMatch(sub.data?.[fid]));
         }
 
         // 4. Safe Fallback: if form has no field explicitly flagged yet,
@@ -266,10 +284,7 @@ export default function DynamicFormSection({
           .map((fld) => fld.id);
 
         if (nipFields.length > 0) {
-          return nipFields.some((fid) => {
-            const val = sub.data?.[fid];
-            return String(val || '').toLowerCase().includes(trimmedStatusQuery);
-          });
+          return nipFields.some((fid) => isExactFieldMatch(sub.data?.[fid]));
         }
 
         // Strict fallback if form has neither: match only phone or email, NEVER general name
@@ -280,10 +295,7 @@ export default function DynamicFormSection({
           })
           .map((fld) => fld.id);
 
-        return contactFields.some((fid) => {
-          const val = sub.data?.[fid];
-          return String(val || '').toLowerCase().includes(trimmedStatusQuery);
-        });
+        return contactFields.some((fid) => isExactFieldMatch(sub.data?.[fid]));
       })
     : [];
 
@@ -1070,7 +1082,7 @@ export default function DynamicFormSection({
                 🔍 Cek Status Pendaftaran & Seleksi Saya
               </h3>
               <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
-                Sudah pernah mengisi formulir? Ketik <strong>{dynamicSearchKeysString} atau ID Pendaftaran (sub-...)</strong> Anda untuk melihat progres seleksi & catatan panitia.
+                Sudah pernah mengisi formulir? Ketik <strong>{dynamicSearchKeysString} lengkap atau ID Pendaftaran (sub-...)</strong> Anda untuk melihat progres seleksi & catatan panitia.
               </p>
               <div style={{
                 display: 'flex',
@@ -1088,7 +1100,7 @@ export default function DynamicFormSection({
                 boxSizing: 'border-box'
               }}>
                 <span style={{ flexShrink: 0, marginTop: '1px' }}>🔒</span>
-                <span><strong>Privasi Terjamin:</strong> Pencarian hanya merespons Kunci Indeks Resmi ({dynamicSearchKeysString}) & ID Unik pendaftaran, tidak dapat dicari menggunakan Nama Umum demi melindungi privasi seluruh pelamar.</span>
+                <span><strong>Privasi Terjamin:</strong> Sistem menggunakan pencarian eksak (Exact Match) pada Kunci Indeks Resmi ({dynamicSearchKeysString}) & ID Unik pendaftaran. Pencarian parsial atau Nama Umum sengaja diblokir demi melindungi privasi seluruh pelamar.</span>
               </div>
             </div>
           </div>
@@ -1097,7 +1109,7 @@ export default function DynamicFormSection({
             <Search size={17} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder={`Ketik ${dynamicSearchKeysString} Anda atau ID Pendaftaran (sub-...)`}
+              placeholder={`Ketik ${dynamicSearchKeysString} lengkap Anda atau ID Pendaftaran (sub-...)`}
               value={statusQuery}
               onChange={(e) => setStatusQuery(e.target.value)}
               style={{
@@ -1151,7 +1163,7 @@ export default function DynamicFormSection({
                   color: 'var(--text-muted)',
                   fontSize: '0.85rem'
                 }}>
-                  Tidak ditemukan data pendaftaran dengan kunci <strong>"{statusQuery}"</strong>. Pastikan Anda memasukkan {dynamicSearchKeysString} atau ID Pendaftaran (sub-...) yang valid sesuai saat mendaftar.
+                  Tidak ditemukan data pendaftaran dengan kunci <strong>"{statusQuery}"</strong>. Sistem menggunakan pencarian eksak (Exact Match), pastikan Anda memasukkan {dynamicSearchKeysString} lengkap atau ID Pendaftaran (sub-...) yang persis sesuai saat mendaftar.
                 </div>
               ) : (
                 matchedSubmissions.map((sub) => {
