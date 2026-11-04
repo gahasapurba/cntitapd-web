@@ -7168,7 +7168,7 @@ export default function AdminPortal({
                   <span className="badge-gold" style={{ fontSize: '0.68rem', marginBottom: '4px' }}>
                     Executive Summary & LPJ Resmi
                   </span>
-                  <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
+                  <h2 style={{ fontSize: 'clamp(1.15rem, 4vw, 1.45rem)', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
                     Laporan Pertanggungjawaban & Progres CNT IT APD
                   </h2>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -7219,7 +7219,7 @@ export default function AdminPortal({
               </div>
 
               {/* 1. Key Performance Metrics */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(135px, 42vw, 170px), 1fr))', gap: '10px' }}>
                 <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>TOTAL PERSONEL</div>
                   <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px' }}>{members.length} Orang</div>
@@ -7298,7 +7298,7 @@ export default function AdminPortal({
                 <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
                   II. Susunan Dewan Pembina, Pengurus Inti & Ketua Divisi (Pimpro)
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(170px, 45vw, 220px), 1fr))', gap: '10px' }}>
                   {coreLeaders.map((ldr) => (
                     <div key={ldr.id} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
                       <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--mandiri-gold)', textTransform: 'uppercase' }}>{ldr.role}</div>
