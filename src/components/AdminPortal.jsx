@@ -979,7 +979,7 @@ export default function AdminPortal({
 
   // IF AUTHENTICATED: SHOW ADMIN DASHBOARD
   return (
-    <div style={{ maxWidth: '1000px', margin: '20px auto 80px auto', display: 'flex', flexDirection: 'column', gap: '28px', position: 'relative' }}>
+    <div className="admin-portal-wrapper" style={{ maxWidth: '1000px', margin: '20px auto 80px auto', display: 'flex', flexDirection: 'column', gap: '28px', position: 'relative' }}>
       {/* Floating Toast Notification Banner */}
       {toast && (
         <div
@@ -7136,7 +7136,7 @@ export default function AdminPortal({
         const realizedAspirasi = aspirasiList.filter(a => a.status === 'Sudah Direalisasikan').length;
 
         return (
-          <div style={{
+          <div className="executive-report-modal" style={{
             position: 'fixed',
             top: 0,
             left: 0,
@@ -7151,7 +7151,7 @@ export default function AdminPortal({
             justifyContent: 'center',
             padding: '16px'
           }}>
-            <div className="glass-panel modal-container" style={{
+            <div className="glass-panel modal-container executive-report-container" style={{
               maxWidth: '900px',
               width: '100%',
               maxHeight: '92vh',
@@ -7176,7 +7176,7 @@ export default function AdminPortal({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <button
                     type="button"
                     onClick={() => window.print()}
@@ -7260,26 +7260,34 @@ export default function AdminPortal({
                       </tr>
                     </thead>
                     <tbody>
-                      {events.map((evt) => (
-                        <tr key={evt.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                          <td style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--text-main)' }}>{evt.title}</td>
-                          <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.divisionName}</td>
-                          <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.date}</td>
-                          <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.kpi}</td>
-                          <td style={{ padding: '9px 12px' }}>
-                            <span style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 700,
-                              color: evt.status === 'Completed' ? '#10b981' : 'var(--mandiri-gold)'
-                            }}>
-                              {evt.status === 'Completed' ? '✓ Selesai' : evt.status}
-                            </span>
-                          </td>
-                          <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-main)' }}>
-                            Rp {Number(evt.totalRab || 0).toLocaleString('id-ID')}
+                      {events.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            Belum ada program kerja yang terdaftar di database untuk periode ini.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        events.map((evt) => (
+                          <tr key={evt.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                            <td style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--text-main)' }}>{evt.title}</td>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.divisionName}</td>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.date}</td>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.kpi}</td>
+                            <td style={{ padding: '9px 12px' }}>
+                              <span style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: evt.status === 'Completed' ? '#10b981' : 'var(--mandiri-gold)'
+                              }}>
+                                {evt.status === 'Completed' ? '✓ Selesai' : evt.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-main)' }}>
+                              Rp {Number(evt.totalRab || 0).toLocaleString('id-ID')}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
