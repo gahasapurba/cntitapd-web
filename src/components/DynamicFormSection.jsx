@@ -210,6 +210,28 @@ export default function DynamicFormSection({
     setTimeout(() => setIsSubmitting(false), 600);
   };
 
+  // Dynamic Search Keys Text based on configured index fields in active/selected forms
+  const dynamicIndexLabels = React.useMemo(() => {
+    const keys = new Set();
+    const targetForms = currentForm ? [currentForm] : (activeForms.length > 0 ? activeForms : forms);
+    
+    targetForms.forEach((f) => {
+      (f.fields || []).forEach((fld) => {
+        if (fld.isSearchIndex) {
+          keys.add(fld.label || 'Kunci Pendaftaran');
+        }
+      });
+    });
+
+    if (keys.size === 0) {
+      keys.add('NIP');
+    }
+
+    return Array.from(keys);
+  }, [currentForm, activeForms, forms]);
+
+  const dynamicSearchKeysString = dynamicIndexLabels.join(' / ');
+
   // Filtered submissions for Self-Service Status Tracker (strictly matching Index Keys & Registration ID only)
   const trimmedStatusQuery = statusQuery.trim().toLowerCase();
   const matchedSubmissions = trimmedStatusQuery.length >= 3
@@ -1048,7 +1070,7 @@ export default function DynamicFormSection({
                 🔍 Cek Status Pendaftaran & Seleksi Saya
               </h3>
               <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
-                Sudah pernah mengisi formulir? Ketik <strong>NIP atau ID Pendaftaran (sub-...)</strong> Anda untuk melihat progres seleksi & catatan panitia.
+                Sudah pernah mengisi formulir? Ketik <strong>{dynamicSearchKeysString} atau ID Pendaftaran (sub-...)</strong> Anda untuk melihat progres seleksi & catatan panitia.
               </p>
               <div style={{
                 display: 'flex',
@@ -1066,7 +1088,7 @@ export default function DynamicFormSection({
                 boxSizing: 'border-box'
               }}>
                 <span style={{ flexShrink: 0, marginTop: '1px' }}>🔒</span>
-                <span><strong>Privasi Terjamin:</strong> Pencarian hanya merespons Kunci Indeks Resmi (NIP) & ID Unik pendaftaran, tidak dapat dicari menggunakan Nama Umum demi melindungi privasi seluruh pelamar.</span>
+                <span><strong>Privasi Terjamin:</strong> Pencarian hanya merespons Kunci Indeks Resmi ({dynamicSearchKeysString}) & ID Unik pendaftaran, tidak dapat dicari menggunakan Nama Umum demi melindungi privasi seluruh pelamar.</span>
               </div>
             </div>
           </div>
@@ -1075,7 +1097,7 @@ export default function DynamicFormSection({
             <Search size={17} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
-              placeholder="Ketik NIP Anda (Contoh: 2402...) atau ID Pendaftaran (sub-...)"
+              placeholder={`Ketik ${dynamicSearchKeysString} Anda atau ID Pendaftaran (sub-...)`}
               value={statusQuery}
               onChange={(e) => setStatusQuery(e.target.value)}
               style={{
@@ -1113,7 +1135,7 @@ export default function DynamicFormSection({
 
           {statusQuery.trim().length > 0 && statusQuery.trim().length < 3 && (
             <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '6px' }}>
-              Ketik minimal 3 digit NIP atau ID Pendaftaran Anda...
+              Ketik minimal 3 karakter {dynamicSearchKeysString} atau ID Pendaftaran Anda...
             </div>
           )}
 
@@ -1129,7 +1151,7 @@ export default function DynamicFormSection({
                   color: 'var(--text-muted)',
                   fontSize: '0.85rem'
                 }}>
-                  Tidak ditemukan data pendaftaran dengan kunci <strong>"{statusQuery}"</strong>. Pastikan Anda memasukkan NIP atau ID Pendaftaran (sub-...) yang valid sesuai saat mendaftar.
+                  Tidak ditemukan data pendaftaran dengan kunci <strong>"{statusQuery}"</strong>. Pastikan Anda memasukkan {dynamicSearchKeysString} atau ID Pendaftaran (sub-...) yang valid sesuai saat mendaftar.
                 </div>
               ) : (
                 matchedSubmissions.map((sub) => {
