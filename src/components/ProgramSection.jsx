@@ -365,7 +365,7 @@ export default function ProgramSection({
                   cursor: 'pointer'
                 }}
               >
-                lintas Tahun ({events.length})
+                Lintas Tahun ({events.length})
               </button>
             </div>
           )}
