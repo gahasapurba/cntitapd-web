@@ -194,14 +194,19 @@ export default function App() {
     if (cloud) {
       if (Array.isArray(cloud.tenures) && cloud.tenures.length > 0) {
         const targetId = cloud.activeTenureId || loadLocalCache('activeTenureId', null);
-        const activeItem = cloud.tenures.find(t => t.id === targetId) || cloud.tenures.find(t => t.isActive) || cloud.tenures[0];
+        const defaultActive = cloud.tenures.find(t => t.id === targetId) || cloud.tenures.find(t => t.isActive) || cloud.tenures[0];
         // Enforce strict single active tenure exclusivity
         const normalizedTenures = cloud.tenures.map(t => ({
           ...t,
-          isActive: t.id === activeItem.id
+          isActive: t.id === defaultActive.id
         }));
         setTenures(normalizedTenures);
-        if (activeItem) setActiveTenure({ ...activeItem, isActive: true });
+        // Preserve user's current session browsing selection if still valid, otherwise fallback to official active tenure
+        setActiveTenure(curr => {
+          if (!curr) return { ...defaultActive, isActive: true };
+          const stillExists = normalizedTenures.find(t => t.id === curr.id);
+          return stillExists || { ...defaultActive, isActive: true };
+        });
       }
       if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) setDivisions(cloud.divisions);
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
@@ -263,9 +268,9 @@ export default function App() {
     pushCloudState('pageVisibility', merged);
   };
 
+  // Visitor / Admin local view mode (filters the page display without mutating the official active tenure in database)
   const handleSelectTenure = (tenureObj) => {
     setActiveTenure(tenureObj);
-    pushCloudState('activeTenureId', tenureObj.id);
   };
 
   // Dynamic Add, Edit & Delete Handlers (Persisted to LocalStorage + Supabase Cloud)
