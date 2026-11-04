@@ -60,8 +60,6 @@ export const rowMappers = {
       visi: item.visi || '',
       misi: Array.isArray(item.misi) ? item.misi : [],
       is_active: Boolean(item.isActive),
-      start_date: item.startDate || null,
-      end_date: item.endDate || null,
       sort_order: idx
     }),
     fromDb: (row) => ({
@@ -73,9 +71,7 @@ export const rowMappers = {
       heroHighlight: row.hero_highlight,
       visi: row.visi,
       misi: Array.isArray(row.misi) && row.misi.length > 0 ? row.misi : undefined,
-      isActive: Boolean(row.is_active),
-      startDate: row.start_date,
-      endDate: row.end_date
+      isActive: Boolean(row.is_active)
     })
   },
 
