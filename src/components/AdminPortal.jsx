@@ -7114,7 +7114,7 @@ export default function AdminPortal({
                     Laporan Pertanggungjawaban & Progres CNT IT APD
                   </h2>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Periode: <strong>{activeTenure?.title || activeTenure?.code || 'Kepengurusan 2026'}</strong> • Tema: <em>"{activeTenure?.themeTagline || 'Empowering Synergy'}"</em>
+                    Periode: <strong>{activeTenure?.title || activeTenure?.code || 'Kepengurusan Aktif'}</strong>{activeTenure?.themeTagline ? ` • Tema: "${activeTenure.themeTagline}"` : ''}
                   </div>
                 </div>
 

@@ -1375,8 +1375,9 @@ export default function ProgramSection({
                 <button
                   type="button"
                   onClick={() => {
-                    const sRaw = (rsvpModalEvent.startDate || '2026-03-10').replace(/-/g, '');
-                    const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || '2026-03-10');
+                    const defaultIso = new Date().toISOString().slice(0, 10);
+                    const sRaw = (rsvpModalEvent.startDate || defaultIso).replace(/-/g, '');
+                    const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || defaultIso);
                     eDateObj.setDate(eDateObj.getDate() + 1);
                     const eRaw = eDateObj.toISOString().split('T')[0].replace(/-/g, '');
                     const icsContent = [
@@ -1427,8 +1428,9 @@ export default function ProgramSection({
 
                 <a
                   href={(() => {
-                    const sRaw = (rsvpModalEvent.startDate || '2026-03-10').replace(/-/g, '');
-                    const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || '2026-03-10');
+                    const defaultIso = new Date().toISOString().slice(0, 10);
+                    const sRaw = (rsvpModalEvent.startDate || defaultIso).replace(/-/g, '');
+                    const eDateObj = new Date(rsvpModalEvent.endDate || rsvpModalEvent.startDate || defaultIso);
                     eDateObj.setDate(eDateObj.getDate() + 1);
                     const eRaw = eDateObj.toISOString().split('T')[0].replace(/-/g, '');
                     const params = new URLSearchParams({

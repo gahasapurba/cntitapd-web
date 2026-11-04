@@ -298,7 +298,7 @@ export const rowMappers = {
   submissions: {
     toDb: (item) => ({
       id: String(item.id),
-      form_id: item.formId || 'form-oprec-2026',
+      form_id: item.formId || '',
       form_title: item.formTitle || 'Formulir',
       submitted_at: item.submittedAt || '',
       status: item.status || 'Submitted',
