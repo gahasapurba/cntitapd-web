@@ -272,93 +272,163 @@ export default function HomeSection({
         </div>
 
         {/* Quick Stats Grid (Identik dengan presentasi) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '16px',
-          maxWidth: '1000px',
-          margin: '0 auto',
-        }}>
-          <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'rgba(56, 189, 248, 0.15)',
-              color: 'var(--neon-cyan)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px auto'
-            }}>
-              <Users size={22} />
-            </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
-              {activeMembers.length} Personel
-            </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT ({activeTenure?.code || '2026'})</div>
-          </div>
+        {(isOrganisasiVisible || isProgramVisible || isKudosVisible) && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            maxWidth: '1000px',
+            margin: '0 auto',
+          }}>
+            {/* 1. Personel (Struktur Organisasi) */}
+            {isOrganisasiVisible && (
+              <div 
+                className="glass-panel glass-panel-hover" 
+                onClick={() => handleTabChange('organisasi')}
+                style={{ 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  color: 'var(--neon-cyan)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px auto'
+                }}>
+                  <Users size={22} />
+                </div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
+                  {activeMembers.length} Personel
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT ({activeTenure?.code || '2026'})</div>
+              </div>
+            )}
 
-          <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', border: '1px solid rgba(255, 184, 0, 0.3)' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'rgba(255, 184, 0, 0.15)',
-              color: 'var(--mandiri-gold)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px auto'
-            }}>
-              <Zap size={22} />
-            </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
-              {divisions.length} Divisi
-            </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pilar Inisiatif Budaya</div>
-          </div>
+            {/* 2. Divisi (Pilar Organisasi) */}
+            {isOrganisasiVisible && (
+              <div 
+                className="glass-panel glass-panel-hover" 
+                onClick={() => handleTabChange('organisasi')}
+                style={{ 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  border: '1px solid rgba(255, 184, 0, 0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 184, 0, 0.15)',
+                  color: 'var(--mandiri-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px auto'
+                }}>
+                  <Zap size={22} />
+                </div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
+                  {divisions.length} Divisi
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pilar Inisiatif Budaya</div>
+              </div>
+            )}
 
-          <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', border: '1px solid rgba(192, 132, 252, 0.3)' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'rgba(192, 132, 252, 0.15)',
-              color: 'var(--neon-purple)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px auto'
-            }}>
-              <Activity size={22} />
-            </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--mandiri-gold)', fontFamily: 'monospace' }}>
-              {activeEvents.length}+ Event
-            </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Agenda Kerja {activeTenure?.code || '2026'}</div>
-          </div>
+            {/* 3. Event (Program Kerja & Agenda) */}
+            {isProgramVisible && (
+              <div 
+                className="glass-panel glass-panel-hover" 
+                onClick={() => handleTabChange('program')}
+                style={{ 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  border: '1px solid rgba(192, 132, 252, 0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(192, 132, 252, 0.15)',
+                  color: 'var(--neon-purple)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px auto'
+                }}>
+                  <Activity size={22} />
+                </div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--mandiri-gold)', fontFamily: 'monospace' }}>
+                  {activeEvents.length}+ Event
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Agenda Kerja {activeTenure?.code || '2026'}</div>
+              </div>
+            )}
 
-          <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', border: '1px solid rgba(52, 211, 153, 0.3)' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'rgba(52, 211, 153, 0.15)',
-              color: 'var(--neon-emerald)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px auto'
-            }}>
-              <Award size={22} />
-            </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
-              100%
-            </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Insan APD Terkoneksi</div>
+            {/* 4. Apresiasi Kudos atau Nilai Filosofi 100% */}
+            {isKudosVisible && kudosList.length > 0 ? (
+              <div 
+                className="glass-panel glass-panel-hover" 
+                onClick={() => handleTabChange('kudos')}
+                style={{ 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  border: '1px solid rgba(255, 184, 0, 0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 184, 0, 0.15)',
+                  color: 'var(--mandiri-gold)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px auto'
+                }}>
+                  <Sparkles size={22} />
+                </div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
+                  {kudosList.length}+ Kudos
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Apresiasi Terkirim</div>
+              </div>
+            ) : (
+              <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', border: '1px solid rgba(52, 211, 153, 0.3)' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(52, 211, 153, 0.15)',
+                  color: 'var(--neon-emerald)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 8px auto'
+                }}>
+                  <Award size={22} />
+                </div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
+                  100%
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Insan APD Terkoneksi</div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </section>
 
       {/* 2. VISI & MISI KEBUDAYAAN PERIODE INI (Dinamis per Kepengurusan) */}
@@ -448,23 +518,25 @@ export default function HomeSection({
               Pimpinan & Pengurus Inti CNT {activeTenure?.code || '2026'}
             </h2>
           </div>
-          <button
-            onClick={() => handleTabChange('organisasi')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--mandiri-blue)',
-              fontWeight: 700,
-              fontSize: '0.88rem',
-              cursor: 'pointer'
-            }}
-          >
-            <span>Lihat Organigram Lengkap</span>
-            <ChevronRight size={16} />
-          </button>
+          {isOrganisasiVisible && (
+            <button
+              onClick={() => handleTabChange('organisasi')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--mandiri-blue)',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                cursor: 'pointer'
+              }}
+            >
+              <span>Lihat Organigram Lengkap</span>
+              <ChevronRight size={16} />
+            </button>
+          )}
         </div>
 
         <div style={{
@@ -475,12 +547,12 @@ export default function HomeSection({
           {activeMembers.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').map((person) => (
             <div
               key={person.id}
-              onClick={() => handleTabChange('organisasi')}
-              className="glass-panel glass-panel-hover"
+              onClick={() => isOrganisasiVisible && handleTabChange('organisasi')}
+              className={`glass-panel ${isOrganisasiVisible ? 'glass-panel-hover' : ''}`}
               style={{
                 padding: '20px',
                 textAlign: 'center',
-                cursor: 'pointer',
+                cursor: isOrganisasiVisible ? 'pointer' : 'default',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -729,16 +801,16 @@ export default function HomeSection({
             return (
               <div 
                 key={div.id}
-                className="glass-panel glass-panel-hover"
+                className={`glass-panel ${isOrganisasiVisible ? 'glass-panel-hover' : ''}`}
                 style={{
                   padding: '28px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',
                   borderTop: `4px solid ${div.color}`,
-                  cursor: 'pointer'
+                  cursor: isOrganisasiVisible ? 'pointer' : 'default'
                 }}
-                onClick={() => handleTabChange('organisasi')}
+                onClick={() => isOrganisasiVisible && handleTabChange('organisasi')}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{
