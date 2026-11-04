@@ -132,7 +132,8 @@ export default function AdminPortal({
   syncStatus = 'synced',
   onForceSync,
   onResetDefault,
-  onRestoreBackup
+  onRestoreBackup,
+  theme = 'dark'
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {

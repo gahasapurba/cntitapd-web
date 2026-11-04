@@ -551,6 +551,20 @@ select option {
     display: none !important;
   }
 
+  /* Force light theme colors across all CSS variables during print */
+  :root, [data-theme="dark"], [data-theme="light"], body {
+    --bg-page: #ffffff !important;
+    --bg-card: #ffffff !important;
+    --input-bg: #f8fafc !important;
+    --border-card: #cbd5e1 !important;
+    --text-main: #0f172a !important;
+    --text-muted: #334155 !important;
+    --text-dim: #475569 !important;
+    --mandiri-blue: #003d79 !important;
+    --mandiri-gold: #b45309 !important;
+    --neon-cyan: #0284c7 !important;
+  }
+
   body {
     background: #ffffff !important;
     color: #0f172a !important;
@@ -595,23 +609,56 @@ select option {
     -webkit-backdrop-filter: none !important;
   }
 
-  .modal-container {
-    max-height: none !important;
-    overflow: visible !important;
+  /* Ensure all text inside report container is dark, sharp, and high-contrast on white paper */
+  .executive-report-container,
+  .executive-report-container * {
+    color: #0f172a !important;
+    text-shadow: none !important;
     box-shadow: none !important;
   }
 
-  /* Ensure text & borders render crisply on white paper */
   .executive-report-container h2,
   .executive-report-container h4,
-  .executive-report-container strong {
+  .executive-report-container strong,
+  .executive-report-container b {
     color: #0f172a !important;
+    font-weight: 800 !important;
   }
 
-  .executive-report-container td,
-  .executive-report-container th {
-    color: #334155 !important;
+  .executive-report-container .badge-gold {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border: 1px solid #fcd34d !important;
+  }
+
+  /* Card boxes in print */
+  .executive-report-container [style*="border-radius"] {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  /* Table styling in print */
+  .executive-report-container table {
     border-color: #cbd5e1 !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  .executive-report-container table tr {
+    border-color: #cbd5e1 !important;
+    background: transparent !important;
+  }
+
+  .executive-report-container table th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+    font-weight: 800 !important;
+  }
+
+  .executive-report-container table td {
+    color: #1e293b !important;
+    border-bottom: 1px solid #e2e8f0 !important;
   }
 }
 

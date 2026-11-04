@@ -1126,6 +1126,7 @@ export default function App() {
               onForceSync={syncFromCloud}
               onResetDefault={handleResetDefault}
               onRestoreBackup={handleRestoreBackup}
+              theme={theme}
             />
           )}
         </Suspense>
