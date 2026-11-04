@@ -2618,10 +2618,11 @@ export default function AdminPortal({
                     {onDeleteEventRsvp && (
                       <button
                         type="button"
-                        onClick={() => {
-                          onDeleteEventRsvp(rsvp.id);
-                          showToast('Data RSVP berhasil dihapus.');
-                        }}
+                        onClick={() => setDeleteConfirm({
+                          type: 'event_rsvp',
+                          id: rsvp.id,
+                          name: `Data RSVP "${rsvp.attendeeName}" (${rsvp.squadUnit || 'Peserta'})`
+                        })}
                         style={{
                           padding: '5px 8px',
                           borderRadius: '6px',
@@ -2633,6 +2634,7 @@ export default function AdminPortal({
                           cursor: 'pointer',
                           flexShrink: 0
                         }}
+                        title="Hapus konfirmasi kehadiran RSVP ini"
                       >
                         Hapus
                       </button>
@@ -4601,10 +4603,11 @@ export default function AdminPortal({
                           {onDeleteAspirasi && (
                             <button
                               type="button"
-                              onClick={() => {
-                                onDeleteAspirasi(asp.id);
-                                showToast('Aspirasi berhasil dihapus.');
-                              }}
+                              onClick={() => setDeleteConfirm({
+                                type: 'aspirasi',
+                                id: asp.id,
+                                name: `Aspirasi "${asp.title || asp.text || 'Kotak Saran'}" dari ${asp.sender || 'Anonim'}`
+                              })}
                               style={{
                                 padding: '6px 10px',
                                 background: 'rgba(244,63,94,0.12)',
@@ -4615,6 +4618,7 @@ export default function AdminPortal({
                                 fontWeight: 700,
                                 cursor: 'pointer'
                               }}
+                              title="Hapus aspirasi ini secara permanen"
                             >
                               Hapus
                             </button>
@@ -6966,6 +6970,8 @@ export default function AdminPortal({
                     if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
                     if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
                     if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
+                    if (deleteConfirm.type === 'aspirasi' && onDeleteAspirasi) onDeleteAspirasi(deleteConfirm.id);
+                    if (deleteConfirm.type === 'event_rsvp' && onDeleteEventRsvp) onDeleteEventRsvp(deleteConfirm.id);
                     if (deleteConfirm.type === 'form' && onDeleteForm) onDeleteForm(deleteConfirm.id, true);
                     if (deleteConfirm.type === 'event' && onDeleteEvent) onDeleteEvent(deleteConfirm.id);
                     if (deleteConfirm.type === 'submission' && onDeleteSubmission) onDeleteSubmission(deleteConfirm.id);
