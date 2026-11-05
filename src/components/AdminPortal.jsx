@@ -820,6 +820,7 @@ export default function AdminPortal({
       setPendingGalFiles(prev => [...prev, ...files]);
       const localPreviews = files.map(f => URL.createObjectURL(f));
       setUploadedPhotos(prev => [...prev, ...localPreviews]);
+      setFormErrors(prev => ({ ...prev, galPhotos: null }));
       showToast(`${files.length} foto dipilih (akan diunggah saat Anda klik Publikasikan)`);
     }
   };
@@ -988,6 +989,11 @@ export default function AdminPortal({
       errs.galDivision = 'Divisi penyelenggara wajib dipilih';
     }
 
+    const hasPhoto = pendingGalFiles.length > 0 || (galPhotos && galPhotos.trim().length > 0);
+    if (!hasPhoto) {
+      errs.galPhotos = 'Wajib memilih minimal 1 file foto atau memasukkan link foto dokumentasi';
+    }
+
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
       showToast('Mohon lengkapi kolom wajib pada form Galeri', 'error');
@@ -1018,7 +1024,7 @@ export default function AdminPortal({
     
     // Combine cloud uploaded photos, existing uploaded, and text URLs
     const combinedPhotos = [...cloudPhotos, ...urlPhotos];
-    const photoList = combinedPhotos.length > 0 ? combinedPhotos : ['/images/pimpro-adjie.jpg'];
+    const photoList = combinedPhotos;
 
     // Cleaned valid doc links
     const validDocLinks = galDocLinks.filter(l => l.url.trim() && l.text.trim());
@@ -3595,16 +3601,16 @@ export default function AdminPortal({
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-                Upload Foto Kegiatan (Pilih file langsung atau masukkan URL)
+                Upload Foto Kegiatan (Wajib minimal 1 foto) <span style={{ color: '#f43f5e' }}>*</span>
               </label>
 
               {/* File upload input */}
               <div style={{
-                border: '2px dashed var(--border-card)',
+                border: `2px dashed ${formErrors.galPhotos ? '#f43f5e' : 'var(--border-card)'}`,
                 borderRadius: 'var(--radius-sm)',
                 padding: '16px',
                 textAlign: 'center',
-                background: 'var(--input-bg)',
+                background: formErrors.galPhotos ? 'rgba(244, 63, 94, 0.04)' : 'var(--input-bg)',
                 marginBottom: '12px'
               }}>
                 <input
@@ -3637,6 +3643,8 @@ export default function AdminPortal({
                   Bisa memilih banyak foto sekaligus (JPG, PNG, WebP)
                 </div>
               </div>
+
+              {renderFieldError('galPhotos')}
 
               {/* Uploaded Photos Thumbnails Preview */}
               {uploadedPhotos.length > 0 && (
@@ -3682,7 +3690,12 @@ export default function AdminPortal({
                 rows={2}
                 placeholder="https://...link-foto-1.jpg&#10;https://...link-foto-2.jpg"
                 value={galPhotos}
-                onChange={(e) => setGalPhotos(e.target.value)}
+                onChange={(e) => {
+                  setGalPhotos(e.target.value);
+                  if (formErrors.galPhotos && e.target.value.trim()) {
+                    setFormErrors(prev => ({ ...prev, galPhotos: null }));
+                  }
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -7997,39 +8010,53 @@ export default function AdminPortal({
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {(editingItem.item.photos || []).map((photoUrl, pIdx) => (
-                      <div key={pIdx} style={{ position: 'relative', width: '68px', height: '52px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-card)' }}>
-                        <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm('Hapus foto ini dari daftar dokumentasi kegiatan? Foto di cloud storage akan otomatis dibersihkan saat Anda klik "Simpan Perubahan".')) {
-                              const nextPhotos = (editingItem.item.photos || []).filter((_, i) => i !== pIdx);
-                              setEditingItem({ ...editingItem, item: { ...editingItem.item, photos: nextPhotos } });
-                            }
-                          }}
-                          title="Hapus foto ini"
-                          style={{
-                            position: 'absolute',
-                            top: '2px',
-                            right: '2px',
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            background: 'rgba(244, 63, 94, 0.9)',
-                            border: 'none',
-                            color: '#fff',
-                            fontSize: '0.7rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                    {(() => {
+                      const totalPhotos = (editingItem.item.photos || []).length;
+                      const isOnlyOne = totalPhotos <= 1;
+
+                      return (editingItem.item.photos || []).map((photoUrl, pIdx) => (
+                        <div key={pIdx} style={{ position: 'relative', width: '68px', height: '52px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-card)' }}>
+                          <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isOnlyOne) {
+                                soundFx.playError?.();
+                                showToast('Dokumentasi harus memiliki minimal 1 foto! Tidak dapat menghapus foto terakhir.', 'error');
+                                return;
+                              }
+                              soundFx.playClick?.();
+                              setDeleteConfirm({
+                                type: 'gallery_photo',
+                                id: photoUrl,
+                                photoIdx: pIdx,
+                                name: `Foto ke-${pIdx + 1}`
+                              });
+                            }}
+                            title={isOnlyOne ? "Dokumentasi wajib memiliki minimal 1 foto (tidak dapat dihapus)" : `Hapus Foto ke-${pIdx + 1}`}
+                            style={{
+                              position: 'absolute',
+                              top: '2px',
+                              right: '2px',
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              background: isOnlyOne ? 'rgba(100, 116, 139, 0.7)' : 'rgba(244, 63, 94, 0.9)',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '0.7rem',
+                              cursor: isOnlyOne ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: isOnlyOne ? 0.6 : 1
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
 
@@ -9571,19 +9598,21 @@ export default function AdminPortal({
                                         : (deleteConfirm.type === 'form'
                                             ? 'Formulir Memiliki Data Pengisian'
                                             : 'Data Masih Memiliki Ketergantungan'))))))
-                    : (deleteConfirm.type === 'tenure'
-                        ? 'Konfirmasi Hapus Periode'
-                        : (deleteConfirm.type === 'division'
-                            ? 'Konfirmasi Hapus Divisi'
-                            : (deleteConfirm.type === 'department'
-                                ? 'Konfirmasi Hapus Departemen'
-                                : (deleteConfirm.type === 'member'
-                                    ? 'Konfirmasi Hapus Personel'
-                                    : (deleteConfirm.type === 'event'
-                                        ? 'Konfirmasi Hapus Event'
-                                        : (deleteConfirm.type === 'form'
-                                            ? 'Konfirmasi Hapus Formulir'
-                                            : 'Konfirmasi Penghapusan Data')))))))}
+                    : (deleteConfirm.type === 'gallery_photo'
+                        ? 'Konfirmasi Hapus Foto'
+                        : (deleteConfirm.type === 'tenure'
+                            ? 'Konfirmasi Hapus Periode'
+                            : (deleteConfirm.type === 'division'
+                                ? 'Konfirmasi Hapus Divisi'
+                                : (deleteConfirm.type === 'department'
+                                    ? 'Konfirmasi Hapus Departemen'
+                                    : (deleteConfirm.type === 'member'
+                                        ? 'Konfirmasi Hapus Personel'
+                                        : (deleteConfirm.type === 'event'
+                                            ? 'Konfirmasi Hapus Event'
+                                            : (deleteConfirm.type === 'form'
+                                                ? 'Konfirmasi Hapus Formulir'
+                                                : 'Konfirmasi Penghapusan Data'))))))))}
             </h3>
 
             {/* TENURE BODY */}
@@ -10119,8 +10148,15 @@ export default function AdminPortal({
               )
             )}
 
+            {/* GALLERY PHOTO BODY */}
+            {deleteConfirm.type === 'gallery_photo' && (
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                Apakah Anda yakin ingin menghapus <strong>"{deleteConfirm.name}"</strong> dari daftar dokumentasi kegiatan? Foto di cloud storage akan otomatis dibersihkan saat Anda klik <strong>Simpan Perubahan</strong>.
+              </p>
+            )}
+
             {/* DEFAULT BODY FOR OTHER TYPES */}
-            {deleteConfirm.type !== 'tenure' && deleteConfirm.type !== 'division' && deleteConfirm.type !== 'department' && deleteConfirm.type !== 'member' && deleteConfirm.type !== 'event' && deleteConfirm.type !== 'form' && (
+            {deleteConfirm.type !== 'tenure' && deleteConfirm.type !== 'division' && deleteConfirm.type !== 'department' && deleteConfirm.type !== 'member' && deleteConfirm.type !== 'event' && deleteConfirm.type !== 'form' && deleteConfirm.type !== 'gallery_photo' && (
               <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                 {deleteConfirm.type === 'reset_all' ? (
                   <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
@@ -10188,10 +10224,18 @@ export default function AdminPortal({
                       if (deleteConfirm.type === 'brand_asset' && onDeleteBrandAsset) onDeleteBrandAsset(deleteConfirm.id);
                       if (deleteConfirm.type === 'faq' && onDeleteFaq) onDeleteFaq(deleteConfirm.id);
                       if (deleteConfirm.type === 'reset_all' && onResetDefault) onResetDefault();
+                      if (deleteConfirm.type === 'gallery_photo') {
+                        if (editingItem && editingItem.item) {
+                          const nextPhotos = (editingItem.item.photos || []).filter((_, i) => i !== deleteConfirm.photoIdx);
+                          setEditingItem({ ...editingItem, item: { ...editingItem.item, photos: nextPhotos } });
+                        }
+                      }
 
                       const toastMsg = deleteConfirm.type === 'reset_all' 
                         ? 'Cache berhasil dibersihkan & data berhasil dimuat ulang!' 
-                        : (deleteConfirm.type === 'tenure'
+                        : (deleteConfirm.type === 'gallery_photo'
+                            ? `${deleteConfirm.name} berhasil dihapus dari daftar!`
+                            : (deleteConfirm.type === 'tenure'
                             ? `Periode "${deleteConfirm.name}" berhasil dihapus!`
                             : (deleteConfirm.type === 'division'
                                 ? `Divisi "${deleteConfirm.name}" berhasil dihapus!`
@@ -10203,7 +10247,7 @@ export default function AdminPortal({
                                             ? `Event "${deleteConfirm.name}" berhasil dihapus!`
                                             : (deleteConfirm.type === 'form'
                                                 ? `Formulir "${deleteConfirm.name}" berhasil dihapus!`
-                                                : 'Data berhasil dihapus & disinkronkan!'))))));
+                                                : 'Data berhasil dihapus & disinkronkan!')))))));
 
                       setDeleteConfirm(null);
                       showToast(toastMsg);
@@ -10222,19 +10266,21 @@ export default function AdminPortal({
                   >
                     {deleteConfirm.type === 'reset_all' 
                       ? 'Ya, Sync Data' 
-                      : (deleteConfirm.type === 'tenure' 
-                          ? 'Ya, Hapus Periode' 
-                          : (deleteConfirm.type === 'division'
-                              ? 'Ya, Hapus Divisi'
-                              : (deleteConfirm.type === 'member'
-                                  ? 'Ya, Hapus Personel'
-                                  : (deleteConfirm.type === 'department'
-                                      ? 'Ya, Hapus Departemen'
-                                      : (deleteConfirm.type === 'event'
-                                          ? 'Ya, Hapus Event'
-                                          : (deleteConfirm.type === 'form'
-                                              ? 'Ya, Hapus Formulir'
-                                              : 'Ya, Hapus Data'))))))}
+                      : (deleteConfirm.type === 'gallery_photo'
+                          ? 'Hapus Foto'
+                          : (deleteConfirm.type === 'tenure' 
+                              ? 'Ya, Hapus Periode' 
+                              : (deleteConfirm.type === 'division'
+                                  ? 'Ya, Hapus Divisi'
+                                  : (deleteConfirm.type === 'member'
+                                      ? 'Ya, Hapus Personel'
+                                      : (deleteConfirm.type === 'department'
+                                          ? 'Ya, Hapus Departemen'
+                                          : (deleteConfirm.type === 'event'
+                                              ? 'Ya, Hapus Event'
+                                              : (deleteConfirm.type === 'form'
+                                                  ? 'Ya, Hapus Formulir'
+                                                  : 'Ya, Hapus Data')))))))}
                   </button>
                 </>
               )}
