@@ -3057,11 +3057,11 @@ export default function AdminPortal({
                   type="button"
                   onClick={() => {
                     const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-                    const header = ['ID RSVP', 'ID Event', 'Nama Kegiatan', 'Nama Peserta', 'Squad / Unit', 'Mode Kehadiran', 'Catatan', 'Waktu Konfirmasi'].map(escapeCsv).join(',');
+                    const header = ['ID RSVP', 'ID Event', 'Nama Kegiatan', 'Nama Peserta', 'Departemen', 'Mode Kehadiran', 'Catatan', 'Waktu Konfirmasi'].map(escapeCsv).join(',');
                     const rows = eventRsvps.map(r => [
                       r.id,
                       r.eventId,
-                      r.eventTitle,
+                      events.find(e => e.id === r.eventId)?.title || r.eventTitle || 'Kegiatan',
                       r.attendeeName,
                       r.squadUnit,
                       r.attendanceMode,
@@ -3136,7 +3136,7 @@ export default function AdminPortal({
                       >
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {rsvp.eventTitle}
+                            {events.find(e => e.id === rsvp.eventId)?.title || rsvp.eventTitle || 'Kegiatan'}
                           </div>
                           <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
                             {rsvp.attendeeName} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>• {rsvp.squadUnit}</span>
@@ -4492,14 +4492,14 @@ export default function AdminPortal({
                 fields: newFormRequiresTracking ? [
                   { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
                   { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true },
-                  { id: 'f-squad', label: 'Squad / Unit Kerja', type: 'text', placeholder: 'Squad asal', required: true, isSearchIndex: false },
+                  { id: 'f-squad', label: 'Departemen', type: 'text', placeholder: 'Departemen asal', required: true, isSearchIndex: false },
                   { id: 'f-wa', label: 'Nomor WhatsApp Aktif', type: 'text', placeholder: '0812xxxxxxxx', required: true, isSearchIndex: false },
                   { id: 'f-divisi', label: 'Pilihan Divisi Terkait', type: 'select', source: 'divisions', required: true, isSearchIndex: false },
                   { id: 'f-notes', label: 'Catatan / Alasan Pendaftaran', type: 'textarea', placeholder: 'Tuliskan keterangan pendukung...', required: true, isSearchIndex: false },
                   { id: 'f-doc', label: 'Upload Dokumen / File Pendukung', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false, isSearchIndex: false }
                 ] : [
                   { id: 'f-name', label: 'Nama Lengkap', type: 'text', placeholder: 'Nama pengisi formulir', required: true, isSearchIndex: false },
-                  { id: 'f-unit', label: 'Unit Kerja / Tim', type: 'text', placeholder: 'Unit kerja / Squad', required: true, isSearchIndex: false },
+                  { id: 'f-unit', label: 'Departemen', type: 'text', placeholder: 'Departemen asal', required: true, isSearchIndex: false },
                   { id: 'f-feedback', label: 'Tanggapan / Isian', type: 'textarea', placeholder: 'Tuliskan respon Anda...', required: true, isSearchIndex: false }
                 ]
               };

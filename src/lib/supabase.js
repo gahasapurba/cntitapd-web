@@ -82,6 +82,21 @@ export async function checkFormsTrackingColumn() {
   return isFormsTrackingColSupported;
 }
 
+let isRsvpsDepartmentColChecked = false;
+let isRsvpsDepartmentColSupported = false;
+
+export async function checkRsvpsDepartmentColumn() {
+  if (isRsvpsDepartmentColChecked) return isRsvpsDepartmentColSupported;
+  try {
+    const { error } = await supabase.from('event_rsvps').select('department').limit(1);
+    isRsvpsDepartmentColSupported = !error;
+    isRsvpsDepartmentColChecked = true;
+  } catch (e) {
+    isRsvpsDepartmentColSupported = false;
+  }
+  return isRsvpsDepartmentColSupported;
+}
+
 let isEventsSchemaChecked = false;
 let eventsSchemaMeta = {
   hasDate: true,
@@ -453,24 +468,31 @@ export const rowMappers = {
   },
 
   eventRsvps: {
-    toDb: (item, idx = 0) => ({
-      id: String(item.id),
-      event_id: item.eventId || '',
-      event_title: item.eventTitle || '',
-      attendee_name: item.attendeeName || '',
-      squad_unit: item.squadUnit || '',
-      attendance_mode: item.attendanceMode || 'Hadir Onsite',
-      notes: item.notes || '',
-      submitted_at: item.submittedAt || new Date().toISOString(),
-      sort_order: idx,
-      updated_at: new Date().toISOString()
-    }),
+    toDb: (item, idx = 0) => {
+      const deptVal = item.squadUnit || item.department || item.departemen || '';
+      const row = {
+        id: String(item.id),
+        event_id: item.eventId || '',
+        attendee_name: item.attendeeName || '',
+        attendance_mode: item.attendanceMode || 'Hadir Onsite',
+        notes: item.notes || '',
+        submitted_at: item.submittedAt || new Date().toISOString(),
+        sort_order: idx,
+        updated_at: new Date().toISOString()
+      };
+      if (isRsvpsDepartmentColSupported) {
+        row.department = deptVal;
+      } else {
+        row.squad_unit = deptVal;
+      }
+      return row;
+    },
     fromDb: (row) => ({
       id: row.id,
       eventId: row.event_id || '',
-      eventTitle: row.event_title || '',
       attendeeName: row.attendee_name || '',
-      squadUnit: row.squad_unit || '',
+      squadUnit: row.department || row.departemen || row.squad_unit || '',
+      department: row.department || row.departemen || row.squad_unit || '',
       attendanceMode: row.attendance_mode || 'Hadir Onsite',
       notes: row.notes || '',
       submittedAt: row.submitted_at || row.created_at || '',
@@ -663,6 +685,9 @@ export async function pushCloudState(key, value) {
     }
     if (key === 'forms') {
       await checkFormsTrackingColumn();
+    }
+    if (key === 'eventRsvps') {
+      await checkRsvpsDepartmentColumn();
     }
 
     // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically

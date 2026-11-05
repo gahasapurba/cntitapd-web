@@ -156,7 +156,7 @@ export default function ProgramSection({
     if (!rsvpModalEvent || isSubmittingRsvp) return;
     const errs = {};
     if (!rsvpName.trim()) errs.rsvpName = 'Nama lengkap wajib diisi';
-    if (!rsvpSquad.trim()) errs.rsvpSquad = 'Squad / Unit wajib diisi';
+    if (!rsvpSquad.trim()) errs.rsvpSquad = 'Departemen wajib diisi';
     setRsvpErrors(errs);
     if (Object.keys(errs).length > 0) return;
     setConfirmRsvpOpen(true);
@@ -1418,7 +1418,7 @@ export default function ProgramSection({
                     <div>
                       <input
                         type="text"
-                        placeholder="Squad / Departemen *"
+                        placeholder="Departemen *"
                         value={rsvpSquad}
                         onChange={(e) => {
                           setRsvpSquad(e.target.value);
@@ -1755,7 +1755,7 @@ export default function ProgramSection({
                 <strong style={{ color: 'var(--neon-cyan)' }}>{rsvpName}</strong>
               </div>
               <div style={{ fontSize: '0.84rem' }}>
-                <span style={{ color: 'var(--text-dim)' }}>Squad / Unit: </span>
+                <span style={{ color: 'var(--text-dim)' }}>Departemen: </span>
                 <strong style={{ color: 'var(--text-main)' }}>{rsvpSquad}</strong>
               </div>
               <div style={{ fontSize: '0.84rem' }}>

@@ -190,7 +190,7 @@ export default function KudosSection({
 
   const validateKudos = () => {
     const errs = {};
-    if (!sender.trim()) errs.sender = 'Nama pengirim / squad wajib diisi';
+    if (!sender.trim()) errs.sender = 'Nama pengirim / departemen wajib diisi';
     if (!recipient.trim()) errs.recipient = 'Nama penerima apresiasi wajib diisi';
     if (!message.trim() || message.trim().length < 8) {
       errs.message = 'Pesan apresiasi minimal 8 karakter';
@@ -555,11 +555,11 @@ export default function KudosSection({
               <form onSubmit={handleOpenConfirm} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                    Dari Siapa? (Nama / Squad Kamu) *
+                    Dari Siapa? (Nama / Departemen Kamu) *
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: Dimas (Squad Wealth)"
+                    placeholder="Contoh: Dimas (Departemen Wealth)"
                     value={sender}
                     onChange={(e) => {
                       setSender(e.target.value);
@@ -1159,7 +1159,7 @@ export default function KudosSection({
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                      Nama / Squad Pengusul (Opsional)
+                      Nama / Departemen Pengusul (Opsional)
                     </label>
                     <input
                       type="text"
