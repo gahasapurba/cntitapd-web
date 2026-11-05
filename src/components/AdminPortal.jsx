@@ -5772,7 +5772,7 @@ export default function AdminPortal({
                           border: '1px solid rgba(255, 184, 0, 0.4)',
                           color: 'var(--mandiri-gold)'
                         }}>
-                          💬 Ditanyakan oleh: {f.askedBy} {f.submittedAt ? `• ${formatWibTimestamp(f.submittedAt || f.createdAt).exact || f.submittedAt}` : ''}
+                          💬 Ditanyakan oleh: {f.askedBy} {(f.createdAt || f.submittedAt) ? `• ${formatWibTimestamp(f.createdAt || f.submittedAt).exact || f.createdAt || f.submittedAt}` : ''}
                         </span>
                       )}
                     </div>

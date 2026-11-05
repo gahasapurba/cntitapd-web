@@ -83,7 +83,7 @@ export default function HomeSection({
         question: askQuestionText.trim(),
         answer: 'Menunggu jawaban & penjelasan resmi dari Pengurus CNT IT APD.',
         askedBy: askName.trim() || 'Insan IT APD',
-        submittedAt: ts,
+        createdAt: new Date().toISOString(),
         isPublished: false
       });
     }
