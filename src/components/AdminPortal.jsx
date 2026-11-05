@@ -216,6 +216,7 @@ export default function AdminPortal({
   // Search & Filter states for Submissions in Admin
   const [subStatusFilter, setSubStatusFilter] = useState('all');
   const [subSearchQuery, setSubSearchQuery] = useState('');
+  const [subCurrentPage, setSubCurrentPage] = useState(1);
 
   // Form states for new Brand Asset
   const [assetTitle, setAssetTitle] = useState('');
@@ -1524,10 +1525,10 @@ export default function AdminPortal({
 
             <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #a855f7' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                Seleksi Pendaftar
+                Data Pengisian Form
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
-                {submissions.length + applications.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Berkas</span>
+                {submissions.length + applications.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Respon</span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                 <strong style={{ color: '#10b981' }}>{acceptedSubs} Diterima</strong> • {pendingSubs} Perlu Review
@@ -1561,7 +1562,7 @@ export default function AdminPortal({
           { id: 'visibility', label: 'Visibilitas Halaman & Navbar', icon: Eye },
           { id: 'events', label: `Event (${events.length})`, icon: CalendarDays },
           { id: 'forms', label: `Kelola Formulir (${forms.length})`, icon: ClipboardList },
-          { id: 'submissions', label: `Berkas Masuk (${submissions.length + applications.length})`, icon: FileCheck2 },
+          { id: 'submissions', label: `Data Pengisian Form (${submissions.length + applications.length})`, icon: FileCheck2 },
           { id: 'kudos', label: `Wall of Kudos (${kudosList.length})`, icon: Heart },
           { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
           { id: 'assets', label: `Asset & Template (${brandAssets.length})`, icon: Download },
@@ -4361,7 +4362,7 @@ export default function AdminPortal({
                       })()}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      Deadline: {f.deadline ? formatDeadlineWib(f.deadline) : 'Tanpa batas waktu'} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Berkas Masuk</strong>
+                      Deadline: {f.deadline ? formatDeadlineWib(f.deadline) : 'Tanpa batas waktu'} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Data Pengisian</strong>
                     </div>
                   </div>
 
@@ -4466,7 +4467,7 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* TAB CONTENT: SUBMISSIONS (BERKAS MASUK DINAMIS PER FORM + SELEKSI STATUS & 1-CLICK WA) */}
+      {/* TAB CONTENT: SUBMISSIONS (DATA PENGISIAN FORM DINAMIS PER FORM + SELEKSI STATUS & 1-CLICK WA) */}
       {activeTab === 'submissions' && (() => {
         const statusMeta = {
           Submitted: { label: 'Baru Masuk', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.14)' },
@@ -4476,18 +4477,33 @@ export default function AdminPortal({
           Rejected: { label: 'Ditolak / Arsip', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)' }
         };
 
+        const resolveFormTitle = (sub) => {
+          if (!sub) return 'Formulir';
+          const matched = forms.find(f => f.id === sub.formId);
+          return matched?.title || sub.formTitle || 'Formulir';
+        };
+
         const filteredSubmissions = submissions.filter(s => {
           const matchesForm = selectedSubFilter === 'all' || s.formId === selectedSubFilter;
           const currentStat = s.status || 'Submitted';
           const matchesStatus = subStatusFilter === 'all' || currentStat === subStatusFilter;
           const q = subSearchQuery.trim().toLowerCase();
           const dataString = JSON.stringify(s.data || {}).toLowerCase();
+          const formTitleStr = resolveFormTitle(s).toLowerCase();
           const matchesSearch = !q ||
             dataString.includes(q) ||
-            (s.formTitle || '').toLowerCase().includes(q) ||
+            formTitleStr.includes(q) ||
             (s.adminNotes || '').toLowerCase().includes(q);
           return matchesForm && matchesStatus && matchesSearch;
         });
+
+        const SUBS_PER_PAGE = 10;
+        const totalSubPages = Math.ceil(filteredSubmissions.length / SUBS_PER_PAGE) || 1;
+        const safeSubPage = Math.min(Math.max(1, subCurrentPage), totalSubPages);
+        const paginatedSubmissions = filteredSubmissions.slice(
+          (safeSubPage - 1) * SUBS_PER_PAGE,
+          safeSubPage * SUBS_PER_PAGE
+        );
 
         const extractApplicantPhone = (dataObj = {}) => {
           for (const [k, v] of Object.entries(dataObj)) {
@@ -4508,10 +4524,10 @@ export default function AdminPortal({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  Kotak Masuk & Seleksi Berkas Pendaftar ({filteredSubmissions.length} dari {submissions.length + applications.length})
+                  Data Pengisian Form ({filteredSubmissions.length} dari {submissions.length + applications.length})
                 </h3>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                  Kelola status seleksi pendaftar, tambahkan catatan komite, hubungi via WhatsApp 1-klik, atau unduh laporan CSV.
+                  Kelola data respon pengisian formulir pendaftar, ubah status seleksi, tambahkan catatan, hubungi via WhatsApp 1-klik, atau unduh laporan CSV.
                 </p>
               </div>
 
@@ -4523,7 +4539,10 @@ export default function AdminPortal({
                     type="text"
                     placeholder="Cari nama, NIP, divisi..."
                     value={subSearchQuery}
-                    onChange={(e) => setSubSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSubSearchQuery(e.target.value);
+                      setSubCurrentPage(1);
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 12px 8px 30px',
@@ -4538,7 +4557,10 @@ export default function AdminPortal({
 
                 <select
                   value={selectedSubFilter}
-                  onChange={(e) => setSelectedSubFilter(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedSubFilter(e.target.value);
+                    setSubCurrentPage(1);
+                  }}
                   style={{
                     padding: '8px 14px',
                     borderRadius: 'var(--radius-md)',
@@ -4561,7 +4583,7 @@ export default function AdminPortal({
                     const itemsToExport = filteredSubmissions;
                     
                     if (itemsToExport.length === 0) {
-                      showToast('Tidak ada data berkas untuk diexport.', 'error');
+                      showToast('Tidak ada data pengisian untuk diexport.', 'error');
                       return;
                     }
 
@@ -4585,7 +4607,7 @@ export default function AdminPortal({
                     const dataRows = itemsToExport.map(s => {
                       const baseCols = [
                         s.id,
-                        s.formTitle || 'Formulir',
+                        resolveFormTitle(s),
                         s.status || 'Submitted',
                         s.adminNotes || '',
                         formatWibTimestamp(s.createdAt || s.submittedAt).exact || s.submittedAt || s.createdAt || ''
@@ -4603,12 +4625,12 @@ export default function AdminPortal({
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement("a");
                     link.setAttribute("href", url);
-                    link.setAttribute("download", `berkas_cnt_it_apd_${Date.now()}.csv`);
+                    link.setAttribute("download", `data_pengisian_form_cnt_it_apd_${Date.now()}.csv`);
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
-                    showToast(`Berhasil mengunduh ${itemsToExport.length} berkas dalam format CSV!`);
+                    showToast(`Berhasil mengunduh ${itemsToExport.length} data pengisian ke CSV!`);
                   }}
                   style={{
                     display: 'flex',
@@ -4645,7 +4667,10 @@ export default function AdminPortal({
                   <button
                     key={st.id}
                     type="button"
-                    onClick={() => setSubStatusFilter(st.id)}
+                    onClick={() => {
+                      setSubStatusFilter(st.id);
+                      setSubCurrentPage(1);
+                    }}
                     style={{
                       padding: '6px 14px',
                       borderRadius: 'var(--radius-full)',
@@ -4666,17 +4691,18 @@ export default function AdminPortal({
             {/* Submissions List */}
             {filteredSubmissions.length === 0 && applications.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
-                Tidak ada berkas pendaftaran yang sesuai dengan filter.
+                Tidak ada data pengisian formulir yang sesuai dengan filter.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {filteredSubmissions.map((sub) => {
+                {paginatedSubmissions.map((sub) => {
                   const curStatus = sub.status || 'Submitted';
                   const stInfo = statusMeta[curStatus] || statusMeta.Submitted;
                   const applicantName = extractApplicantName(sub);
                   const applicantWa = extractApplicantPhone(sub.data);
+                  const formTitle = resolveFormTitle(sub);
                   const waMessage = encodeURIComponent(
-                    `Halo ${applicantName}, kami dari Pengurus Culture Network Team (CNT) IT APD Bank Mandiri ingin menindaklanjuti pendaftaran Anda pada "${sub.formTitle || 'Program CNT IT APD'}".`
+                    `Halo ${applicantName}, kami dari Pengurus Culture Network Team (CNT) IT APD Bank Mandiri ingin menindaklanjuti pendaftaran Anda pada "${formTitle}".`
                   );
 
                   return (
@@ -4692,7 +4718,7 @@ export default function AdminPortal({
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{sub.formTitle || 'Formulir'}</span>
+                          <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{formTitle}</span>
                           <strong style={{ color: 'var(--text-main)', fontSize: '0.98rem' }}>
                             {applicantName}
                           </strong>
@@ -4878,6 +4904,98 @@ export default function AdminPortal({
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalSubPages > 1 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingTop: '16px',
+                borderTop: '1px solid var(--border-card)'
+              }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Menampilkan <strong>{(safeSubPage - 1) * SUBS_PER_PAGE + 1} - {Math.min(safeSubPage * SUBS_PER_PAGE, filteredSubmissions.length)}</strong> dari <strong>{filteredSubmissions.length}</strong> data pengisian
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    disabled={safeSubPage === 1}
+                    onClick={() => setSubCurrentPage(prev => Math.max(1, prev - 1))}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: safeSubPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: safeSubPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: safeSubPage === 1 ? 0.45 : 1
+                    }}
+                  >
+                    ← Sebelumnya
+                  </button>
+
+                  {Array.from({ length: totalSubPages }, (_, i) => i + 1).map((pg) => {
+                    if (
+                      pg === 1 || 
+                      pg === totalSubPages || 
+                      (pg >= safeSubPage - 1 && pg <= safeSubPage + 1)
+                    ) {
+                      const isActive = pg === safeSubPage;
+                      return (
+                        <button
+                          key={pg}
+                          type="button"
+                          onClick={() => setSubCurrentPage(pg)}
+                          style={{
+                            minWidth: '32px',
+                            height: '32px',
+                            padding: '0 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                            color: isActive ? '#040914' : 'var(--text-main)',
+                            border: isActive ? 'none' : '1px solid var(--border-card)',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {pg}
+                        </button>
+                      );
+                    }
+                    if (pg === safeSubPage - 2 || pg === safeSubPage + 2) {
+                      return <span key={pg} style={{ color: 'var(--text-dim)', fontSize: '0.8rem', padding: '0 2px' }}>...</span>;
+                    }
+                    return null;
+                  })}
+
+                  <button
+                    type="button"
+                    disabled={safeSubPage === totalSubPages}
+                    onClick={() => setSubCurrentPage(prev => Math.min(totalSubPages, prev + 1))}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: safeSubPage === totalSubPages ? 'var(--text-dim)' : 'var(--text-main)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: safeSubPage === totalSubPages ? 'not-allowed' : 'pointer',
+                      opacity: safeSubPage === totalSubPages ? 0.45 : 1
+                    }}
+                  >
+                    Selanjutnya →
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -8009,7 +8127,7 @@ export default function AdminPortal({
                                 : (deleteConfirm.type === 'event'
                                     ? 'Event Memiliki Data RSVP'
                                     : (deleteConfirm.type === 'form'
-                                        ? 'Formulir Memiliki Berkas Masuk'
+                                        ? 'Formulir Memiliki Data Pengisian'
                                         : 'Data Masih Memiliki Ketergantungan')))))
                     : (deleteConfirm.type === 'tenure'
                         ? 'Konfirmasi Hapus Periode'
@@ -8456,9 +8574,9 @@ export default function AdminPortal({
                     }}>
                       <FileCheck2 size={20} color="#f43f5e" />
                       <div>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Berkas Masuk Peserta</div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Data Pengisian Peserta</div>
                         <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f43f5e' }}>
-                          {deleteConfirm.submissionCount} Berkas Terkirim
+                          {deleteConfirm.submissionCount} Respon Terkirim
                         </div>
                       </div>
                     </div>
@@ -8474,7 +8592,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    💡 <strong>Petunjuk:</strong> Buka tab <strong>Respon Masuk</strong> untuk meninjau, mengunduh lampiran, atau mengekspor data peserta sebelum membersihkan respon jika formulir ini hendak dihapus.
+                    💡 <strong>Petunjuk:</strong> Buka tab <strong>Data Pengisian Form</strong> untuk meninjau, mengunduh lampiran, atau mengekspor data peserta sebelum membersihkan respon jika formulir ini hendak dihapus.
                   </div>
                 </>
               ) : (

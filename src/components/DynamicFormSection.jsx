@@ -67,6 +67,7 @@ export default function DynamicFormSection({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [honeypotVal, setHoneypotVal] = useState('');
+  const [acceptedPage, setAcceptedPage] = useState(1);
 
   // Self-Service Status Tracker state
   const [statusQuery, setStatusQuery] = useState('');
@@ -1192,7 +1193,7 @@ export default function DynamicFormSection({
                             ID: {sub.id} • {formatWibTimestamp(sub.createdAt || sub.submittedAt).exact || sub.submittedAt || sub.createdAt}
                           </span>
                           <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-main)', margin: '2px 0 0 0' }}>
-                            {sub.formTitle}
+                            {forms.find(f => f.id === sub.formId)?.title || sub.formTitle || 'Formulir'}
                           </h4>
                         </div>
                         <span style={{
@@ -1254,6 +1255,14 @@ export default function DynamicFormSection({
         );
         if (acceptedList.length === 0) return null;
 
+        const ACCEPTED_PER_PAGE = 8;
+        const totalAcceptedPages = Math.ceil(acceptedList.length / ACCEPTED_PER_PAGE) || 1;
+        const safeAcceptedPage = Math.min(Math.max(1, acceptedPage), totalAcceptedPages);
+        const paginatedAccepted = acceptedList.slice(
+          (safeAcceptedPage - 1) * ACCEPTED_PER_PAGE,
+          safeAcceptedPage * ACCEPTED_PER_PAGE
+        );
+
         return (
           <section style={{ maxWidth: '820px', margin: '0 auto', width: '100%' }}>
             <div
@@ -1306,7 +1315,7 @@ export default function DynamicFormSection({
                   gap: '14px'
                 }}
               >
-                {acceptedList.map((sub) => {
+                {paginatedAccepted.map((sub) => {
                   const entries = Object.entries(sub.data || {});
                   const nameEntry = entries.find(([k]) => /nama|name|squad|tim/i.test(k));
                   const unitEntry = entries.find(([k]) => /unit|department|dept|divisi|pilihan|cabor/i.test(k) && k !== nameEntry?.[0]);
@@ -1359,7 +1368,7 @@ export default function DynamicFormSection({
                         )}
 
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          📋 {sub.formTitle}
+                          📋 {forms.find(f => f.id === sub.formId)?.title || sub.formTitle || 'Formulir'}
                         </div>
                       </div>
 
@@ -1385,6 +1394,82 @@ export default function DynamicFormSection({
                   );
                 })}
               </div>
+
+              {/* Pagination for Hall of Welcome */}
+              {totalAcceptedPages > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  paddingTop: '16px',
+                  borderTop: '1px solid rgba(16, 185, 129, 0.25)'
+                }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Halaman <strong>{safeAcceptedPage}</strong> dari <strong>{totalAcceptedPages}</strong> ({acceptedList.length} peserta lolos)
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      disabled={safeAcceptedPage === 1}
+                      onClick={() => setAcceptedPage(prev => Math.max(1, prev - 1))}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: safeAcceptedPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: safeAcceptedPage === 1 ? 'not-allowed' : 'pointer',
+                        opacity: safeAcceptedPage === 1 ? 0.45 : 1
+                      }}
+                    >
+                      ← Prev
+                    </button>
+                    {Array.from({ length: totalAcceptedPages }, (_, i) => i + 1).map((pg) => (
+                      <button
+                        key={pg}
+                        type="button"
+                        onClick={() => setAcceptedPage(pg)}
+                        style={{
+                          minWidth: '28px',
+                          height: '28px',
+                          padding: '0 6px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: pg === safeAcceptedPage ? '#10b981' : 'var(--input-bg)',
+                          color: pg === safeAcceptedPage ? '#ffffff' : 'var(--text-main)',
+                          border: pg === safeAcceptedPage ? 'none' : '1px solid var(--border-card)',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {pg}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={safeAcceptedPage === totalAcceptedPages}
+                      onClick={() => setAcceptedPage(prev => Math.min(totalAcceptedPages, prev + 1))}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: safeAcceptedPage === totalAcceptedPages ? 'var(--text-dim)' : 'var(--text-main)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: safeAcceptedPage === totalAcceptedPages ? 'not-allowed' : 'pointer',
+                        opacity: safeAcceptedPage === totalAcceptedPages ? 0.45 : 1
+                      }}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         );

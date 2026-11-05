@@ -385,7 +385,6 @@ export const rowMappers = {
     toDb: (item) => ({
       id: String(item.id),
       form_id: item.formId || '',
-      form_title: item.formTitle || 'Formulir',
       status: item.status || 'Submitted',
       admin_notes: item.adminNotes || '',
       data: item.data || {},
@@ -394,7 +393,7 @@ export const rowMappers = {
     fromDb: (row) => ({
       id: row.id,
       formId: row.form_id,
-      formTitle: row.form_title,
+      formTitle: row.form_title || '',
       submittedAt: row.created_at || row.submitted_at || '',
       createdAt: row.created_at || '',
       status: row.status || 'Submitted',
