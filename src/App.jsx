@@ -1283,6 +1283,7 @@ export default function App() {
               theme={theme}
               initialFormId={activeFormIdFromUrl}
               onSelectFormUrl={(fId) => setCurrentTab('oprec', fId)}
+              activeTenure={activeTenure}
             />
           )}
 

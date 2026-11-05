@@ -32,12 +32,13 @@ export default function DynamicFormSection({
   onSubmitSubmission, 
   theme,
   initialFormId = null,
-  onSelectFormUrl
+  onSelectFormUrl,
+  activeTenure = null
 }) {
   const isDark = theme === 'dark';
 
-  // Active form selection
-  const activeForms = forms.filter(f => f.isOpen !== false);
+  // Active form selection scoped to activeTenure
+  const activeForms = forms.filter(f => f.isOpen !== false && (!activeTenure?.id || f.tenureId === activeTenure.id));
   const trackingActiveForms = activeForms.filter(f => f.requiresTracking !== false);
   const [selectedFormId, setSelectedFormId] = useState(() => {
     if (initialFormId && activeForms.some(f => f.id === initialFormId)) {

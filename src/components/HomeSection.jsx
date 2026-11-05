@@ -102,14 +102,12 @@ export default function HomeSection({
   const isProgramVisible = pageVisibility.program !== false;
   const isKudosVisible = pageVisibility.kudos !== false;
   const activeForms = isOprecVisible 
-    ? forms.filter(f => f.isOpen !== false && !getDeadlineStatus(f.deadline).isExpired) 
+    ? forms.filter(f => f.isOpen !== false && (!activeTenure?.id || f.tenureId === activeTenure.id) && !getDeadlineStatus(f.deadline).isExpired) 
     : [];
   const primaryForm = activeForms[0] || recruitmentInfo || null;
-  const activeDivisions = divisions.filter(d => d.tenureId === activeTenure?.id);
-  const matchingTenureMembers = members.filter(m => !m.tenureId || m.tenureId === activeTenure?.id);
-  const activeMembers = matchingTenureMembers.length > 0 ? matchingTenureMembers : members;
-  const matchingTenureEvents = events.filter(e => !e.tenureId || e.tenureId === activeTenure?.id);
-  const activeEvents = matchingTenureEvents.length > 0 ? matchingTenureEvents : events;
+  const activeDivisions = (divisions || []).filter(d => d.tenureId === activeTenure?.id);
+  const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
+  const activeEvents = (events || []).filter(e => e.tenureId === activeTenure?.id);
   const pembina = activeMembers.find(m => m.category === 'pembina');
   const ketua = activeMembers.find(m => m.role === 'Ketua');
   const wakil = activeMembers.find(m => m.role === 'Wakil Ketua');
@@ -549,65 +547,79 @@ export default function HomeSection({
           )}
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '16px'
-        }}>
-          {activeMembers.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').map((person) => (
-            <div
-              key={person.id}
-              onClick={() => isOrganisasiVisible && handleTabChange('organisasi')}
-              className={`glass-panel ${isOrganisasiVisible ? 'glass-panel-hover' : ''}`}
-              style={{
-                padding: '20px',
-                textAlign: 'center',
-                cursor: isOrganisasiVisible ? 'pointer' : 'default',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '12px',
-                borderTop: `3px solid ${person.color || 'var(--mandiri-gold)'}`
-              }}
-            >
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: `2px solid ${person.color || 'var(--mandiri-gold)'}`,
-                background: '#040914'
-              }}>
-                <img
-                  src={person.image}
-                  alt={person.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              </div>
-
-              <div>
-                <span style={{
-                  fontSize: '0.68rem',
-                  textTransform: 'uppercase',
-                  fontWeight: 800,
-                  color: person.color || 'var(--mandiri-gold)',
-                  fontFamily: 'monospace'
+        {activeMembers.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').length === 0 ? (
+          <div className="glass-panel" style={{
+            padding: '40px 24px',
+            textAlign: 'center',
+            borderRadius: 'var(--radius-md)',
+            border: '1px dashed var(--border-card)',
+            background: 'rgba(255, 255, 255, 0.02)'
+          }}>
+            <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', margin: 0 }}>
+              Belum ada pimpinan atau pengurus terdaftar pada periode kepengurusan ini ({activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}).
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '16px'
+          }}>
+            {activeMembers.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').map((person) => (
+              <div
+                key={person.id}
+                onClick={() => isOrganisasiVisible && handleTabChange('organisasi')}
+                className={`glass-panel ${isOrganisasiVisible ? 'glass-panel-hover' : ''}`}
+                style={{
+                  padding: '20px',
+                  textAlign: 'center',
+                  cursor: isOrganisasiVisible ? 'pointer' : 'default',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                  borderTop: `3px solid ${person.color || 'var(--mandiri-gold)'}`
+                }}
+              >
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: `2px solid ${person.color || 'var(--mandiri-gold)'}`,
+                  background: '#040914'
                 }}>
-                  {person.role}
-                </span>
-                <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
-                  {person.name}
-                </h4>
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                  {person.title}
+                  <img
+                    src={person.image}
+                    alt={person.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    textTransform: 'uppercase',
+                    fontWeight: 800,
+                    color: person.color || 'var(--mandiri-gold)',
+                    fontFamily: 'monospace'
+                  }}>
+                    {person.role}
+                  </span>
+                  <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
+                    {person.name}
+                  </h4>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    {person.title}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 4. RECRUITMENT & FORMS SECTION (Theme-aware dynamic cards) */}

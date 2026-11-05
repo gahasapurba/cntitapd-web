@@ -32,12 +32,8 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
     ])
   );
 
-  const hasTenureGalleries = activeTenure?.id
-    ? galleries.some(g => !g.tenureId || g.tenureId === activeTenure?.id)
-    : false;
-
-  const scopedGalleries = (tenureFilter === 'active' && activeTenure?.id && hasTenureGalleries)
-    ? galleries.filter(g => !g.tenureId || g.tenureId === activeTenure?.id)
+  const scopedGalleries = (tenureFilter === 'active' && activeTenure?.id)
+    ? galleries.filter(g => g.tenureId === activeTenure.id)
     : galleries;
 
   const filteredGalleries = scopedGalleries.filter(g => {

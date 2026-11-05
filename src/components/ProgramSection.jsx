@@ -196,12 +196,8 @@ export default function ProgramSection({
     setTimeout(() => setRsvpSuccess(false), 4000);
   };
 
-  const hasTenureEvents = activeTenure?.id
-    ? events.some((evt) => !evt.tenureId || evt.tenureId === activeTenure?.id)
-    : false;
-
-  const scopedEvents = (tenureFilter === 'active' && activeTenure?.id && hasTenureEvents)
-    ? events.filter((evt) => !evt.tenureId || evt.tenureId === activeTenure?.id)
+  const scopedEvents = (tenureFilter === 'active' && activeTenure?.id)
+    ? events.filter((evt) => evt.tenureId === activeTenure.id)
     : events;
 
   const filteredEvents = scopedEvents.filter((evt) => {
