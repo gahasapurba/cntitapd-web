@@ -44,6 +44,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
+import { soundFx } from '../utils/audio';
 import { 
   parseDateToIso, 
   formatToIndonesianDate, 
@@ -8102,13 +8103,15 @@ export default function AdminPortal({
                           <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               if (isOnlyOne) {
-                                soundFx.playError?.();
+                                soundFx?.playError?.();
                                 showToast('Dokumentasi harus memiliki minimal 1 foto! Tidak dapat menghapus foto terakhir.', 'error');
                                 return;
                               }
-                              soundFx.playClick?.();
+                              soundFx?.playClick?.();
                               setDeleteConfirm({
                                 type: 'gallery_photo',
                                 id: photoUrl,
@@ -9611,7 +9614,7 @@ export default function AdminPortal({
           bottom: 0,
           background: 'rgba(0, 0, 0, 0.8)',
           backdropFilter: 'blur(8px)',
-          zIndex: 99999,
+          zIndex: 100005,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
