@@ -468,14 +468,13 @@ export const rowMappers = {
 
   eventRsvps: {
     toDb: (item, idx = 0) => {
-      const deptVal = item.squadUnit || item.department || item.departemen || '';
+      const deptVal = item.department || item.squadUnit || item.departemen || '';
       const row = {
         id: String(item.id),
         event_id: item.eventId || '',
         attendee_name: item.attendeeName || '',
         attendance_mode: item.attendanceMode || 'Hadir Onsite',
         notes: item.notes || '',
-        submitted_at: item.submittedAt || new Date().toISOString(),
         sort_order: idx,
         updated_at: new Date().toISOString()
       };
@@ -494,8 +493,8 @@ export const rowMappers = {
       department: row.department || row.departemen || row.squad_unit || '',
       attendanceMode: row.attendance_mode || 'Hadir Onsite',
       notes: row.notes || '',
-      submittedAt: row.submitted_at || row.created_at || '',
-      createdAt: row.created_at
+      submittedAt: row.created_at || row.submitted_at || '',
+      createdAt: row.created_at || ''
     })
   },
 

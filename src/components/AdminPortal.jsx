@@ -3066,7 +3066,7 @@ export default function AdminPortal({
                       r.squadUnit,
                       r.attendanceMode,
                       r.notes || '',
-                      r.submittedAt || ''
+                      formatWibTimestamp(r.createdAt || r.submittedAt).exact || r.submittedAt || r.createdAt || ''
                     ].map(escapeCsv).join(','));
                     const csvString = '\uFEFF' + [header, ...rows].join('\n');
                     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
