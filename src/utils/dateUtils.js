@@ -130,3 +130,69 @@ export function getDeadlineStatus(deadlineStr) {
   };
 }
 
+/**
+ * Dynamically formats an ISO timestamp into Indonesian relative time and exact WIB time.
+ * Example: "1 Hari yang lalu (Rabu, 04 November 2026 - 18:32 WIB)"
+ */
+export function formatWibTimestamp(isoStr) {
+  if (!isoStr) return { relative: 'Baru saja', exact: '', full: 'Baru saja' };
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return { relative: String(isoStr), exact: String(isoStr), full: String(isoStr) };
+
+  // Enforce Asia/Jakarta (WIB, UTC+7) regardless of local browser timezone
+  const formatter = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  const parts = formatter.formatToParts(d);
+  const partMap = {};
+  parts.forEach(p => { partMap[p.type] = p.value; });
+
+  const weekday = partMap.weekday || '';
+  const day = (partMap.day || '').padStart(2, '0');
+  const month = partMap.month || '';
+  const year = partMap.year || '';
+  const hour = (partMap.hour || '00').padStart(2, '0');
+  const minute = (partMap.minute || '00').padStart(2, '0');
+
+  const exact = `${weekday}, ${day} ${month} ${year} - ${hour}:${minute} WIB`;
+
+  // Relative time calculation
+  const now = new Date();
+  const diffSec = Math.max(0, Math.floor((now.getTime() - d.getTime()) / 1000));
+
+  let relative = 'Baru saja';
+  if (diffSec < 60) {
+    relative = 'Baru saja';
+  } else if (diffSec < 3600) {
+    const mins = Math.floor(diffSec / 60);
+    relative = `${mins} Menit yang lalu`;
+  } else if (diffSec < 86400) {
+    const hrs = Math.floor(diffSec / 3600);
+    relative = `${hrs} Jam yang lalu`;
+  } else if (diffSec < 86400 * 30) {
+    const days = Math.floor(diffSec / 86400);
+    relative = `${days} Hari yang lalu`;
+  } else if (diffSec < 86400 * 365) {
+    const months = Math.floor(diffSec / (86400 * 30));
+    relative = `${months} Bulan yang lalu`;
+  } else {
+    const years = Math.floor(diffSec / (86400 * 365));
+    relative = `${years} Tahun yang lalu`;
+  }
+
+  return {
+    relative,
+    exact,
+    full: `${relative} (${exact})`
+  };
+}
+
+

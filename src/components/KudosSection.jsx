@@ -16,6 +16,7 @@ import {
   Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { formatWibTimestamp } from '../utils/dateUtils';
 
 export default function KudosSection({
   kudosList = [],
@@ -160,7 +161,8 @@ export default function KudosSection({
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
       ctx.font = '500 17px sans-serif';
-      ctx.fillText(`${kudosItem.exactTimestamp || kudosItem.date || ''}  •  ❤️ ${kudosItem.likes || 1} Apresiasi`, 76, 598);
+      const wibTime = formatWibTimestamp(kudosItem.createdAt || kudosItem.created_at || kudosItem.exactTimestamp);
+      ctx.fillText(`${wibTime.exact || 'WIB'}  •  ❤️ ${kudosItem.likes || 1} Apresiasi`, 76, 598);
 
       ctx.fillStyle = 'rgba(255, 184, 0, 0.85)';
       ctx.font = 'bold 17px sans-serif';
@@ -216,15 +218,15 @@ export default function KudosSection({
     if (isSubmittingKudos) return;
     setIsSubmittingKudos(true);
 
+    const nowIso = new Date().toISOString();
     onAddKudos({
       id: 'kd-' + Date.now(),
-      sender: sender.trim(),
+      sender: sender.trim() || 'Anonim',
       recipient: recipient.trim(),
       category,
       message: message.trim(),
       likes: 1,
-      date: 'Baru saja',
-      exactTimestamp: getExactTimestamp()
+      createdAt: nowIso
     });
 
     confetti({
@@ -772,11 +774,8 @@ export default function KudosSection({
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-muted)', fontWeight: 600 }}>
                           <Clock size={12} color="var(--mandiri-gold)" />
-                          <span>{kudos.exactTimestamp || kudos.date}</span>
+                          <span>{formatWibTimestamp(kudos.createdAt || kudos.created_at || kudos.exactTimestamp).full}</span>
                         </div>
-                        {kudos.exactTimestamp && kudos.date !== 'Baru saja' && (
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>({kudos.date})</span>
-                        )}
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>

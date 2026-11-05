@@ -27,7 +27,7 @@ import {
   X
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
-import { getDeadlineStatus } from '../utils/dateUtils';
+import { getDeadlineStatus, formatWibTimestamp } from '../utils/dateUtils';
 
 export default function HomeSection({ 
   activeTenure, 
@@ -1117,7 +1117,7 @@ export default function HomeSection({
                     </div>
                     <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', borderTop: '1px solid var(--border-card)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between' }}>
                       <span>Dari: <strong>{k.sender}</strong></span>
-                      <span>{k.date}</span>
+                      <span>{formatWibTimestamp(k.createdAt || k.created_at || k.date).relative}</span>
                     </div>
                   </div>
                 ))}

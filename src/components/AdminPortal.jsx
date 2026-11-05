@@ -40,7 +40,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
-import { parseDateToIso, formatToIndonesianDate, getDeadlineStatus } from '../utils/dateUtils';
+import { parseDateToIso, formatToIndonesianDate, getDeadlineStatus, formatWibTimestamp } from '../utils/dateUtils';
 
 function formatWaPhone(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -4671,7 +4671,7 @@ export default function AdminPortal({
                     k.recipient,
                     k.message,
                     k.likes || 1,
-                    k.exactTimestamp || k.date || ''
+                    formatWibTimestamp(k.createdAt || k.created_at || k.exactTimestamp).full
                   ].map(escapeCsv).join(','));
                   const csvString = '\uFEFF' + [header, ...rows].join('\n');
                   const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
@@ -4739,7 +4739,7 @@ export default function AdminPortal({
                     </p>
 
                     <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
-                      <span>⏱️ {kudos.exactTimestamp || kudos.date}</span>
+                      <span>⏱️ {formatWibTimestamp(kudos.createdAt || kudos.created_at || kudos.exactTimestamp).full}</span>
                       <span>•</span>
                       <span>❤️ {kudos.likes || 1} Apresiasi</span>
                     </div>

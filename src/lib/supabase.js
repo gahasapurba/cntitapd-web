@@ -203,8 +203,7 @@ export const rowMappers = {
       category: item.category || 'Kolaboratif',
       message: item.message || '',
       likes: Number(item.likes ?? 1),
-      date: item.date || 'Baru saja',
-      exact_timestamp: item.exactTimestamp || item.date || '',
+      created_at: item.createdAt || item.created_at || new Date().toISOString(),
       sort_order: idx
     }),
     fromDb: (row) => ({
@@ -214,8 +213,7 @@ export const rowMappers = {
       category: row.category || 'Kolaboratif',
       message: row.message,
       likes: Number(row.likes ?? 1),
-      date: row.date || 'Baru saja',
-      exactTimestamp: row.exact_timestamp || row.date || ''
+      createdAt: row.created_at || new Date().toISOString()
     })
   },
 
