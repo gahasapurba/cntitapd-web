@@ -1017,7 +1017,7 @@ export default function HomeSection({
                             ● {statusLabel}
                           </span>
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>
-                            {evt.divisionName || evt.badge}
+                            {evt.divisionName || evt.category || evt.badge}
                           </span>
                         </div>
                         <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 8px 0', lineHeight: 1.35 }}>

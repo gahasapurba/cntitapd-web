@@ -19,7 +19,8 @@ import {
   Send,
   Share2,
   Link2,
-  HelpCircle
+  HelpCircle,
+  Tag
 } from 'lucide-react';
 import { formatWibEventRange } from '../utils/dateUtils';
 
@@ -494,9 +495,9 @@ export default function ProgramSection({
                       <span className="badge-gold" style={{ fontSize: '0.7rem' }}>
                         {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
                       </span>
-                      {evt.badge && (
+                      {(evt.category || evt.badge) && (
                         <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                          {evt.badge}
+                          {evt.category || evt.badge}
                         </span>
                       )}
                     </div>
@@ -1212,6 +1213,12 @@ export default function ProgramSection({
                   <Users size={14} color="var(--mandiri-gold)" />
                   <strong>Peserta:</strong> <span>{rsvpModalEvent.kpi}</span>
                 </div>
+                {(rsvpModalEvent.category || rsvpModalEvent.badge) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Tag size={14} color="var(--neon-cyan)" />
+                    <strong>Kategori:</strong> <span>{rsvpModalEvent.category || rsvpModalEvent.badge}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Users size={14} color="var(--neon-emerald)" />
                   <strong>Divisi Penyelenggara:</strong> <span>{rsvpModalEvent.divisionName || 'CNT IT APD'}</span>

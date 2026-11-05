@@ -404,6 +404,7 @@ export default function AdminPortal({
 
   // Form states for Proker / Event
   const [eventTitle, setEventTitle] = useState('');
+  const [eventCategory, setEventCategory] = useState('Program Budaya');
   const [eventDivId, setEventDivId] = useState('');
   const [eventTenureId, setEventTenureId] = useState(activeTenure?.id || '');
   const [eventStartDate, setEventStartDate] = useState('');
@@ -477,6 +478,8 @@ export default function AdminPortal({
     const eDate = eventEndDate || sDate;
     const dateLabel = formatWibEventRange(sDate, eDate);
 
+    const finalCategory = eventCategory.trim() || 'Program Budaya';
+
     if (onAddEvent) {
       onAddEvent({
         id: 'evt-' + Date.now(),
@@ -487,7 +490,8 @@ export default function AdminPortal({
         date: dateLabel,
         startDate: sDate,
         endDate: eDate,
-        badge: 'Program Budaya',
+        category: finalCategory,
+        badge: finalCategory,
         location: eventLocation.trim() || 'Plaza Mandiri',
         kpi: eventKpi.trim() || 'Officer IT APD',
         description: eventDesc.trim(),
@@ -498,6 +502,7 @@ export default function AdminPortal({
 
     const savedTitle = eventTitle.trim();
     setEventTitle('');
+    setEventCategory('Program Budaya');
     setEventStartDate('');
     setEventEndDate('');
     setEventLocation('');
@@ -1828,7 +1833,7 @@ export default function AdminPortal({
 
                 <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Label Badge</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Label Tag / Kategori (misal: INFO / UPDATE)</label>
                     <input
                       type="text"
                       defaultValue={announcementBar?.badge || 'INFO TERBARU'}
@@ -2668,6 +2673,37 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                🏷️ Kategori Kegiatan
+              </label>
+              <input
+                type="text"
+                list="event-category-list"
+                placeholder="Pilih atau ketik kategori..."
+                value={eventCategory}
+                onChange={(e) => setEventCategory(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+              <datalist id="event-category-list">
+                <option value="Program Budaya" />
+                <option value="Workshop & Sharing Session" />
+                <option value="Social & Engagement" />
+                <option value="Olahraga & Well-being" />
+                <option value="Kompetisi & Inovasi" />
+                <option value="Apresiasi & Rekognisi" />
+                <option value="Townhall & Perayaan" />
+              </datalist>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Status Pelaksanaan
               </label>
               <select
@@ -2785,13 +2821,20 @@ export default function AdminPortal({
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
                           <span style={{ fontSize: '0.7rem', color: divObj?.color || 'var(--mandiri-gold)', fontWeight: 800, textTransform: 'uppercase' }}>
                             {evt.divisionName || divObj?.name}
                           </span>
-                          <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
-                            {evt.status}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            {(evt.category || evt.badge) && (
+                              <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
+                                {evt.category || evt.badge}
+                              </span>
+                            )}
+                            <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
+                              {evt.status}
+                            </span>
+                          </div>
                         </div>
                         <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '4px' }}>
                           {evt.title}
@@ -5175,7 +5218,7 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Label Badge (misal: Official Asset / PPTX / HD)
+                Label Kategori Tambahan / Tag (misal: Official Asset / PPTX / HD)
               </label>
               <input
                 type="text"
@@ -7146,6 +7189,38 @@ export default function AdminPortal({
                   </div>
                 </div>
                 <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    🏷️ Kategori Program / Kegiatan
+                  </label>
+                  <input
+                    type="text"
+                    list="edit-event-category-list"
+                    placeholder="Pilih atau ketik kategori..."
+                    value={editingItem.item.category || editingItem.item.badge || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingItem({
+                        ...editingItem,
+                        item: {
+                          ...editingItem.item,
+                          category: val,
+                          badge: val
+                        }
+                      });
+                    }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                  <datalist id="edit-event-category-list">
+                    <option value="Program Budaya" />
+                    <option value="Workshop & Sharing Session" />
+                    <option value="Social & Engagement" />
+                    <option value="Olahraga & Well-being" />
+                    <option value="Kompetisi & Inovasi" />
+                    <option value="Apresiasi & Rekognisi" />
+                    <option value="Townhall & Perayaan" />
+                  </datalist>
+                </div>
+                <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Kegiatan</label>
                   <textarea
                     rows={3}
@@ -7184,7 +7259,7 @@ export default function AdminPortal({
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Label Badge</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Label Kategori Tambahan / Tag</label>
                     <input
                       type="text"
                       value={editingItem.item.badge || ''}
@@ -7530,8 +7605,11 @@ export default function AdminPortal({
                       showToast('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)', 'error');
                       return;
                     }
+                    const catVal = (editingItem.item.category || editingItem.item.badge || 'Program Budaya').trim();
                     onUpdateEvent({
                       ...editingItem.item,
+                      category: catVal,
+                      badge: catVal,
                       totalRab: Number(editingItem.item.totalRab),
                       date: (editingItem.item.date || '').trim() || editingItem.item.startDate || 'TBD'
                     });
