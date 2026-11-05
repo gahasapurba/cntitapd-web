@@ -246,15 +246,40 @@ export function toDateInputValue(str) {
 }
 
 /**
- * Format single date/datetime string into Indonesian text with WIB timezone.
- * e.g. "2026-03-10T14:30" -> "10 Maret 2026, 14:30 WIB"
- * e.g. "2026-03-10" -> "10 Maret 2026"
+ * Format flexible date string into Indonesian text with WIB timezone.
+ * Supports 4 modes:
+ * 1. Tahun Saja: "2026" -> "2026"
+ * 2. Bulan & Tahun: "2026-05" -> "Mei 2026"
+ * 3. Rentang Tanggal: "2026-08-18/2026-08-20" -> "18 - 20 Agustus 2026"
+ * 4. Tanggal Lengkap: "2026-03-10" -> "10 Maret 2026"
+ * Also supports ISO datetime / timestamptz with hours (e.g. "2026-03-10T14:30" -> "10 Maret 2026 • 14:30 WIB")
  */
 export function formatWibDateTime(str, options = {}) {
   if (!str) return '';
   const trimmed = String(str).trim();
 
-  // If plain YYYY-MM-DD
+  // 1. Tahun saja (YYYY)
+  if (/^\d{4}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // 2. Bulan & Tahun (YYYY-MM)
+  if (/^\d{4}-\d{2}$/.test(trimmed)) {
+    const [y, m] = trimmed.split('-').map(Number);
+    if (m >= 1 && m <= 12) {
+      return `${INDONESIAN_MONTHS[m - 1]} ${y}`;
+    }
+  }
+
+  // 3. Rentang Tanggal (YYYY-MM-DD/YYYY-MM-DD atau YYYY-MM-DD to YYYY-MM-DD)
+  if (trimmed.includes('/') || /\sto\s/i.test(trimmed)) {
+    const parts = trimmed.split(/[\/]|\sto\s/i).map(s => s.trim());
+    if (parts.length === 2 && /^\d{4}-\d{2}-\d{2}/.test(parts[0]) && /^\d{4}-\d{2}-\d{2}/.test(parts[1])) {
+      return formatWibEventRange(parts[0], parts[1]);
+    }
+  }
+
+  // 4. If plain YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     const [y, m, d] = trimmed.split('-').map(Number);
     return `${d} ${INDONESIAN_MONTHS[m - 1]} ${y}`;
@@ -292,6 +317,127 @@ export function formatWibDateTime(str, options = {}) {
   }
 
   return trimmed;
+}
+
+/**
+ * Parse an existing date string into components and active mode.
+ * Modes: 'date' (Tanggal Lengkap), 'range' (Rentang Tanggal), 'month' (Bulan & Tahun), 'year' (Tahun Saja)
+ */
+export function parseFlexibleDate(str) {
+  const curYear = new Date().getFullYear();
+  const curMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+  const today = new Date().toISOString().split('T')[0];
+
+  if (!str) {
+    return {
+      mode: 'date',
+      date: today,
+      startDate: today,
+      endDate: today,
+      month: `${curYear}-${curMonth}`,
+      year: String(curYear)
+    };
+  }
+
+  const trimmed = String(str).trim();
+
+  // Mode 4: Year only (e.g. "2026")
+  if (/^\d{4}$/.test(trimmed)) {
+    return {
+      mode: 'year',
+      year: trimmed,
+      date: `${trimmed}-01-01`,
+      startDate: `${trimmed}-01-01`,
+      endDate: `${trimmed}-12-31`,
+      month: `${trimmed}-01`
+    };
+  }
+
+  // Mode 1: Month & Year (e.g. "2026-05")
+  if (/^\d{4}-\d{2}$/.test(trimmed)) {
+    const [y] = trimmed.split('-');
+    return {
+      mode: 'month',
+      month: trimmed,
+      year: y,
+      date: `${trimmed}-01`,
+      startDate: `${trimmed}-01`,
+      endDate: `${trimmed}-28`
+    };
+  }
+
+  // Mode 3: Date range (e.g. "2026-08-18/2026-08-20")
+  if (trimmed.includes('/') || /\sto\s/i.test(trimmed)) {
+    const parts = trimmed.split(/[\/]|\sto\s/i).map(s => s.trim());
+    const sDate = parts[0]?.split('T')[0] || today;
+    const eDate = parts[1]?.split('T')[0] || sDate;
+    return {
+      mode: 'range',
+      startDate: sDate,
+      endDate: eDate,
+      date: sDate,
+      month: sDate.slice(0, 7) || `${curYear}-${curMonth}`,
+      year: sDate.slice(0, 4) || String(curYear)
+    };
+  }
+
+  // Mode 2: Specific date (YYYY-MM-DD or timestamptz)
+  const dVal = trimmed.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dVal)) {
+    return {
+      mode: 'date',
+      date: dVal,
+      startDate: dVal,
+      endDate: dVal,
+      month: dVal.slice(0, 7) || `${curYear}-${curMonth}`,
+      year: dVal.slice(0, 4) || String(curYear)
+    };
+  }
+
+  // Legacy string fallback (e.g. "Mei 2026" or "10 Maret 2026")
+  const isoMatch = parseDateToIso(trimmed);
+  if (isoMatch) {
+    return {
+      mode: 'date',
+      date: isoMatch,
+      startDate: isoMatch,
+      endDate: isoMatch,
+      month: isoMatch.slice(0, 7),
+      year: isoMatch.slice(0, 4)
+    };
+  }
+
+  return {
+    mode: 'date',
+    date: today,
+    startDate: today,
+    endDate: today,
+    month: `${curYear}-${curMonth}`,
+    year: String(curYear)
+  };
+}
+
+/**
+ * Builds the compact standard ISO string based on the chosen mode.
+ */
+export function buildFlexibleDate(mode, fields = {}) {
+  const curYear = new Date().getFullYear();
+  const curMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+  const today = new Date().toISOString().split('T')[0];
+
+  if (mode === 'year') {
+    return String(fields.year || curYear).trim();
+  }
+  if (mode === 'month') {
+    return String(fields.month || `${curYear}-${curMonth}`).trim();
+  }
+  if (mode === 'range') {
+    const s = String(fields.startDate || today).trim();
+    const e = String(fields.endDate || s).trim();
+    return `${s}/${e}`;
+  }
+  // Default mode: 'date'
+  return String(fields.date || today).trim();
 }
 
 /**

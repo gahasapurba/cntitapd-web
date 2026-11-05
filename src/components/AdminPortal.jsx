@@ -48,7 +48,9 @@ import {
   formatWibDateTime,
   formatWibEventRange,
   toDatetimeLocalValue,
-  toDateInputValue
+  toDateInputValue,
+  parseFlexibleDate,
+  buildFlexibleDate
 } from '../utils/dateUtils';
 
 function formatWaPhone(raw = '') {
@@ -393,9 +395,14 @@ export default function AdminPortal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [editingItem, deleteConfirm, showExecutiveReportModal]);
 
-  // Form states for new Gallery Event
+  // Form states for new Gallery Event (Flexible 4 Date Modes)
   const [galTitle, setGalTitle] = useState('');
-  const [galDate, setGalDate] = useState('');
+  const [galDateMode, setGalDateMode] = useState('date'); // 'date' | 'range' | 'month' | 'year'
+  const [galDateVal, setGalDateVal] = useState(new Date().toISOString().split('T')[0]);
+  const [galStartDate, setGalStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [galEndDate, setGalEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [galMonth, setGalMonth] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
+  const [galYear, setGalYear] = useState(String(new Date().getFullYear()));
   const [galDivisionId, setGalDivisionId] = useState('');
   const [galDivision, setGalDivision] = useState('Creative Media');
   const [galTenureId, setGalTenureId] = useState(activeTenure?.id || '');
@@ -929,6 +936,14 @@ export default function AdminPortal({
     // Cleaned valid doc links
     const validDocLinks = galDocLinks.filter(l => l.url.trim() && l.text.trim());
 
+    const finalGalDate = buildFlexibleDate(galDateMode, {
+      date: galDateVal,
+      startDate: galStartDate,
+      endDate: galEndDate,
+      month: galMonth,
+      year: galYear
+    });
+
     onAddGallery({
       id: 'gal-' + Date.now(),
       tenureId: targetGalTenureId,
@@ -936,7 +951,7 @@ export default function AdminPortal({
       division: selectedDiv ? selectedDiv.name : galDivision,
       divisionName: selectedDiv ? selectedDiv.name : galDivision,
       title: galTitle,
-      date: galDate || '',
+      date: finalGalDate,
       description: galDesc,
       photos: photoList,
       docLinks: validDocLinks
@@ -944,7 +959,12 @@ export default function AdminPortal({
 
     const savedGalTitle = galTitle;
     setGalTitle('');
-    setGalDate('');
+    setGalDateMode('date');
+    setGalDateVal(new Date().toISOString().split('T')[0]);
+    setGalStartDate(new Date().toISOString().split('T')[0]);
+    setGalEndDate(new Date().toISOString().split('T')[0]);
+    setGalMonth(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
+    setGalYear(String(new Date().getFullYear()));
     setGalDivisionId('');
     setGalDesc('');
     setGalPhotos('');
@@ -3073,24 +3093,102 @@ export default function AdminPortal({
               {renderFieldError('galTitle')}
             </div>
 
-            <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                📅 Tanggal Pelaksanaan
-              </label>
-              <input
-                type="date"
-                value={toDateInputValue(galDate)}
-                onChange={(e) => setGalDate(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.85rem'
-                }}
-              />
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '6px' }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  📅 Format & Waktu Pelaksanaan
+                </label>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'date', label: 'Tanggal Lengkap' },
+                    { id: 'range', label: 'Rentang Tanggal' },
+                    { id: 'month', label: 'Bulan & Tahun' },
+                    { id: 'year', label: 'Tahun Saja' }
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setGalDateMode(m.id)}
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        borderRadius: '5px',
+                        border: '1px solid',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        background: galDateMode === m.id ? 'var(--mandiri-gold)' : 'rgba(255, 255, 255, 0.05)',
+                        color: galDateMode === m.id ? '#040914' : 'var(--text-muted)',
+                        borderColor: galDateMode === m.id ? 'var(--mandiri-gold)' : 'var(--border-card)'
+                      }}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Conditional Inputs based on galDateMode */}
+              {galDateMode === 'date' && (
+                <input
+                  type="date"
+                  value={galDateVal}
+                  onChange={(e) => setGalDateVal(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                />
+              )}
+
+              {galDateMode === 'range' && (
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '2px' }}>Tanggal Mulai</span>
+                    <input
+                      type="date"
+                      value={galStartDate}
+                      onChange={(e) => setGalStartDate(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '2px' }}>Tanggal Selesai</span>
+                    <input
+                      type="date"
+                      value={galEndDate}
+                      onChange={(e) => setGalEndDate(e.target.value)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {galDateMode === 'month' && (
+                <input
+                  type="month"
+                  value={galMonth}
+                  onChange={(e) => setGalMonth(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                />
+              )}
+
+              {galDateMode === 'year' && (
+                <input
+                  type="number"
+                  min="2000"
+                  max="2099"
+                  placeholder="Contoh: 2026"
+                  value={galYear}
+                  onChange={(e) => setGalYear(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                />
+              )}
+
+              {/* Live Preview Pill */}
+              <div style={{ fontSize: '0.75rem', color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>👁️ Tampilan di Web:</span>
+                <strong style={{ color: '#fff', background: 'rgba(56, 189, 248, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                  {formatWibDateTime(buildFlexibleDate(galDateMode, { date: galDateVal, startDate: galStartDate, endDate: galEndDate, month: galMonth, year: galYear }))}
+                </strong>
+              </div>
             </div>
 
             <div>
@@ -6250,16 +6348,147 @@ export default function AdminPortal({
                 </div>
 
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      📅 Tanggal Pelaksanaan
-                    </label>
-                    <input
-                      type="date"
-                      value={toDateInputValue(editingItem.item.date)}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    />
+                  <div style={{ gridColumn: 'span 2', background: 'rgba(255,255,255,0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(() => {
+                      const currentParsed = parseFlexibleDate(editingItem.item.date);
+                      const activeMode = editingItem.item._dateMode || currentParsed.mode;
+                      
+                      const setMode = (newMode) => {
+                        const newDateStr = buildFlexibleDate(newMode, {
+                          date: editingItem.item._dateVal !== undefined ? editingItem.item._dateVal : currentParsed.date,
+                          startDate: editingItem.item._startDate !== undefined ? editingItem.item._startDate : currentParsed.startDate,
+                          endDate: editingItem.item._endDate !== undefined ? editingItem.item._endDate : currentParsed.endDate,
+                          month: editingItem.item._month !== undefined ? editingItem.item._month : currentParsed.month,
+                          year: editingItem.item._year !== undefined ? editingItem.item._year : currentParsed.year
+                        });
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            _dateMode: newMode,
+                            date: newDateStr
+                          }
+                        });
+                      };
+
+                      const updateField = (key, val) => {
+                        const stateObj = {
+                          date: editingItem.item._dateVal !== undefined ? editingItem.item._dateVal : currentParsed.date,
+                          startDate: editingItem.item._startDate !== undefined ? editingItem.item._startDate : currentParsed.startDate,
+                          endDate: editingItem.item._endDate !== undefined ? editingItem.item._endDate : currentParsed.endDate,
+                          month: editingItem.item._month !== undefined ? editingItem.item._month : currentParsed.month,
+                          year: editingItem.item._year !== undefined ? editingItem.item._year : currentParsed.year,
+                          [key]: val
+                        };
+                        const newDateStr = buildFlexibleDate(activeMode, stateObj);
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            [`_${key}`]: val,
+                            date: newDateStr
+                          }
+                        });
+                      };
+
+                      return (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '6px' }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              📅 Format & Waktu Pelaksanaan
+                            </label>
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              {[
+                                { id: 'date', label: 'Tanggal Lengkap' },
+                                { id: 'range', label: 'Rentang Tanggal' },
+                                { id: 'month', label: 'Bulan & Tahun' },
+                                { id: 'year', label: 'Tahun Saja' }
+                              ].map((m) => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => setMode(m.id)}
+                                  style={{
+                                    padding: '3px 8px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    borderRadius: '5px',
+                                    border: '1px solid',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    background: activeMode === m.id ? 'var(--mandiri-gold)' : 'rgba(255, 255, 255, 0.05)',
+                                    color: activeMode === m.id ? '#040914' : 'var(--text-muted)',
+                                    borderColor: activeMode === m.id ? 'var(--mandiri-gold)' : 'var(--border-card)'
+                                  }}
+                                >
+                                  {m.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {activeMode === 'date' && (
+                            <input
+                              type="date"
+                              value={editingItem.item._dateVal !== undefined ? editingItem.item._dateVal : currentParsed.date}
+                              onChange={(e) => updateField('date', e.target.value)}
+                              style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                            />
+                          )}
+
+                          {activeMode === 'range' && (
+                            <div className="mobile-two-col" style={{ gap: '10px' }}>
+                              <div>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '2px' }}>Tanggal Mulai</span>
+                                <input
+                                  type="date"
+                                  value={editingItem.item._startDate !== undefined ? editingItem.item._startDate : currentParsed.startDate}
+                                  onChange={(e) => updateField('startDate', e.target.value)}
+                                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                                />
+                              </div>
+                              <div>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '2px' }}>Tanggal Selesai</span>
+                                <input
+                                  type="date"
+                                  value={editingItem.item._endDate !== undefined ? editingItem.item._endDate : currentParsed.endDate}
+                                  onChange={(e) => updateField('endDate', e.target.value)}
+                                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {activeMode === 'month' && (
+                            <input
+                              type="month"
+                              value={editingItem.item._month !== undefined ? editingItem.item._month : currentParsed.month}
+                              onChange={(e) => updateField('month', e.target.value)}
+                              style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                            />
+                          )}
+
+                          {activeMode === 'year' && (
+                            <input
+                              type="number"
+                              min="2000"
+                              max="2099"
+                              placeholder="Contoh: 2026"
+                              value={editingItem.item._year !== undefined ? editingItem.item._year : currentParsed.year}
+                              onChange={(e) => updateField('year', e.target.value)}
+                              style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                            />
+                          )}
+
+                          <div style={{ fontSize: '0.75rem', color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>👁️ Tampilan di Web:</span>
+                            <strong style={{ color: '#fff', background: 'rgba(56, 189, 248, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                              {formatWibDateTime(editingItem.item.date)}
+                            </strong>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Divisi Penyelenggara</label>
@@ -7579,7 +7808,16 @@ export default function AdminPortal({
                       setIsUploadingMedia(false);
                     }
                     finalPhotos = finalPhotos.filter(u => typeof u === 'string' && !u.startsWith('blob:'));
-                    onUpdateGallery({ ...editingItem.item, photos: finalPhotos });
+                    const {
+                      _dateMode,
+                      _dateVal,
+                      _startDate,
+                      _endDate,
+                      _month,
+                      _year,
+                      ...cleanGalItem
+                    } = editingItem.item;
+                    onUpdateGallery({ ...cleanGalItem, photos: finalPhotos });
                   }
                   if (editingItem.type === 'tenure' && onUpdateTenure) {
                     const finalMisi = editingItem.item.rawMisi !== undefined
