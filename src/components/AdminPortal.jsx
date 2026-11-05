@@ -297,6 +297,7 @@ export default function AdminPortal({
   const [newFormDeadline, setNewFormDeadline] = useState('');
   const [newFormSubtitle, setNewFormSubtitle] = useState('');
   const [newFormRequiresTracking, setNewFormRequiresTracking] = useState(true);
+  const [newFormTenureId, setNewFormTenureId] = useState(activeTenure?.id || '');
   const [selectedSubFilter, setSelectedSubFilter] = useState('all');
   const [draggedFieldIndex, setDraggedFieldIndex] = useState(null);
   const [dragOverFieldIndex, setDragOverFieldIndex] = useState(null);
@@ -5015,6 +5016,7 @@ export default function AdminPortal({
                 return;
               }
 
+              const targetTenureId = newFormTenureId || activeTenure?.id || tenures[0]?.id || '';
               const newForm = {
                 id: 'form-' + Date.now(),
                 title: newFormTitle.trim(),
@@ -5023,6 +5025,7 @@ export default function AdminPortal({
                 deadline: newFormDeadline.trim() || 'Menyesuaikan',
                 isOpen: true,
                 requiresTracking: newFormRequiresTracking,
+                tenureId: targetTenureId,
                 fields: newFormRequiresTracking ? [
                   { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
                   { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true },
@@ -5075,6 +5078,23 @@ export default function AdminPortal({
                 style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.newFormTitle ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
               />
               {renderFieldError('newFormTitle')}
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                📅 Periode Kepengurusan (Tenure) <span style={{ color: '#f43f5e' }}>*</span>
+              </label>
+              <select
+                value={newFormTenureId || activeTenure?.id || tenures[0]?.id || ''}
+                onChange={(e) => setNewFormTenureId(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              >
+                {tenures.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title || `Kepengurusan CNT ${t.code}`} {t.id === activeTenure?.id ? '(Aktif)' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -5229,6 +5249,17 @@ export default function AdminPortal({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '240px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{f.category || 'Formulir'}</span>
+                      {(() => {
+                        const formTenure = tenures.find(t => t.id === f.tenureId);
+                        if (formTenure) {
+                          return (
+                            <span style={{ fontSize: '0.65rem', background: 'rgba(56, 189, 248, 0.1)', color: 'var(--neon-cyan)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '2px 7px', borderRadius: '4px', fontWeight: 600 }}>
+                              📅 {formTenure.code || formTenure.title}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                       <strong style={{ color: 'var(--text-main)', fontSize: '0.96rem' }}>{f.title}</strong>
                       {f.requiresTracking !== false ? (
                         <span className="badge-gold" style={{ fontSize: '0.65rem' }}>🎯 Tracking Aktif</span>
@@ -8282,6 +8313,30 @@ export default function AdminPortal({
                   />
                 </div>
 
+                {/* Option: Tenure Relation */}
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    📅 Periode Kepengurusan (Tenure) <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <select
+                    value={editingItem.item.tenureId || activeTenure?.id || tenures[0]?.id || ''}
+                    onChange={(e) => setEditingItem({
+                      ...editingItem,
+                      item: { ...editingItem.item, tenureId: e.target.value }
+                    })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  >
+                    {tenures.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title || `Kepengurusan CNT ${t.code}`} {t.id === activeTenure?.id ? '(Aktif)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '3px', display: 'block' }}>
+                    Opsi pertanyaan "Dropdown Divisi" pada formulir ini akan otomatis menampilkan divisi dari periode yang dipilih.
+                  </span>
+                </div>
+
                 {/* Option: Requires Tracking */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: editingItem.item.requiresTracking !== false ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
@@ -8659,26 +8714,32 @@ export default function AdminPortal({
                         )}
 
                         {/* Automatic Divisions Dropdown Info */}
-                        {fld.type === 'select' && fld.source === 'divisions' && (
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            marginTop: '2px',
-                            padding: '7px 12px',
-                            marginLeft: '24px',
-                            borderRadius: '6px',
-                            background: 'rgba(56, 189, 248, 0.08)',
-                            border: '1px solid rgba(56, 189, 248, 0.3)',
-                            fontSize: '0.75rem',
-                            color: 'var(--neon-cyan)'
-                          }}>
-                            <Layers size={14} style={{ flexShrink: 0 }} />
-                            <span>
-                              Opsi dropdown otomatis diambil dari daftar <strong>{divisions.length} Divisi</strong> aktif di database.
-                            </span>
-                          </div>
-                        )}
+                        {fld.type === 'select' && fld.source === 'divisions' && (() => {
+                          const formTenureId = editingItem.item.tenureId || activeTenure?.id;
+                          const currentTenure = tenures.find(t => t.id === formTenureId) || activeTenure;
+                          const tenureDivs = (divisions || []).filter(d => !formTenureId || d.tenureId === formTenureId);
+
+                          return (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              marginTop: '2px',
+                              padding: '7px 12px',
+                              marginLeft: '24px',
+                              borderRadius: '6px',
+                              background: 'rgba(56, 189, 248, 0.08)',
+                              border: '1px solid rgba(56, 189, 248, 0.3)',
+                              fontSize: '0.75rem',
+                              color: 'var(--neon-cyan)'
+                            }}>
+                              <Layers size={14} style={{ flexShrink: 0 }} />
+                              <span>
+                                Opsi dropdown otomatis diambil dari <strong>{tenureDivs.length} Divisi</strong> pada periode <strong>{currentTenure?.title || currentTenure?.code || 'Aktif'}</strong> di database.
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>

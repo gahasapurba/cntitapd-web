@@ -783,7 +783,12 @@ export default function DynamicFormSection({
                     // Options logic (database source or static)
                     let options = field.options || [];
                     if (field.source === 'divisions') {
-                      options = (divisions || []).map(d => d.name);
+                      const formTenureId = currentForm?.tenureId || currentForm?.tenure_id;
+                      const matchedDivisions = formTenureId
+                        ? (divisions || []).filter(d => d.tenureId === formTenureId)
+                        : (divisions || []);
+                      const finalDivs = matchedDivisions.length > 0 ? matchedDivisions : (divisions || []);
+                      options = finalDivs.map(d => d.name);
                     } else if (field.source === 'departments') {
                       options = (departments && departments.length > 0)
                         ? departments.map(d => d.name)
