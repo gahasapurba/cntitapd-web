@@ -279,9 +279,7 @@ select option {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-left: 12px;
-  padding-left: 14px;
-  border-left: 1px solid var(--border-card);
+  margin-left: 14px;
 }
 
 .navbar-tenure-select {
@@ -387,8 +385,6 @@ select option {
   }
 
   .navbar-right-actions {
-    border-left: none !important;
-    padding-left: 0 !important;
     margin-left: 6px !important;
     gap: 6px !important;
   }
