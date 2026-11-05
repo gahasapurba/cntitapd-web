@@ -67,6 +67,21 @@ export async function checkGalleryDivisionIdColumn() {
   return isGalleryDivisionIdSupported;
 }
 
+let isFormsTrackingColChecked = false;
+let isFormsTrackingColSupported = false;
+
+export async function checkFormsTrackingColumn() {
+  if (isFormsTrackingColChecked) return isFormsTrackingColSupported;
+  try {
+    const { error } = await supabase.from('forms').select('requires_tracking').limit(1);
+    isFormsTrackingColSupported = !error;
+    isFormsTrackingColChecked = true;
+  } catch (e) {
+    isFormsTrackingColSupported = false;
+  }
+  return isFormsTrackingColSupported;
+}
+
 let isEventsSchemaChecked = false;
 let eventsSchemaMeta = {
   hasDate: true,
@@ -360,16 +375,22 @@ export const rowMappers = {
   },
 
   forms: {
-    toDb: (item, idx = 0) => ({
-      id: String(item.id),
-      title: item.title || '',
-      subtitle: item.subtitle || '',
-      category: item.category || 'Kegiatan & Event',
-      deadline: item.deadline || '',
-      is_open: item.isOpen !== false,
-      fields: Array.isArray(item.fields) ? item.fields : [],
-      sort_order: idx
-    }),
+    toDb: (item, idx = 0) => {
+      const row = {
+        id: String(item.id),
+        title: item.title || '',
+        subtitle: item.subtitle || '',
+        category: item.category || 'Kegiatan & Event',
+        deadline: item.deadline || '',
+        is_open: item.isOpen !== false,
+        fields: Array.isArray(item.fields) ? item.fields : [],
+        sort_order: idx
+      };
+      if (isFormsTrackingColSupported) {
+        row.requires_tracking = item.requiresTracking !== false;
+      }
+      return row;
+    },
     fromDb: (row) => ({
       id: row.id,
       title: row.title,
@@ -377,6 +398,7 @@ export const rowMappers = {
       category: row.category,
       deadline: row.deadline,
       isOpen: row.is_open !== false,
+      requiresTracking: row.requires_tracking !== undefined ? row.requires_tracking !== false : true,
       fields: Array.isArray(row.fields) ? row.fields : []
     })
   },
@@ -638,6 +660,9 @@ export async function pushCloudState(key, value) {
     }
     if (key === 'events') {
       await detectEventsSchema();
+    }
+    if (key === 'forms') {
+      await checkFormsTrackingColumn();
     }
 
     // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically

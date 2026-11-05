@@ -283,6 +283,7 @@ export default function AdminPortal({
   const [newFormCategory, setNewFormCategory] = useState('Kegiatan & Event');
   const [newFormDeadline, setNewFormDeadline] = useState('');
   const [newFormSubtitle, setNewFormSubtitle] = useState('');
+  const [newFormRequiresTracking, setNewFormRequiresTracking] = useState(true);
   const [selectedSubFilter, setSelectedSubFilter] = useState('all');
   const [draggedFieldIndex, setDraggedFieldIndex] = useState(null);
   const [dragOverFieldIndex, setDragOverFieldIndex] = useState(null);
@@ -4487,7 +4488,8 @@ export default function AdminPortal({
                 category: newFormCategory,
                 deadline: newFormDeadline.trim() || 'Menyesuaikan',
                 isOpen: true,
-                fields: [
+                requiresTracking: newFormRequiresTracking,
+                fields: newFormRequiresTracking ? [
                   { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
                   { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true },
                   { id: 'f-squad', label: 'Squad / Unit Kerja', type: 'text', placeholder: 'Squad asal', required: true, isSearchIndex: false },
@@ -4495,6 +4497,10 @@ export default function AdminPortal({
                   { id: 'f-divisi', label: 'Pilihan Divisi Terkait', type: 'select', source: 'divisions', required: true, isSearchIndex: false },
                   { id: 'f-notes', label: 'Catatan / Alasan Pendaftaran', type: 'textarea', placeholder: 'Tuliskan keterangan pendukung...', required: true, isSearchIndex: false },
                   { id: 'f-doc', label: 'Upload Dokumen / File Pendukung', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false, isSearchIndex: false }
+                ] : [
+                  { id: 'f-name', label: 'Nama Lengkap', type: 'text', placeholder: 'Nama pengisi formulir', required: true, isSearchIndex: false },
+                  { id: 'f-unit', label: 'Unit Kerja / Tim', type: 'text', placeholder: 'Unit kerja / Squad', required: true, isSearchIndex: false },
+                  { id: 'f-feedback', label: 'Tanggapan / Isian', type: 'textarea', placeholder: 'Tuliskan respon Anda...', required: true, isSearchIndex: false }
                 ]
               };
 
@@ -4502,6 +4508,7 @@ export default function AdminPortal({
               setNewFormTitle('');
               setNewFormSubtitle('');
               setNewFormDeadline('');
+              setNewFormRequiresTracking(true);
               showToast(`Formulir "${newForm.title}" berhasil dibuat & dipublikasikan!`);
             }}
             className="admin-form-two-col"
@@ -4627,6 +4634,22 @@ export default function AdminPortal({
               />
             </div>
 
+            <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '4px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: newFormRequiresTracking ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={newFormRequiresTracking}
+                  onChange={(e) => setNewFormRequiresTracking(e.target.checked)}
+                />
+                <span>Memerlukan Responden untuk Tracking Progres (Status Seleksi / Pendaftaran)</span>
+              </label>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px' }}>
+                {newFormRequiresTracking
+                  ? 'Aktif: Responden akan diberikan ID Pendaftaran & dapat memantau status di website melalui Indeks Pencarian atau ID Pendaftaran.'
+                  : 'Nonaktif: Formulir reguler (kuesioner, absensi, survei) tanpa pelacakan status. Himbauan tracking & card pencarian tidak akan dimunculkan.'}
+              </span>
+            </div>
+
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
               <button
                 type="submit"
@@ -4673,6 +4696,11 @@ export default function AdminPortal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{f.category || 'Formulir'}</span>
                       <strong style={{ color: 'var(--text-main)', fontSize: '0.96rem' }}>{f.title}</strong>
+                      {f.requiresTracking !== false ? (
+                        <span className="badge-gold" style={{ fontSize: '0.65rem' }}>🎯 Tracking Aktif</span>
+                      ) : (
+                        <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)', padding: '2px 7px', borderRadius: '4px' }}>📋 Form Reguler</span>
+                      )}
                       {(() => {
                         const dl = getDeadlineStatus(f.deadline);
                         if (dl.isExpired) {
@@ -7676,6 +7704,32 @@ export default function AdminPortal({
                   />
                 </div>
 
+                {/* Option: Requires Tracking */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: editingItem.item.requiresTracking !== false ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
+                    <input
+                      type="checkbox"
+                      checked={editingItem.item.requiresTracking !== false}
+                      onChange={(e) => {
+                        const isTracking = e.target.checked;
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            requiresTracking: isTracking
+                          }
+                        });
+                      }}
+                    />
+                    <span>Memerlukan Responden untuk Tracking Progres (Status Seleksi / Pendaftaran)</span>
+                  </label>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px' }}>
+                    {editingItem.item.requiresTracking !== false
+                      ? 'Aktif: Responden dapat melacak progres via ID Pendaftaran atau field Indeks Pencarian. Card pencarian di web akan muncul jika form ini aktif.'
+                      : 'Nonaktif: Formulir reguler tanpa fitur pelacakan status. Responden tidak diminta tracking dan indeks pencarian dinonaktifkan.'}
+                  </span>
+                </div>
+
                 {/* Custom Field Builder */}
                 <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
@@ -7875,52 +7929,47 @@ export default function AdminPortal({
                             <span>Wajib</span>
                           </label>
 
-                          {/* Search Index Toggle (Jadikan Indeks Pencarian) */}
-                          <label
-                            title="Jadikan Indeks Pencarian: Centang jika field ini dijadikan kredensial pendaftar untuk mencari & mengecek status pendaftaran/seleksi di web (hanya field bertanda ini dan ID Pendaftaran yang dapat dicari demi menjaga kerahasiaan data)"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '0.74rem',
-                              cursor: 'pointer',
-                              color: fld.isSearchIndex ? 'var(--mandiri-gold)' : 'var(--text-muted)',
-                              background: fld.isSearchIndex ? 'rgba(255, 184, 0, 0.14)' : 'rgba(255, 255, 255, 0.04)',
-                              border: fld.isSearchIndex ? '1px solid rgba(255, 184, 0, 0.45)' : '1px solid var(--border-card)',
-                              padding: '3px 8px',
-                              borderRadius: 'var(--radius-full)',
-                              fontWeight: fld.isSearchIndex ? 700 : 500,
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={Boolean(fld.isSearchIndex)}
-                              onChange={(e) => {
-                                const nextFields = editingItem.item.fields.map((item, i) =>
-                                  i === idx ? { ...item, isSearchIndex: e.target.checked } : item
-                                );
-                                setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                          {/* Search Index Toggle (Hanya tampil jika form memerlukan tracking) */}
+                          {editingItem.item.requiresTracking !== false && (
+                            <label
+                              title="Jadikan Indeks Pencarian: Centang jika field ini dijadikan kredensial pendaftar untuk mencari & mengecek status pendaftaran/seleksi di web. Jika tidak ada field yang dicentang, pelacakan default menggunakan ID Pendaftaran."
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.74rem',
+                                cursor: 'pointer',
+                                color: fld.isSearchIndex ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                                background: fld.isSearchIndex ? 'rgba(255, 184, 0, 0.14)' : 'rgba(255, 255, 255, 0.04)',
+                                border: fld.isSearchIndex ? '1px solid rgba(255, 184, 0, 0.45)' : '1px solid var(--border-card)',
+                                padding: '3px 8px',
+                                borderRadius: 'var(--radius-full)',
+                                fontWeight: fld.isSearchIndex ? 700 : 500,
+                                transition: 'all 0.15s ease'
                               }}
-                            />
-                            <span>🔍 Jadikan Indeks Pencarian</span>
-                          </label>
+                            >
+                              <input
+                                type="checkbox"
+                                checked={Boolean(fld.isSearchIndex)}
+                                onChange={(e) => {
+                                  const nextFields = editingItem.item.fields.map((item, i) =>
+                                    i === idx ? { ...item, isSearchIndex: e.target.checked } : item
+                                  );
+                                  setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                                }}
+                              />
+                              <span>🔍 Jadikan Indeks Pencarian</span>
+                            </label>
+                          )}
 
-                          {/* Field Delete Button with Protection */}
+                          {/* Field Delete Button with Confirmation if data exists */}
                           {(() => {
-                            const isOnlyIndex = fld.isSearchIndex && (editingItem.item.fields || []).filter(f => f.isSearchIndex).length === 1;
                             const subCount = submissions.filter(s => s.formId === editingItem.item.id).length;
 
                             return (
                               <button
                                 type="button"
-                                disabled={isOnlyIndex}
                                 onClick={() => {
-                                  if (isOnlyIndex) {
-                                    showToast('Field ini adalah satu-satunya Indeks Pencarian. Tentukan field lain sebagai indeks pencarian sebelum menghapus field ini.', 'error');
-                                    return;
-                                  }
-
                                   if (subCount > 0) {
                                     const ok = window.confirm(
                                       `Formulir ini sudah memiliki ${subCount} berkas pendaftar.\n\n` +
@@ -7936,16 +7985,12 @@ export default function AdminPortal({
                                 style={{
                                   background: 'transparent',
                                   border: 'none',
-                                  color: isOnlyIndex ? 'var(--text-dim)' : '#f43f5e',
-                                  cursor: isOnlyIndex ? 'not-allowed' : 'pointer',
+                                  color: '#f43f5e',
+                                  cursor: 'pointer',
                                   padding: '2px',
-                                  opacity: isOnlyIndex ? 0.35 : 1
+                                  opacity: 0.85
                                 }}
-                                title={
-                                  isOnlyIndex 
-                                    ? "Tidak dapat dihapus: Ini satu-satunya kunci pencarian status" 
-                                    : (subCount > 0 ? "Form ini sudah ada pendaftar (konfirmasi akan muncul)" : "Hapus pertanyaan")
-                                }
+                                title={subCount > 0 ? "Form ini sudah ada pendaftar (konfirmasi akan muncul)" : "Hapus pertanyaan"}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -8589,12 +8634,6 @@ export default function AdminPortal({
                   if (editingItem.type === 'kudos' && onUpdateKudos) onUpdateKudos(editingItem.item);
                   if (editingItem.type === 'form') {
                     const fields = editingItem.item.fields || [];
-                    const hasIndex = fields.some(f => Boolean(f.isSearchIndex));
-                    if (!hasIndex) {
-                      setEditModalError('Wajib memilih minimal 1 field sebagai Indeks Pencarian sebelum menyimpan!');
-                      showToast('Wajib memilih minimal 1 field sebagai Indeks Pencarian (centang 🔍 Jadikan Indeks Pencarian pada field seperti NIP) sebelum menyimpan!', 'error');
-                      return;
-                    }
                     if (onUpdateForm) {
                       const cleanFields = fields.map(({ rawOptions, ...rest }) => rest);
                       onUpdateForm({ ...editingItem.item, fields: cleanFields });

@@ -37,6 +37,7 @@ export default function DynamicFormSection({
 
   // Active form selection
   const activeForms = forms.filter(f => f.isOpen !== false);
+  const trackingActiveForms = activeForms.filter(f => f.requiresTracking !== false);
   const [selectedFormId, setSelectedFormId] = useState(() => {
     if (initialFormId && activeForms.some(f => f.id === initialFormId)) {
       return initialFormId;
@@ -44,6 +45,7 @@ export default function DynamicFormSection({
     return activeForms[0]?.id || null;
   });
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedSubId, setCopiedSubId] = useState(false);
   const [uploadingFieldId, setUploadingFieldId] = useState(null);
 
   useEffect(() => {
@@ -78,6 +80,13 @@ export default function DynamicFormSection({
     navigator.clipboard?.writeText(shareUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleCopySubId = (subId) => {
+    if (!subId) return;
+    navigator.clipboard?.writeText(subId);
+    setCopiedSubId(true);
+    setTimeout(() => setCopiedSubId(false), 2500);
   };
 
   // Handle Input Changes
@@ -212,10 +221,10 @@ export default function DynamicFormSection({
     setTimeout(() => setIsSubmitting(false), 600);
   };
 
-  // Dynamic Search Keys Text based on configured index fields in active/selected forms
+  // Dynamic Search Keys Text based on configured index fields in active forms that require tracking
   const dynamicIndexLabels = React.useMemo(() => {
     const keys = new Set();
-    const targetForms = currentForm ? [currentForm] : (activeForms.length > 0 ? activeForms : forms);
+    const targetForms = trackingActiveForms;
     
     targetForms.forEach((f) => {
       (f.fields || []).forEach((fld) => {
@@ -225,14 +234,13 @@ export default function DynamicFormSection({
       });
     });
 
-    if (keys.size === 0) {
-      keys.add('NIP');
-    }
-
     return Array.from(keys);
-  }, [currentForm, activeForms, forms]);
+  }, [trackingActiveForms]);
 
-  const dynamicSearchKeysString = dynamicIndexLabels.join(' / ');
+  const hasConfiguredIndex = dynamicIndexLabels.length > 0;
+  const dynamicSearchKeysString = hasConfiguredIndex 
+    ? dynamicIndexLabels.join(' / ') 
+    : 'ID Pendaftaran (sub-...)';
 
   // Filtered submissions for Self-Service Status Tracker (strictly EXACT matching Index Keys & Registration ID only)
   const trimmedStatusQuery = statusQuery.trim().toLowerCase();
@@ -256,14 +264,19 @@ export default function DynamicFormSection({
 
   const matchedSubmissions = trimmedStatusQuery.length >= 3
     ? submissions.filter((sub) => {
-        // 1. Exact match on unique Registration ID (sub.id)
+        // 1. Identify the parent form schema for this submission
+        const parentForm = forms.find((f) => f.id === sub.formId);
+        // Exclude submissions from forms that do not require tracking
+        if (parentForm && parentForm.requiresTracking === false) {
+          return false;
+        }
+
+        // 2. Exact match on unique Registration ID (sub.id)
         const subIdLower = (sub.id || '').trim().toLowerCase();
         if (subIdLower === trimmedStatusQuery || subIdLower.replace(/\s+/g, '') === cleanStatusQuery) {
           return true;
         }
 
-        // 2. Identify the parent form schema for this submission
-        const parentForm = forms.find((f) => f.id === sub.formId);
         const formFields = parentForm?.fields || [];
 
         // 3. Find field IDs designated as search index keys
@@ -276,28 +289,9 @@ export default function DynamicFormSection({
           return indexFieldIds.some((fid) => isExactFieldMatch(sub.data?.[fid]));
         }
 
-        // 4. Safe Fallback: if form has no field explicitly flagged yet,
-        // protect privacy by only matching fields labeled NIP/Employee ID
-        const nipFields = formFields
-          .filter((fld) => {
-            const l = (fld.label || '').toLowerCase();
-            return l.includes('nip') || l.includes('employee id') || l.includes('nomor induk');
-          })
-          .map((fld) => fld.id);
-
-        if (nipFields.length > 0) {
-          return nipFields.some((fid) => isExactFieldMatch(sub.data?.[fid]));
-        }
-
-        // Strict fallback if form has neither: match only phone or email, NEVER general name
-        const contactFields = formFields
-          .filter((fld) => {
-            const l = (fld.label || '').toLowerCase();
-            return l.includes('whatsapp') || l.includes('email') || l.includes('telepon');
-          })
-          .map((fld) => fld.id);
-
-        return contactFields.some((fid) => isExactFieldMatch(sub.data?.[fid]));
+        // 4. Default: Jika tidak ada field yang dicentang sebagai indeks pencarian,
+        // HANYA DAPAT DI-TRACK MELALUI ID PENDAFTARAN (yang sudah dicek di langkah 2).
+        return false;
       })
     : [];
 
@@ -355,7 +349,7 @@ export default function DynamicFormSection({
         </p>
       </div>
 
-      {/* CASE 1: No active forms available (tetap tampilkan informasi standby + Cek Status Pendaftaran di bawahnya) */}
+      {/* CASE 1: No active forms available */}
       {activeForms.length === 0 && (
         <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center', width: '100%' }}>
           <div className="glass-panel" style={{ padding: '44px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
@@ -376,10 +370,10 @@ export default function DynamicFormSection({
               Pendaftaran Sedang Ditutup
             </h2>
             <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-              Saat ini belum ada formulir pendaftaran baru yang sedang dibuka. Bagi Anda yang sudah pernah mendaftar, silakan gunakan fitur <strong>Cek Status Pendaftaran & Seleksi Saya</strong> di bawah ini!
+              Saat ini belum ada formulir pendaftaran baru yang sedang dibuka. Pantau terus kanal komunikasi resmi kami untuk informasi kegiatan dan jadwal seleksi berikutnya.
             </p>
             <div style={{ marginTop: '4px', padding: '8px 16px', background: 'var(--input-bg)', borderRadius: 'var(--radius-full)', fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-              Status: Hub Pendaftaran Standby • Pelacakan Seleksi Aktif
+              Status: Hub Pendaftaran Standby
             </div>
           </div>
         </div>
@@ -473,7 +467,7 @@ export default function DynamicFormSection({
             borderRadius: 'var(--radius-lg)'
           }}>
             {isSubmitted ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <div style={{ textAlign: 'center', padding: '36px 16px' }}>
                 <div style={{
                   width: '72px',
                   height: '72px',
@@ -488,68 +482,184 @@ export default function DynamicFormSection({
                 }}>
                   <CheckCircle2 size={36} />
                 </div>
-                <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
-                  Formulir Berhasil Dikirim! 🎉
-                </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '520px', margin: '0 auto 14px auto', lineHeight: 1.6 }}>
-                  Terima kasih! Isian formulir untuk <strong>"{currentForm.title}"</strong> telah tersimpan aman di database sistem CNT IT APD.
-                </p>
-                {lastSubmittedId && (
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 14px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--border-card)',
-                    fontSize: '0.78rem',
-                    color: 'var(--neon-cyan)',
-                    fontWeight: 700,
-                    marginBottom: '20px'
-                  }}>
-                    <span>ID Pendaftaran: {lastSubmittedId}</span>
-                  </div>
+
+                {currentForm?.requiresTracking !== false ? (
+                  <>
+                    <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
+                      Formulir Berhasil Dikirim! 🎉
+                    </h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 20px auto', lineHeight: 1.6 }}>
+                      Terima kasih! Isian formulir untuk <strong>"{currentForm.title}"</strong> telah tersimpan aman di database sistem CNT IT APD.
+                    </p>
+
+                    {/* ID Pendaftaran Card with One-Click Copy */}
+                    <div style={{
+                      maxWidth: '480px',
+                      margin: '0 auto 16px auto',
+                      padding: '16px 20px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1.5px solid var(--neon-cyan)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        ID Pendaftaran Anda:
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <span style={{
+                          fontFamily: 'monospace',
+                          fontSize: '1.25rem',
+                          fontWeight: 900,
+                          color: 'var(--neon-cyan)',
+                          letterSpacing: '1px'
+                        }}>
+                          {lastSubmittedId}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopySubId(lastSubmittedId)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: 'var(--radius-full)',
+                            background: copiedSubId ? '#10b981' : 'var(--input-bg)',
+                            border: `1px solid ${copiedSubId ? '#10b981' : 'var(--neon-cyan)'}`,
+                            color: copiedSubId ? '#ffffff' : 'var(--neon-cyan)',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          title="Salin ID Pendaftaran ke Clipboard"
+                        >
+                          {copiedSubId ? <Check size={13} /> : <Share2 size={13} />}
+                          <span>{copiedSubId ? 'Tersalin ✓' : 'Salin ID'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Himbauan Penting Card */}
+                    <div style={{
+                      maxWidth: '540px',
+                      margin: '0 auto 24px auto',
+                      padding: '12px 18px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255, 184, 0, 0.1)',
+                      border: '1.5px solid rgba(255, 184, 0, 0.45)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      textAlign: 'left'
+                    }}>
+                      <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: '2px' }}>📌</span>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                        <strong style={{ color: 'var(--mandiri-gold)' }}>Himbauan Penting:</strong>
+                        <div style={{ color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Harap catat atau salin <strong>ID Pendaftaran</strong> di atas! ID ini digunakan untuk memantau progres seleksi, status verifikasi berkas, dan catatan panitia melalui fitur <strong>Cek Status Pendaftaran</strong> pada website ini.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => {
+                          setIsSubmitted(false);
+                          setFormData({});
+                          setFileData({});
+                        }}
+                        style={{
+                          padding: '10px 22px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'rgba(255,255,255,0.06)',
+                          color: 'var(--text-main)',
+                          border: '1px solid var(--border-card)',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Kirim Formulir Lainnya
+                      </button>
+                      {lastSubmittedId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStatusQuery(lastSubmittedId);
+                            const trackerEl = document.getElementById('status-tracker-section');
+                            if (trackerEl) {
+                              trackerEl.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '10px 24px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--mandiri-gold)',
+                            color: '#040914',
+                            border: 'none',
+                            fontWeight: 800,
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 15px rgba(255,184,0,0.3)'
+                          }}
+                        >
+                          <Search size={15} />
+                          <span>Cek Status Pendaftaran Saya Sekarang</span>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
+                      Terima Kasih, Formulir Telah Terkirim! 🎉
+                    </h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '520px', margin: '0 auto 16px auto', lineHeight: 1.6 }}>
+                      Isian formulir untuk <strong>"{currentForm.title}"</strong> telah berhasil kami terima dan tersimpan dengan aman di sistem.
+                    </p>
+                    <div style={{
+                      maxWidth: '460px',
+                      margin: '0 auto 24px auto',
+                      padding: '10px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--border-card)',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-dim)'
+                    }}>
+                      Formulir ini tidak memerlukan pelacakan status mandiri. Tim kami akan memproses tanggapan Anda sesuai ketentuan yang berlaku.
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <button
+                        onClick={() => {
+                          setIsSubmitted(false);
+                          setFormData({});
+                          setFileData({});
+                        }}
+                        style={{
+                          padding: '10px 26px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--mandiri-gold)',
+                          color: '#040914',
+                          border: 'none',
+                          fontWeight: 800,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Kirim Formulir Lainnya
+                      </button>
+                    </div>
+                  </>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => {
-                      setIsSubmitted(false);
-                      setFormData({});
-                      setFileData({});
-                    }}
-                    style={{
-                      padding: '10px 24px',
-                      borderRadius: 'var(--radius-full)',
-                      background: 'var(--mandiri-gold)',
-                      color: '#040914',
-                      border: 'none',
-                      fontWeight: 800,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Kirim Formulir Lainnya
-                  </button>
-                  {lastSubmittedId && (
-                    <button
-                      type="button"
-                      onClick={() => setStatusQuery(lastSubmittedId)}
-                      style={{
-                        padding: '10px 20px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'var(--input-bg)',
-                        color: 'var(--neon-cyan)',
-                        border: '1px solid var(--neon-cyan)',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      🔍 Cek Status Pendaftaran Saya
-                    </button>
-                  )}
-                </div>
               </div>
             ) : (
               <>
@@ -1066,108 +1176,110 @@ export default function DynamicFormSection({
       )}
 
       {/* 4. SELF-SERVICE STATUS TRACKER ("CEK STATUS PENDAFTARAN SAYA") */}
-      <section style={{ maxWidth: '820px', margin: '0 auto', width: '100%' }}>
-        <div className="glass-panel" style={{
-          padding: '32px',
-          border: '1.5px solid var(--border-card)',
-          borderRadius: 'var(--radius-lg)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <span className="badge-cyan" style={{ fontSize: '0.68rem', marginBottom: '6px' }}>
-                Transparansi Seleksi & Registrasi
-              </span>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0' }}>
-                🔍 Cek Status Pendaftaran & Seleksi Saya
-              </h3>
-              <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
-                Sudah pernah mengisi formulir? Ketik <strong>{dynamicSearchKeysString} lengkap atau ID Pendaftaran (sub-...)</strong> Anda untuk melihat progres seleksi & catatan panitia.
-              </p>
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                marginTop: '8px',
-                padding: '8px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                fontSize: '0.74rem',
-                lineHeight: 1.45,
-                color: 'var(--neon-cyan)',
-                width: '100%',
-                boxSizing: 'border-box'
-              }}>
-                <span style={{ flexShrink: 0, marginTop: '1px' }}>🔒</span>
-                <span><strong>Privasi Terjamin:</strong> Sistem menggunakan pencarian eksak (Exact Match) pada Indeks Pencarian ({dynamicSearchKeysString}) & ID Unik pendaftaran. Pencarian parsial atau Nama Umum sengaja diblokir demi melindungi privasi seluruh pelamar.</span>
+      {/* Hanya muncul apabila ada formulir AKTIF yang MEMBUTUHKAN tracking progress */}
+      {trackingActiveForms.length > 0 && (
+        <section id="status-tracker-section" style={{ maxWidth: '820px', margin: '0 auto', width: '100%' }}>
+          <div className="glass-panel" style={{
+            padding: '32px',
+            border: '1.5px solid var(--border-card)',
+            borderRadius: 'var(--radius-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <span className="badge-cyan" style={{ fontSize: '0.68rem', marginBottom: '6px' }}>
+                  Transparansi Seleksi & Registrasi
+                </span>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0' }}>
+                  🔍 Cek Status Pendaftaran & Seleksi Saya
+                </h3>
+                <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Sudah pernah mengisi formulir? Ketik <strong>{hasConfiguredIndex ? `${dynamicSearchKeysString} lengkap atau ID Pendaftaran (sub-...)` : 'ID Pendaftaran (sub-...)'}</strong> Anda untuk melihat progres seleksi & catatan panitia.
+                </p>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
+                  marginTop: '8px',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  fontSize: '0.74rem',
+                  lineHeight: 1.45,
+                  color: 'var(--neon-cyan)',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  <span style={{ flexShrink: 0, marginTop: '1px' }}>🔒</span>
+                  <span><strong>Privasi Terjamin:</strong> Sistem menggunakan pencarian eksak (Exact Match) pada {hasConfiguredIndex ? `Indeks Pencarian (${dynamicSearchKeysString}) & ID Unik pendaftaran` : 'ID Pendaftaran (sub-...)'}. Pencarian parsial atau Nama Umum sengaja diblokir demi melindungi privasi seluruh pelamar.</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div style={{ position: 'relative' }}>
-            <Search size={17} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              placeholder={`Ketik ${dynamicSearchKeysString} lengkap Anda atau ID Pendaftaran (sub-...)`}
-              value={statusQuery}
-              onChange={(e) => setStatusQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 38px 12px 42px',
-                borderRadius: 'var(--radius-full)',
-                background: 'var(--input-bg)',
-                border: '1.5px solid var(--input-border)',
-                color: 'var(--text-main)',
-                fontSize: '0.88rem',
-                outline: 'none'
-              }}
-            />
-            {statusQuery && (
-              <button
-                type="button"
-                onClick={() => setStatusQuery('')}
+            <div style={{ position: 'relative' }}>
+              <Search size={17} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder={hasConfiguredIndex ? `Ketik ${dynamicSearchKeysString} lengkap Anda atau ID Pendaftaran (sub-...)` : 'Ketik ID Pendaftaran Anda (misal: sub-1731...)'}
+                value={statusQuery}
+                onChange={(e) => setStatusQuery(e.target.value)}
                 style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {statusQuery.trim().length > 0 && statusQuery.trim().length < 3 && (
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '6px' }}>
-              Ketik minimal 3 karakter {dynamicSearchKeysString} atau ID Pendaftaran Anda...
-            </div>
-          )}
-
-          {trimmedStatusQuery.length >= 3 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {matchedSubmissions.length === 0 ? (
-                <div style={{
-                  padding: '20px',
-                  borderRadius: 'var(--radius-md)',
+                  width: '100%',
+                  padding: '12px 38px 12px 42px',
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--input-bg)',
-                  border: '1px dashed var(--border-card)',
-                  textAlign: 'center',
-                  color: 'var(--text-muted)',
-                  fontSize: '0.85rem'
-                }}>
-                  Tidak ditemukan data pendaftaran dengan kunci <strong>"{statusQuery}"</strong>. Sistem menggunakan pencarian eksak (Exact Match), pastikan Anda memasukkan {dynamicSearchKeysString} lengkap atau ID Pendaftaran (sub-...) yang persis sesuai saat mendaftar.
-                </div>
-              ) : (
+                  border: '1.5px solid var(--input-border)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.88rem',
+                  outline: 'none'
+                }}
+              />
+              {statusQuery && (
+                <button
+                  type="button"
+                  onClick={() => setStatusQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {statusQuery.trim().length > 0 && statusQuery.trim().length < 3 && (
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '6px' }}>
+                Ketik minimal 3 karakter {hasConfiguredIndex ? dynamicSearchKeysString : 'ID Pendaftaran'} Anda...
+              </div>
+            )}
+
+            {trimmedStatusQuery.length >= 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {matchedSubmissions.length === 0 ? (
+                  <div style={{
+                    padding: '20px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--input-bg)',
+                    border: '1px dashed var(--border-card)',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.85rem'
+                  }}>
+                    Tidak ditemukan data pendaftaran dengan kunci <strong>"{statusQuery}"</strong>. Sistem menggunakan pencarian eksak (Exact Match), pastikan Anda memasukkan {hasConfiguredIndex ? `${dynamicSearchKeysString} lengkap atau ID Pendaftaran (sub-...)` : 'ID Pendaftaran (sub-...)'} yang persis sesuai saat mendaftar.
+                  </div>
+                ) : (
                 matchedSubmissions.map((sub) => {
                   const statusText = sub.status || 'Baru Masuk';
                   const badge = getStatusBadgeStyle(statusText);
@@ -1247,6 +1359,7 @@ export default function DynamicFormSection({
           )}
         </div>
       </section>
+      )}
 
       {/* 5. PENGUMUMAN PESERTA / CREW TERPILIH (HALL OF WELCOME & ONBOARDING BOARD) */}
       {(() => {
