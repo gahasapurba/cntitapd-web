@@ -96,6 +96,21 @@ export async function checkRsvpsDepartmentColumn() {
   return isRsvpsDepartmentColSupported;
 }
 
+let isDivisionsSlugColChecked = false;
+let isDivisionsSlugColSupported = true;
+
+export async function checkDivisionsSlugColumn() {
+  if (isDivisionsSlugColChecked) return isDivisionsSlugColSupported;
+  try {
+    const { error } = await supabase.from('divisions').select('slug').limit(1);
+    isDivisionsSlugColSupported = !error;
+    isDivisionsSlugColChecked = true;
+  } catch (e) {
+    isDivisionsSlugColSupported = false;
+  }
+  return isDivisionsSlugColSupported;
+}
+
 let isEventsSchemaChecked = false;
 let eventsSchemaMeta = {
   hasDate: true,
@@ -196,24 +211,29 @@ export const rowMappers = {
   },
 
   divisions: {
-    toDb: (item, idx = 0) => ({
-      id: String(item.id),
-      tenure_id: item.tenureId || null,
-      name: item.name || '',
-      slug: item.slug || '',
-      lead_name: item.leadName || '',
-      color: item.color || '#0284c7',
-      motto: item.motto || '',
-      description: item.description || '',
-      focus_areas: Array.isArray(item.focusAreas) ? item.focusAreas : [],
-      is_recruiting: item.isRecruiting !== false,
-      sort_order: idx
-    }),
+    toDb: (item, idx = 0) => {
+      const row = {
+        id: String(item.id),
+        tenure_id: item.tenureId || null,
+        name: item.name || '',
+        lead_name: item.leadName || '',
+        color: item.color || '#0284c7',
+        motto: item.motto || '',
+        description: item.description || '',
+        focus_areas: Array.isArray(item.focusAreas) ? item.focusAreas : [],
+        is_recruiting: item.isRecruiting !== false,
+        sort_order: idx
+      };
+      if (isDivisionsSlugColSupported) {
+        row.slug = item.slug || (item.name ? item.name.toLowerCase().replace(/\s+/g, '-') : '');
+      }
+      return row;
+    },
     fromDb: (row) => ({
       id: row.id,
       tenureId: row.tenure_id,
       name: row.name,
-      slug: row.slug,
+      slug: row.slug || (row.name ? row.name.toLowerCase().replace(/\s+/g, '-') : ''),
       leadName: row.lead_name,
       color: row.color || '#0284c7',
       motto: row.motto,
@@ -531,7 +551,8 @@ export async function fetchAllCloudState() {
       checkGalleryDivisionIdColumn(),
       detectEventsSchema(),
       checkFormsTrackingColumn(),
-      checkRsvpsDepartmentColumn()
+      checkRsvpsDepartmentColumn(),
+      checkDivisionsSlugColumn()
     ]);
     const [
       tenuresRes,
@@ -677,6 +698,9 @@ export async function pushCloudState(key, value) {
       return false;
     }
 
+    if (key === 'divisions') {
+      await checkDivisionsSlugColumn();
+    }
     if (key === 'galleries') {
       await checkGalleryDivisionIdColumn();
     }

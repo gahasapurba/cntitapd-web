@@ -818,9 +818,10 @@ export default function HomeSection({
           }}>
             {activeDivisions.map((div) => {
             const getIcon = () => {
-              if (div.slug.includes('exp')) return <Activity size={24} color={div.color} />;
-              if (div.slug.includes('wellbeing')) return <Heart size={24} color={div.color} />;
-              if (div.slug.includes('creative')) return <Video size={24} color={div.color} />;
+              const key = ((div.name || '') + ' ' + (div.slug || '')).toLowerCase();
+              if (key.includes('exp') || key.includes('experience')) return <Activity size={24} color={div.color} />;
+              if (key.includes('wellbeing') || key.includes('well-being') || key.includes('sehat')) return <Heart size={24} color={div.color} />;
+              if (key.includes('creative') || key.includes('media') || key.includes('konten') || key.includes('video')) return <Video size={24} color={div.color} />;
               return <Sparkles size={24} color={div.color} />;
             };
 
