@@ -566,6 +566,15 @@ export default function App() {
     });
     if (deleteSubmissions) {
       setSubmissions((prev) => {
+        const removed = prev.filter(s => s.formId === formId);
+        removed.forEach(sub => {
+          if (sub.files && typeof sub.files === 'object') {
+            Object.values(sub.files).forEach(f => {
+              const fileUrl = typeof f === 'string' ? f : (f?.dataUrl || f?.url || f?.fileUrl || '');
+              if (fileUrl) deleteMediaFromCloud(fileUrl);
+            });
+          }
+        });
         const next = prev.filter(s => s.formId !== formId);
         pushCloudState('submissions', next);
         return next;
@@ -588,11 +597,12 @@ export default function App() {
     const oldSub = submissions.find(s => s.id === updatedSub.id);
     if (oldSub?.files && typeof oldSub.files === 'object') {
       const newUrls = updatedSub.files && typeof updatedSub.files === 'object'
-        ? Object.values(updatedSub.files).map(f => f?.url).filter(Boolean)
+        ? Object.values(updatedSub.files).map(f => typeof f === 'string' ? f : (f?.dataUrl || f?.url || f?.fileUrl)).filter(Boolean)
         : [];
       Object.values(oldSub.files).forEach(f => {
-        if (f?.url && !newUrls.includes(f.url)) {
-          deleteMediaFromCloud(f.url);
+        const oldUrl = typeof f === 'string' ? f : (f?.dataUrl || f?.url || f?.fileUrl);
+        if (oldUrl && !newUrls.includes(oldUrl)) {
+          deleteMediaFromCloud(oldUrl);
         }
       });
     }
@@ -606,7 +616,8 @@ export default function App() {
     const target = submissions.find(s => s.id === subId);
     if (target?.files && typeof target.files === 'object') {
       Object.values(target.files).forEach(f => {
-        if (f?.url) deleteMediaFromCloud(f.url);
+        const fileUrl = typeof f === 'string' ? f : (f?.dataUrl || f?.url || f?.fileUrl || '');
+        if (fileUrl) deleteMediaFromCloud(fileUrl);
       });
     }
     setSubmissions((prev) => {

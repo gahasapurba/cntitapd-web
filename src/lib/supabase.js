@@ -889,10 +889,16 @@ export async function uploadMediaToCloud(file, folder = 'uploads') {
  */
 export function extractStoragePath(url, bucketName = 'cnt-media') {
   if (!url || typeof url !== 'string') return null;
-  const marker = `/storage/v1/object/public/${bucketName}/`;
-  const idx = url.indexOf(marker);
-  if (idx !== -1) {
-    return decodeURIComponent(url.substring(idx + marker.length));
+  const markers = [
+    `/storage/v1/object/public/${bucketName}/`,
+    `/storage-proxy/object/public/${bucketName}/`,
+    `/storage-proxy/object/${bucketName}/`
+  ];
+  for (const marker of markers) {
+    const idx = url.indexOf(marker);
+    if (idx !== -1) {
+      return decodeURIComponent(url.substring(idx + marker.length));
+    }
   }
   return null;
 }
