@@ -257,7 +257,8 @@ select option {
   display: inline;
 }
 
-@media screen and (max-width: 1240px) {
+/* LAPTOP COMPACT & STANDARD (<= 1380px) */
+@media screen and (max-width: 1380px) {
   .navbar-brand-subtitle {
     display: none !important;
   }
@@ -268,8 +269,8 @@ select option {
     display: none !important;
   }
   .navbar-brand-logo {
-    height: 28px !important;
-    max-width: 95px !important;
+    height: 30px !important;
+    max-width: 100px !important;
   }
 }
 
@@ -278,7 +279,9 @@ select option {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-left: 14px;
+  margin-left: 12px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border-card);
 }
 
 .navbar-tenure-select {
@@ -370,12 +373,8 @@ select option {
   gap: 16px;
 }
 
-/* TABLET & MOBILE (< 868px) */
-@media screen and (max-width: 868px) {
-  .org-tree-line {
-    display: none !important;
-  }
-
+/* TABLET & MOBILE NAVBAR BREAKPOINT (<= 1024px) */
+@media screen and (max-width: 1024px) {
   .desktop-nav {
     display: none !important;
   }
@@ -387,6 +386,20 @@ select option {
     flex-shrink: 0 !important;
   }
 
+  .navbar-right-actions {
+    border-left: none !important;
+    padding-left: 0 !important;
+    margin-left: 6px !important;
+    gap: 6px !important;
+  }
+}
+
+/* TABLET & MOBILE CONTENT (< 868px) */
+@media screen and (max-width: 868px) {
+  .org-tree-line {
+    display: none !important;
+  }
+
   .navbar-brand-logo {
     height: 28px !important;
     max-width: 85px !important;
@@ -394,10 +407,6 @@ select option {
 
   .navbar-brand-title {
     font-size: 0.88rem !important;
-  }
-
-  .navbar-right-actions {
-    gap: 6px !important;
   }
 
   .navbar-tenure-select {

@@ -81,22 +81,24 @@ export default function Navbar({
         alignItems: 'center',
         justifyContent: 'space-between',
         height: '74px',
-        gap: '12px',
+        gap: '14px',
         width: '100%',
         maxWidth: '1440px',
+        padding: '0 clamp(16px, 2vw, 32px)',
         boxSizing: 'border-box'
       }}>
         {/* 1. Left: Brand Logo & Title */}
         <div 
           onClick={handleLogoClick}
+          className="navbar-brand-container"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             cursor: 'pointer',
             flexShrink: 0,
             minWidth: 0,
-            marginRight: '12px'
+            marginRight: 'clamp(16px, 2.2vw, 32px)'
           }}
         >
           <img 
@@ -122,7 +124,7 @@ export default function Navbar({
         <nav className="desktop-nav" style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '3px',
+          gap: 'clamp(2px, 0.4vw, 6px)',
           flex: 1,
           justifyContent: 'center',
           minWidth: 0,
@@ -139,8 +141,8 @@ export default function Navbar({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  padding: '5px 8px',
+                  gap: '5px',
+                  padding: '6px clamp(6px, 0.7vw, 10px)',
                   borderRadius: 'var(--radius-md)',
                   background: isActive ? (isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(0, 61, 121, 0.09)') : 'transparent',
                   color: isActive ? (isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)') : 'var(--text-muted)',
@@ -167,8 +169,8 @@ export default function Navbar({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px',
-                padding: '5px 11px',
+                gap: '6px',
+                padding: '6px clamp(10px, 1.2vw, 16px)',
                 borderRadius: 'var(--radius-full)',
                 background: currentTab === 'oprec' 
                   ? 'var(--mandiri-gold)' 
@@ -183,8 +185,8 @@ export default function Navbar({
                 fontSize: '0.78rem',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                marginLeft: '14px',
-                marginRight: '4px',
+                marginLeft: 'clamp(12px, 1.8vw, 24px)',
+                marginRight: 'clamp(8px, 1.2vw, 18px)',
                 flexShrink: 0,
                 transition: 'all 0.2s ease'
               }}
@@ -219,7 +221,7 @@ export default function Navbar({
         </nav>
 
         {/* 3. Right: Tenure Selector, Theme Toggle & Mobile Burger Button */}
-        <div className="navbar-right-actions" style={{ marginLeft: '12px' }}>
+        <div className="navbar-right-actions">
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <select
               value={activeTenure?.id || ''}
