@@ -728,7 +728,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
             {/* Related Division Programs in Member Detail Modal */}
             {(() => {
               const relatedEvents = (events || []).filter(e =>
-                (!e.tenureId || e.tenureId === activeTenure?.id) &&
+                e.tenureId === activeTenure?.id &&
                 (selectedMember.divisionId ? e.divisionId === selectedMember.divisionId : true)
               ).slice(0, 3);
               if (relatedEvents.length === 0) return null;

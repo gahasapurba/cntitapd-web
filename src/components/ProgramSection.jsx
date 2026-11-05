@@ -449,7 +449,7 @@ export default function ProgramSection({
                 ? 'Tidak ada agenda kegiatan yang cocok dengan pilihan filter divisi, status, atau periode saat ini. Coba pilih filter lain atau reset filter.'
                 : 'Belum ada agenda kegiatan atau event budaya yang dipublikasikan. Pantau terus informasi terbaru dari pengurus CNT IT APD!'}
             </p>
-            {(filterDiv !== 'all' || activeTab !== 'all' || (tenureFilter === 'active' && hasTenureEvents)) && (
+            {(filterDiv !== 'all' || activeTab !== 'all' || tenureFilter === 'active') && (
               <button
                 type="button"
                 onClick={() => {
