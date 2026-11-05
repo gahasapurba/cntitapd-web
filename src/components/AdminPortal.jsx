@@ -974,6 +974,66 @@ export default function AdminPortal({
     setGalDocLinks(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
   };
 
+  // Helper to verify if an external image link is reachable and valid
+  const verifyImageUrl = (url) => {
+    return new Promise((resolve) => {
+      if (!url || typeof url !== 'string') {
+        return resolve({ valid: false, error: 'URL tidak boleh kosong' });
+      }
+      const trimmed = url.trim();
+      if (trimmed.startsWith('/images/') || trimmed.startsWith('/assets/')) {
+        return resolve({ valid: true });
+      }
+      let parsed;
+      try {
+        parsed = new URL(trimmed);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return resolve({ valid: false, error: 'Tautan harus diawali dengan http:// atau https://' });
+        }
+      } catch {
+        return resolve({ valid: false, error: 'Format tautan URL tidak valid' });
+      }
+
+      const hasImageExtension = /\.(jpe?g|png|webp|gif|svg|avif|bmp|ico)($|\?)/i.test(trimmed);
+      const isCloudMediaStorage = trimmed.includes('/storage/v1/object/') || trimmed.includes('/storage-proxy/');
+
+      const img = new Image();
+      let isSettled = false;
+
+      const timer = setTimeout(() => {
+        if (isSettled) return;
+        isSettled = true;
+        img.onload = null;
+        img.onerror = null;
+        if (hasImageExtension || isCloudMediaStorage) {
+          resolve({ valid: true });
+        } else {
+          resolve({ valid: false, error: 'Tautan foto melebihi batas waktu (timeout) atau bukan file gambar yang aktif' });
+        }
+      }, 4500);
+
+      img.onload = () => {
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(timer);
+        resolve({ valid: true });
+      };
+
+      img.onerror = () => {
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(timer);
+        if (hasImageExtension || isCloudMediaStorage) {
+          resolve({ valid: true });
+        } else {
+          resolve({ valid: false, error: 'Tautan tidak dapat memuat gambar atau bukan file foto yang valid' });
+        }
+      };
+
+      img.src = trimmed;
+    });
+  };
+
   const handleCreateGallery = async (e) => {
     e.preventDefault();
     const errs = {};
@@ -989,15 +1049,38 @@ export default function AdminPortal({
       errs.galDivision = 'Divisi penyelenggara wajib dipilih';
     }
 
-    const hasPhoto = pendingGalFiles.length > 0 || (galPhotos && galPhotos.trim().length > 0);
-    if (!hasPhoto) {
-      errs.galPhotos = 'Wajib memilih minimal 1 file foto atau memasukkan link foto dokumentasi';
+    // Parse image URLs from text input
+    const urlPhotos = galPhotos.trim() 
+      ? galPhotos.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+      : [];
+
+    const hasUpload = pendingGalFiles.length > 0;
+    const hasUrls = urlPhotos.length > 0;
+
+    if (!hasUpload && !hasUrls) {
+      errs.galPhotos = 'Wajib memilih salah satu: unggah file foto dari komputer ATAU masukkan tautan foto yang valid';
     }
 
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
       showToast('Mohon lengkapi kolom wajib pada form Galeri', 'error');
       return;
+    }
+
+    // Verify all input photo URLs to make sure they are real accessible images
+    if (hasUrls) {
+      setIsUploadingMedia(true);
+      showToast('Memverifikasi tautan foto...');
+      for (const u of urlPhotos) {
+        const check = await verifyImageUrl(u);
+        if (!check.valid) {
+          setIsUploadingMedia(false);
+          setFormErrors(prev => ({ ...prev, galPhotos: `Tautan "${u}" tidak valid: ${check.error}` }));
+          showToast(`Tautan foto tidak valid: ${check.error}`, 'error');
+          return;
+        }
+      }
+      setIsUploadingMedia(false);
     }
 
     let cloudPhotos = [];
@@ -1017,11 +1100,6 @@ export default function AdminPortal({
       setIsUploadingMedia(false);
     }
 
-    // Photos from text URL input
-    const urlPhotos = galPhotos.trim() 
-      ? galPhotos.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
-      : [];
-    
     // Combine cloud uploaded photos, existing uploaded, and text URLs
     const combinedPhotos = [...cloudPhotos, ...urlPhotos];
     const photoList = combinedPhotos;
@@ -3601,16 +3679,16 @@ export default function AdminPortal({
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-                Upload Foto Kegiatan (Wajib minimal 1 foto) <span style={{ color: '#f43f5e' }}>*</span>
+                Foto Dokumentasi Kegiatan (Wajib salah satu: Unggah File ATAU Masukkan Link Foto) <span style={{ color: '#f43f5e' }}>*</span>
               </label>
 
               {/* File upload input */}
               <div style={{
-                border: `2px dashed ${formErrors.galPhotos ? '#f43f5e' : 'var(--border-card)'}`,
+                border: `2px dashed ${formErrors.galPhotos && pendingGalFiles.length === 0 ? '#f43f5e' : 'var(--border-card)'}`,
                 borderRadius: 'var(--radius-sm)',
                 padding: '16px',
                 textAlign: 'center',
-                background: formErrors.galPhotos ? 'rgba(244, 63, 94, 0.04)' : 'var(--input-bg)',
+                background: formErrors.galPhotos && pendingGalFiles.length === 0 ? 'rgba(244, 63, 94, 0.04)' : 'var(--input-bg)',
                 marginBottom: '12px'
               }}>
                 <input
@@ -3640,7 +3718,7 @@ export default function AdminPortal({
                   <span>Pilih File Foto dari Komputer</span>
                 </label>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '6px' }}>
-                  Bisa memilih banyak foto sekaligus (JPG, PNG, WebP)
+                  Opsi A: Unggah file foto dari komputer (bisa pilih banyak sekaligus: JPG, PNG, WebP)
                 </div>
               </div>
 
@@ -3684,11 +3762,11 @@ export default function AdminPortal({
               )}
 
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Atau masukkan Link Foto Web / Supabase (opsional):
+                Opsi B: Masukkan Link Foto Web / Supabase (wajib jika tidak mengunggah file foto dari komputer):
               </label>
               <textarea
                 rows={2}
-                placeholder="https://...link-foto-1.jpg&#10;https://...link-foto-2.jpg"
+                placeholder="https://...link-foto-1.jpg&#10;https://...link-foto-2.png"
                 value={galPhotos}
                 onChange={(e) => {
                   setGalPhotos(e.target.value);
@@ -3701,11 +3779,14 @@ export default function AdminPortal({
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
+                  border: `1px solid ${formErrors.galPhotos && pendingGalFiles.length === 0 ? '#f43f5e' : 'var(--input-border)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                * Sistem akan otomatis memverifikasi tautan untuk memastikan URL mengarah ke file gambar yang aktif sebelum disimpan.
+              </div>
             </div>
 
             {/* DYNAMIC DOCUMENTATION LINKS (Link & Link Text) */}
