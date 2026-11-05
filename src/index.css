@@ -245,12 +245,40 @@ select option {
   white-space: nowrap;
 }
 
+.navbar-brand-subtitle {
+  display: block;
+}
+
+.navbar-brand-divider {
+  display: block;
+}
+
+.navbar-search-label {
+  display: inline;
+}
+
+@media screen and (max-width: 1240px) {
+  .navbar-brand-subtitle {
+    display: none !important;
+  }
+  .navbar-brand-divider {
+    display: none !important;
+  }
+  .navbar-search-label {
+    display: none !important;
+  }
+  .navbar-brand-logo {
+    height: 28px !important;
+    max-width: 95px !important;
+  }
+}
+
 .navbar-right-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
-  margin-left: 18px;
+  margin-left: 14px;
 }
 
 .navbar-tenure-select {

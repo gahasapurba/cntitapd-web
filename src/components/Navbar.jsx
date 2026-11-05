@@ -81,9 +81,9 @@ export default function Navbar({
         alignItems: 'center',
         justifyContent: 'space-between',
         height: '74px',
-        gap: '8px',
+        gap: '12px',
         width: '100%',
-        maxWidth: '1260px',
+        maxWidth: '1440px',
         boxSizing: 'border-box'
       }}>
         {/* 1. Left: Brand Logo & Title */}
@@ -96,7 +96,7 @@ export default function Navbar({
             cursor: 'pointer',
             flexShrink: 0,
             minWidth: 0,
-            marginRight: '18px'
+            marginRight: '12px'
           }}
         >
           <img 
@@ -107,12 +107,12 @@ export default function Navbar({
               e.currentTarget.src = "/assets/CNT_IT_APD_LOGO_SUITE/main-apd-delivery-horizontal-logo.png";
             }}
           />
-          <div className="desktop-nav" style={{ height: '22px', width: '1px', background: 'var(--border-card)', flexShrink: 0 }} />
+          <div className="navbar-brand-divider" style={{ height: '22px', width: '1px', background: 'var(--border-card)', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <span className="navbar-brand-title">
               CNT IT APD
             </span>
-            <span className="desktop-nav" style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            <span className="navbar-brand-subtitle" style={{ fontSize: '0.67rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
               Direktorat IT Bank Mandiri
             </span>
           </div>
@@ -126,7 +126,7 @@ export default function Navbar({
           flex: 1,
           justifyContent: 'center',
           minWidth: 0,
-          padding: '2px 4px'
+          padding: '2px 0'
         }}>
           {navItems.map((tab) => {
             const Icon = tab.icon;
@@ -139,21 +139,21 @@ export default function Navbar({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  padding: '6px 9px',
+                  gap: '4px',
+                  padding: '5px 8px',
                   borderRadius: 'var(--radius-md)',
                   background: isActive ? (isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(0, 61, 121, 0.09)') : 'transparent',
                   color: isActive ? (isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)') : 'var(--text-muted)',
                   border: 'none',
                   fontWeight: isActive ? 700 : 600,
-                  fontSize: '0.81rem',
+                  fontSize: '0.79rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.15s ease',
                   flexShrink: 0
                 }}
               >
-                <Icon size={14} />
+                <Icon size={13} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -167,8 +167,8 @@ export default function Navbar({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
+                gap: '5px',
+                padding: '5px 11px',
                 borderRadius: 'var(--radius-full)',
                 background: currentTab === 'oprec' 
                   ? 'var(--mandiri-gold)' 
@@ -180,10 +180,11 @@ export default function Navbar({
                   : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
                 border: `1px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,
                 fontWeight: 800,
-                fontSize: '0.8rem',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                margin: '0 4px 0 16px',
+                marginLeft: '14px',
+                marginRight: '4px',
                 flexShrink: 0,
                 transition: 'all 0.2s ease'
               }}
@@ -195,7 +196,7 @@ export default function Navbar({
                   fontSize: '0.58rem',
                   background: '#b45309',
                   color: '#ffffff',
-                  padding: '1px 6px',
+                  padding: '1px 5px',
                   borderRadius: '10px',
                   fontWeight: 800
                 }}>
@@ -206,7 +207,7 @@ export default function Navbar({
                   fontSize: '0.58rem',
                   background: 'var(--border-card)',
                   color: 'var(--text-muted)',
-                  padding: '1px 5px',
+                  padding: '1px 4px',
                   borderRadius: '4px',
                   fontWeight: 700
                 }}>
@@ -218,7 +219,7 @@ export default function Navbar({
         </nav>
 
         {/* 3. Right: Tenure Selector, Theme Toggle & Mobile Burger Button */}
-        <div className="navbar-right-actions">
+        <div className="navbar-right-actions" style={{ marginLeft: '12px' }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <select
               value={activeTenure?.id || ''}
@@ -274,7 +275,7 @@ export default function Navbar({
               }}
             >
               <Search size={14} color={isDark ? 'var(--mandiri-gold)' : 'var(--mandiri-blue)'} />
-              <span className="desktop-nav" style={{ fontSize: '0.74rem' }}>Cari</span>
+              <span className="navbar-search-label" style={{ fontSize: '0.74rem' }}>Cari</span>
             </button>
           )}
 
