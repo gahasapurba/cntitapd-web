@@ -37,7 +37,7 @@ export default function Navbar({
     { id: 'organisasi', label: 'Organisasi', icon: Users },
     { id: 'program', label: 'Events', icon: Calendar },
     { id: 'galeri', label: 'Galeri', icon: ImageIcon },
-    { id: 'kudos', label: 'Kudos', icon: MessageSquareHeart },
+    { id: 'kudos', label: 'Kudos & Aspirasi', icon: MessageSquareHeart },
     { id: 'assets', label: 'Asset', icon: Download },
   ];
 

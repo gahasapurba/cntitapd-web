@@ -1574,7 +1574,7 @@ export default function AdminPortal({
           { id: 'events', label: `Event (${events.length})`, icon: CalendarDays },
           { id: 'forms', label: `Kelola Formulir (${forms.length})`, icon: ClipboardList },
           { id: 'submissions', label: `Data Pengisian Form (${submissions.length + applications.length})`, icon: FileCheck2 },
-          { id: 'kudos', label: `Wall of Kudos (${kudosList.length})`, icon: Heart },
+          { id: 'kudos', label: `Kudos & Aspirasi (${kudosList.length + aspirasiList.length})`, icon: Heart },
           { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
           { id: 'assets', label: `Asset & Template (${brandAssets.length})`, icon: Download },
           { id: 'faqs', label: `Panduan & FAQ (${faqs.length})`, icon: MessageSquare },
@@ -1615,7 +1615,7 @@ export default function AdminPortal({
           { id: 'organisasi', label: 'Struktur Organisasi', desc: 'Halaman bagan hierarki organigram interaktif Pembina, Inti, Pimpro & Anggota' },
           { id: 'program', label: 'Events & Kalender', desc: 'Halaman daftar event divisi & kalender budaya bulanan interaktif' },
           { id: 'galeri', label: 'Galeri Kegiatan', desc: 'Halaman dokumentasi foto carousel kegiatan & tautan folder dokumentasi' },
-          { id: 'kudos', label: 'Wall of Kudos', desc: 'Halaman papan apresiasi & pengiriman pesan terima kasih antar insan IT APD' },
+          { id: 'kudos', label: 'Kudos & Aspirasi', desc: 'Halaman papan apresiasi & pengiriman pesan terima kasih serta ide aspirasi antar insan IT APD' },
           { id: 'assets', label: 'Asset', desc: 'Halaman transformasi logo & pengunduhan paket asset resmi CNT IT APD' },
           { id: 'oprec', label: 'Registrasi & Formulir', desc: 'Halaman pusat pendaftaran event, open recruitment & survei dinamis' },
         ];
