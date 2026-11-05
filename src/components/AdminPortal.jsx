@@ -2622,7 +2622,7 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Target KPI / Peserta
+                Target Peserta / KPI
               </label>
               <input
                 type="text"
@@ -7136,7 +7136,7 @@ export default function AdminPortal({
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target KPI / Peserta</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target Peserta / KPI</label>
                     <input
                       type="text"
                       value={editingItem.item.kpi || ''}
@@ -8412,7 +8412,7 @@ export default function AdminPortal({
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Program Kerja</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Divisi</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Jadwal</th>
-                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Target KPI</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Target Peserta</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Status</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)', textAlign: 'right' }}>Total RAB</th>
                       </tr>

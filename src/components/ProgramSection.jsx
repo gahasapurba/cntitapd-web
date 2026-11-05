@@ -524,8 +524,8 @@ export default function ProgramSection({
                       <span>{evt.location}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
-                      <Target size={15} color="var(--mandiri-gold)" />
-                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Target: {evt.kpi}</span>
+                      <Users size={15} color="var(--mandiri-gold)" />
+                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Peserta: {evt.kpi}</span>
                     </div>
                     {(() => {
                       const count = eventRsvps.filter(r => r.eventId === evt.id).length;
@@ -1209,8 +1209,8 @@ export default function ProgramSection({
                   <strong>Lokasi:</strong> <span>{rsvpModalEvent.location}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Target size={14} color="var(--mandiri-gold)" />
-                  <strong>Target Partisipasi:</strong> <span>{rsvpModalEvent.kpi}</span>
+                  <Users size={14} color="var(--mandiri-gold)" />
+                  <strong>Peserta:</strong> <span>{rsvpModalEvent.kpi}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Users size={14} color="var(--neon-emerald)" />

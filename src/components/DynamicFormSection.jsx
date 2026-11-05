@@ -971,7 +971,7 @@ export default function DynamicFormSection({
               fontSize: '0.85rem'
             }}>
               <div style={{ borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
-                <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Formulir Target:</span>
+                <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Formulir Terkait:</span>
                 <div style={{ fontWeight: 800, color: 'var(--mandiri-gold)', fontSize: '0.95rem' }}>
                   {currentForm.title}
                 </div>
