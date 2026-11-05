@@ -6759,9 +6759,9 @@ export default function AdminPortal({
                             <span>Wajib</span>
                           </label>
 
-                          {/* Search Index Toggle (Kunci Pencarian Status) */}
+                          {/* Search Index Toggle (Jadikan Indeks Pencarian) */}
                           <label
-                            title="Kunci Pencarian Status: Centang jika field ini dijadikan kredensial pendaftar untuk mengecek status seleksi (hanya field bertanda ini dan ID Pendaftaran yang dapat dicari di web demi menjaga kerahasiaan data)"
+                            title="Jadikan Indeks Pencarian: Centang jika field ini dijadikan kredensial pendaftar untuk mencari & mengecek status pendaftaran/seleksi di web (hanya field bertanda ini dan ID Pendaftaran yang dapat dicari demi menjaga kerahasiaan data)"
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -6787,7 +6787,7 @@ export default function AdminPortal({
                                 setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
                               }}
                             />
-                            <span>🔑 Kunci Status</span>
+                            <span>🔍 Jadikan Indeks Pencarian</span>
                           </label>
 
                           {/* Field Delete Button with Protection */}
@@ -6801,7 +6801,7 @@ export default function AdminPortal({
                                 disabled={isOnlyIndex}
                                 onClick={() => {
                                   if (isOnlyIndex) {
-                                    showToast('Field ini adalah satu-satunya Kunci Pencarian Status. Tentukan field lain sebagai kunci status sebelum menghapus field ini.', 'error');
+                                    showToast('Field ini adalah satu-satunya Indeks Pencarian. Tentukan field lain sebagai indeks pencarian sebelum menghapus field ini.', 'error');
                                     return;
                                   }
 
@@ -7403,8 +7403,8 @@ export default function AdminPortal({
                     const fields = editingItem.item.fields || [];
                     const hasIndex = fields.some(f => Boolean(f.isSearchIndex));
                     if (!hasIndex) {
-                      setEditModalError('Wajib memilih minimal 1 field sebagai Kunci Status sebelum menyimpan!');
-                      showToast('Wajib memilih minimal 1 field sebagai Kunci Status (centang 🔑 Kunci Status pada field seperti NIP) sebelum menyimpan!', 'error');
+                      setEditModalError('Wajib memilih minimal 1 field sebagai Indeks Pencarian sebelum menyimpan!');
+                      showToast('Wajib memilih minimal 1 field sebagai Indeks Pencarian (centang 🔍 Jadikan Indeks Pencarian pada field seperti NIP) sebelum menyimpan!', 'error');
                       return;
                     }
                     if (onUpdateForm) {
