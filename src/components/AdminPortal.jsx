@@ -4380,8 +4380,16 @@ export default function AdminPortal({
                       )
                     );
 
+                    const getCsvHeaderLabel = (k) => {
+                      for (const f of forms) {
+                        const m = f.fields?.find(fld => fld.id === k || fld.id === `f-${k}`);
+                        if (m?.label) return m.label;
+                      }
+                      return k.replace(/^f-/, '').toUpperCase();
+                    };
+
                     const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-                    const headerRow = ['ID Berkas', 'Judul Formulir', 'Status Seleksi', 'Catatan Admin', 'Waktu Submit', ...dynamicKeys.map(k => k.replace(/^f-/, '').toUpperCase()), 'Lampiran File'].map(escapeCsv).join(',');
+                    const headerRow = ['ID Berkas', 'Judul Formulir', 'Status Seleksi', 'Catatan Admin', 'Waktu Submit', ...dynamicKeys.map(getCsvHeaderLabel), 'Lampiran File'].map(escapeCsv).join(',');
 
                     const dataRows = itemsToExport.map(s => {
                       const baseCols = [
@@ -4590,21 +4598,49 @@ export default function AdminPortal({
                       {/* Data Fields Preview */}
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: '8px',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                        gap: '10px',
                         background: 'var(--input-bg)',
-                        padding: '12px',
+                        padding: '14px',
                         borderRadius: 'var(--radius-sm)',
                         fontSize: '0.8rem'
                       }}>
-                        {Object.entries(sub.data || {}).map(([key, val]) => (
-                          <div key={key} style={{ wordBreak: 'break-word' }}>
-                            <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.72rem' }}>{key.replace('f-', '').toUpperCase()}</span>
-                            <strong style={{ color: 'var(--text-main)' }}>
-                              {typeof val === 'object' && val !== null ? (val.name || JSON.stringify(val)) : String(val)}
-                            </strong>
-                          </div>
-                        ))}
+                        {(() => {
+                          const parentForm = forms.find(f => f.id === sub.formId);
+                          const schemaFields = parentForm?.fields || [];
+
+                          const getLabel = (k) => {
+                            const match = schemaFields.find(f => f.id === k || f.id === `f-${k}`);
+                            if (match?.label) return match.label;
+                            for (const f of forms) {
+                              const m = f.fields?.find(fld => fld.id === k || fld.id === `f-${k}`);
+                              if (m?.label) return m.label;
+                            }
+                            return k.replace(/^f-/, '').replace(/([A-Z])/g, ' $1').trim();
+                          };
+
+                          const dataKeys = Object.keys(sub.data || {});
+                          const orderedKeys = [
+                            ...schemaFields.map(f => f.id).filter(id => dataKeys.includes(id)),
+                            ...dataKeys.filter(k => !schemaFields.some(f => f.id === k))
+                          ];
+
+                          return orderedKeys.map((key) => {
+                            const val = sub.data?.[key];
+                            if (val === undefined || val === null || val === '') return null;
+                            const label = getLabel(key);
+                            return (
+                              <div key={key} style={{ wordBreak: 'break-word', background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: '6px' }}>
+                                <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.72rem', fontWeight: 600, marginBottom: '3px' }}>
+                                  {label}
+                                </span>
+                                <strong style={{ color: 'var(--text-main)', fontSize: '0.84rem', lineHeight: 1.4 }}>
+                                  {typeof val === 'object' && val !== null ? (val.name || JSON.stringify(val)) : String(val)}
+                                </strong>
+                              </div>
+                            );
+                          });
+                        })()}
                         {/* Attached File Preview */}
                         {sub.files && Object.entries(sub.files).map(([key, fileObj]) => (
                           <div key={key} style={{ gridColumn: '1 / -1' }}>
