@@ -82,17 +82,16 @@ export async function checkFormsTrackingColumn() {
   return isFormsTrackingColSupported;
 }
 
-let isRsvpsDepartmentColChecked = false;
-let isRsvpsDepartmentColSupported = false;
+let isRsvpsDepartmentColChecked = true;
+let isRsvpsDepartmentColSupported = true;
 
 export async function checkRsvpsDepartmentColumn() {
-  if (isRsvpsDepartmentColChecked) return isRsvpsDepartmentColSupported;
   try {
     const { error } = await supabase.from('event_rsvps').select('department').limit(1);
     isRsvpsDepartmentColSupported = !error;
     isRsvpsDepartmentColChecked = true;
   } catch (e) {
-    isRsvpsDepartmentColSupported = false;
+    isRsvpsDepartmentColSupported = true;
   }
   return isRsvpsDepartmentColSupported;
 }
@@ -531,7 +530,9 @@ export async function fetchAllCloudState() {
   try {
     await Promise.all([
       checkGalleryDivisionIdColumn(),
-      detectEventsSchema()
+      detectEventsSchema(),
+      checkFormsTrackingColumn(),
+      checkRsvpsDepartmentColumn()
     ]);
     const [
       tenuresRes,
@@ -745,9 +746,19 @@ export async function mergeAndPushCloudList(key, newItem, currentLocalList = [])
 
   if (!tableName || !mapper) return optimisticList;
 
+  if (key === 'eventRsvps') {
+    await checkRsvpsDepartmentColumn();
+  }
+  if (key === 'forms') {
+    await checkFormsTrackingColumn();
+  }
+
   try {
     const dbRow = mapper.toDb(newItem, 0);
-    await supabase.from(tableName).upsert(dbRow, { onConflict: 'id' });
+    const { error: upsertErr } = await supabase.from(tableName).upsert(dbRow, { onConflict: 'id' });
+    if (upsertErr) {
+      console.error(`[mergeAndPushCloudList] Error upserting ${key}:`, upsertErr);
+    }
 
     const { data, error } = await supabase
       .from(tableName)

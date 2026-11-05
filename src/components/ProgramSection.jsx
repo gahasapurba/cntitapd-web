@@ -177,6 +177,7 @@ export default function ProgramSection({
         eventId: rsvpModalEvent.id,
         eventTitle: rsvpModalEvent.title,
         attendeeName: rsvpName.trim(),
+        department: rsvpSquad.trim(),
         squadUnit: rsvpSquad.trim(),
         attendanceMode: rsvpMode,
         notes: rsvpNotes.trim(),
