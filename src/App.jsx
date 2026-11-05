@@ -223,15 +223,16 @@ export default function App() {
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
       if (Array.isArray(cloud.events)) setEvents(cloud.events);
       if (Array.isArray(cloud.galleries)) {
-        const currentDivs = (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) ? cloud.divisions : [];
+        const currentDivs = (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) ? cloud.divisions : divisions;
         const reconciledGals = cloud.galleries.map(g => {
-          if (!g.divisionId && g.division && currentDivs.length > 0) {
-            const found = currentDivs.find(d => d.name === g.division && (!g.tenureId || d.tenureId === g.tenureId)) || currentDivs.find(d => d.name === g.division);
-            if (found) {
-              return { ...g, divisionId: found.id, divisionName: found.name };
-            }
-          }
-          return g;
+          const matchedDiv = currentDivs.find(d => d.id === g.divisionId) || currentDivs.find(d => d.name === g.division);
+          const resolvedName = matchedDiv?.name || g.divisionName || g.division || 'CNT IT APD';
+          return {
+            ...g,
+            divisionId: g.divisionId || matchedDiv?.id,
+            division: resolvedName,
+            divisionName: resolvedName
+          };
         });
         setGalleries(reconciledGals);
       }

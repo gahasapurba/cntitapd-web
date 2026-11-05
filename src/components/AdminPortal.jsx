@@ -3351,7 +3351,11 @@ export default function AdminPortal({
                   <div>
                     <strong style={{ color: 'var(--text-main)' }}>{gal.title}</strong>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {gal.date} • {gal.division} • {gal.photos?.length || 0} Foto
+                      {(() => {
+                        const divObj = divisions.find(d => d.id === gal.divisionId);
+                        const displayDiv = divObj?.name || gal.divisionName || gal.division || 'Umum';
+                        return `${gal.date} • ${displayDiv} • ${gal.photos?.length || 0} Foto`;
+                      })()}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

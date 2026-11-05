@@ -50,12 +50,15 @@ const TABLE_MAP = {
 
 let isGalleryDivisionIdChecked = false;
 let isGalleryDivisionIdSupported = false;
+let isGalleryDivisionColSupported = false;
 
 export async function checkGalleryDivisionIdColumn() {
   if (isGalleryDivisionIdChecked) return isGalleryDivisionIdSupported;
   try {
-    const { error } = await supabase.from('galleries').select('division_id').limit(1);
-    isGalleryDivisionIdSupported = !error;
+    const { error: idErr } = await supabase.from('galleries').select('division_id').limit(1);
+    isGalleryDivisionIdSupported = !idErr;
+    const { error: divErr } = await supabase.from('galleries').select('division').limit(1);
+    isGalleryDivisionColSupported = !divErr;
     isGalleryDivisionIdChecked = true;
   } catch (e) {
     isGalleryDivisionIdSupported = false;
@@ -193,7 +196,6 @@ export const rowMappers = {
         tenure_id: item.tenureId || null,
         title: item.title || '',
         date: item.date || '',
-        division: item.divisionName || item.division || '',
         description: item.description || '',
         photos: Array.isArray(item.photos) ? item.photos : [],
         doc_links: Array.isArray(item.docLinks) ? item.docLinks : [],
@@ -201,6 +203,9 @@ export const rowMappers = {
       };
       if (isGalleryDivisionIdSupported && item.divisionId) {
         row.division_id = item.divisionId;
+      }
+      if (isGalleryDivisionColSupported) {
+        row.division = item.divisionName || item.division || '';
       }
       return row;
     },
@@ -210,8 +215,8 @@ export const rowMappers = {
       divisionId: row.division_id || undefined,
       title: row.title,
       date: row.date,
-      division: row.division,
-      divisionName: row.division,
+      division: row.division || undefined,
+      divisionName: row.division || undefined,
       description: row.description,
       photos: Array.isArray(row.photos) ? row.photos : [],
       docLinks: Array.isArray(row.doc_links) ? row.doc_links : []
