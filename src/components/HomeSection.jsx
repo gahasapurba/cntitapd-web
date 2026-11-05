@@ -856,7 +856,7 @@ export default function HomeSection({
                     <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: div.color, fontWeight: 800 }}>
                       DIVISI 0{activeDivisions.indexOf(div) + 1}
                     </span>
-                    {div.isRecruiting !== false ? (
+                    {Boolean(div.isRecruiting) && (
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -871,22 +871,6 @@ export default function HomeSection({
                       }} title="Divisi ini membuka kesempatan bergabung untuk anggota baru">
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
                         <span>Rekrutmen Buka</span>
-                      </span>
-                    ) : (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '3px 9px',
-                        borderRadius: 'var(--radius-full)',
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        background: 'rgba(148, 163, 184, 0.12)',
-                        color: 'var(--text-muted)',
-                        border: '1px solid var(--border-card)'
-                      }} title="Rekrutmen divisi ini ditutup sementara / kuota terpenuhi">
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-muted)' }} />
-                        <span>Kuota Penuh</span>
                       </span>
                     )}
                   </div>

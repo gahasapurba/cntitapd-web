@@ -221,7 +221,7 @@ export const rowMappers = {
         motto: item.motto || '',
         description: item.description || '',
         focus_areas: Array.isArray(item.focusAreas) ? item.focusAreas : [],
-        is_recruiting: item.isRecruiting !== false,
+        is_recruiting: Boolean(item.isRecruiting),
         sort_order: idx
       };
       if (isDivisionsSlugColSupported) {
@@ -239,7 +239,7 @@ export const rowMappers = {
       motto: row.motto,
       description: row.description,
       focusAreas: Array.isArray(row.focus_areas) ? row.focus_areas : [],
-      isRecruiting: row.is_recruiting !== false
+      isRecruiting: Boolean(row.is_recruiting)
     })
   },
 

@@ -672,7 +672,7 @@ export default function AdminPortal({
       motto: 'Mendorong Transformasi Budaya Berkelanjutan',
       description: newDivDesc || 'Divisi pengembangan inisiatif budaya di Group IT APD.',
       focusAreas: newDivFocus ? newDivFocus.split(',').map(s => s.trim()).filter(Boolean) : ['Inisiatif Event Baru'],
-      isRecruiting: true
+      isRecruiting: false
     });
 
     const savedDiv = newDivName;
@@ -4104,21 +4104,33 @@ export default function AdminPortal({
                     )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '3px 9px',
-                      borderRadius: 'var(--radius-full)',
-                      fontSize: '0.68rem',
-                      fontWeight: 800,
-                      background: d.isRecruiting ? 'rgba(16, 185, 129, 0.14)' : 'rgba(148, 163, 184, 0.12)',
-                      color: d.isRecruiting ? '#10b981' : 'var(--text-muted)',
-                      border: d.isRecruiting ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-card)'
-                    }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: d.isRecruiting ? '#10b981' : 'var(--text-muted)' }} />
-                      <span>{d.isRecruiting ? 'Rekrutmen Buka' : 'Kuota Penuh'}</span>
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onUpdateDivision) {
+                          const nextStatus = !Boolean(d.isRecruiting);
+                          onUpdateDivision({ ...d, isRecruiting: nextStatus });
+                          showToast(`Status rekrutmen "${d.name}" diubah menjadi: ${nextStatus ? 'Rekrutmen Buka' : 'Rekrutmen Tutup'}`);
+                        }
+                      }}
+                      title="Klik untuk membuka atau menutup status rekrutmen divisi ini di web"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '4px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        background: Boolean(d.isRecruiting) ? 'rgba(16, 185, 129, 0.16)' : 'rgba(148, 163, 184, 0.12)',
+                        color: Boolean(d.isRecruiting) ? '#10b981' : 'var(--text-muted)',
+                        border: Boolean(d.isRecruiting) ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid var(--border-card)'
+                      }}
+                    >
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: Boolean(d.isRecruiting) ? '#10b981' : 'var(--text-muted)' }} />
+                      <span>{Boolean(d.isRecruiting) ? '● Rekrutmen Buka' : '○ Rekrutmen Tutup'}</span>
+                    </button>
 
                     <button
                       type="button"
@@ -7014,12 +7026,12 @@ export default function AdminPortal({
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Rekrutmen Divisi (Publik)</label>
                     <select
-                      value={editingItem.item.isRecruiting !== false ? 'open' : 'closed'}
+                      value={Boolean(editingItem.item.isRecruiting) ? 'open' : 'closed'}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, isRecruiting: e.target.value === 'open' } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
                       <option value="open">● Membuka Rekrutmen (Rekrutmen Buka)</option>
-                      <option value="closed">○ Ditutup Sementara (Kuota Penuh)</option>
+                      <option value="closed">○ Ditutup (Badge Hilang di Web)</option>
                     </select>
                   </div>
                 </div>
