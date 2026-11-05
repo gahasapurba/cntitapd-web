@@ -40,7 +40,16 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
-import { parseDateToIso, formatToIndonesianDate, getDeadlineStatus, formatWibTimestamp } from '../utils/dateUtils';
+import { 
+  parseDateToIso, 
+  formatToIndonesianDate, 
+  getDeadlineStatus, 
+  formatWibTimestamp,
+  formatWibDateTime,
+  formatWibEventRange,
+  toDatetimeLocalValue,
+  toDateInputValue
+} from '../utils/dateUtils';
 
 function formatWaPhone(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -466,22 +475,7 @@ export default function AdminPortal({
 
     const sDate = eventStartDate || new Date().toISOString().split('T')[0];
     const eDate = eventEndDate || sDate;
-
-    // Helper format display string: e.g. "10 - 24 Maret 2026"
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    const sParts = sDate.split('-');
-    const eParts = eDate.split('-');
-    const sMonth = months[parseInt(sParts[1], 10) - 1];
-    const eMonth = months[parseInt(eParts[1], 10) - 1];
-
-    let dateLabel = '';
-    if (sDate === eDate) {
-      dateLabel = `${parseInt(sParts[2], 10)} ${sMonth} ${sParts[0]}`;
-    } else if (sParts[1] === eParts[1]) {
-      dateLabel = `${parseInt(sParts[2], 10)} - ${parseInt(eParts[2], 10)} ${sMonth} ${sParts[0]}`;
-    } else {
-      dateLabel = `${parseInt(sParts[2], 10)} ${sMonth} - ${parseInt(eParts[2], 10)} ${eMonth} ${sParts[0]}`;
-    }
+    const dateLabel = formatWibEventRange(sDate, eDate);
 
     if (onAddEvent) {
       onAddEvent({
@@ -2559,11 +2553,11 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                📅 Tanggal Mulai <span style={{ color: '#f43f5e' }}>*</span>
+                📅 Tanggal & Jam Mulai (WIB) <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
-                type="date"
-                value={eventStartDate}
+                type="datetime-local"
+                value={toDatetimeLocalValue(eventStartDate)}
                 onChange={(e) => {
                   setEventStartDate(e.target.value);
                   clearFieldError('eventStartDate');
@@ -2583,11 +2577,11 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                📅 Tanggal Berakhir <span style={{ color: '#f43f5e' }}>*</span>
+                📅 Tanggal & Jam Berakhir (WIB) <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
-                type="date"
-                value={eventEndDate}
+                type="datetime-local"
+                value={toDatetimeLocalValue(eventEndDate)}
                 onChange={(e) => {
                   setEventEndDate(e.target.value);
                   clearFieldError('eventEndDate');
@@ -2803,7 +2797,7 @@ export default function AdminPortal({
                           {evt.title}
                         </div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
-                          📅 {evt.startDate} s/d {evt.endDate}
+                          📅 {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px', flexWrap: 'wrap', gap: '6px' }}>
                           <span>📍 {evt.location}</span>
@@ -2875,7 +2869,7 @@ export default function AdminPortal({
                   📋 Daftar Hadir & Konfirmasi RSVP Kegiatan ({eventRsvps.length})
                 </h4>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                  Data kehadiran pegawai yang mengisi form RSVP Cepat pada kartu Program Kerja (tersimpan di tabel <code>public.event_rsvps</code>).
+                  Data kehadiran pegawai yang mengisi form RSVP Cepat pada kartu Program Kerja.
                 </p>
               </div>
 
@@ -2955,7 +2949,7 @@ export default function AdminPortal({
                         {rsvp.attendeeName} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>• {rsvp.squadUnit}</span>
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '2px' }}>
-                        {rsvp.attendanceMode} {rsvp.notes ? `• "${rsvp.notes}"` : ''} • {rsvp.submittedAt}
+                        {rsvp.attendanceMode} {rsvp.notes ? `• "${rsvp.notes}"` : ''} • {formatWibTimestamp(rsvp.submittedAt || rsvp.createdAt).exact || rsvp.submittedAt}
                       </div>
                     </div>
 
@@ -3036,12 +3030,11 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Waktu Pelaksanaan
+                📅 Tanggal & Jam Pelaksanaan (WIB)
               </label>
               <input
-                type="text"
-                placeholder="Contoh: 15 Maret 2026"
-                value={galDate}
+                type="datetime-local"
+                value={toDatetimeLocalValue(galDate)}
                 onChange={(e) => setGalDate(e.target.value)}
                 style={{
                   width: '100%',
@@ -3410,7 +3403,7 @@ export default function AdminPortal({
                       {(() => {
                         const divObj = divisions.find(d => d.id === gal.divisionId);
                         const displayDiv = divObj?.name || gal.divisionName || gal.division || 'Umum';
-                        return `${gal.date} • ${displayDiv} • ${gal.photos?.length || 0} Foto`;
+                        return `${formatWibDateTime(gal.date)} • ${displayDiv} • ${gal.photos?.length || 0} Foto`;
                       })()}
                     </div>
                   </div>
@@ -4573,7 +4566,7 @@ export default function AdminPortal({
                             {stInfo.label}
                           </span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            • {sub.submittedAt}
+                            • {formatWibTimestamp(sub.submittedAt || sub.createdAt).exact || sub.submittedAt}
                           </span>
                         </div>
 
@@ -5002,7 +4995,7 @@ export default function AdminPortal({
                               Pengusul: {asp.sender || 'Anonim'}
                             </span>
                             <span style={{ fontSize: '0.73rem', color: 'var(--text-dim)' }}>
-                              • 📅 {asp.submittedAt}
+                              • 📅 {formatWibTimestamp(asp.submittedAt || asp.createdAt).exact || asp.submittedAt}
                             </span>
                           </div>
                           <div style={{ fontSize: '0.96rem', color: 'var(--text-main)', fontWeight: 800, marginBottom: '4px' }}>
@@ -5637,7 +5630,7 @@ export default function AdminPortal({
                           border: '1px solid rgba(255, 184, 0, 0.4)',
                           color: 'var(--mandiri-gold)'
                         }}>
-                          💬 Ditanyakan oleh: {f.askedBy} {f.submittedAt ? `• ${f.submittedAt}` : ''}
+                          💬 Ditanyakan oleh: {f.askedBy} {f.submittedAt ? `• ${formatWibTimestamp(f.submittedAt || f.createdAt).exact || f.submittedAt}` : ''}
                         </span>
                       )}
                     </div>
@@ -6217,10 +6210,12 @@ export default function AdminPortal({
 
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal / Jadwal</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      📅 Tanggal & Jam Pelaksanaan (WIB)
+                    </label>
                     <input
-                      type="text"
-                      value={editingItem.item.date || ''}
+                      type="datetime-local"
+                      value={toDatetimeLocalValue(editingItem.item.date)}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />
@@ -6978,30 +6973,24 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Teks Tanggal Tampilan (Display Date)</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: 15 Maret 2026 atau Maret - Mei 2026"
-                    value={editingItem.item.date || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
-                </div>
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal Mulai</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      📅 Tanggal & Jam Mulai (WIB) <span style={{ color: '#f43f5e' }}>*</span>
+                    </label>
                     <input
-                      type="date"
-                      value={editingItem.item.startDate || ''}
+                      type="datetime-local"
+                      value={toDatetimeLocalValue(editingItem.item.startDate)}
                       onChange={(e) => {
                         const val = e.target.value;
+                        const sVal = val;
+                        const eVal = editingItem.item.endDate || val;
                         setEditingItem({
                           ...editingItem,
                           item: {
                             ...editingItem.item,
-                            startDate: val,
-                            date: editingItem.item.date || val
+                            startDate: sVal,
+                            date: formatWibEventRange(sVal, eVal)
                           }
                         });
                       }}
@@ -7009,14 +6998,34 @@ export default function AdminPortal({
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tanggal Berakhir</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      📅 Tanggal & Jam Berakhir (WIB) <span style={{ color: '#f43f5e' }}>*</span>
+                    </label>
                     <input
-                      type="date"
-                      value={editingItem.item.endDate || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, endDate: e.target.value } })}
+                      type="datetime-local"
+                      value={toDatetimeLocalValue(editingItem.item.endDate)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const sVal = editingItem.item.startDate || val;
+                        const eVal = val;
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            endDate: eVal,
+                            date: formatWibEventRange(sVal, eVal)
+                          }
+                        });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />
                   </div>
+                </div>
+
+                {/* Live Preview of Dynamic Date in WIB */}
+                <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: '0.78rem', color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Tampilan Jadwal di Web:</span>
+                  <strong>{formatWibEventRange(editingItem.item.startDate, editingItem.item.endDate, editingItem.item.date || 'TBD')}</strong>
                 </div>
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>

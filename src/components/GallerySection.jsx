@@ -13,6 +13,7 @@ import {
   Download,
   X
 } from 'lucide-react';
+import { formatWibDateTime } from '../utils/dateUtils';
 
 export default function GallerySection({ galleries = [], divisions = [], activeTenure = null, theme }) {
   const isDark = theme === 'dark';
@@ -275,7 +276,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
-              <Calendar size={13} /> {activeEvent.date}
+              <Calendar size={13} /> {formatWibDateTime(activeEvent.date) || '-'}
             </span>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               Divisi: {activeEvent.divisionName || activeEvent.division || 'CNT IT APD'}
@@ -524,7 +525,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--mandiri-gold)', fontWeight: 700 }}>
-                      {item.date}
+                      {formatWibDateTime(item.date) || '-'}
                     </span>
                     {(item.divisionName || item.division) && (
                       <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
@@ -590,7 +591,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                 {activeEvent.title}
               </div>
               <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)' }}>
-                Foto {currentPhotoIdx + 1} dari {activeEvent.photos.length} • {activeEvent.date}
+                Foto {currentPhotoIdx + 1} dari {activeEvent.photos.length} • {formatWibDateTime(activeEvent.date)}
               </div>
             </div>
 

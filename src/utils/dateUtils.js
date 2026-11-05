@@ -195,4 +195,152 @@ export function formatWibTimestamp(isoStr) {
   };
 }
 
+/**
+ * Convert any date / datetime / ISO string into standard HTML <input type="datetime-local"> value (YYYY-MM-DDTHH:mm)
+ * strictly evaluated in WIB (Asia/Jakarta) timezone.
+ */
+export function toDatetimeLocalValue(str) {
+  if (!str) return '';
+  const trimmed = String(str).trim();
+  // Plain local YYYY-MM-DDTHH:mm (no Z or offset)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  // Plain YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T09:00`;
+  }
+  // Try Date parsing in Asia/Jakarta
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    const formatter = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(d);
+    const m = {};
+    parts.forEach(p => { m[p.type] = p.value; });
+    if (m.year && m.month && m.day) {
+      return `${m.year}-${m.month}-${m.day}T${m.hour || '00'}:${m.minute || '00'}`;
+    }
+  }
+  // Try parseDateToIso
+  const iso = parseDateToIso(trimmed);
+  if (iso) return `${iso}T09:00`;
+  return '';
+}
+
+/**
+ * Convert any date / datetime / legacy string into standard HTML <input type="date"> value (YYYY-MM-DD).
+ */
+export function toDateInputValue(str) {
+  if (!str) return '';
+  const dt = toDatetimeLocalValue(str);
+  if (dt) return dt.split('T')[0];
+  return parseDateToIso(str) || '';
+}
+
+/**
+ * Format single date/datetime string into Indonesian text with WIB timezone.
+ * e.g. "2026-03-10T14:30" -> "10 Maret 2026, 14:30 WIB"
+ * e.g. "2026-03-10" -> "10 Maret 2026"
+ */
+export function formatWibDateTime(str, options = {}) {
+  if (!str) return '';
+  const trimmed = String(str).trim();
+
+  // If plain YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, d] = trimmed.split('-').map(Number);
+    return `${d} ${INDONESIAN_MONTHS[m - 1]} ${y}`;
+  }
+
+  // Datetime local or ISO
+  const hasTime = trimmed.includes('T') || /:\d{2}/.test(trimmed);
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    const formatter = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      weekday: options.includeWeekday ? 'long' : undefined,
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: hasTime ? '2-digit' : undefined,
+      minute: hasTime ? '2-digit' : undefined,
+      hour12: false
+    });
+    const parts = formatter.formatToParts(d);
+    const m = {};
+    parts.forEach(p => { m[p.type] = p.value; });
+
+    let res = `${m.day || ''} ${m.month || ''} ${m.year || ''}`.trim();
+    if (options.includeWeekday && m.weekday) {
+      res = `${m.weekday}, ${res}`;
+    }
+    if (hasTime && m.hour && m.minute) {
+      res = `${res} • ${m.hour}:${m.minute} WIB`;
+    }
+    return res;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Format event date range (start & end) in Indonesian WIB format.
+ * Handles datetime-local (with hours) as well as date-only (YYYY-MM-DD).
+ */
+export function formatWibEventRange(startDateStr, endDateStr, fallback = '') {
+  if (!startDateStr && !endDateStr) return fallback;
+  const s = String(startDateStr || '').trim();
+  const e = String(endDateStr || s).trim();
+  if (!s && !e) return fallback;
+
+  const sHasTime = s.includes('T');
+  const eHasTime = e.includes('T');
+
+  const sDt = toDatetimeLocalValue(s);
+  const eDt = toDatetimeLocalValue(e);
+
+  if (!sDt) return s || fallback;
+
+  const [sDatePart, sTimePart] = sDt.split('T');
+  const [eDatePart, eTimePart] = (eDt || sDt).split('T');
+
+  const [sY, sM, sD] = sDatePart.split('-').map(Number);
+  const [eY, eM, eD] = eDatePart.split('-').map(Number);
+
+  const sMonth = INDONESIAN_MONTHS[sM - 1];
+  const eMonth = INDONESIAN_MONTHS[eM - 1];
+
+  // Same day
+  if (sDatePart === eDatePart) {
+    if (sHasTime && eHasTime && sTimePart !== eTimePart) {
+      return `${sD} ${sMonth} ${sY}, ${sTimePart} - ${eTimePart} WIB`;
+    }
+    if (sHasTime) {
+      return `${sD} ${sMonth} ${sY}, ${sTimePart} WIB`;
+    }
+    return `${sD} ${sMonth} ${sY}`;
+  }
+
+  // Same month & year
+  if (sY === eY && sM === eM) {
+    return `${sD} - ${eD} ${sMonth} ${sY}`;
+  }
+
+  // Different month, same year
+  if (sY === eY) {
+    return `${sD} ${sMonth} - ${eD} ${eMonth} ${sY}`;
+  }
+
+  // Different year
+  return `${sD} ${sMonth} ${sY} - ${eD} ${eMonth} ${eY}`;
+}
+
 

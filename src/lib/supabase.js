@@ -205,7 +205,8 @@ export const rowMappers = {
       kpi: row.kpi,
       description: row.description,
       totalRab: Number(row.total_rab || 0),
-      status: row.status || 'Upcoming'
+      status: row.status || 'Upcoming',
+      createdAt: row.created_at
     })
   },
 
@@ -235,6 +236,7 @@ export const rowMappers = {
       divisionId: row.division_id || undefined,
       title: row.title,
       date: row.date,
+      createdAt: row.created_at,
       division: row.division || undefined,
       divisionName: row.division || undefined,
       description: row.description,
@@ -272,7 +274,7 @@ export const rowMappers = {
       title: item.title || item.description || '',
       category: item.category || 'Kegiatan & Event',
       description: item.description || item.title || '',
-      submitted_at: item.submittedAt || '',
+      submitted_at: item.submittedAt || new Date().toISOString(),
       status: item.status || 'Menunggu Review',
       admin_reply: item.adminReply || '',
       is_public: item.isPublic !== false,
@@ -284,7 +286,8 @@ export const rowMappers = {
       title: row.title || row.description || '',
       category: row.category || 'Kegiatan & Event',
       description: row.description || row.title || '',
-      submittedAt: row.submitted_at,
+      submittedAt: row.submitted_at || row.created_at,
+      createdAt: row.created_at,
       status: row.status || 'Menunggu Review',
       adminReply: row.admin_reply || '',
       isPublic: row.is_public !== false
@@ -318,7 +321,7 @@ export const rowMappers = {
       id: String(item.id),
       form_id: item.formId || '',
       form_title: item.formTitle || 'Formulir',
-      submitted_at: item.submittedAt || '',
+      submitted_at: item.submittedAt || new Date().toISOString(),
       status: item.status || 'Submitted',
       admin_notes: item.adminNotes || '',
       data: item.data || {},
@@ -328,7 +331,8 @@ export const rowMappers = {
       id: row.id,
       formId: row.form_id,
       formTitle: row.form_title,
-      submittedAt: row.submitted_at,
+      submittedAt: row.submitted_at || row.created_at,
+      createdAt: row.created_at,
       status: row.status || 'Submitted',
       adminNotes: row.admin_notes || '',
       data: row.data || {},
@@ -372,7 +376,7 @@ export const rowMappers = {
       squad_unit: item.squadUnit || '',
       attendance_mode: item.attendanceMode || 'Hadir Onsite',
       notes: item.notes || '',
-      submitted_at: item.submittedAt || '',
+      submitted_at: item.submittedAt || new Date().toISOString(),
       sort_order: idx,
       updated_at: new Date().toISOString()
     }),
@@ -384,7 +388,8 @@ export const rowMappers = {
       squadUnit: row.squad_unit || '',
       attendanceMode: row.attendance_mode || 'Hadir Onsite',
       notes: row.notes || '',
-      submittedAt: row.submitted_at || ''
+      submittedAt: row.submitted_at || row.created_at || '',
+      createdAt: row.created_at
     })
   },
 
@@ -395,7 +400,7 @@ export const rowMappers = {
       answer: item.answer || '',
       category: item.category || 'Umum',
       asked_by: item.askedBy || 'Admin CNT',
-      submitted_at: item.submittedAt || '',
+      submitted_at: item.submittedAt || new Date().toISOString(),
       is_published: item.isPublished !== false,
       sort_order: idx,
       updated_at: new Date().toISOString()
@@ -406,7 +411,8 @@ export const rowMappers = {
       answer: row.answer || '',
       category: row.category || 'Umum',
       askedBy: row.asked_by || 'Admin CNT',
-      submittedAt: row.submitted_at || '',
+      submittedAt: row.submitted_at || row.created_at || '',
+      createdAt: row.created_at,
       isPublished: row.is_published !== false
     })
   }

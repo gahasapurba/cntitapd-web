@@ -21,6 +21,7 @@ import {
   Link2,
   HelpCircle
 } from 'lucide-react';
+import { formatWibEventRange } from '../utils/dateUtils';
 
 export default function ProgramSection({
   events = [],
@@ -132,7 +133,8 @@ export default function ProgramSection({
   const handleShareEventWa = (evt) => {
     if (!evt) return;
     const url = getEventDirectUrl(evt.id);
-    const text = `Halo Insan IT APD! Yuk ikuti & konfirmasi kehadiranmu (RSVP) di kegiatan *${evt.title}* (${evt.date} • ${evt.location || 'Plaza Mandiri'}):\n${url}`;
+    const dateText = formatWibEventRange(evt.startDate, evt.endDate, evt.date);
+    const text = `Halo Insan IT APD! Yuk ikuti & konfirmasi kehadiranmu (RSVP) di kegiatan *${evt.title}* (${dateText} • ${evt.location || 'Plaza Mandiri'}):\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   };
 
@@ -490,7 +492,7 @@ export default function ProgramSection({
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className="badge-gold" style={{ fontSize: '0.7rem' }}>
-                        {evt.date}
+                        {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
                       </span>
                       {evt.badge && (
                         <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
@@ -1095,7 +1097,7 @@ export default function ProgramSection({
                 </div>
                 <div>
                   <span className="badge-gold" style={{ fontSize: '0.68rem', marginBottom: '4px' }}>
-                    RSVP & Info Event • {rsvpModalEvent.date}
+                    RSVP & Info Event • {formatWibEventRange(rsvpModalEvent.startDate, rsvpModalEvent.endDate, rsvpModalEvent.date)}
                   </span>
                   <h3 style={{ fontSize: '1.22rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                     {rsvpModalEvent.title}
@@ -1613,7 +1615,9 @@ export default function ProgramSection({
               </div>
               <div style={{ fontSize: '0.84rem' }}>
                 <span style={{ color: 'var(--text-dim)' }}>Jadwal & Lokasi: </span>
-                <strong style={{ color: 'var(--mandiri-gold)' }}>{rsvpModalEvent.date} • {rsvpModalEvent.location || 'Plaza Mandiri'}</strong>
+                <strong style={{ color: 'var(--mandiri-gold)' }}>
+                  {formatWibEventRange(rsvpModalEvent.startDate, rsvpModalEvent.endDate, rsvpModalEvent.date)} • {rsvpModalEvent.location || 'Plaza Mandiri'}
+                </strong>
               </div>
               <div style={{ fontSize: '0.84rem' }}>
                 <span style={{ color: 'var(--text-dim)' }}>Nama Peserta: </span>

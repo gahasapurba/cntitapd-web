@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadMediaToCloud } from '../lib/supabase';
-import { getDeadlineStatus } from '../utils/dateUtils';
+import { getDeadlineStatus, formatWibDateTime } from '../utils/dateUtils';
 
 export default function DynamicFormSection({ 
   forms = [], 
@@ -439,7 +439,7 @@ export default function DynamicFormSection({
                       }
                       return (
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                          Deadline: {f.deadline}
+                          Deadline: {formatWibDateTime(f.deadline) || f.deadline}
                         </span>
                       );
                     })()}
@@ -567,7 +567,7 @@ export default function DynamicFormSection({
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
-                            📅 Batas Akhir: {currentForm.deadline}
+                            📅 Batas Akhir: {formatWibDateTime(currentForm.deadline) || currentForm.deadline}
                           </span>
                           {dl.isToday && (
                             <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
