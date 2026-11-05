@@ -517,7 +517,18 @@ export async function pushCloudState(key, value) {
       return false;
     }
 
-    const dbRows = value.map((item, idx) => mapper.toDb(item, idx));
+    // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically
+    let preparedValue = value;
+    if (key === 'tenures') {
+      preparedValue = [...value].sort((a, b) => {
+        const numA = parseInt(a.code || a.id?.replace(/\D/g, '') || '0', 10);
+        const numB = parseInt(b.code || b.id?.replace(/\D/g, '') || '0', 10);
+        if (numB !== numA) return numB - numA;
+        return (b.title || '').localeCompare(a.title || '');
+      });
+    }
+
+    const dbRows = preparedValue.map((item, idx) => mapper.toDb(item, idx));
     const currentIds = dbRows.map((r) => r.id);
 
     // Fetch existing IDs in table to remove deleted rows

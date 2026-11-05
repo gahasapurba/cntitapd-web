@@ -67,6 +67,16 @@ const DEFAULT_PAGE_VISIBILITY = {
   oprec: true
 };
 
+// Helper to consistently sort tenures descending by year (e.g. 2028 -> 2027 -> 2026)
+const sortTenuresDesc = (list = []) => {
+  return [...list].sort((a, b) => {
+    const numA = parseInt(a.code || a.id?.replace(/\D/g, '') || '0', 10);
+    const numB = parseInt(b.code || b.id?.replace(/\D/g, '') || '0', 10);
+    if (numB !== numA) return numB - numA;
+    return (b.title || '').localeCompare(a.title || '');
+  });
+};
+
 export default function App() {
   // Navigation: 'home' | 'organisasi' | 'program' | 'galeri' | 'kudos' | 'assets' | 'oprec' | 'admin'
   const [currentTab, setCurrentTabState] = useState(() => parseLocationRoute().tab);
@@ -146,9 +156,9 @@ export default function App() {
   };
 
   // Master Dynamic States (Loaded from LocalCache immediately + Synced with Supabase Cloud)
-  const [tenures, setTenures] = useState(() => loadLocalCache('tenures', []));
+  const [tenures, setTenures] = useState(() => sortTenuresDesc(loadLocalCache('tenures', [])));
   const [activeTenure, setActiveTenure] = useState(() => {
-    const savedTenures = loadLocalCache('tenures', []);
+    const savedTenures = sortTenuresDesc(loadLocalCache('tenures', []));
     const savedActiveId = loadLocalCache('activeTenureId', null);
     if (savedActiveId && Array.isArray(savedTenures)) {
       const found = savedTenures.find(t => t.id === savedActiveId);
@@ -193,10 +203,11 @@ export default function App() {
     const cloud = await fetchAllCloudState();
     if (cloud) {
       if (Array.isArray(cloud.tenures) && cloud.tenures.length > 0) {
+        const sortedTenures = sortTenuresDesc(cloud.tenures);
         const targetId = cloud.activeTenureId || loadLocalCache('activeTenureId', null);
-        const defaultActive = cloud.tenures.find(t => t.id === targetId) || cloud.tenures.find(t => t.isActive) || cloud.tenures[0];
+        const defaultActive = sortedTenures.find(t => t.id === targetId) || sortedTenures.find(t => t.isActive) || sortedTenures[0];
         // Enforce strict single active tenure exclusivity
-        const normalizedTenures = cloud.tenures.map(t => ({
+        const normalizedTenures = sortedTenures.map(t => ({
           ...t,
           isActive: t.id === defaultActive.id
         }));
@@ -333,7 +344,7 @@ export default function App() {
     setTenures((prev) => {
       const isActivating = Boolean(newTenure.isActive);
       const sanitizedPrev = isActivating ? prev.map(t => ({ ...t, isActive: false })) : prev;
-      const next = [...sanitizedPrev, newTenure];
+      const next = sortTenuresDesc([...sanitizedPrev, newTenure]);
       pushCloudState('tenures', next);
       if (isActivating) {
         setActiveTenure(newTenure);
@@ -345,7 +356,7 @@ export default function App() {
   const handleUpdateTenure = (updatedTenure) => {
     setTenures((prev) => {
       const isActivating = Boolean(updatedTenure.isActive);
-      const next = prev.map(t => {
+      const next = sortTenuresDesc(prev.map(t => {
         if (t.id === updatedTenure.id) {
           return updatedTenure;
         }
@@ -354,7 +365,7 @@ export default function App() {
           return { ...t, isActive: false };
         }
         return t;
-      });
+      }));
       pushCloudState('tenures', next);
       return next;
     });
