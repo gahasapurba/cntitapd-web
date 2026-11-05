@@ -448,7 +448,7 @@ export default function DynamicFormSection({
                     {f.title}
                   </h4>
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5, flex: 1 }}>
-                    {f.subtitle || f.description}
+                    {f.subtitle}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border-card)', fontSize: '0.78rem', fontWeight: 700, color: isSelected ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
                     <span>{isSelected ? '✓ Sedang Dibuka' : 'Buka Formulir'}</span>
@@ -559,7 +559,7 @@ export default function DynamicFormSection({
                     {currentForm.title}
                   </h2>
                   <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', maxWidth: '580px', margin: '0 auto' }}>
-                    {currentForm.subtitle || currentForm.description}
+                    {currentForm.subtitle}
                   </p>
                   {(() => {
                     const dl = getDeadlineStatus(currentForm.deadline);

@@ -279,18 +279,16 @@ export const rowMappers = {
       category: item.category || 'Kegiatan & Event',
       deadline: item.deadline || '',
       is_open: item.isOpen !== false,
-      description: item.description || '',
       fields: Array.isArray(item.fields) ? item.fields : [],
       sort_order: idx
     }),
     fromDb: (row) => ({
       id: row.id,
       title: row.title,
-      subtitle: row.subtitle,
+      subtitle: row.subtitle || row.description || '',
       category: row.category,
       deadline: row.deadline,
       isOpen: row.is_open !== false,
-      description: row.description || '',
       fields: Array.isArray(row.fields) ? row.fields : []
     })
   },
