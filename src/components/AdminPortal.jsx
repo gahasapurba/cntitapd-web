@@ -23,6 +23,7 @@ import {
   Users,
   Heart,
   Building2,
+  FileText,
   X,
   ClipboardList,
   Download,
@@ -323,7 +324,8 @@ export default function AdminPortal({
     const memCount = (members || []).filter(m => m.tenureId === t.id).length;
     const evtCount = (events || []).filter(e => e.tenureId === t.id).length;
     const galCount = (galleries || []).filter(g => g.tenureId === t.id).length;
-    const totalDependentCount = divCount + memCount + evtCount + galCount;
+    const formCount = (forms || []).filter(f => f.tenureId === t.id).length;
+    const totalDependentCount = divCount + memCount + evtCount + galCount + formCount;
 
     setDeleteConfirm({
       type: 'tenure',
@@ -336,6 +338,7 @@ export default function AdminPortal({
       memCount,
       evtCount,
       galCount,
+      formCount,
       totalDependentCount,
       isBlocked: isOnlyTenure || isActiveTenure || totalDependentCount > 0
     });
@@ -9630,7 +9633,7 @@ export default function AdminPortal({
                     borderRadius: '10px',
                     padding: '12px',
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
                     gap: '8px',
                     textAlign: 'left'
                   }}>
@@ -9705,6 +9708,24 @@ export default function AdminPortal({
                         </div>
                       </div>
                     </div>
+
+                    <div style={{
+                      background: deleteConfirm.formCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                      border: deleteConfirm.formCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <FileText size={18} color={deleteConfirm.formCount > 0 ? '#f43f5e' : 'var(--text-muted)'} />
+                      <div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Formulir Terkait</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: deleteConfirm.formCount > 0 ? '#f43f5e' : 'var(--text-muted)' }}>
+                          {deleteConfirm.formCount} Formulir
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div style={{
@@ -9735,7 +9756,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    ✓ <strong>Aman Dihapus:</strong> Periode ini tidak aktif dan tidak memiliki dependensi data (0 Divisi, 0 Anggota, 0 Event, 0 Galeri).
+                    ✓ <strong>Aman Dihapus:</strong> Periode ini tidak aktif dan tidak memiliki dependensi data (0 Divisi, 0 Anggota, 0 Event, 0 Galeri, 0 Formulir).
                   </div>
                 </>
               )
