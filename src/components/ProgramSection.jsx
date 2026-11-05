@@ -28,6 +28,7 @@ import { formatWibEventRange } from '../utils/dateUtils';
 export default function ProgramSection({
   events = [],
   divisions = [],
+  departments = [],
   activeTenure = null,
   eventRsvps = [],
   onAddEventRsvp,
@@ -143,7 +144,7 @@ export default function ProgramSection({
 
   // Quick RSVP form states
   const [rsvpName, setRsvpName] = useState('');
-  const [rsvpSquad, setRsvpSquad] = useState('');
+  const [rsvpDepartmentId, setRsvpDepartmentId] = useState('');
   const [rsvpMode, setRsvpMode] = useState('Hadir Onsite');
   const [rsvpNotes, setRsvpNotes] = useState('');
   const [rsvpErrors, setRsvpErrors] = useState({});
@@ -156,7 +157,7 @@ export default function ProgramSection({
     if (!rsvpModalEvent || isSubmittingRsvp) return;
     const errs = {};
     if (!rsvpName.trim()) errs.rsvpName = 'Nama lengkap wajib diisi';
-    if (!rsvpSquad.trim()) errs.rsvpSquad = 'Departemen wajib diisi';
+    if (!rsvpDepartmentId.trim()) errs.rsvpDepartmentId = 'Departemen wajib dipilih dari daftar';
     setRsvpErrors(errs);
     if (Object.keys(errs).length > 0) return;
     setConfirmRsvpOpen(true);
@@ -177,8 +178,9 @@ export default function ProgramSection({
         eventId: rsvpModalEvent.id,
         eventTitle: rsvpModalEvent.title,
         attendeeName: rsvpName.trim(),
-        department: rsvpSquad.trim(),
-        squadUnit: rsvpSquad.trim(),
+        departmentId: rsvpDepartmentId,
+        department: rsvpDepartmentId,
+        squadUnit: rsvpDepartmentId,
         attendanceMode: rsvpMode,
         notes: rsvpNotes.trim(),
         submittedAt: ts
@@ -187,7 +189,7 @@ export default function ProgramSection({
 
     setRsvpSuccess(true);
     setRsvpName('');
-    setRsvpSquad('');
+    setRsvpDepartmentId('');
     setRsvpNotes('');
     setRsvpErrors({});
     setTimeout(() => setIsSubmittingRsvp(false), 500);
@@ -1417,29 +1419,35 @@ export default function ProgramSection({
                       )}
                     </div>
                     <div>
-                      <input
-                        type="text"
-                        placeholder="Departemen *"
-                        value={rsvpSquad}
+                      <select
+                        value={rsvpDepartmentId}
                         onChange={(e) => {
-                          setRsvpSquad(e.target.value);
-                          if (rsvpErrors.rsvpSquad) setRsvpErrors(prev => ({ ...prev, rsvpSquad: null }));
+                          setRsvpDepartmentId(e.target.value);
+                          if (rsvpErrors.rsvpDepartmentId) setRsvpErrors(prev => ({ ...prev, rsvpDepartmentId: null }));
                         }}
                         style={{
                           width: '100%',
                           padding: '9px 12px',
                           borderRadius: 'var(--radius-sm)',
                           background: 'var(--bg-card)',
-                          border: `1.5px solid ${rsvpErrors.rsvpSquad ? '#f43f5e' : 'var(--border-card)'}`,
-                          color: 'var(--text-main)',
+                          border: `1.5px solid ${rsvpErrors.rsvpDepartmentId ? '#f43f5e' : 'var(--border-card)'}`,
+                          color: rsvpDepartmentId ? 'var(--text-main)' : 'var(--text-dim)',
                           fontSize: '0.82rem',
-                          outline: 'none'
+                          outline: 'none',
+                          cursor: 'pointer'
                         }}
-                      />
-                      {rsvpErrors.rsvpSquad && (
+                      >
+                        <option value="">-- Pilih Departemen Asal Kamu * --</option>
+                        {departments.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} {d.code ? `(${d.code})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {rsvpErrors.rsvpDepartmentId && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
                           <AlertCircle size={11} />
-                          <span>{rsvpErrors.rsvpSquad}</span>
+                          <span>{rsvpErrors.rsvpDepartmentId}</span>
                         </div>
                       )}
                     </div>
@@ -1757,7 +1765,9 @@ export default function ProgramSection({
               </div>
               <div style={{ fontSize: '0.84rem' }}>
                 <span style={{ color: 'var(--text-dim)' }}>Departemen: </span>
-                <strong style={{ color: 'var(--text-main)' }}>{rsvpSquad}</strong>
+                <strong style={{ color: 'var(--text-main)' }}>
+                  {departments.find(d => d.id === rsvpDepartmentId)?.name || rsvpDepartmentId}
+                </strong>
               </div>
               <div style={{ fontSize: '0.84rem' }}>
                 <span style={{ color: 'var(--text-dim)' }}>Status Kehadiran: </span>

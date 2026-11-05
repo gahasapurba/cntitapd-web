@@ -127,6 +127,18 @@ export default function App() {
     return DEFAULT_PAGE_VISIBILITY;
   });
 
+  // Default Departments in Bank Mandiri IT APD
+  const DEFAULT_DEPARTMENTS = [
+    { id: 'dept-core', name: 'Core Banking Delivery', code: 'CBD', description: 'Pengembangan dan pemeliharaan sistem inti perbankan (Core Banking).' },
+    { id: 'dept-digital', name: 'Digital Banking Delivery', code: 'DBD', description: 'Pengembangan channel digital Livin & Kopra by Mandiri.' },
+    { id: 'dept-wealth', name: 'Wealth & Retail Delivery', code: 'WRD', description: 'Solusi teknologi untuk nasabah wealth management dan segmen retail.' },
+    { id: 'dept-corporate', name: 'Corporate & Commercial Delivery', code: 'CCD', description: 'Solusi teknologi untuk nasabah korporat, komersial, dan wholesale.' },
+    { id: 'dept-cards', name: 'Cards & Payments Delivery', code: 'CPD', description: 'Pengembangan sistem kartu kredit, debit, dan pemrosesan pembayaran.' },
+    { id: 'dept-integration', name: 'Integration & API Delivery', code: 'IAD', description: 'Arsitektur integrasi sistem, middleware, dan Open API perbankan.' },
+    { id: 'dept-data', name: 'Data & Analytics Delivery', code: 'DAD', description: 'Pengembangan data warehouse, business intelligence, dan analitik AI.' },
+    { id: 'dept-governance', name: 'IT Architecture & Governance', code: 'IAG', description: 'Tata kelola arsitektur IT, kepatuhan teknologi, dan standar kualitas.' }
+  ];
+
   // Default theme is LIGHT THEME as requested
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('cnt_theme') || 'light';
@@ -179,6 +191,7 @@ export default function App() {
       return pimpro ? { ...d, memberId: pimpro.id, leadName: pimpro.name } : d;
     });
   });
+  const [departments, setDepartments] = useState(() => loadLocalCache('departments', DEFAULT_DEPARTMENTS));
   const [members, setMembers] = useState(() => loadLocalCache('members', []));
   const [events, setEvents] = useState(() => loadLocalCache('events', []));
   const [galleries, setGalleries] = useState(() => loadLocalCache('galleries', []));
@@ -276,6 +289,7 @@ export default function App() {
       if (Array.isArray(cloud.aspirasiList)) setAspirasiList(cloud.aspirasiList);
       if (Array.isArray(cloud.brandAssets)) setBrandAssets(cloud.brandAssets);
       if (Array.isArray(cloud.eventRsvps)) setEventRsvps(cloud.eventRsvps);
+      if (Array.isArray(cloud.departments) && cloud.departments.length > 0) setDepartments(cloud.departments);
       if (Array.isArray(cloud.faqs)) setFaqs(cloud.faqs);
       if (cloud.announcementBar && typeof cloud.announcementBar === 'object') {
         setAnnouncementBar({ ...DEFAULT_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
@@ -846,6 +860,32 @@ export default function App() {
     });
   };
 
+  // Departments Lifecycle Handlers
+  const handleAddDepartment = (newDept) => {
+    setDepartments((prev) => {
+      const next = [...prev, newDept];
+      pushCloudState('departments', next);
+      return next;
+    });
+  };
+  const handleUpdateDepartment = (updatedDept) => {
+    setDepartments((prev) => {
+      const next = prev.map(d => d.id === updatedDept.id ? updatedDept : d);
+      pushCloudState('departments', next);
+      return next;
+    });
+  };
+  const handleDeleteDepartment = (deptId) => {
+    const isUsed = eventRsvps.some(r => r.departmentId === deptId || r.department === deptId);
+    if (isUsed) return false;
+    setDepartments((prev) => {
+      const next = prev.filter(d => d.id !== deptId);
+      pushCloudState('departments', next);
+      return next;
+    });
+    return true;
+  };
+
   // Restore full backup snapshot (.json) across all 13 tables
   const handleRestoreBackup = async (backupData) => {
     if (!backupData || typeof backupData !== 'object') return;
@@ -898,6 +938,10 @@ export default function App() {
     if (Array.isArray(backupData.eventRsvps)) {
       setEventRsvps(backupData.eventRsvps);
       tasks.push(pushCloudState('eventRsvps', backupData.eventRsvps));
+    }
+    if (Array.isArray(backupData.departments)) {
+      setDepartments(backupData.departments);
+      tasks.push(pushCloudState('departments', backupData.departments));
     }
     if (Array.isArray(backupData.faqs)) {
       setFaqs(backupData.faqs);
@@ -1185,6 +1229,7 @@ export default function App() {
             <ProgramSection
               events={events}
               divisions={divisions}
+              departments={departments}
               activeTenure={activeTenure}
               theme={theme}
               onNavigateOprec={pageVisibility.oprec !== false ? () => setCurrentTab('oprec') : undefined}
@@ -1253,6 +1298,10 @@ export default function App() {
               onAddDivision={handleAddDivision}
               onUpdateDivision={handleUpdateDivision}
               onDeleteDivision={handleDeleteDivision}
+              departments={departments}
+              onAddDepartment={handleAddDepartment}
+              onUpdateDepartment={handleUpdateDepartment}
+              onDeleteDepartment={handleDeleteDepartment}
               forms={forms}
               onAddForm={handleAddForm}
               onUpdateForm={handleUpdateForm}

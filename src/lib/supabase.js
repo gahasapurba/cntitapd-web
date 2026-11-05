@@ -37,6 +37,7 @@ export function saveLocalCache(key, value) {
 const TABLE_MAP = {
   tenures: 'tenures',
   divisions: 'divisions',
+  departments: 'departments',
   members: 'members',
   events: 'events',
   galleries: 'galleries',
@@ -82,18 +83,46 @@ export async function checkFormsTrackingColumn() {
   return isFormsTrackingColSupported;
 }
 
+let isDepartmentsTableChecked = false;
+let isDepartmentsTableSupported = false;
+
+export async function checkDepartmentsTable() {
+  try {
+    const { error } = await supabase.from('departments').select('id').limit(1);
+    isDepartmentsTableSupported = !error;
+    isDepartmentsTableChecked = true;
+  } catch (e) {
+    isDepartmentsTableSupported = false;
+  }
+  return isDepartmentsTableSupported;
+}
+
 let isRsvpsDepartmentColChecked = true;
 let isRsvpsDepartmentColSupported = true;
+let isRsvpsDepartmentIdColChecked = false;
+let isRsvpsDepartmentIdColSupported = false;
 
 export async function checkRsvpsDepartmentColumn() {
   try {
-    const { error } = await supabase.from('event_rsvps').select('department').limit(1);
-    isRsvpsDepartmentColSupported = !error;
+    const { error: errDept } = await supabase.from('event_rsvps').select('department').limit(1);
+    isRsvpsDepartmentColSupported = !errDept;
     isRsvpsDepartmentColChecked = true;
   } catch (e) {
     isRsvpsDepartmentColSupported = true;
   }
-  return isRsvpsDepartmentColSupported;
+
+  try {
+    const { error: errId } = await supabase.from('event_rsvps').select('department_id').limit(1);
+    isRsvpsDepartmentIdColSupported = !errId;
+    isRsvpsDepartmentIdColChecked = true;
+  } catch (e) {
+    isRsvpsDepartmentIdColSupported = false;
+  }
+
+  return {
+    isDepartmentColSupported: isRsvpsDepartmentColSupported,
+    isDepartmentIdColSupported: isRsvpsDepartmentIdColSupported
+  };
 }
 
 let isDivisionsSlugColChecked = false;
@@ -274,6 +303,24 @@ export const rowMappers = {
       description: row.description,
       focusAreas: Array.isArray(row.focus_areas) ? row.focus_areas : [],
       isRecruiting: Boolean(row.is_recruiting)
+    })
+  },
+
+  departments: {
+    toDb: (item, idx = 0) => ({
+      id: String(item.id),
+      name: item.name || '',
+      code: item.code || '',
+      description: item.description || '',
+      sort_order: Number(item.sortOrder ?? idx)
+    }),
+    fromDb: (row) => ({
+      id: row.id,
+      name: row.name || '',
+      code: row.code || '',
+      description: row.description || '',
+      sortOrder: row.sort_order ?? 0,
+      createdAt: row.created_at || ''
     })
   },
 
@@ -522,7 +569,7 @@ export const rowMappers = {
 
   eventRsvps: {
     toDb: (item, idx = 0) => {
-      const deptVal = item.department || item.squadUnit || item.departemen || '';
+      const deptVal = item.departmentId || item.department || item.squadUnit || item.departemen || '';
       const row = {
         id: String(item.id),
         event_id: item.eventId || null,
@@ -532,10 +579,11 @@ export const rowMappers = {
         sort_order: idx,
         updated_at: new Date().toISOString()
       };
+      if (isRsvpsDepartmentIdColSupported) {
+        row.department_id = deptVal || null;
+      }
       if (isRsvpsDepartmentColSupported) {
         row.department = deptVal;
-      } else {
-        row.squad_unit = deptVal;
       }
       return row;
     },
@@ -543,8 +591,9 @@ export const rowMappers = {
       id: row.id,
       eventId: row.event_id || '',
       attendeeName: row.attendee_name || '',
-      squadUnit: row.department || row.departemen || row.squad_unit || '',
-      department: row.department || row.departemen || row.squad_unit || '',
+      departmentId: row.department_id || row.department || row.squad_unit || '',
+      department: row.department || row.department_id || row.squad_unit || '',
+      squadUnit: row.department || row.department_id || row.squad_unit || '',
       attendanceMode: row.attendance_mode || 'Hadir Onsite',
       notes: row.notes || '',
       submittedAt: row.created_at || row.submitted_at || '',
@@ -586,7 +635,8 @@ export async function fetchAllCloudState() {
       detectEventsSchema(),
       checkFormsTrackingColumn(),
       checkRsvpsDepartmentColumn(),
-      checkDivisionsSchema()
+      checkDivisionsSchema(),
+      checkDepartmentsTable()
     ]);
     const [
       tenuresRes,
@@ -601,6 +651,7 @@ export async function fetchAllCloudState() {
       brandAssetsRes,
       eventRsvpsRes,
       faqsRes,
+      departmentsRes,
       settingsRes
     ] = await Promise.all([
       supabase.from('tenures').select('*').order('sort_order', { ascending: true }),
@@ -615,6 +666,7 @@ export async function fetchAllCloudState() {
       supabase.from('brand_assets').select('*').order('sort_order', { ascending: true }),
       supabase.from('event_rsvps').select('*').order('created_at', { ascending: false }),
       supabase.from('faqs').select('*').order('sort_order', { ascending: true }),
+      isDepartmentsTableSupported ? supabase.from('departments').select('*').order('sort_order', { ascending: true }) : Promise.resolve({ data: null, error: null }),
       supabase.from('page_settings').select('*')
     ]);
 
@@ -667,6 +719,10 @@ export async function fetchAllCloudState() {
     if (!faqsRes.error && Array.isArray(faqsRes.data)) {
       result.faqs = faqsRes.data.map(rowMappers.faqs.fromDb);
       saveLocalCache('faqs', result.faqs);
+    }
+    if (departmentsRes && !departmentsRes.error && Array.isArray(departmentsRes.data)) {
+      result.departments = departmentsRes.data.map(rowMappers.departments.fromDb);
+      saveLocalCache('departments', result.departments);
     }
     if (!settingsRes.error && Array.isArray(settingsRes.data)) {
       for (const row of settingsRes.data) {
@@ -746,6 +802,10 @@ export async function pushCloudState(key, value) {
     }
     if (key === 'eventRsvps') {
       await checkRsvpsDepartmentColumn();
+    }
+    if (key === 'departments') {
+      const supported = await checkDepartmentsTable();
+      if (!supported) return true;
     }
 
     // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically

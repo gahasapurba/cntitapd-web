@@ -22,6 +22,7 @@ import {
   AlertCircle,
   Users,
   Heart,
+  Building2,
   X,
   ClipboardList,
   Download,
@@ -84,6 +85,10 @@ export default function AdminPortal({
   onAddDivision, 
   onUpdateDivision,
   onDeleteDivision,
+  departments = [],
+  onAddDepartment,
+  onUpdateDepartment,
+  onDeleteDepartment,
   recruitmentInfo = { isOpen: true, deadline: '' }, 
   onUpdateRecruitment, 
   applications = [],
@@ -265,6 +270,13 @@ export default function AdminPortal({
   const [newDivDesc, setNewDivDesc] = useState('');
   const [newDivFocus, setNewDivFocus] = useState('');
   const [newDivTenureId, setNewDivTenureId] = useState(activeTenure?.id || '');
+
+  // Form states for new department
+  const [newDeptName, setNewDeptName] = useState('');
+  const [newDeptCode, setNewDeptCode] = useState('');
+  const [newDeptDesc, setNewDeptDesc] = useState('');
+  const [deptSearchQuery, setDeptSearchQuery] = useState('');
+  const [deptPage, setDeptPage] = useState(1);
 
   // Form states for new tenure
   const [newTenureCode, setNewTenureCode] = useState('');
@@ -685,6 +697,63 @@ export default function AdminPortal({
     setNewDivDesc('');
     setNewDivFocus('');
     showToast(`Divisi "${savedDiv}" berhasil ditambahkan & disinkronkan!`);
+  };
+
+  const handleCreateDepartment = (e) => {
+    e.preventDefault();
+    if (!newDeptName.trim()) {
+      setFormErrors((prev) => ({ ...prev, newDeptName: 'Nama Departemen wajib diisi' }));
+      showToast('Mohon isi Nama Departemen terlebih dahulu', 'error');
+      return;
+    }
+    const isDuplicate = departments.some(
+      (d) => d.name.toLowerCase().trim() === newDeptName.toLowerCase().trim()
+    );
+    if (isDuplicate) {
+      setFormErrors((prev) => ({ ...prev, newDeptName: 'Nama Departemen sudah terdaftar' }));
+      showToast('Departemen dengan nama ini sudah terdaftar', 'error');
+      return;
+    }
+
+    if (onAddDepartment) {
+      onAddDepartment({
+        id: 'dept-' + Date.now(),
+        name: newDeptName.trim(),
+        code: newDeptCode.trim().toUpperCase(),
+        description: newDeptDesc.trim() || 'Departemen di lingkungan Group IT Application Delivery.',
+        sortOrder: departments.length
+      });
+    }
+
+    const savedDept = newDeptName.trim();
+    setNewDeptName('');
+    setNewDeptCode('');
+    setNewDeptDesc('');
+    showToast(`Departemen "${savedDept}" berhasil ditambahkan & disinkronkan!`);
+  };
+
+  const handleDeleteDepartmentClick = (dept) => {
+    const relatedRsvps = (eventRsvps || []).filter(
+      (r) => r.departmentId === dept.id || r.department === dept.id || (dept.name && r.department === dept.name)
+    );
+    if (relatedRsvps.length > 0) {
+      setDeleteConfirm({
+        type: 'department',
+        id: dept.id,
+        name: dept.name,
+        isBlocked: true,
+        rsvpCount: relatedRsvps.length
+      });
+      return;
+    }
+
+    setDeleteConfirm({
+      type: 'department',
+      id: dept.id,
+      name: dept.name,
+      isBlocked: false,
+      rsvpCount: 0
+    });
   };
 
   const handleCreateTenure = (e) => {
@@ -1578,6 +1647,7 @@ export default function AdminPortal({
           { id: 'gallery', label: `Galeri Kegiatan (${galleries.length})`, icon: ImageIcon },
           { id: 'assets', label: `Asset & Template (${brandAssets.length})`, icon: Download },
           { id: 'faqs', label: `Panduan & FAQ (${faqs.length})`, icon: MessageSquare },
+          { id: 'departments', label: `Kelola Departemen (${departments.length})`, icon: Building2 },
           { id: 'divisions', label: 'Kelola Divisi', icon: Layers },
           { id: 'tenure', label: 'Periode Kepengurusan', icon: Calendar },
         ].map((tab) => {
@@ -3062,16 +3132,20 @@ export default function AdminPortal({
                   onClick={() => {
                     const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
                     const header = ['ID RSVP', 'ID Event', 'Nama Kegiatan', 'Nama Peserta', 'Departemen', 'Mode Kehadiran', 'Catatan', 'Waktu Konfirmasi'].map(escapeCsv).join(',');
-                    const rows = eventRsvps.map(r => [
-                      r.id,
-                      r.eventId,
-                      events.find(e => e.id === r.eventId)?.title || r.eventTitle || 'Kegiatan',
-                      r.attendeeName,
-                      r.squadUnit,
-                      r.attendanceMode,
-                      r.notes || '',
-                      formatWibTimestamp(r.createdAt || r.submittedAt).exact || r.submittedAt || r.createdAt || ''
-                    ].map(escapeCsv).join(','));
+                    const rows = eventRsvps.map(r => {
+                      const deptObj = departments.find(d => d.id === r.departmentId || d.id === r.department || (d.name && d.name === r.department));
+                      const deptName = deptObj ? deptObj.name : (r.department || r.squadUnit || '-');
+                      return [
+                        r.id,
+                        r.eventId,
+                        events.find(e => e.id === r.eventId)?.title || r.eventTitle || 'Kegiatan',
+                        r.attendeeName,
+                        deptName,
+                        r.attendanceMode,
+                        r.notes || '',
+                        formatWibTimestamp(r.createdAt || r.submittedAt).exact || r.submittedAt || r.createdAt || ''
+                      ].map(escapeCsv).join(',');
+                    });
                     const csvString = '\uFEFF' + [header, ...rows].join('\n');
                     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
@@ -3124,45 +3198,49 @@ export default function AdminPortal({
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-                    {paginatedAdminRsvps.map((rsvp) => (
-                      <div
-                        key={rsvp.id}
-                        style={{
-                          padding: '12px 14px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid var(--border-card)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '10px'
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {events.find(e => e.id === rsvp.eventId)?.title || rsvp.eventTitle || 'Kegiatan'}
-                          </div>
-                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                            {rsvp.attendeeName} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>• {rsvp.squadUnit}</span>
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '2px' }}>
-                            {rsvp.attendanceMode} {rsvp.notes ? `• "${rsvp.notes}"` : ''} • {formatWibTimestamp(rsvp.submittedAt || rsvp.createdAt).exact || rsvp.submittedAt}
-                          </div>
-                        </div>
+                    {paginatedAdminRsvps.map((rsvp) => {
+                      const deptObj = departments.find(d => d.id === rsvp.departmentId || d.id === rsvp.department || (d.name && d.name === rsvp.department));
+                      const deptName = deptObj ? deptObj.name : (rsvp.department || rsvp.squadUnit || '-');
 
-                        {onDeleteEventRsvp && (
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfirm({
-                              type: 'event_rsvp',
-                              id: rsvp.id,
-                              name: `Data RSVP "${rsvp.attendeeName}" (${rsvp.squadUnit || 'Peserta'})`
-                            })}
-                            style={{
-                              padding: '5px 8px',
-                              borderRadius: '6px',
-                              background: 'rgba(244, 63, 94, 0.12)',
-                              border: '1px solid rgba(244, 63, 94, 0.35)',
+                      return (
+                        <div
+                          key={rsvp.id}
+                          style={{
+                            padding: '12px 14px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid var(--border-card)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '10px'
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {events.find(e => e.id === rsvp.eventId)?.title || rsvp.eventTitle || 'Kegiatan'}
+                            </div>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                              {rsvp.attendeeName} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>• {deptName}</span>
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                              {rsvp.attendanceMode} {rsvp.notes ? `• "${rsvp.notes}"` : ''} • {formatWibTimestamp(rsvp.submittedAt || rsvp.createdAt).exact || rsvp.submittedAt}
+                            </div>
+                          </div>
+
+                          {onDeleteEventRsvp && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirm({
+                                type: 'event_rsvp',
+                                id: rsvp.id,
+                                name: `Data RSVP "${rsvp.attendeeName}" (${deptName})`
+                              })}
+                              style={{
+                                padding: '5px 8px',
+                                borderRadius: '6px',
+                                background: 'rgba(244, 63, 94, 0.12)',
+                                border: '1px solid rgba(244, 63, 94, 0.35)',
                               color: '#f43f5e',
                               fontSize: '0.72rem',
                               fontWeight: 700,
@@ -3175,7 +3253,8 @@ export default function AdminPortal({
                           </button>
                         )}
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
 
                   {totalAdminRsvpPages > 1 && (
@@ -3928,6 +4007,410 @@ export default function AdminPortal({
           </div>
         </div>
       )}
+
+      {/* TAB CONTENT: MANAJEMEN DEPARTEMEN IT APD */}
+      {activeTab === 'departments' && (() => {
+        const DEPTS_PER_PAGE = 10;
+        const filteredDepts = (departments || []).filter(d =>
+          (d.name || '').toLowerCase().includes(deptSearchQuery.toLowerCase()) ||
+          (d.code || '').toLowerCase().includes(deptSearchQuery.toLowerCase()) ||
+          (d.description || '').toLowerCase().includes(deptSearchQuery.toLowerCase())
+        );
+        const totalDeptPages = Math.ceil(filteredDepts.length / DEPTS_PER_PAGE) || 1;
+        const safeDeptPage = Math.min(Math.max(1, deptPage), totalDeptPages);
+        const paginatedDepts = filteredDepts.slice(
+          (safeDeptPage - 1) * DEPTS_PER_PAGE,
+          safeDeptPage * DEPTS_PER_PAGE
+        );
+
+        return (
+          <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
+                Manajemen Departemen IT APD ({departments.length})
+              </h3>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
+                Kelola daftar departemen/unit kerja di lingkungan IT Application Delivery sebagai pilihan resmi saat pendaftaran RSVP kegiatan.
+              </p>
+            </div>
+
+            {/* Form Tambah Departemen Baru */}
+            <form onSubmit={handleCreateDepartment} noValidate className="admin-form-two-col" style={{
+              background: 'rgba(255,255,255,0.03)',
+              padding: '20px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-card)',
+              gap: '14px'
+            }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Nama Departemen <span style={{ color: '#f43f5e' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Core Banking Delivery"
+                  value={newDeptName}
+                  onChange={(e) => {
+                    setNewDeptName(e.target.value);
+                    clearFieldError('newDeptName');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: `1.5px solid ${formErrors.newDeptName ? '#f43f5e' : 'var(--input-border)'}`,
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                />
+                {renderFieldError('newDeptName')}
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Kode / Singkatan Departemen
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: CBD"
+                  value={newDeptCode}
+                  onChange={(e) => setNewDeptCode(e.target.value.toUpperCase())}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Deskripsi / Tanggung Jawab Departemen
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Penjelasan peran departemen..."
+                  value={newDeptDesc}
+                  onChange={(e) => setNewDeptDesc(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="submit"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'var(--mandiri-gold)',
+                    color: '#040914',
+                    padding: '9px 20px',
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Tambahkan Departemen Baru</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Search, Filter & Export CSV Bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              borderTop: '1px solid var(--border-card)',
+              paddingTop: '20px'
+            }}>
+              <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '380px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <input
+                  type="text"
+                  placeholder="Cari nama atau kode departemen..."
+                  value={deptSearchQuery}
+                  onChange={(e) => {
+                    setDeptSearchQuery(e.target.value);
+                    setDeptPage(1);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px 9px 34px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.84rem'
+                  }}
+                />
+              </div>
+
+              {departments.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                    const header = ['ID Departemen', 'Nama Departemen', 'Kode', 'Deskripsi', 'Jumlah RSVP Terkait'].map(escapeCsv).join(',');
+                    const rows = departments.map(d => {
+                      const rsvpCount = (eventRsvps || []).filter(
+                        r => r.departmentId === d.id || r.department === d.id || (d.name && r.department === d.name)
+                      ).length;
+                      return [d.id, d.name, d.code || '', d.description || '', rsvpCount].map(escapeCsv).join(',');
+                    });
+                    const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `daftar_departemen_cnt_it_apd_${Date.now()}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast(`Berhasil mengunduh data departemen ke CSV!`);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Export CSV Departemen</span>
+                </button>
+              )}
+            </div>
+
+            {/* List Departemen */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {paginatedDepts.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                  Tidak ada departemen yang cocok dengan pencarian "{deptSearchQuery}".
+                </div>
+              ) : (
+                paginatedDepts.map((d) => {
+                  const rsvpCount = (eventRsvps || []).filter(
+                    r => r.departmentId === d.id || r.department === d.id || (d.name && r.department === d.name)
+                  ).length;
+                  const isSafeToDelete = rsvpCount === 0;
+
+                  return (
+                    <div
+                      key={d.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '14px 18px',
+                        background: 'rgba(255,255,255,0.03)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-card)',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{d.name}</strong>
+                          {d.code && (
+                            <span className="badge-gold" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                              {d.code}
+                            </span>
+                          )}
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              background: rsvpCount > 0 ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255,255,255,0.05)',
+                              color: rsvpCount > 0 ? 'var(--neon-cyan)' : 'var(--text-dim)',
+                              border: rsvpCount > 0 ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid var(--border-card)',
+                              fontWeight: 700
+                            }}
+                          >
+                            👥 {rsvpCount} RSVP Terkait
+                          </span>
+                        </div>
+                        {d.description && (
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                            {d.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem({
+                            type: 'department',
+                            item: { ...d }
+                          })}
+                          title="Edit Data Departemen"
+                          style={{
+                            padding: '7px',
+                            background: 'rgba(14, 165, 233, 0.1)',
+                            border: '1px solid #0284c7',
+                            color: '#0284c7',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isSafeToDelete) {
+                              showToast(
+                                `Departemen "${d.name}" tidak dapat dihapus karena masih digunakan oleh ${rsvpCount} data RSVP. Hapus data RSVP terkait terlebih dahulu.`,
+                                'error'
+                              );
+                              return;
+                            }
+                            handleDeleteDepartmentClick(d);
+                          }}
+                          title={isSafeToDelete ? 'Hapus Departemen' : `Tidak dapat dihapus: masih memiliki ${rsvpCount} RSVP`}
+                          style={{
+                            padding: '7px',
+                            background: isSafeToDelete ? 'rgba(244, 63, 94, 0.1)' : 'rgba(148, 163, 184, 0.08)',
+                            border: isSafeToDelete ? '1px solid #f43f5e' : '1px solid var(--border-card)',
+                            color: isSafeToDelete ? '#f43f5e' : 'var(--text-dim)',
+                            borderRadius: '6px',
+                            cursor: isSafeToDelete ? 'pointer' : 'not-allowed',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: isSafeToDelete ? 1 : 0.45
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalDeptPages > 1 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                paddingTop: '16px',
+                borderTop: '1px solid var(--border-card)'
+              }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Menampilkan <strong>{(safeDeptPage - 1) * DEPTS_PER_PAGE + 1} - {Math.min(safeDeptPage * DEPTS_PER_PAGE, filteredDepts.length)}</strong> dari <strong>{filteredDepts.length}</strong> departemen
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    disabled={safeDeptPage === 1}
+                    onClick={() => setDeptPage(p => Math.max(1, p - 1))}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: safeDeptPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: safeDeptPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: safeDeptPage === 1 ? 0.45 : 1
+                    }}
+                  >
+                    <span>Sebelumnya</span>
+                  </button>
+
+                  {Array.from({ length: totalDeptPages }, (_, i) => i + 1).map((pg) => {
+                    const isActive = pg === safeDeptPage;
+                    return (
+                      <button
+                        key={pg}
+                        type="button"
+                        onClick={() => setDeptPage(pg)}
+                        style={{
+                          minWidth: '28px',
+                          height: '28px',
+                          padding: '0 6px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                          color: isActive ? '#040914' : 'var(--text-main)',
+                          border: isActive ? 'none' : '1px solid var(--border-card)',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {pg}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    disabled={safeDeptPage === totalDeptPages}
+                    onClick={() => setDeptPage(p => Math.min(totalDeptPages, p + 1))}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: safeDeptPage === totalDeptPages ? 'var(--text-dim)' : 'var(--text-main)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: safeDeptPage === totalDeptPages ? 'not-allowed' : 'pointer',
+                      opacity: safeDeptPage === totalDeptPages ? 0.45 : 1
+                    }}
+                  >
+                    <span>Selanjutnya</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* TAB CONTENT 1: DIVISI */}
       {activeTab === 'divisions' && (
@@ -6736,6 +7219,7 @@ export default function AdminPortal({
                   Edit {
                     editingItem.type === 'member' ? 'Data Personel' :
                     editingItem.type === 'division' ? 'Data Divisi' :
+                    editingItem.type === 'department' ? 'Data Departemen' :
                     editingItem.type === 'gallery' ? 'Dokumentasi Galeri' :
                     editingItem.type === 'kudos' ? 'Apresiasi / Kudos' :
                     editingItem.type === 'form' ? 'Formulir Pendaftaran' :
@@ -8587,6 +9071,48 @@ export default function AdminPortal({
               </div>
             )}
 
+            {/* Edit Department Form */}
+            {editingItem.type === 'department' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Nama Departemen <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItem.item.name || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value } })}
+                    placeholder="Contoh: Digital Banking Delivery"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Kode / Singkatan
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItem.item.code || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, code: e.target.value.toUpperCase() } })}
+                    placeholder="Contoh: DBD"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Deskripsi / Keterangan Fungsi (Opsional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={editingItem.item.description || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, description: e.target.value } })}
+                    placeholder="Deskripsi tugas atau ruang lingkup delivery departemen..."
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
             </div>
 
             {/* Pinned Sticky Footer Buttons */}
@@ -8625,7 +9151,7 @@ export default function AdminPortal({
                 onClick={async () => {
                   setEditModalError('');
                   const it = editingItem.item || {};
-                  if ((editingItem.type === 'member' || editingItem.type === 'division') && !(it.name || '').trim()) {
+                  if ((editingItem.type === 'member' || editingItem.type === 'division' || editingItem.type === 'department') && !(it.name || '').trim()) {
                     setEditModalError('Nama wajib diisi sebelum menyimpan perubahan');
                     showToast('Nama wajib diisi sebelum menyimpan perubahan', 'error');
                     return;
@@ -8800,6 +9326,7 @@ export default function AdminPortal({
                       previewUrl: effectivePreviewUrl
                     });
                   }
+                  if (editingItem.type === 'department' && onUpdateDepartment) onUpdateDepartment(editingItem.item);
                   if (editingItem.type === 'faq' && onUpdateFaq) onUpdateFaq(editingItem.item);
                   setEditingItem(null);
                   setEditModalError('');
@@ -8895,24 +9422,28 @@ export default function AdminPortal({
                                 : 'Periode Masih Memiliki Data Terkait'))
                         : (deleteConfirm.type === 'division'
                             ? 'Divisi Masih Memiliki Data Terkait'
-                            : (deleteConfirm.type === 'member'
-                                ? 'Pimpro Masih Memimpin Anggota'
-                                : (deleteConfirm.type === 'event'
-                                    ? 'Event Memiliki Data RSVP'
-                                    : (deleteConfirm.type === 'form'
-                                        ? 'Formulir Memiliki Data Pengisian'
-                                        : 'Data Masih Memiliki Ketergantungan')))))
+                            : (deleteConfirm.type === 'department'
+                                ? 'Departemen Masih Digunakan RSVP'
+                                : (deleteConfirm.type === 'member'
+                                    ? 'Pimpro Masih Memimpin Anggota'
+                                    : (deleteConfirm.type === 'event'
+                                        ? 'Event Memiliki Data RSVP'
+                                        : (deleteConfirm.type === 'form'
+                                            ? 'Formulir Memiliki Data Pengisian'
+                                            : 'Data Masih Memiliki Ketergantungan'))))))
                     : (deleteConfirm.type === 'tenure'
                         ? 'Konfirmasi Hapus Periode'
                         : (deleteConfirm.type === 'division'
                             ? 'Konfirmasi Hapus Divisi'
-                            : (deleteConfirm.type === 'member'
-                                ? 'Konfirmasi Hapus Personel'
-                                : (deleteConfirm.type === 'event'
-                                    ? 'Konfirmasi Hapus Event'
-                                    : (deleteConfirm.type === 'form'
-                                        ? 'Konfirmasi Hapus Formulir'
-                                        : 'Konfirmasi Penghapusan Data'))))))}
+                            : (deleteConfirm.type === 'department'
+                                ? 'Konfirmasi Hapus Departemen'
+                                : (deleteConfirm.type === 'member'
+                                    ? 'Konfirmasi Hapus Personel'
+                                    : (deleteConfirm.type === 'event'
+                                        ? 'Konfirmasi Hapus Event'
+                                        : (deleteConfirm.type === 'form'
+                                            ? 'Konfirmasi Hapus Formulir'
+                                            : 'Konfirmasi Penghapusan Data')))))))}
             </h3>
 
             {/* TENURE BODY */}
@@ -9389,8 +9920,49 @@ export default function AdminPortal({
               )
             )}
 
+            {/* DEPARTMENT BODY */}
+            {deleteConfirm.type === 'department' && (
+              deleteConfirm.isBlocked ? (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Departemen <strong>"{deleteConfirm.name}"</strong> tidak dapat dihapus karena masih digunakan oleh <strong>{deleteConfirm.rsvpCount} pendaftaran RSVP event</strong>.
+                  </p>
+                  <div style={{
+                    background: 'rgba(255, 184, 0, 0.1)',
+                    border: '1px solid rgba(255, 184, 0, 0.3)',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.78rem',
+                    color: 'var(--mandiri-gold)',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    💡 <strong>Petunjuk:</strong> Buka tab RSVP Event untuk menghapus atau menyesuaikan data pendaftaran terkait sebelum menghapus departemen ini demi konsistensi data.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Apakah Anda yakin ingin menghapus departemen <strong>"{deleteConfirm.name}"</strong>? Departemen ini tidak akan lagi muncul pada opsi pilihan RSVP event.
+                  </p>
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    color: '#10b981',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    ✓ <strong>Aman Dihapus:</strong> Tidak ada riwayat RSVP event yang terhubung dengan departemen ini.
+                  </div>
+                </>
+              )
+            )}
+
             {/* DEFAULT BODY FOR OTHER TYPES */}
-            {deleteConfirm.type !== 'tenure' && deleteConfirm.type !== 'division' && deleteConfirm.type !== 'member' && deleteConfirm.type !== 'event' && deleteConfirm.type !== 'form' && (
+            {deleteConfirm.type !== 'tenure' && deleteConfirm.type !== 'division' && deleteConfirm.type !== 'department' && deleteConfirm.type !== 'member' && deleteConfirm.type !== 'event' && deleteConfirm.type !== 'form' && (
               <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                 {deleteConfirm.type === 'reset_all' ? (
                   <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
@@ -9446,6 +10018,7 @@ export default function AdminPortal({
                     onClick={() => {
                       if (deleteConfirm.type === 'member' && onDeleteMember) onDeleteMember(deleteConfirm.id);
                       if (deleteConfirm.type === 'division' && onDeleteDivision) onDeleteDivision(deleteConfirm.id);
+                      if (deleteConfirm.type === 'department' && onDeleteDepartment) onDeleteDepartment(deleteConfirm.id);
                       if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
                       if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
                       if (deleteConfirm.type === 'kudos' && onDeleteKudos) onDeleteKudos(deleteConfirm.id);
@@ -9466,11 +10039,13 @@ export default function AdminPortal({
                                 ? `Divisi "${deleteConfirm.name}" berhasil dihapus!`
                                 : (deleteConfirm.type === 'member'
                                     ? `Personel "${deleteConfirm.name}" berhasil dihapus!`
-                                    : (deleteConfirm.type === 'event'
-                                        ? `Event "${deleteConfirm.name}" berhasil dihapus!`
-                                        : (deleteConfirm.type === 'form'
-                                            ? `Formulir "${deleteConfirm.name}" berhasil dihapus!`
-                                            : 'Data berhasil dihapus & disinkronkan!')))));
+                                    : (deleteConfirm.type === 'department'
+                                        ? `Departemen "${deleteConfirm.name}" berhasil dihapus!`
+                                        : (deleteConfirm.type === 'event'
+                                            ? `Event "${deleteConfirm.name}" berhasil dihapus!`
+                                            : (deleteConfirm.type === 'form'
+                                                ? `Formulir "${deleteConfirm.name}" berhasil dihapus!`
+                                                : 'Data berhasil dihapus & disinkronkan!'))))));
 
                       setDeleteConfirm(null);
                       showToast(toastMsg);
@@ -9495,11 +10070,13 @@ export default function AdminPortal({
                               ? 'Ya, Hapus Divisi'
                               : (deleteConfirm.type === 'member'
                                   ? 'Ya, Hapus Personel'
-                                  : (deleteConfirm.type === 'event'
-                                      ? 'Ya, Hapus Event'
-                                      : (deleteConfirm.type === 'form'
-                                          ? 'Ya, Hapus Formulir'
-                                          : 'Ya, Hapus Data')))))}
+                                  : (deleteConfirm.type === 'department'
+                                      ? 'Ya, Hapus Departemen'
+                                      : (deleteConfirm.type === 'event'
+                                          ? 'Ya, Hapus Event'
+                                          : (deleteConfirm.type === 'form'
+                                              ? 'Ya, Hapus Formulir'
+                                              : 'Ya, Hapus Data'))))))}
                   </button>
                 </>
               )}
