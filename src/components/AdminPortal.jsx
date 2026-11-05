@@ -491,8 +491,10 @@ export default function AdminPortal({
         startDate: sDate,
         endDate: eDate,
         category: finalCategory,
+        kategori: finalCategory,
         badge: finalCategory,
         location: eventLocation.trim() || 'Plaza Mandiri',
+        peserta: eventKpi.trim() || 'Officer IT APD',
         kpi: eventKpi.trim() || 'Officer IT APD',
         description: eventDesc.trim(),
         status: eventStatus,
@@ -7179,11 +7181,22 @@ export default function AdminPortal({
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target Peserta / KPI</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target Peserta</label>
                     <input
                       type="text"
-                      value={editingItem.item.kpi || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, kpi: e.target.value } })}
+                      placeholder="Contoh: 150+ Peserta Officer IT APD"
+                      value={editingItem.item.peserta !== undefined ? editingItem.item.peserta : (editingItem.item.kpi || '')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            peserta: val,
+                            kpi: val
+                          }
+                        });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />
                   </div>
@@ -7605,11 +7618,15 @@ export default function AdminPortal({
                       showToast('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)', 'error');
                       return;
                     }
-                    const catVal = (editingItem.item.category || editingItem.item.badge || 'Program Budaya').trim();
+                    const catVal = (editingItem.item.kategori || editingItem.item.category || editingItem.item.badge || 'Program Budaya').trim();
+                    const pesertaVal = (editingItem.item.peserta || editingItem.item.kpi || 'Officer IT APD').trim();
                     onUpdateEvent({
                       ...editingItem.item,
+                      kategori: catVal,
                       category: catVal,
                       badge: catVal,
+                      peserta: pesertaVal,
+                      kpi: pesertaVal,
                       totalRab: Number(editingItem.item.totalRab),
                       date: (editingItem.item.date || '').trim() || editingItem.item.startDate || 'TBD'
                     });
@@ -8507,8 +8524,8 @@ export default function AdminPortal({
                           <tr key={evt.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
                             <td style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--text-main)' }}>{evt.title}</td>
                             <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.divisionName}</td>
-                            <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.date}</td>
-                            <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.kpi}</td>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.date || formatWibEventRange(evt.startDate, evt.endDate)}</td>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.peserta || evt.kpi}</td>
                             <td style={{ padding: '9px 12px' }}>
                               <span style={{
                                 fontSize: '0.7rem',

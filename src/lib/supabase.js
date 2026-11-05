@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { formatWibEventRange } from '../utils/dateUtils';
 
 const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || 'https://xarcxbfgeoetyhpqsick.supabase.co';
 const supabaseAnonKey =
@@ -66,34 +67,76 @@ export async function checkGalleryDivisionIdColumn() {
   return isGalleryDivisionIdSupported;
 }
 
-let isEventDivisionNameChecked = false;
-let isEventDivisionNameSupported = false;
+let isEventsSchemaChecked = false;
+let eventsSchemaMeta = {
+  hasDate: true,
+  categoryCol: 'badge', // 'kategori' | 'category' | 'badge'
+  pesertaCol: 'kpi',    // 'peserta' | 'kpi'
+  hasDivisionName: false
+};
 
-export async function checkEventDivisionNameColumn() {
-  if (isEventDivisionNameChecked) return isEventDivisionNameSupported;
+export async function detectEventsSchema() {
+  if (isEventsSchemaChecked) return eventsSchemaMeta;
   try {
-    const { error } = await supabase.from('events').select('division_name').limit(1);
-    isEventDivisionNameSupported = !error;
-    isEventDivisionNameChecked = true;
+    const { data, error } = await supabase.from('events').select('*').limit(1);
+    if (!error && data) {
+      const cols = data[0] ? Object.keys(data[0]) : [];
+      if (cols.length > 0) {
+        eventsSchemaMeta.hasDate = cols.includes('date');
+        eventsSchemaMeta.hasDivisionName = cols.includes('division_name');
+        if (cols.includes('kategori')) {
+          eventsSchemaMeta.categoryCol = 'kategori';
+        } else if (cols.includes('category')) {
+          eventsSchemaMeta.categoryCol = 'category';
+        } else {
+          eventsSchemaMeta.categoryCol = 'badge';
+        }
+        if (cols.includes('peserta')) {
+          eventsSchemaMeta.pesertaCol = 'peserta';
+        } else {
+          eventsSchemaMeta.pesertaCol = 'kpi';
+        }
+        isEventsSchemaChecked = true;
+        return eventsSchemaMeta;
+      }
+    }
   } catch (e) {
-    isEventDivisionNameSupported = false;
+    // fallback
   }
-  return isEventDivisionNameSupported;
+
+  try {
+    const [dateRes, divNameRes, katRes, catRes, pesRes] = await Promise.all([
+      supabase.from('events').select('date').limit(1),
+      supabase.from('events').select('division_name').limit(1),
+      supabase.from('events').select('kategori').limit(1),
+      supabase.from('events').select('category').limit(1),
+      supabase.from('events').select('peserta').limit(1)
+    ]);
+    eventsSchemaMeta.hasDate = !dateRes.error;
+    eventsSchemaMeta.hasDivisionName = !divNameRes.error;
+    if (!katRes.error) {
+      eventsSchemaMeta.categoryCol = 'kategori';
+    } else if (!catRes.error) {
+      eventsSchemaMeta.categoryCol = 'category';
+    } else {
+      eventsSchemaMeta.categoryCol = 'badge';
+    }
+    eventsSchemaMeta.pesertaCol = !pesRes.error ? 'peserta' : 'kpi';
+    isEventsSchemaChecked = true;
+  } catch (e) {
+    // keep default
+  }
+  return eventsSchemaMeta;
 }
 
-let isEventCategoryColumnChecked = false;
-let isEventCategoryColumnSupported = false;
+export async function checkEventDivisionNameColumn() {
+  const meta = await detectEventsSchema();
+  return meta.hasDivisionName;
+}
 
 export async function checkEventCategoryColumn() {
-  if (isEventCategoryColumnChecked) return isEventCategoryColumnSupported;
-  try {
-    const { error } = await supabase.from('events').select('category').limit(1);
-    isEventCategoryColumnSupported = !error;
-    isEventCategoryColumnChecked = true;
-  } catch (e) {
-    isEventCategoryColumnSupported = false;
-  }
-  return isEventCategoryColumnSupported;
+  const meta = await detectEventsSchema();
+  return meta.categoryCol !== 'badge';
 }
 
 export const rowMappers = {
@@ -185,30 +228,29 @@ export const rowMappers = {
 
   events: {
     toDb: (item, idx = 0) => {
-      const catVal = item.category || item.badge || 'Program Budaya';
+      const catVal = item.kategori || item.category || item.badge || 'Program Budaya';
+      const pesertaVal = item.peserta || item.kpi || 'Officer IT APD';
       const row = {
         id: String(item.id),
         tenure_id: item.tenureId || null,
         division_id: item.divisionId || null,
         title: item.title || '',
-        date: item.date || '',
         start_date: item.startDate || '',
         end_date: item.endDate || '',
         location: item.location || '',
-        kpi: item.kpi || '',
         description: item.description || '',
         total_rab: Number(item.totalRab || 0),
         status: item.status || 'Upcoming',
         sort_order: idx
       };
-      if (isEventCategoryColumnSupported) {
-        row.category = catVal;
-      } else {
-        row.badge = catVal;
+      if (eventsSchemaMeta.hasDate) {
+        row.date = item.date || item.startDate || '';
       }
-      if (isEventDivisionNameSupported && item.divisionName) {
+      if (eventsSchemaMeta.hasDivisionName && item.divisionName) {
         row.division_name = item.divisionName;
       }
+      row[eventsSchemaMeta.categoryCol] = catVal;
+      row[eventsSchemaMeta.pesertaCol] = pesertaVal;
       return row;
     },
     fromDb: (row) => ({
@@ -217,13 +259,15 @@ export const rowMappers = {
       divisionId: row.division_id,
       divisionName: row.division_name,
       title: row.title,
-      date: row.date,
+      date: row.date || formatWibEventRange(row.start_date, row.end_date),
       startDate: row.start_date,
       endDate: row.end_date,
-      category: row.category || row.badge || 'Program Budaya',
-      badge: row.category || row.badge || 'Program Budaya',
+      kategori: row.kategori || row.category || row.badge || 'Program Budaya',
+      category: row.kategori || row.category || row.badge || 'Program Budaya',
+      badge: row.kategori || row.category || row.badge || 'Program Budaya',
       location: row.location,
-      kpi: row.kpi,
+      peserta: row.peserta || row.kpi || 'Officer IT APD',
+      kpi: row.peserta || row.kpi || 'Officer IT APD',
       description: row.description,
       totalRab: Number(row.total_rab || 0),
       status: row.status || 'Upcoming',
@@ -446,8 +490,7 @@ export async function fetchAllCloudState() {
   try {
     await Promise.all([
       checkGalleryDivisionIdColumn(),
-      checkEventDivisionNameColumn(),
-      checkEventCategoryColumn()
+      detectEventsSchema()
     ]);
     const [
       tenuresRes,
@@ -597,10 +640,7 @@ export async function pushCloudState(key, value) {
       await checkGalleryDivisionIdColumn();
     }
     if (key === 'events') {
-      await Promise.all([
-        checkEventDivisionNameColumn(),
-        checkEventCategoryColumn()
-      ]);
+      await detectEventsSchema();
     }
 
     // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically

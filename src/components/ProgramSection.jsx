@@ -526,7 +526,7 @@ export default function ProgramSection({
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
                       <Users size={15} color="var(--mandiri-gold)" />
-                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Peserta: {evt.kpi}</span>
+                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Peserta: {evt.peserta || evt.kpi}</span>
                     </div>
                     {(() => {
                       const count = eventRsvps.filter(r => r.eventId === evt.id).length;
@@ -1211,12 +1211,12 @@ export default function ProgramSection({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Users size={14} color="var(--mandiri-gold)" />
-                  <strong>Peserta:</strong> <span>{rsvpModalEvent.kpi}</span>
+                  <strong>Peserta:</strong> <span>{rsvpModalEvent.peserta || rsvpModalEvent.kpi}</span>
                 </div>
-                {(rsvpModalEvent.category || rsvpModalEvent.badge) && (
+                {(rsvpModalEvent.kategori || rsvpModalEvent.category || rsvpModalEvent.badge) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Tag size={14} color="var(--neon-cyan)" />
-                    <strong>Kategori:</strong> <span>{rsvpModalEvent.category || rsvpModalEvent.badge}</span>
+                    <strong>Kategori:</strong> <span>{rsvpModalEvent.kategori || rsvpModalEvent.category || rsvpModalEvent.badge}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
