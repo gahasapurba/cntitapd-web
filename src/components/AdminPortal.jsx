@@ -4588,7 +4588,7 @@ export default function AdminPortal({
                         s.formTitle || 'Formulir',
                         s.status || 'Submitted',
                         s.adminNotes || '',
-                        s.submittedAt || ''
+                        formatWibTimestamp(s.createdAt || s.submittedAt).exact || s.submittedAt || s.createdAt || ''
                       ];
                       const fieldCols = dynamicKeys.map(k => {
                         if (s.data) return s.data[k] ?? '';

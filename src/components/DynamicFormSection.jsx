@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadMediaToCloud } from '../lib/supabase';
-import { getDeadlineStatus, formatDeadlineWib, formatWibDateTime } from '../utils/dateUtils';
+import { getDeadlineStatus, formatDeadlineWib, formatWibDateTime, formatWibTimestamp } from '../utils/dateUtils';
 
 export default function DynamicFormSection({ 
   forms = [], 
@@ -186,7 +186,8 @@ export default function DynamicFormSection({
       id: newSubId,
       formId: currentForm.id,
       formTitle: currentForm.title,
-      submittedAt: getExactTimestamp(),
+      createdAt: new Date().toISOString(),
+      submittedAt: new Date().toISOString(),
       status: 'Submitted',
       adminNotes: '',
       data: { ...formData },
@@ -1188,7 +1189,7 @@ export default function DynamicFormSection({
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                         <div>
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-                            ID: {sub.id} • {sub.submittedAt}
+                            ID: {sub.id} • {formatWibTimestamp(sub.createdAt || sub.submittedAt).exact || sub.submittedAt || sub.createdAt}
                           </span>
                           <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-main)', margin: '2px 0 0 0' }}>
                             {sub.formTitle}
@@ -1343,7 +1344,7 @@ export default function DynamicFormSection({
                             ✓ Diterima
                           </span>
                           <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
-                            {sub.submittedAt}
+                            {formatWibTimestamp(sub.createdAt || sub.submittedAt).exact || sub.submittedAt || sub.createdAt}
                           </span>
                         </div>
 
