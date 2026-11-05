@@ -42,16 +42,24 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
   );
 
   useEffect(() => {
-    if (divFilter !== 'all' && !uniqueDivisions.includes(divFilter)) {
+    if (divFilter === 'all') return;
+    const isValid = scopedDivisions.some(d => d.id === divFilter) ||
+      divisions.some(d => d.id === divFilter) ||
+      uniqueDivisions.includes(divFilter);
+    if (!isValid) {
       setDivFilter('all');
     }
-  }, [tenureFilter, activeTenure?.id, uniqueDivisions]);
+  }, [tenureFilter, activeTenure?.id, divisions]);
+
+  const selectedDivObj = divisions.find(d => d.id === divFilter);
+  const selectedDivName = selectedDivObj ? selectedDivObj.name : divFilter;
 
   const filteredGalleries = scopedGalleries.filter(g => {
     const matchesDiv = divFilter === 'all' || 
       g.divisionId === divFilter || 
-      g.division === divFilter || 
-      g.divisionName === divFilter;
+      (selectedDivObj && g.divisionId === selectedDivObj.id) ||
+      g.division === selectedDivName || 
+      g.divisionName === selectedDivName;
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch = !q ||
       (g.title || '').toLowerCase().includes(q) ||
@@ -552,10 +560,52 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                   cursor: 'pointer'
                 }}
               >
-                <option value="all">Semua Divisi {uniqueDivisions.length > 0 ? `(${uniqueDivisions.length})` : ''}</option>
-                {uniqueDivisions.map((dName) => (
-                  <option key={dName} value={dName}>{dName}</option>
-                ))}
+                <option value="all">Semua Divisi {scopedDivisions.length > 0 ? `(${scopedDivisions.length})` : (uniqueDivisions.length > 0 ? `(${uniqueDivisions.length})` : '')}</option>
+                {(() => {
+                  if (tenureFilter === 'active') {
+                    if (scopedDivisions.length > 0) {
+                      return scopedDivisions.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ));
+                    }
+                    return uniqueDivisions.map((dName) => (
+                      <option key={dName} value={dName}>{dName}</option>
+                    ));
+                  }
+
+                  // Lintas tahun (Semua Periode): kelompokkan divisi per tahun/tenure
+                  const renderedDivIds = new Set();
+                  const groups = (tenures || []).map((t) => {
+                    const divsInTenure = divisions.filter(d => d.tenureId === t.id);
+                    divsInTenure.forEach(d => renderedDivIds.add(d.id));
+                    if (divsInTenure.length === 0) return null;
+                    return (
+                      <optgroup key={t.id} label={`Periode ${t.code} (${t.title || 'Kepengurusan'})`}>
+                        {divsInTenure.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} ({t.code})
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  }).filter(Boolean);
+
+                  const remainingDivs = divisions.filter(d => !renderedDivIds.has(d.id));
+                  return (
+                    <>
+                      {groups}
+                      {remainingDivs.length > 0 && (
+                        <optgroup label="Divisi Lainnya">
+                          {remainingDivs.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </>
+                  );
+                })()}
               </select>
             </div>
           </div>
