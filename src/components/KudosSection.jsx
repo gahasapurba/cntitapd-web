@@ -13,7 +13,9 @@ import {
   Clock,
   Search,
   Filter,
-  Download
+  Download,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { formatWibTimestamp } from '../utils/dateUtils';
@@ -30,6 +32,8 @@ export default function KudosSection({
   // Search & Category Filter for Kudos Wall
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [kudosPage, setKudosPage] = useState(1);
+  const [aspirasiPage, setAspirasiPage] = useState(1);
 
   // Interactive likes tracked locally to prevent double-clicking on same session, while syncing count to parent/cloud
   const [likedMap, setLikedMap] = useState(() => {
@@ -689,7 +693,10 @@ export default function KudosSection({
                     type="text"
                     placeholder="Cari nama penerima, pengirim, atau isi apresiasi..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setKudosPage(1);
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 12px 8px 34px',
@@ -707,7 +714,10 @@ export default function KudosSection({
                   <Filter size={14} color="var(--text-dim)" />
                   <select
                     value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    onChange={(e) => {
+                      setCategoryFilter(e.target.value);
+                      setKudosPage(1);
+                    }}
                     style={{
                       padding: '8px 12px',
                       borderRadius: 'var(--radius-full)',
@@ -730,104 +740,217 @@ export default function KudosSection({
                 </div>
               </div>
 
-              {filteredKudos.length === 0 ? (
-                <div className="glass-panel" style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                  Tidak ada kiriman apresiasi yang cocok dengan pencarian atau filter kategori.
-                </div>
-              ) : filteredKudos.map((kudos) => {
-                const isLiked = likedMap[kudos.id] || false;
-                const currentLikes = kudos.likes || 1;
+              {(() => {
+                const KUDOS_PER_PAGE = 8;
+                const totalKudosPages = Math.ceil(filteredKudos.length / KUDOS_PER_PAGE) || 1;
+                const safeKudosPage = Math.min(Math.max(1, kudosPage), totalKudosPages);
+                const paginatedKudos = filteredKudos.slice(
+                  (safeKudosPage - 1) * KUDOS_PER_PAGE,
+                  safeKudosPage * KUDOS_PER_PAGE
+                );
+
+                if (filteredKudos.length === 0) {
+                  return (
+                    <div className="glass-panel" style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                      Tidak ada kiriman apresiasi yang cocok dengan pencarian atau filter kategori.
+                    </div>
+                  );
+                }
 
                 return (
-                  <div
-                    key={kudos.id}
-                    className="glass-panel glass-panel-hover"
-                    style={{
-                      padding: '20px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                      borderLeft: '4px solid var(--mandiri-gold)',
-                      border: '1px solid var(--border-card)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                        <strong style={{ color: 'var(--neon-cyan)', fontWeight: 800, letterSpacing: '0.2px' }}>
-                          {kudos.sender}
-                        </strong>
-                        <span style={{ color: 'var(--text-dim)' }}>apresiasi kepada</span>
-                        <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>
-                          {kudos.recipient}
-                        </strong>
-                      </div>
-                      <span className="badge-gold" style={{ fontSize: '0.68rem' }}>
-                        {kudos.category}
-                      </span>
-                    </div>
+                  <>
+                    {paginatedKudos.map((kudos) => {
+                      const isLiked = likedMap[kudos.id] || false;
+                      const currentLikes = kudos.likes || 1;
 
-                    <p style={{ fontSize: '0.92rem', color: 'var(--text-main)', lineHeight: 1.6, fontStyle: 'italic', margin: 0 }}>
-                      "{kudos.message}"
-                    </p>
+                      return (
+                        <div
+                          key={kudos.id}
+                          className="glass-panel glass-panel-hover"
+                          style={{
+                            padding: '20px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                            borderLeft: '4px solid var(--mandiri-gold)',
+                            border: '1px solid var(--border-card)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                              <strong style={{ color: 'var(--neon-cyan)', fontWeight: 800, letterSpacing: '0.2px' }}>
+                                {kudos.sender}
+                              </strong>
+                              <span style={{ color: 'var(--text-dim)' }}>apresiasi kepada</span>
+                              <strong style={{ color: 'var(--text-main)', fontWeight: 800 }}>
+                                {kudos.recipient}
+                              </strong>
+                            </div>
+                            <span className="badge-gold" style={{ fontSize: '0.68rem' }}>
+                              {kudos.category}
+                            </span>
+                          </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '0.74rem', color: 'var(--text-dim)', paddingTop: '10px', borderTop: '1px solid var(--border-card)' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          <Clock size={12} color="var(--mandiri-gold)" />
-                          <span>{formatWibTimestamp(kudos.createdAt || kudos.created_at || kudos.exactTimestamp).full}</span>
+                          <p style={{ fontSize: '0.92rem', color: 'var(--text-main)', lineHeight: 1.6, fontStyle: 'italic', margin: 0 }}>
+                            "{kudos.message}"
+                          </p>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontSize: '0.74rem', color: 'var(--text-dim)', paddingTop: '10px', borderTop: '1px solid var(--border-card)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                <Clock size={12} color="var(--mandiri-gold)" />
+                                <span>{formatWibTimestamp(kudos.createdAt || kudos.created_at || kudos.exactTimestamp).full}</span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadKudosCard(kudos)}
+                                title="Unduh kartu ucapan Kudos beresolusi tinggi (PNG) untuk dibagikan ke WhatsApp / Teams"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  background: 'rgba(255, 184, 0, 0.12)',
+                                  border: '1px solid rgba(255, 184, 0, 0.45)',
+                                  color: 'var(--mandiri-gold)',
+                                  padding: '4px 11px',
+                                  borderRadius: 'var(--radius-full)',
+                                  cursor: 'pointer',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800
+                                }}
+                              >
+                                <Download size={12} />
+                                <span>Unduh Kartu (PNG)</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleToggleLike(kudos)}
+                                title="Beri like apresiasi"
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  background: isLiked ? 'rgba(244, 63, 94, 0.15)' : 'transparent',
+                                  border: isLiked ? '1px solid #f43f5e' : '1px solid var(--border-card)',
+                                  color: isLiked ? '#f43f5e' : 'var(--text-muted)',
+                                  padding: '4px 12px',
+                                  borderRadius: 'var(--radius-full)',
+                                  cursor: 'pointer',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                <Heart size={13} fill={isLiked ? '#f43f5e' : 'none'} color={isLiked ? '#f43f5e' : 'currentColor'} />
+                                <span>{currentLikes} apresiasi</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {totalKudosPages > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                        padding: '16px 20px',
+                        marginTop: '8px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-card)'
+                      }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Menampilkan <strong>{(safeKudosPage - 1) * KUDOS_PER_PAGE + 1} - {Math.min(safeKudosPage * KUDOS_PER_PAGE, filteredKudos.length)}</strong> dari <strong>{filteredKudos.length}</strong> apresiasi
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            disabled={safeKudosPage === 1}
+                            onClick={() => setKudosPage(p => Math.max(1, p - 1))}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              color: safeKudosPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: safeKudosPage === 1 ? 'not-allowed' : 'pointer',
+                              opacity: safeKudosPage === 1 ? 0.45 : 1
+                            }}
+                          >
+                            <ChevronLeft size={14} />
+                            <span>Sebelumnya</span>
+                          </button>
+                          {Array.from({ length: totalKudosPages }, (_, i) => i + 1).map((pg) => {
+                            if (totalKudosPages > 7 && Math.abs(pg - safeKudosPage) > 2 && pg !== 1 && pg !== totalKudosPages) {
+                              if (pg === 2 || pg === totalKudosPages - 1) {
+                                return <span key={pg} style={{ color: 'var(--text-dim)', padding: '0 4px', fontSize: '0.75rem' }}>...</span>;
+                              }
+                              return null;
+                            }
+                            const isActive = pg === safeKudosPage;
+                            return (
+                              <button
+                                key={pg}
+                                type="button"
+                                onClick={() => setKudosPage(pg)}
+                                style={{
+                                  minWidth: '28px',
+                                  height: '28px',
+                                  padding: '0 6px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                                  color: isActive ? '#040914' : 'var(--text-main)',
+                                  border: isActive ? 'none' : '1px solid var(--border-card)',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {pg}
+                              </button>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            disabled={safeKudosPage === totalKudosPages}
+                            onClick={() => setKudosPage(p => Math.min(totalKudosPages, p + 1))}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              color: safeKudosPage === totalKudosPages ? 'var(--text-dim)' : 'var(--text-main)',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: safeKudosPage === totalKudosPages ? 'not-allowed' : 'pointer',
+                              opacity: safeKudosPage === totalKudosPages ? 0.45 : 1
+                            }}
+                          >
+                            <span>Selanjutnya</span>
+                            <ChevronRight size={14} />
+                          </button>
                         </div>
                       </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadKudosCard(kudos)}
-                          title="Unduh kartu ucapan Kudos beresolusi tinggi (PNG) untuk dibagikan ke WhatsApp / Teams"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            background: 'rgba(255, 184, 0, 0.12)',
-                            border: '1px solid rgba(255, 184, 0, 0.45)',
-                            color: 'var(--mandiri-gold)',
-                            padding: '4px 11px',
-                            borderRadius: 'var(--radius-full)',
-                            cursor: 'pointer',
-                            fontSize: '0.72rem',
-                            fontWeight: 800
-                          }}
-                        >
-                          <Download size={12} />
-                          <span>Unduh Kartu (PNG)</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleToggleLike(kudos)}
-                          title="Beri like apresiasi"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            background: isLiked ? 'rgba(244, 63, 94, 0.15)' : 'transparent',
-                            border: isLiked ? '1px solid #f43f5e' : '1px solid var(--border-card)',
-                            color: isLiked ? '#f43f5e' : 'var(--text-muted)',
-                            padding: '4px 12px',
-                            borderRadius: 'var(--radius-full)',
-                            cursor: 'pointer',
-                            fontSize: '0.74rem',
-                            fontWeight: 700,
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <Heart size={13} fill={isLiked ? '#f43f5e' : 'none'} color={isLiked ? '#f43f5e' : 'currentColor'} />
-                          <span>{currentLikes} apresiasi</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                    )}
+                  </>
                 );
-              })}
+              })()}
             </div>
           </div>
         </div>
@@ -1158,7 +1281,10 @@ export default function KudosSection({
                     <button
                       key={st}
                       type="button"
-                      onClick={() => setAspirasiStatusFilter(st)}
+                      onClick={() => {
+                        setAspirasiStatusFilter(st);
+                        setAspirasiPage(1);
+                      }}
                       style={{
                         padding: '6px 12px',
                         borderRadius: 'var(--radius-full)',
@@ -1176,86 +1302,195 @@ export default function KudosSection({
                 </div>
               </div>
 
-              {filteredAspirasi.length === 0 ? (
-                <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                  Belum ada aspirasi publik pada filter status ini. Jadilah yang pertama mengusulkan ide positif!
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {filteredAspirasi.map((asp) => {
-                    const st = asp.status || 'Menunggu Review';
-                    const badge = getAspirasiBadge(st);
-                    return (
-                      <div
-                        key={asp.id}
-                        className="glass-panel"
-                        style={{
-                          padding: '20px 22px',
-                          borderLeft: `4px solid ${badge.border}`,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '10px'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                              {asp.category || 'Usulan Budaya'}
-                            </span>
-                            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-                              Oleh: {asp.sender || 'Anonim'}
-                            </span>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                              • {asp.submittedAt}
-                            </span>
-                          </div>
+              {(() => {
+                const ASPIRASI_PER_PAGE = 6;
+                const totalAspirasiPages = Math.ceil(filteredAspirasi.length / ASPIRASI_PER_PAGE) || 1;
+                const safeAspirasiPage = Math.min(Math.max(1, aspirasiPage), totalAspirasiPages);
+                const paginatedAspirasi = filteredAspirasi.slice(
+                  (safeAspirasiPage - 1) * ASPIRASI_PER_PAGE,
+                  safeAspirasiPage * ASPIRASI_PER_PAGE
+                );
 
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '4px 12px',
-                            borderRadius: 'var(--radius-full)',
-                            background: badge.bg,
-                            border: `1px solid ${badge.border}`,
-                            color: badge.color,
-                            fontSize: '0.74rem',
-                            fontWeight: 800
-                          }}>
-                            <span>{badge.icon}</span>
-                            <span>{badge.label || st}</span>
-                          </span>
-                        </div>
+                if (filteredAspirasi.length === 0) {
+                  return (
+                    <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                      Belum ada aspirasi publik pada filter status ini. Jadilah yang pertama mengusulkan ide positif!
+                    </div>
+                  );
+                }
 
-                        <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                          {asp.title}
-                        </h4>
-                        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
-                          {asp.description}
-                        </p>
-
-                        {asp.adminReply && (
-                          <div style={{
-                            marginTop: '4px',
-                            padding: '12px 14px',
-                            borderRadius: 'var(--radius-sm)',
-                            background: 'rgba(16, 185, 129, 0.08)',
-                            borderLeft: '3px solid #10b981',
-                            fontSize: '0.83rem',
-                            color: 'var(--text-main)',
-                            lineHeight: 1.5
-                          }}>
-                            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', marginBottom: '3px' }}>
-                              💬 Tanggapan & Tindak Lanjut Pengurus CNT IT APD:
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {paginatedAspirasi.map((asp) => {
+                      const st = asp.status || 'Menunggu Review';
+                      const badge = getAspirasiBadge(st);
+                      return (
+                        <div
+                          key={asp.id}
+                          className="glass-panel"
+                          style={{
+                            padding: '20px 22px',
+                            borderLeft: `4px solid ${badge.border}`,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                                {asp.category || 'Usulan Budaya'}
+                              </span>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                                Oleh: {asp.sender || 'Anonim'}
+                              </span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                                • {asp.submittedAt}
+                              </span>
                             </div>
-                            <div>{asp.adminReply}</div>
+
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '4px 12px',
+                              borderRadius: 'var(--radius-full)',
+                              background: badge.bg,
+                              border: `1px solid ${badge.border}`,
+                              color: badge.color,
+                              fontSize: '0.74rem',
+                              fontWeight: 800
+                            }}>
+                              <span>{badge.icon}</span>
+                              <span>{badge.label || st}</span>
+                            </span>
                           </div>
-                        )}
+
+                          <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                            {asp.title}
+                          </h4>
+                          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
+                            {asp.description}
+                          </p>
+
+                          {asp.adminReply && (
+                            <div style={{
+                              marginTop: '4px',
+                              padding: '12px 14px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(16, 185, 129, 0.08)',
+                              borderLeft: '3px solid #10b981',
+                              fontSize: '0.83rem',
+                              color: 'var(--text-main)',
+                              lineHeight: 1.5
+                            }}>
+                              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', marginBottom: '3px' }}>
+                                💬 Tanggapan & Tindak Lanjut Pengurus CNT IT APD:
+                              </div>
+                              <div>{asp.adminReply}</div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {totalAspirasiPages > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                        padding: '16px 20px',
+                        marginTop: '8px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-card)'
+                      }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Menampilkan <strong>{(safeAspirasiPage - 1) * ASPIRASI_PER_PAGE + 1} - {Math.min(safeAspirasiPage * ASPIRASI_PER_PAGE, filteredAspirasi.length)}</strong> dari <strong>{filteredAspirasi.length}</strong> aspirasi
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            disabled={safeAspirasiPage === 1}
+                            onClick={() => setAspirasiPage(p => Math.max(1, p - 1))}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              color: safeAspirasiPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: safeAspirasiPage === 1 ? 'not-allowed' : 'pointer',
+                              opacity: safeAspirasiPage === 1 ? 0.45 : 1
+                            }}
+                          >
+                            <ChevronLeft size={14} />
+                            <span>Sebelumnya</span>
+                          </button>
+                          {Array.from({ length: totalAspirasiPages }, (_, i) => i + 1).map((pg) => {
+                            if (totalAspirasiPages > 7 && Math.abs(pg - safeAspirasiPage) > 2 && pg !== 1 && pg !== totalAspirasiPages) {
+                              if (pg === 2 || pg === totalAspirasiPages - 1) {
+                                return <span key={pg} style={{ color: 'var(--text-dim)', padding: '0 4px', fontSize: '0.75rem' }}>...</span>;
+                              }
+                              return null;
+                            }
+                            const isActive = pg === safeAspirasiPage;
+                            return (
+                              <button
+                                key={pg}
+                                type="button"
+                                onClick={() => setAspirasiPage(pg)}
+                                style={{
+                                  minWidth: '28px',
+                                  height: '28px',
+                                  padding: '0 6px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                                  color: isActive ? '#040914' : 'var(--text-main)',
+                                  border: isActive ? 'none' : '1px solid var(--border-card)',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {pg}
+                              </button>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            disabled={safeAspirasiPage === totalAspirasiPages}
+                            onClick={() => setAspirasiPage(p => Math.min(totalAspirasiPages, p + 1))}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              color: safeAspirasiPage === totalAspirasiPages ? 'var(--text-dim)' : 'var(--text-main)',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: safeAspirasiPage === totalAspirasiPages ? 'not-allowed' : 'pointer',
+                              opacity: safeAspirasiPage === totalAspirasiPages ? 0.45 : 1
+                            }}
+                          >
+                            <span>Selanjutnya</span>
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );

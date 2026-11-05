@@ -23,6 +23,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
   const [divFilter, setDivFilter] = useState('all');
   const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [galleryPage, setGalleryPage] = useState(1);
 
   const uniqueDivisions = Array.from(
     new Set([
@@ -407,6 +408,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                   onClick={() => {
                     setTenureFilter('active');
                     setCurrentPhotoIdx(0);
+                    setGalleryPage(1);
                   }}
                   style={{
                     padding: '5px 11px',
@@ -426,6 +428,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                   onClick={() => {
                     setTenureFilter('all');
                     setCurrentPhotoIdx(0);
+                    setGalleryPage(1);
                   }}
                   style={{
                     padding: '5px 11px',
@@ -452,6 +455,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setCurrentPhotoIdx(0);
+                  setGalleryPage(1);
                 }}
                 style={{
                   width: '100%',
@@ -473,6 +477,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                 onChange={(e) => {
                   setDivFilter(e.target.value);
                   setCurrentPhotoIdx(0);
+                  setGalleryPage(1);
                 }}
                 style={{
                   padding: '7px 12px',
@@ -495,58 +500,168 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
           </div>
         </div>
 
-        {filteredGalleries.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Tidak ada dokumentasi kegiatan yang cocok dengan filter pencarian.
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '16px'
-          }}>
-            {filteredGalleries.map((item, gIdx) => {
-              const isSelected = activeEvent.id === item.id;
-              return (
-                <div 
-                  key={item.id || gIdx}
-                  onClick={() => {
-                    setSelectedGalleryId(item.id);
-                    setCurrentPhotoIdx(0);
-                  }}
-                  className="glass-panel glass-panel-hover"
-                  style={{
-                    padding: '16px 20px',
-                    cursor: 'pointer',
-                    borderLeft: isSelected ? '4px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
-                    background: isSelected ? 'var(--bg-card-hover)' : 'var(--bg-card)',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--mandiri-gold)', fontWeight: 700 }}>
-                      {formatWibDateTime(item.date) || '-'}
-                    </span>
-                    {(item.divisionName || item.division) && (
-                      <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
-                        {item.divisionName || item.division}
-                      </span>
-                    )}
+        {(() => {
+          const GALLERIES_PER_PAGE = 6;
+          const totalGalleryPages = Math.ceil(filteredGalleries.length / GALLERIES_PER_PAGE) || 1;
+          const safeGalleryPage = Math.min(Math.max(1, galleryPage), totalGalleryPages);
+          const paginatedGalleries = filteredGalleries.slice(
+            (safeGalleryPage - 1) * GALLERIES_PER_PAGE,
+            safeGalleryPage * GALLERIES_PER_PAGE
+          );
+
+          if (filteredGalleries.length === 0) {
+            return (
+              <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                Tidak ada dokumentasi kegiatan yang cocok dengan filter pencarian.
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '16px'
+              }}>
+                {paginatedGalleries.map((item, gIdx) => {
+                  const isSelected = activeEvent.id === item.id;
+                  return (
+                    <div 
+                      key={item.id || gIdx}
+                      onClick={() => {
+                        setSelectedGalleryId(item.id);
+                        setCurrentPhotoIdx(0);
+                      }}
+                      className="glass-panel glass-panel-hover"
+                      style={{
+                        padding: '16px 20px',
+                        cursor: 'pointer',
+                        borderLeft: isSelected ? '4px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                        background: isSelected ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--mandiri-gold)', fontWeight: 700 }}>
+                          {formatWibDateTime(item.date) || '-'}
+                        </span>
+                        {(item.divisionName || item.division) && (
+                          <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
+                            {item.divisionName || item.division}
+                          </span>
+                        )}
+                      </div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
+                        {item.title}
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {item.description}
+                      </p>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '8px' }}>
+                        📷 {item.photos?.length || 0} Dokumentasi Foto
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {totalGalleryPages > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  padding: '14px 18px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-card)'
+                }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Menampilkan <strong>{(safeGalleryPage - 1) * GALLERIES_PER_PAGE + 1} - {Math.min(safeGalleryPage * GALLERIES_PER_PAGE, filteredGalleries.length)}</strong> dari <strong>{filteredGalleries.length}</strong> arsip kegiatan
                   </div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
-                    {item.title}
-                  </h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {item.description}
-                  </p>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '8px' }}>
-                    📷 {item.photos?.length || 0} Dokumentasi Foto
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      disabled={safeGalleryPage === 1}
+                      onClick={() => setGalleryPage(p => Math.max(1, p - 1))}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: safeGalleryPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: safeGalleryPage === 1 ? 'not-allowed' : 'pointer',
+                        opacity: safeGalleryPage === 1 ? 0.45 : 1
+                      }}
+                    >
+                      <ChevronLeft size={14} />
+                      <span>Sebelumnya</span>
+                    </button>
+                    {Array.from({ length: totalGalleryPages }, (_, i) => i + 1).map((pg) => {
+                      if (totalGalleryPages > 7 && Math.abs(pg - safeGalleryPage) > 2 && pg !== 1 && pg !== totalGalleryPages) {
+                        if (pg === 2 || pg === totalGalleryPages - 1) {
+                          return <span key={pg} style={{ color: 'var(--text-dim)', padding: '0 4px', fontSize: '0.75rem' }}>...</span>;
+                        }
+                        return null;
+                      }
+                      const isActive = pg === safeGalleryPage;
+                      return (
+                        <button
+                          key={pg}
+                          type="button"
+                          onClick={() => setGalleryPage(pg)}
+                          style={{
+                            minWidth: '28px',
+                            height: '28px',
+                            padding: '0 6px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                            color: isActive ? '#040914' : 'var(--text-main)',
+                            border: isActive ? 'none' : '1px solid var(--border-card)',
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {pg}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      disabled={safeGalleryPage === totalGalleryPages}
+                      onClick={() => setGalleryPage(p => Math.min(totalGalleryPages, p + 1))}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: safeGalleryPage === totalGalleryPages ? 'var(--text-dim)' : 'var(--text-main)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: safeGalleryPage === totalGalleryPages ? 'not-allowed' : 'pointer',
+                        opacity: safeGalleryPage === totalGalleryPages ? 0.45 : 1
+                      }}
+                    >
+                      <span>Selanjutnya</span>
+                      <ChevronRight size={14} />
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* FULLSCREEN LIGHTBOX MODAL FOR HD PHOTO VIEWING & DOWNLOAD */}

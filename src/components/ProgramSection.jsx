@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock,
   Sparkles,
+  ChevronLeft,
   ChevronRight,
   Filter,
   Grid,
@@ -40,6 +41,7 @@ export default function ProgramSection({
   const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'all'
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'calendar'
+  const [eventPage, setEventPage] = useState(1);
   const [rsvpModalEvent, setRsvpModalEvent] = useState(null);
   const [sameDayModalEvents, setSameDayModalEvents] = useState([]);
   const [copiedEventId, setCopiedEventId] = useState(null);
@@ -296,7 +298,10 @@ export default function ProgramSection({
           {/* Status Tab */}
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
-              onClick={() => setActiveTab('upcoming')}
+              onClick={() => {
+                setActiveTab('upcoming');
+                setEventPage(1);
+              }}
               style={{
                 padding: '7px 16px',
                 borderRadius: 'var(--radius-full)',
@@ -311,7 +316,10 @@ export default function ProgramSection({
               Akan Datang
             </button>
             <button
-              onClick={() => setActiveTab('all')}
+              onClick={() => {
+                setActiveTab('all');
+                setEventPage(1);
+              }}
               style={{
                 padding: '7px 16px',
                 borderRadius: 'var(--radius-full)',
@@ -340,7 +348,10 @@ export default function ProgramSection({
             }}>
               <button
                 type="button"
-                onClick={() => setTenureFilter('active')}
+                onClick={() => {
+                  setTenureFilter('active');
+                  setEventPage(1);
+                }}
                 style={{
                   padding: '5px 12px',
                   borderRadius: 'var(--radius-full)',
@@ -356,7 +367,10 @@ export default function ProgramSection({
               </button>
               <button
                 type="button"
-                onClick={() => setTenureFilter('all')}
+                onClick={() => {
+                  setTenureFilter('all');
+                  setEventPage(1);
+                }}
                 style={{
                   padding: '5px 12px',
                   borderRadius: 'var(--radius-full)',
@@ -376,7 +390,10 @@ export default function ProgramSection({
           <Filter size={16} color="var(--text-dim)" />
           <select
             value={filterDiv}
-            onChange={(e) => setFilterDiv(e.target.value)}
+            onChange={(e) => {
+              setFilterDiv(e.target.value);
+              setEventPage(1);
+            }}
             style={{
               background: 'var(--input-bg)',
               border: '1px solid var(--input-border)',
@@ -440,6 +457,7 @@ export default function ProgramSection({
                   setFilterDiv('all');
                   setActiveTab('all');
                   setTenureFilter('all');
+                  setEventPage(1);
                 }}
                 style={{
                   marginTop: '6px',
@@ -458,13 +476,23 @@ export default function ProgramSection({
               </button>
             )}
           </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))',
-            gap: '24px',
-          }}>
-            {filteredEvents.map((evt) => {
+        ) : (() => {
+          const EVENTS_PER_PAGE = 6;
+          const totalEventPages = Math.ceil(filteredEvents.length / EVENTS_PER_PAGE) || 1;
+          const safeEventPage = Math.min(Math.max(1, eventPage), totalEventPages);
+          const paginatedEvents = filteredEvents.slice(
+            (safeEventPage - 1) * EVENTS_PER_PAGE,
+            safeEventPage * EVENTS_PER_PAGE
+          );
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))',
+                gap: '24px',
+              }}>
+                {paginatedEvents.map((evt) => {
               const divInfo = divisions.find(d => d.id === evt.divisionId);
               const isCompleted = evt.status === 'Completed';
 
@@ -602,8 +630,104 @@ export default function ProgramSection({
               );
             })}
           </div>
-        )
-      )}
+
+          {totalEventPages > 1 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '14px 18px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-card)'
+            }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                Menampilkan <strong>{(safeEventPage - 1) * EVENTS_PER_PAGE + 1} - {Math.min(safeEventPage * EVENTS_PER_PAGE, filteredEvents.length)}</strong> dari <strong>{filteredEvents.length}</strong> event
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  disabled={safeEventPage === 1}
+                  onClick={() => setEventPage(p => Math.max(1, p - 1))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: safeEventPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: safeEventPage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: safeEventPage === 1 ? 0.45 : 1
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                  <span>Sebelumnya</span>
+                </button>
+                {Array.from({ length: totalEventPages }, (_, i) => i + 1).map((pg) => {
+                  if (totalEventPages > 7 && Math.abs(pg - safeEventPage) > 2 && pg !== 1 && pg !== totalEventPages) {
+                    if (pg === 2 || pg === totalEventPages - 1) {
+                      return <span key={pg} style={{ color: 'var(--text-dim)', padding: '0 4px', fontSize: '0.75rem' }}>...</span>;
+                    }
+                    return null;
+                  }
+                  const isActive = pg === safeEventPage;
+                  return (
+                    <button
+                      key={pg}
+                      type="button"
+                      onClick={() => setEventPage(pg)}
+                      style={{
+                        minWidth: '28px',
+                        height: '28px',
+                        padding: '0 6px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                        color: isActive ? '#040914' : 'var(--text-main)',
+                        border: isActive ? 'none' : '1px solid var(--border-card)',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {pg}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  disabled={safeEventPage === totalEventPages}
+                  onClick={() => setEventPage(p => Math.min(totalEventPages, p + 1))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: safeEventPage === totalEventPages ? 'var(--text-dim)' : 'var(--text-main)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: safeEventPage === totalEventPages ? 'not-allowed' : 'pointer',
+                    opacity: safeEventPage === totalEventPages ? 0.45 : 1
+                  }}
+                >
+                  <span>Selanjutnya</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    })()
+  )}
 
       {/* VIEW MODE 2: AUTHENTIC MONTHLY CALENDAR GRID WITH DATE RANGE MARKING & HOVER TOOLTIPS */}
       {viewMode === 'calendar' && (() => {

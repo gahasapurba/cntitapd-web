@@ -7,6 +7,7 @@ import {
   Zap, 
   DollarSign, 
   Award, 
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   Flame,
@@ -48,6 +49,7 @@ export default function HomeSection({
   const [openFaqId, setOpenFaqId] = useState('faq-1');
   const [faqCategory, setFaqCategory] = useState('Semua');
   const [faqSearch, setFaqSearch] = useState('');
+  const [faqPage, setFaqPage] = useState(1);
   const [askName, setAskName] = useState('');
   const [askCat, setAskCat] = useState('Kegiatan & Event');
   const [askQuestionText, setAskQuestionText] = useState('');
@@ -1166,7 +1168,10 @@ export default function HomeSection({
                   type="text"
                   placeholder="Cari pertanyaan (misal: olahraga, dana, sekben, oprec)..."
                   value={faqSearch}
-                  onChange={(e) => setFaqSearch(e.target.value)}
+                  onChange={(e) => {
+                    setFaqSearch(e.target.value);
+                    setFaqPage(1);
+                  }}
                   style={{
                     width: '100%',
                     padding: '10px 14px 10px 38px',
@@ -1187,7 +1192,10 @@ export default function HomeSection({
                     <button
                       key={cat}
                       type="button"
-                      onClick={() => setFaqCategory(cat)}
+                      onClick={() => {
+                        setFaqCategory(cat);
+                        setFaqPage(1);
+                      }}
                       style={{
                         padding: '6px 14px',
                         borderRadius: 'var(--radius-full)',
@@ -1207,86 +1215,195 @@ export default function HomeSection({
             </div>
 
             {/* Accordion List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {filteredFaqs.length === 0 ? (
-                <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.86rem' }}>
-                  Tidak ditemukan pertanyaan yang cocok dengan kata kunci <strong>"{faqSearch}"</strong>.
-                </div>
-              ) : (
-                filteredFaqs.map((item) => {
-                  const isOpen = openFaqId === item.id;
-                  return (
-                    <div
-                      key={item.id}
-                      className="glass-panel"
-                      style={{
-                        borderRadius: 'var(--radius-md)',
-                        border: isOpen ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
-                        overflow: 'hidden',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setOpenFaqId(isOpen ? null : item.id)}
+            {(() => {
+              const FAQS_PER_PAGE = 6;
+              const totalFaqPages = Math.ceil(filteredFaqs.length / FAQS_PER_PAGE) || 1;
+              const safeFaqPage = Math.min(Math.max(1, faqPage), totalFaqPages);
+              const paginatedFaqs = filteredFaqs.slice(
+                (safeFaqPage - 1) * FAQS_PER_PAGE,
+                safeFaqPage * FAQS_PER_PAGE
+              );
+
+              if (filteredFaqs.length === 0) {
+                return (
+                  <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.86rem' }}>
+                    Tidak ditemukan pertanyaan yang cocok dengan kata kunci <strong>"{faqSearch}"</strong>.
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {paginatedFaqs.map((item) => {
+                    const isOpen = openFaqId === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        className="glass-panel"
                         style={{
-                          width: '100%',
-                          padding: '16px 20px',
-                          background: 'transparent',
-                          border: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          color: 'var(--text-main)'
+                          borderRadius: 'var(--radius-md)',
+                          border: isOpen ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                          overflow: 'hidden',
+                          transition: 'all 0.2s ease'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                          <span style={{
-                            fontSize: '0.66rem',
-                            fontWeight: 800,
-                            padding: '2px 8px',
-                            borderRadius: 'var(--radius-full)',
-                            background: 'rgba(14, 165, 233, 0.14)',
-                            color: 'var(--neon-cyan)',
-                            textTransform: 'uppercase'
-                          }}>
-                            {item.category || 'Umum'}
-                          </span>
-                          <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.4 }}>
-                            {item.question}
-                          </span>
-                        </div>
-                        <ChevronDown
-                          size={18}
-                          color="var(--mandiri-gold)"
+                        <button
+                          type="button"
+                          onClick={() => setOpenFaqId(isOpen ? null : item.id)}
                           style={{
-                            flexShrink: 0,
-                            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.2s ease'
+                            width: '100%',
+                            padding: '16px 20px',
+                            background: 'transparent',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            color: 'var(--text-main)'
                           }}
-                        />
-                      </button>
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: '0.66rem',
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              background: 'rgba(14, 165, 233, 0.14)',
+                              color: 'var(--neon-cyan)',
+                              textTransform: 'uppercase'
+                            }}>
+                              {item.category || 'Umum'}
+                            </span>
+                            <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.4 }}>
+                              {item.question}
+                            </span>
+                          </div>
+                          <ChevronDown
+                            size={18}
+                            color="var(--mandiri-gold)"
+                            style={{
+                              flexShrink: 0,
+                              transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.2s ease'
+                            }}
+                          />
+                        </button>
 
-                      {isOpen && (
-                        <div style={{
-                          padding: '0 20px 18px 20px',
-                          borderTop: '1px solid var(--border-card)',
-                          paddingTop: '14px',
-                          fontSize: '0.88rem',
-                          color: 'var(--text-muted)',
-                          lineHeight: 1.65
-                        }}>
-                          {item.answer}
-                        </div>
-                      )}
+                        {isOpen && (
+                          <div style={{
+                            padding: '0 20px 18px 20px',
+                            borderTop: '1px solid var(--border-card)',
+                            paddingTop: '14px',
+                            fontSize: '0.88rem',
+                            color: 'var(--text-muted)',
+                            lineHeight: 1.65
+                          }}>
+                            {item.answer}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {totalFaqPages > 1 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      padding: '12px 18px',
+                      marginTop: '6px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-card)'
+                    }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Menampilkan <strong>{(safeFaqPage - 1) * FAQS_PER_PAGE + 1} - {Math.min(safeFaqPage * FAQS_PER_PAGE, filteredFaqs.length)}</strong> dari <strong>{filteredFaqs.length}</strong> pertanyaan FAQ
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          disabled={safeFaqPage === 1}
+                          onClick={() => setFaqPage(p => Math.max(1, p - 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '5px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeFaqPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeFaqPage === 1 ? 'not-allowed' : 'pointer',
+                            opacity: safeFaqPage === 1 ? 0.45 : 1
+                          }}
+                        >
+                          <ChevronLeft size={14} />
+                          <span>Sebelumnya</span>
+                        </button>
+                        {Array.from({ length: totalFaqPages }, (_, i) => i + 1).map((pg) => {
+                          if (totalFaqPages > 7 && Math.abs(pg - safeFaqPage) > 2 && pg !== 1 && pg !== totalFaqPages) {
+                            if (pg === 2 || pg === totalFaqPages - 1) {
+                              return <span key={pg} style={{ color: 'var(--text-dim)', padding: '0 4px', fontSize: '0.75rem' }}>...</span>;
+                            }
+                            return null;
+                          }
+                          const isActive = pg === safeFaqPage;
+                          return (
+                            <button
+                              key={pg}
+                              type="button"
+                              onClick={() => setFaqPage(pg)}
+                              style={{
+                                minWidth: '28px',
+                                height: '28px',
+                                padding: '0 6px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                                color: isActive ? '#040914' : 'var(--text-main)',
+                                border: isActive ? 'none' : '1px solid var(--border-card)',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {pg}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          disabled={safeFaqPage === totalFaqPages}
+                          onClick={() => setFaqPage(p => Math.min(totalFaqPages, p + 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '5px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeFaqPage === totalFaqPages ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeFaqPage === totalFaqPages ? 'not-allowed' : 'pointer',
+                            opacity: safeFaqPage === totalFaqPages ? 0.45 : 1
+                          }}
+                        >
+                          <span>Selanjutnya</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Public "Ask a Question" Box (Synced to `public.faqs` with is_published=false for Admin Review) */}
             {onSubmitFaqQuestion && (

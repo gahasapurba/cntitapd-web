@@ -217,6 +217,12 @@ export default function AdminPortal({
   const [subStatusFilter, setSubStatusFilter] = useState('all');
   const [subSearchQuery, setSubSearchQuery] = useState('');
   const [subCurrentPage, setSubCurrentPage] = useState(1);
+  const [adminEventPage, setAdminEventPage] = useState(1);
+  const [adminRsvpPage, setAdminRsvpPage] = useState(1);
+  const [adminGalleryPage, setAdminGalleryPage] = useState(1);
+  const [adminKudosPage, setAdminKudosPage] = useState(1);
+  const [adminAspirasiPage, setAdminAspirasiPage] = useState(1);
+  const [adminFaqPage, setAdminFaqPage] = useState(1);
 
   // Form states for new Brand Asset
   const [assetTitle, setAssetTitle] = useState('');
@@ -2805,128 +2811,232 @@ export default function AdminPortal({
               Daftar Event Aktif ({events.length})
             </h4>
 
-            {events.length === 0 ? (
-              <div style={{
-                padding: '36px 20px',
-                textAlign: 'center',
-                color: 'var(--text-dim)',
-                background: 'rgba(255,255,255,0.02)',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px dashed var(--border-card)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <Calendar size={32} color="var(--text-dim)" />
-                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Belum ada event yang ditambahkan.
-                </div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  Gunakan formulir di atas untuk menambahkan event baru.
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
-                {events.map((evt) => {
-                  const divObj = divisions.find(d => d.id === evt.divisionId);
-                  return (
-                    <div
-                      key={evt.id}
-                      style={{
-                        background: 'rgba(255,255,255,0.02)',
-                        padding: '16px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border-card)',
-                        borderLeft: `4px solid ${divObj?.color || 'var(--mandiri-gold)'}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '10px'
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
-                          <span style={{ fontSize: '0.7rem', color: divObj?.color || 'var(--mandiri-gold)', fontWeight: 800, textTransform: 'uppercase' }}>
-                            {evt.divisionName || divObj?.name}
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            {(evt.category || evt.badge) && (
-                              <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
-                                {evt.category || evt.badge}
-                              </span>
-                            )}
-                            <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
-                              {evt.status}
-                            </span>
-                          </div>
-                        </div>
-                        <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '4px' }}>
-                          {evt.title}
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
-                          📅 {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px', flexWrap: 'wrap', gap: '6px' }}>
-                          <span>📍 {evt.location}</span>
-                          <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>
-                            💰 Rp {Number(evt.totalRab || 0).toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                      </div>
+            {(() => {
+              const ADMIN_EVENTS_PER_PAGE = 8;
+              const totalAdminEventPages = Math.ceil(events.length / ADMIN_EVENTS_PER_PAGE) || 1;
+              const safeAdminEventPage = Math.min(Math.max(1, adminEventPage), totalAdminEventPages);
+              const paginatedAdminEvents = events.slice(
+                (safeAdminEventPage - 1) * ADMIN_EVENTS_PER_PAGE,
+                safeAdminEventPage * ADMIN_EVENTS_PER_PAGE
+              );
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-card)', paddingTop: '8px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setEditingItem({ type: 'event', item: { ...evt } })}
-                          title="Edit Event"
+              if (events.length === 0) {
+                return (
+                  <div style={{
+                    padding: '36px 20px',
+                    textAlign: 'center',
+                    color: 'var(--text-dim)',
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px dashed var(--border-card)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <Calendar size={32} color="var(--text-dim)" />
+                    <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Belum ada event yang ditambahkan.
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      Gunakan formulir di atas untuk menambahkan event baru.
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+                    {paginatedAdminEvents.map((evt) => {
+                      const divObj = divisions.find(d => d.id === evt.divisionId);
+                      return (
+                        <div
+                          key={evt.id}
                           style={{
-                            padding: '6px 12px',
-                            background: 'rgba(56, 189, 248, 0.1)',
-                            border: '1px solid var(--mandiri-blue)',
-                            color: 'var(--neon-cyan)',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
+                            background: 'rgba(255,255,255,0.02)',
+                            padding: '16px',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid var(--border-card)',
+                            borderLeft: `4px solid ${divObj?.color || 'var(--mandiri-gold)'}`,
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.75rem',
-                            fontWeight: 700
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            gap: '10px'
                           }}
                         >
-                          <Edit2 size={13} />
-                          <span>Edit</span>
-                        </button>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
+                              <span style={{ fontSize: '0.7rem', color: divObj?.color || 'var(--mandiri-gold)', fontWeight: 800, textTransform: 'uppercase' }}>
+                                {evt.divisionName || divObj?.name}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                {(evt.category || evt.badge) && (
+                                  <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
+                                    {evt.category || evt.badge}
+                                  </span>
+                                )}
+                                <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
+                                  {evt.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '4px' }}>
+                              {evt.title}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                              📅 {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px', flexWrap: 'wrap', gap: '6px' }}>
+                              <span>📍 {evt.location}</span>
+                              <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>
+                                💰 Rp {Number(evt.totalRab || 0).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          </div>
 
-                        {onDeleteEvent && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteEventClick(evt)}
-                            title="Hapus Event"
-                            style={{
-                              padding: '6px 12px',
-                              background: 'rgba(244, 63, 94, 0.1)',
-                              border: '1px solid #f43f5e',
-                              color: '#f43f5e',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '0.75rem',
-                              fontWeight: 700
-                            }}
-                          >
-                            <Trash2 size={13} />
-                            <span>Hapus</span>
-                          </button>
-                        )}
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-card)', paddingTop: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setEditingItem({ type: 'event', item: { ...evt } })}
+                              title="Edit Event"
+                              style={{
+                                padding: '6px 12px',
+                                background: 'rgba(56, 189, 248, 0.1)',
+                                border: '1px solid var(--mandiri-blue)',
+                                color: 'var(--neon-cyan)',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700
+                              }}
+                            >
+                              <Edit2 size={13} />
+                              <span>Edit</span>
+                            </button>
+
+                            {onDeleteEvent && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteEventClick(evt)}
+                                title="Hapus Event"
+                                style={{
+                                  padding: '6px 12px',
+                                  background: 'rgba(244, 63, 94, 0.1)',
+                                  border: '1px solid #f43f5e',
+                                  color: '#f43f5e',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700
+                                }}
+                              >
+                                <Trash2 size={13} />
+                                <span>Hapus</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {totalAdminEventPages > 1 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-card)'
+                    }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Menampilkan <strong>{(safeAdminEventPage - 1) * ADMIN_EVENTS_PER_PAGE + 1} - {Math.min(safeAdminEventPage * ADMIN_EVENTS_PER_PAGE, events.length)}</strong> dari <strong>{events.length}</strong> event
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          disabled={safeAdminEventPage === 1}
+                          onClick={() => setAdminEventPage(p => Math.max(1, p - 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeAdminEventPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeAdminEventPage === 1 ? 'not-allowed' : 'pointer',
+                            opacity: safeAdminEventPage === 1 ? 0.45 : 1
+                          }}
+                        >
+                          <ChevronLeft size={14} />
+                          <span>Sebelumnya</span>
+                        </button>
+                        {Array.from({ length: totalAdminEventPages }, (_, i) => i + 1).map((pg) => {
+                          const isActive = pg === safeAdminEventPage;
+                          return (
+                            <button
+                              key={pg}
+                              type="button"
+                              onClick={() => setAdminEventPage(pg)}
+                              style={{
+                                minWidth: '28px',
+                                height: '28px',
+                                padding: '0 6px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                                color: isActive ? '#040914' : 'var(--text-main)',
+                                border: isActive ? 'none' : '1px solid var(--border-card)',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {pg}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          disabled={safeAdminEventPage === totalAdminEventPages}
+                          onClick={() => setAdminEventPage(p => Math.min(totalAdminEventPages, p + 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeAdminEventPage === totalAdminEventPages ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeAdminEventPage === totalAdminEventPages ? 'not-allowed' : 'pointer',
+                            opacity: safeAdminEventPage === totalAdminEventPages ? 0.45 : 1
+                          }}
+                        >
+                          <span>Selanjutnya</span>
+                          <ChevronRight size={14} />
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Daftar Hadir & Konfirmasi RSVP Kegiatan (public.event_rsvps) */}
@@ -2989,66 +3099,170 @@ export default function AdminPortal({
               )}
             </div>
 
-            {eventRsvps.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
-                Belum ada konfirmasi kehadiran RSVP pada event.
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-                {eventRsvps.map((rsvp) => (
-                  <div
-                    key={rsvp.id}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid var(--border-card)',
+            {(() => {
+              const ADMIN_RSVPS_PER_PAGE = 10;
+              const totalAdminRsvpPages = Math.ceil(eventRsvps.length / ADMIN_RSVPS_PER_PAGE) || 1;
+              const safeAdminRsvpPage = Math.min(Math.max(1, adminRsvpPage), totalAdminRsvpPages);
+              const paginatedAdminRsvps = eventRsvps.slice(
+                (safeAdminRsvpPage - 1) * ADMIN_RSVPS_PER_PAGE,
+                safeAdminRsvpPage * ADMIN_RSVPS_PER_PAGE
+              );
+
+              if (eventRsvps.length === 0) {
+                return (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                    Belum ada konfirmasi kehadiran RSVP pada event.
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+                    {paginatedAdminRsvps.map((rsvp) => (
+                      <div
+                        key={rsvp.id}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-card)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '10px'
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {rsvp.eventTitle}
+                          </div>
+                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                            {rsvp.attendeeName} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>• {rsvp.squadUnit}</span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                            {rsvp.attendanceMode} {rsvp.notes ? `• "${rsvp.notes}"` : ''} • {formatWibTimestamp(rsvp.submittedAt || rsvp.createdAt).exact || rsvp.submittedAt}
+                          </div>
+                        </div>
+
+                        {onDeleteEventRsvp && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirm({
+                              type: 'event_rsvp',
+                              id: rsvp.id,
+                              name: `Data RSVP "${rsvp.attendeeName}" (${rsvp.squadUnit || 'Peserta'})`
+                            })}
+                            style={{
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(244, 63, 94, 0.12)',
+                              border: '1px solid rgba(244, 63, 94, 0.35)',
+                              color: '#f43f5e',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              flexShrink: 0
+                            }}
+                            title="Hapus konfirmasi kehadiran RSVP ini"
+                          >
+                            Hapus
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {totalAdminRsvpPages > 1 && (
+                    <div style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      gap: '10px'
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {rsvp.eventTitle}
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-card)'
+                    }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Menampilkan <strong>{(safeAdminRsvpPage - 1) * ADMIN_RSVPS_PER_PAGE + 1} - {Math.min(safeAdminRsvpPage * ADMIN_RSVPS_PER_PAGE, eventRsvps.length)}</strong> dari <strong>{eventRsvps.length}</strong> data RSVP
                       </div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                        {rsvp.attendeeName} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>• {rsvp.squadUnit}</span>
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '2px' }}>
-                        {rsvp.attendanceMode} {rsvp.notes ? `• "${rsvp.notes}"` : ''} • {formatWibTimestamp(rsvp.submittedAt || rsvp.createdAt).exact || rsvp.submittedAt}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          disabled={safeAdminRsvpPage === 1}
+                          onClick={() => setAdminRsvpPage(p => Math.max(1, p - 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeAdminRsvpPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeAdminRsvpPage === 1 ? 'not-allowed' : 'pointer',
+                            opacity: safeAdminRsvpPage === 1 ? 0.45 : 1
+                          }}
+                        >
+                          <ChevronLeft size={14} />
+                          <span>Sebelumnya</span>
+                        </button>
+                        {Array.from({ length: totalAdminRsvpPages }, (_, i) => i + 1).map((pg) => {
+                          const isActive = pg === safeAdminRsvpPage;
+                          return (
+                            <button
+                              key={pg}
+                              type="button"
+                              onClick={() => setAdminRsvpPage(pg)}
+                              style={{
+                                minWidth: '28px',
+                                height: '28px',
+                                padding: '0 6px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                                color: isActive ? '#040914' : 'var(--text-main)',
+                                border: isActive ? 'none' : '1px solid var(--border-card)',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {pg}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          disabled={safeAdminRsvpPage === totalAdminRsvpPages}
+                          onClick={() => setAdminRsvpPage(p => Math.min(totalAdminRsvpPages, p + 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeAdminRsvpPage === totalAdminRsvpPages ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeAdminRsvpPage === totalAdminRsvpPages ? 'not-allowed' : 'pointer',
+                            opacity: safeAdminRsvpPage === totalAdminRsvpPages ? 0.45 : 1
+                          }}
+                        >
+                          <span>Selanjutnya</span>
+                          <ChevronRight size={14} />
+                        </button>
                       </div>
                     </div>
-
-                    {onDeleteEventRsvp && (
-                      <button
-                        type="button"
-                        onClick={() => setDeleteConfirm({
-                          type: 'event_rsvp',
-                          id: rsvp.id,
-                          name: `Data RSVP "${rsvp.attendeeName}" (${rsvp.squadUnit || 'Peserta'})`
-                        })}
-                        style={{
-                          padding: '5px 8px',
-                          borderRadius: '6px',
-                          background: 'rgba(244, 63, 94, 0.12)',
-                          border: '1px solid rgba(244, 63, 94, 0.35)',
-                          color: '#f43f5e',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          flexShrink: 0
-                        }}
-                        title="Hapus konfirmasi kehadiran RSVP ini"
-                      >
-                        Hapus
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -3532,71 +3746,180 @@ export default function AdminPortal({
             <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
               Arsip Galeri Saat Ini ({galleries.length}):
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {galleries.map((gal) => (
-                <div key={gal.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 18px',
-                  background: 'rgba(255,255,255,0.03)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-card)'
-                }}>
-                  <div>
-                    <strong style={{ color: 'var(--text-main)' }}>{gal.title}</strong>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {(() => {
-                        const divObj = divisions.find(d => d.id === gal.divisionId);
-                        const displayDiv = divObj?.name || gal.divisionName || gal.division || 'Umum';
-                        return `${formatWibDateTime(gal.date)} • ${displayDiv} • ${gal.photos?.length || 0} Foto`;
-                      })()}
+            {(() => {
+              const ADMIN_GALLERY_PER_PAGE = 8;
+              const totalAdminGalleryPages = Math.ceil(galleries.length / ADMIN_GALLERY_PER_PAGE) || 1;
+              const safeAdminGalleryPage = Math.min(Math.max(1, adminGalleryPage), totalAdminGalleryPages);
+              const paginatedAdminGalleries = galleries.slice(
+                (safeAdminGalleryPage - 1) * ADMIN_GALLERY_PER_PAGE,
+                safeAdminGalleryPage * ADMIN_GALLERY_PER_PAGE
+              );
+
+              if (galleries.length === 0) {
+                return (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                    Belum ada arsip dokumentasi galeri.
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {paginatedAdminGalleries.map((gal) => (
+                    <div key={gal.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 18px',
+                      background: 'rgba(255,255,255,0.03)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-card)'
+                    }}>
+                      <div>
+                        <strong style={{ color: 'var(--text-main)' }}>{gal.title}</strong>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          {(() => {
+                            const divObj = divisions.find(d => d.id === gal.divisionId);
+                            const displayDiv = divObj?.name || gal.divisionName || gal.division || 'Umum';
+                            return `${formatWibDateTime(gal.date)} • ${displayDiv} • ${gal.photos?.length || 0} Foto`;
+                          })()}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>Aktif di Web</span>
+
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem({ type: 'gallery', item: { ...gal } })}
+                          title="Edit Galeri Kegiatan"
+                          style={{
+                            padding: '6px',
+                            background: 'rgba(14, 165, 233, 0.1)',
+                            border: '1px solid #0284c7',
+                            color: '#0284c7',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirm({ type: 'gallery', id: gal.id, name: gal.title })}
+                          title="Hapus Galeri"
+                          style={{
+                            padding: '6px',
+                            background: 'rgba(244, 63, 94, 0.1)',
+                            border: '1px solid #f43f5e',
+                            color: '#f43f5e',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>Aktif di Web</span>
+                  ))}
 
-                    <button
-                      type="button"
-                      onClick={() => setEditingItem({ type: 'gallery', item: { ...gal } })}
-                      title="Edit Galeri Kegiatan"
-                      style={{
-                        padding: '6px',
-                        background: 'rgba(14, 165, 233, 0.1)',
-                        border: '1px solid #0284c7',
-                        color: '#0284c7',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Edit2 size={13} />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirm({ type: 'gallery', id: gal.id, name: gal.title })}
-                      title="Hapus Galeri"
-                      style={{
-                        padding: '6px',
-                        background: 'rgba(244, 63, 94, 0.1)',
-                        border: '1px solid #f43f5e',
-                        color: '#f43f5e',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
+                  {totalAdminGalleryPages > 1 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      marginTop: '6px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-card)'
+                    }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Menampilkan <strong>{(safeAdminGalleryPage - 1) * ADMIN_GALLERY_PER_PAGE + 1} - {Math.min(safeAdminGalleryPage * ADMIN_GALLERY_PER_PAGE, galleries.length)}</strong> dari <strong>{galleries.length}</strong> galeri
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          disabled={safeAdminGalleryPage === 1}
+                          onClick={() => setAdminGalleryPage(p => Math.max(1, p - 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeAdminGalleryPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeAdminGalleryPage === 1 ? 'not-allowed' : 'pointer',
+                            opacity: safeAdminGalleryPage === 1 ? 0.45 : 1
+                          }}
+                        >
+                          <ChevronLeft size={14} />
+                          <span>Sebelumnya</span>
+                        </button>
+                        {Array.from({ length: totalAdminGalleryPages }, (_, i) => i + 1).map((pg) => {
+                          const isActive = pg === safeAdminGalleryPage;
+                          return (
+                            <button
+                              key={pg}
+                              type="button"
+                              onClick={() => setAdminGalleryPage(pg)}
+                              style={{
+                                minWidth: '28px',
+                                height: '28px',
+                                padding: '0 6px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                                color: isActive ? '#040914' : 'var(--text-main)',
+                                border: isActive ? 'none' : '1px solid var(--border-card)',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {pg}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          disabled={safeAdminGalleryPage === totalAdminGalleryPages}
+                          onClick={() => setAdminGalleryPage(p => Math.min(totalAdminGalleryPages, p + 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeAdminGalleryPage === totalAdminGalleryPages ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeAdminGalleryPage === totalAdminGalleryPages ? 'not-allowed' : 'pointer',
+                            opacity: safeAdminGalleryPage === totalAdminGalleryPages ? 0.45 : 1
+                          }}
+                        >
+                          <span>Selanjutnya</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -5068,89 +5391,192 @@ export default function AdminPortal({
             </div>
           </div>
 
-          {kudosList.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
-              Belum ada kiriman apresiasi di Wall of Kudos.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {kudosList.map((kudos) => (
-                <div key={kudos.id} style={{
-                  padding: '16px 20px',
-                  background: 'rgba(255,255,255,0.03)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-card)',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: '16px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '260px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                      <span className="badge-gold" style={{ fontSize: '0.68rem' }}>{kudos.category}</span>
-                      <strong style={{ color: 'var(--neon-cyan)', fontSize: '0.92rem' }}>{kudos.sender}</strong>
-                      <span style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>kepada</span>
-                      <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{kudos.recipient}</strong>
-                    </div>
+          {(() => {
+            const ADMIN_KUDOS_PER_PAGE = 10;
+            const totalAdminKudosPages = Math.ceil(kudosList.length / ADMIN_KUDOS_PER_PAGE) || 1;
+            const safeAdminKudosPage = Math.min(Math.max(1, adminKudosPage), totalAdminKudosPages);
+            const paginatedAdminKudos = kudosList.slice(
+              (safeAdminKudosPage - 1) * ADMIN_KUDOS_PER_PAGE,
+              safeAdminKudosPage * ADMIN_KUDOS_PER_PAGE
+            );
 
-                    <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
-                      "{kudos.message}"
-                    </p>
-
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
-                      <span>⏱️ {formatWibTimestamp(kudos.createdAt || kudos.created_at || kudos.exactTimestamp).full}</span>
-                      <span>•</span>
-                      <span>❤️ {kudos.likes || 1} Apresiasi</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button
-                      onClick={() => setEditingItem({ type: 'kudos', item: { ...kudos } })}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: 'rgba(255,184,0,0.12)',
-                        border: '1px solid var(--mandiri-gold)',
-                        color: 'var(--mandiri-gold)',
-                        padding: '6px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                      title="Edit kiriman apresiasi"
-                    >
-                      <Edit2 size={13} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm({ type: 'kudos', id: kudos.id, name: `Apresiasi dari ${kudos.sender} untuk ${kudos.recipient}` })}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: 'rgba(244,63,94,0.12)',
-                        border: '1px solid #f43f5e',
-                        color: '#f43f5e',
-                        padding: '6px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                      title="Hapus kiriman apresiasi"
-                    >
-                      <Trash2 size={13} />
-                      <span>Hapus</span>
-                    </button>
-                  </div>
+            if (kudosList.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
+                  Belum ada kiriman apresiasi di Wall of Kudos.
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            }
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {paginatedAdminKudos.map((kudos) => (
+                  <div key={kudos.id} style={{
+                    padding: '16px 20px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-card)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '260px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <span className="badge-gold" style={{ fontSize: '0.68rem' }}>{kudos.category}</span>
+                        <strong style={{ color: 'var(--neon-cyan)', fontSize: '0.92rem' }}>{kudos.sender}</strong>
+                        <span style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>kepada</span>
+                        <strong style={{ color: 'var(--text-main)', fontSize: '0.92rem' }}>{kudos.recipient}</strong>
+                      </div>
+
+                      <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
+                        "{kudos.message}"
+                      </p>
+
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
+                        <span>⏱️ {formatWibTimestamp(kudos.createdAt || kudos.created_at || kudos.exactTimestamp).full}</span>
+                        <span>•</span>
+                        <span>❤️ {kudos.likes || 1} Apresiasi</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        onClick={() => setEditingItem({ type: 'kudos', item: { ...kudos } })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'rgba(255,184,0,0.12)',
+                          border: '1px solid var(--mandiri-gold)',
+                          color: 'var(--mandiri-gold)',
+                          padding: '6px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                        title="Edit kiriman apresiasi"
+                      >
+                        <Edit2 size={13} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ type: 'kudos', id: kudos.id, name: `Apresiasi dari ${kudos.sender} untuk ${kudos.recipient}` })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'rgba(244,63,94,0.12)',
+                          border: '1px solid #f43f5e',
+                          color: '#f43f5e',
+                          padding: '6px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                        title="Hapus kiriman apresiasi"
+                      >
+                        <Trash2 size={13} />
+                        <span>Hapus</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {totalAdminKudosPages > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    marginTop: '6px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-card)'
+                  }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Menampilkan <strong>{(safeAdminKudosPage - 1) * ADMIN_KUDOS_PER_PAGE + 1} - {Math.min(safeAdminKudosPage * ADMIN_KUDOS_PER_PAGE, kudosList.length)}</strong> dari <strong>{kudosList.length}</strong> apresiasi
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        disabled={safeAdminKudosPage === 1}
+                        onClick={() => setAdminKudosPage(p => Math.max(1, p - 1))}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: safeAdminKudosPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: safeAdminKudosPage === 1 ? 'not-allowed' : 'pointer',
+                          opacity: safeAdminKudosPage === 1 ? 0.45 : 1
+                        }}
+                      >
+                        <ChevronLeft size={14} />
+                        <span>Sebelumnya</span>
+                      </button>
+                      {Array.from({ length: totalAdminKudosPages }, (_, i) => i + 1).map((pg) => {
+                        const isActive = pg === safeAdminKudosPage;
+                        return (
+                          <button
+                            key={pg}
+                            type="button"
+                            onClick={() => setAdminKudosPage(pg)}
+                            style={{
+                              minWidth: '28px',
+                              height: '28px',
+                              padding: '0 6px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                              color: isActive ? '#040914' : 'var(--text-main)',
+                              border: isActive ? 'none' : '1px solid var(--border-card)',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {pg}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        disabled={safeAdminKudosPage === totalAdminKudosPages}
+                        onClick={() => setAdminKudosPage(p => Math.min(totalAdminKudosPages, p + 1))}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: safeAdminKudosPage === totalAdminKudosPages ? 'var(--text-dim)' : 'var(--text-main)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: safeAdminKudosPage === totalAdminKudosPages ? 'not-allowed' : 'pointer',
+                          opacity: safeAdminKudosPage === totalAdminKudosPages ? 0.45 : 1
+                        }}
+                      >
+                        <span>Selanjutnya</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Kotak Ide & Aspirasi Masuk */}
           <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '24px' }}>
@@ -5216,167 +5642,270 @@ export default function AdminPortal({
               )}
             </div>
 
-            {aspirasiList.length === 0 ? (
-              <div style={{ fontSize: '0.84rem', color: 'var(--text-dim)', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)' }}>
-                Belum ada kiriman ide atau aspirasi program budaya dari pengunjung.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {aspirasiList.map((asp) => {
-                  const curStatus = asp.status || 'Menunggu Review';
-                  const isPub = asp.isPublic !== false;
-                  const statusColor = curStatus === 'Sudah Direalisasikan'
-                    ? '#10b981'
-                    : (curStatus === 'Masuk Rencana Event' || curStatus === 'Masuk Rencana Proker')
-                      ? 'var(--mandiri-gold)'
-                      : 'var(--neon-cyan)';
+            {(() => {
+              const ADMIN_ASPIRASI_PER_PAGE = 10;
+              const totalAdminAspirasiPages = Math.ceil(aspirasiList.length / ADMIN_ASPIRASI_PER_PAGE) || 1;
+              const safeAdminAspirasiPage = Math.min(Math.max(1, adminAspirasiPage), totalAdminAspirasiPages);
+              const paginatedAdminAspirasi = aspirasiList.slice(
+                (safeAdminAspirasiPage - 1) * ADMIN_ASPIRASI_PER_PAGE,
+                safeAdminAspirasiPage * ADMIN_ASPIRASI_PER_PAGE
+              );
 
-                  return (
-                    <div
-                      key={asp.id}
-                      style={{
-                        padding: '16px 18px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'rgba(56, 189, 248, 0.04)',
-                        border: '1px solid var(--border-card)',
-                        borderLeft: `4px solid ${statusColor}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, minWidth: '240px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                            <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                              {asp.category || 'Usulan Budaya'}
-                            </span>
-                            <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-                              Pengusul: {asp.sender || 'Anonim'}
-                            </span>
-                            <span style={{ fontSize: '0.73rem', color: 'var(--text-dim)' }}>
-                              • 📅 {formatWibTimestamp(asp.submittedAt || asp.createdAt).exact || asp.submittedAt}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '0.96rem', color: 'var(--text-main)', fontWeight: 800, marginBottom: '4px' }}>
-                            {asp.title || asp.description}
-                          </div>
-                          {asp.description && asp.description !== asp.title && (
-                            <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                              {asp.description}
+              if (aspirasiList.length === 0) {
+                return (
+                  <div style={{ fontSize: '0.84rem', color: 'var(--text-dim)', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)' }}>
+                    Belum ada kiriman ide atau aspirasi program budaya dari pengunjung.
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {paginatedAdminAspirasi.map((asp) => {
+                    const curStatus = asp.status || 'Menunggu Review';
+                    const isPub = asp.isPublic !== false;
+                    const statusColor = curStatus === 'Sudah Direalisasikan'
+                      ? '#10b981'
+                      : (curStatus === 'Masuk Rencana Event' || curStatus === 'Masuk Rencana Proker')
+                        ? 'var(--mandiri-gold)'
+                        : 'var(--neon-cyan)';
+
+                    return (
+                      <div
+                        key={asp.id}
+                        style={{
+                          padding: '16px 18px',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'rgba(56, 189, 248, 0.04)',
+                          border: '1px solid var(--border-card)',
+                          borderLeft: `4px solid ${statusColor}`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: '240px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                              <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                                {asp.category || 'Usulan Budaya'}
+                              </span>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                                Pengusul: {asp.sender || 'Anonim'}
+                              </span>
+                              <span style={{ fontSize: '0.73rem', color: 'var(--text-dim)' }}>
+                                • 📅 {formatWibTimestamp(asp.submittedAt || asp.createdAt).exact || asp.submittedAt}
+                              </span>
                             </div>
-                          )}
-                        </div>
+                            <div style={{ fontSize: '0.96rem', color: 'var(--text-main)', fontWeight: 800, marginBottom: '4px' }}>
+                              {asp.title || asp.description}
+                            </div>
+                            {asp.description && asp.description !== asp.title && (
+                              <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                                {asp.description}
+                              </div>
+                            )}
+                          </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <select
-                            value={curStatus === 'Masuk Rencana Proker' ? 'Masuk Rencana Event' : curStatus}
-                            onChange={(e) => {
-                              const nextSt = e.target.value;
-                              if (onUpdateAspirasi) {
-                                onUpdateAspirasi({ ...asp, status: nextSt });
-                                showToast(`Status aspirasi diubah menjadi "${nextSt}"`);
-                              }
-                            }}
-                            style={{
-                              padding: '6px 10px',
-                              borderRadius: 'var(--radius-full)',
-                              background: 'var(--input-bg)',
-                              border: `1px solid ${statusColor}`,
-                              color: 'var(--text-main)',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <option value="Menunggu Review">⏳ Menunggu Review</option>
-                            <option value="Masuk Rencana Event">🚀 Masuk Rencana Event</option>
-                            <option value="Sudah Direalisasikan">✓ Sudah Direalisasikan</option>
-                          </select>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (onUpdateAspirasi) {
-                                onUpdateAspirasi({ ...asp, isPublic: !isPub });
-                                showToast(!isPub ? 'Aspirasi ditampilkan di Papan Publik' : 'Aspirasi disembunyikan dari publik');
-                              }
-                            }}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '6px 10px',
-                              borderRadius: 'var(--radius-full)',
-                              background: isPub ? 'rgba(16, 185, 129, 0.14)' : 'rgba(255,255,255,0.06)',
-                              border: `1px solid ${isPub ? '#10b981' : 'var(--border-card)'}`,
-                              color: isPub ? '#10b981' : 'var(--text-dim)',
-                              fontSize: '0.73rem',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                            title="Tampilkan atau sembunyikan di halaman publik Wall of Kudos & Aspirasi"
-                          >
-                            {isPub ? <Eye size={13} /> : <EyeOff size={13} />}
-                            <span>{isPub ? 'Publik' : 'Privat'}</span>
-                          </button>
-
-                          {onDeleteAspirasi && (
-                            <button
-                              type="button"
-                              onClick={() => setDeleteConfirm({
-                                type: 'aspirasi',
-                                id: asp.id,
-                                name: `Aspirasi "${asp.title || asp.description || 'Kotak Saran'}" dari ${asp.sender || 'Anonim'}`
-                              })}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <select
+                              value={curStatus === 'Masuk Rencana Proker' ? 'Masuk Rencana Event' : curStatus}
+                              onChange={(e) => {
+                                const nextSt = e.target.value;
+                                if (onUpdateAspirasi) {
+                                  onUpdateAspirasi({ ...asp, status: nextSt });
+                                  showToast(`Status aspirasi diubah menjadi "${nextSt}"`);
+                                }
+                              }}
                               style={{
                                 padding: '6px 10px',
-                                background: 'rgba(244,63,94,0.12)',
-                                border: '1px solid #f43f5e',
-                                color: '#f43f5e',
                                 borderRadius: 'var(--radius-full)',
-                                fontSize: '0.74rem',
+                                background: 'var(--input-bg)',
+                                border: `1px solid ${statusColor}`,
+                                color: 'var(--text-main)',
+                                fontSize: '0.75rem',
                                 fontWeight: 700,
                                 cursor: 'pointer'
                               }}
-                              title="Hapus aspirasi ini secara permanen"
                             >
-                              Hapus
+                              <option value="Menunggu Review">⏳ Menunggu Review</option>
+                              <option value="Masuk Rencana Event">🚀 Masuk Rencana Event</option>
+                              <option value="Sudah Direalisasikan">✓ Sudah Direalisasikan</option>
+                            </select>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onUpdateAspirasi) {
+                                  onUpdateAspirasi({ ...asp, isPublic: !isPub });
+                                  showToast(!isPub ? 'Aspirasi ditampilkan di Papan Publik' : 'Aspirasi disembunyikan dari publik');
+                                }
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 10px',
+                                borderRadius: 'var(--radius-full)',
+                                background: isPub ? 'rgba(16, 185, 129, 0.14)' : 'rgba(255,255,255,0.06)',
+                                border: `1px solid ${isPub ? '#10b981' : 'var(--border-card)'}`,
+                                color: isPub ? '#10b981' : 'var(--text-dim)',
+                                fontSize: '0.73rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                              title="Tampilkan atau sembunyikan di halaman publik Wall of Kudos & Aspirasi"
+                            >
+                              {isPub ? <Eye size={13} /> : <EyeOff size={13} />}
+                              <span>{isPub ? 'Publik' : 'Privat'}</span>
                             </button>
-                          )}
+
+                            {onDeleteAspirasi && (
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirm({
+                                  type: 'aspirasi',
+                                  id: asp.id,
+                                  name: `Aspirasi "${asp.title || asp.description || 'Kotak Saran'}" dari ${asp.sender || 'Anonim'}`
+                                })}
+                                style={{
+                                  padding: '6px 10px',
+                                  background: 'rgba(244,63,94,0.12)',
+                                  border: '1px solid #f43f5e',
+                                  color: '#f43f5e',
+                                  borderRadius: 'var(--radius-full)',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                                title="Hapus aspirasi ini secara permanen"
+                              >
+                                Hapus
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Official Admin Reply Input */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <input
+                            type="text"
+                            placeholder="Tulis tanggapan resmi / tindak lanjut pengurus CNT IT APD (otomatis tersimpan saat klik di luar)..."
+                            defaultValue={asp.adminReply || ''}
+                            onBlur={(e) => {
+                              const val = e.target.value.trim();
+                              if (val !== (asp.adminReply || '') && onUpdateAspirasi) {
+                                onUpdateAspirasi({ ...asp, adminReply: val });
+                                showToast('Tanggapan pengurus untuk aspirasi berhasil disimpan!');
+                              }
+                            }}
+                            style={{
+                              flex: 1,
+                              minWidth: '220px',
+                              padding: '8px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--border-card)',
+                              color: 'var(--text-main)',
+                              fontSize: '0.8rem'
+                            }}
+                          />
                         </div>
                       </div>
+                    );
+                  })}
 
-                      {/* Official Admin Reply Input */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <input
-                          type="text"
-                          placeholder="Tulis tanggapan resmi / tindak lanjut pengurus CNT IT APD (otomatis tersimpan saat klik di luar)..."
-                          defaultValue={asp.adminReply || ''}
-                          onBlur={(e) => {
-                            const val = e.target.value.trim();
-                            if (val !== (asp.adminReply || '') && onUpdateAspirasi) {
-                              onUpdateAspirasi({ ...asp, adminReply: val });
-                              showToast('Tanggapan pengurus untuk aspirasi berhasil disimpan!');
-                            }
-                          }}
+                  {totalAdminAspirasiPages > 1 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      marginTop: '6px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-card)'
+                    }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Menampilkan <strong>{(safeAdminAspirasiPage - 1) * ADMIN_ASPIRASI_PER_PAGE + 1} - {Math.min(safeAdminAspirasiPage * ADMIN_ASPIRASI_PER_PAGE, aspirasiList.length)}</strong> dari <strong>{aspirasiList.length}</strong> aspirasi
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          disabled={safeAdminAspirasiPage === 1}
+                          onClick={() => setAdminAspirasiPage(p => Math.max(1, p - 1))}
                           style={{
-                            flex: 1,
-                            minWidth: '220px',
-                            padding: '8px 12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
                             borderRadius: 'var(--radius-sm)',
                             background: 'var(--input-bg)',
                             border: '1px solid var(--border-card)',
-                            color: 'var(--text-main)',
-                            fontSize: '0.8rem'
+                            color: safeAdminAspirasiPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeAdminAspirasiPage === 1 ? 'not-allowed' : 'pointer',
+                            opacity: safeAdminAspirasiPage === 1 ? 0.45 : 1
                           }}
-                        />
+                        >
+                          <ChevronLeft size={14} />
+                          <span>Sebelumnya</span>
+                        </button>
+                        {Array.from({ length: totalAdminAspirasiPages }, (_, i) => i + 1).map((pg) => {
+                          const isActive = pg === safeAdminAspirasiPage;
+                          return (
+                            <button
+                              key={pg}
+                              type="button"
+                              onClick={() => setAdminAspirasiPage(pg)}
+                              style={{
+                                minWidth: '28px',
+                                height: '28px',
+                                padding: '0 6px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                                color: isActive ? '#040914' : 'var(--text-main)',
+                                border: isActive ? 'none' : '1px solid var(--border-card)',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {pg}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          disabled={safeAdminAspirasiPage === totalAdminAspirasiPages}
+                          onClick={() => setAdminAspirasiPage(p => Math.min(totalAdminAspirasiPages, p + 1))}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: safeAdminAspirasiPage === totalAdminAspirasiPages ? 'var(--text-dim)' : 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: safeAdminAspirasiPage === totalAdminAspirasiPages ? 'not-allowed' : 'pointer',
+                            opacity: safeAdminAspirasiPage === totalAdminAspirasiPages ? 0.45 : 1
+                          }}
+                        >
+                          <span>Selanjutnya</span>
+                          <ChevronRight size={14} />
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -5852,118 +6381,227 @@ export default function AdminPortal({
           </form>
 
           {/* List of FAQs */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {faqs.map((f) => (
-              <div
-                key={f.id}
-                style={{
-                  padding: '16px 20px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid var(--border-card)',
-                  borderLeft: `4px solid ${f.isPublished !== false ? 'var(--mandiri-gold)' : '#64748b'}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                  <div style={{ flex: '1 1 300px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                      <span className="badge-cyan" style={{ fontSize: '0.66rem', padding: '2px 8px' }}>
-                        {f.category || 'Umum'}
-                      </span>
-                      <span style={{
-                        fontSize: '0.68rem',
-                        fontWeight: 800,
-                        color: f.isPublished !== false ? '#10b981' : '#f59e0b'
-                      }}>
-                        {f.isPublished !== false ? '● Ditampilkan di Publik' : '⏳ Menunggu Jawaban / Draft'}
-                      </span>
-                      {f.askedBy && f.askedBy !== 'Admin CNT' && (
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-full)',
-                          background: 'rgba(255, 184, 0, 0.14)',
-                          border: '1px solid rgba(255, 184, 0, 0.4)',
-                          color: 'var(--mandiri-gold)'
-                        }}>
-                          💬 Ditanyakan oleh: {f.askedBy} {(f.createdAt || f.submittedAt) ? `• ${formatWibTimestamp(f.createdAt || f.submittedAt).exact || f.createdAt || f.submittedAt}` : ''}
-                        </span>
-                      )}
-                    </div>
-                    <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0' }}>
-                      {f.question}
-                    </h4>
-                    <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
-                      {f.answer}
-                    </p>
-                  </div>
+          {(() => {
+            const ADMIN_FAQS_PER_PAGE = 10;
+            const totalAdminFaqPages = Math.ceil(faqs.length / ADMIN_FAQS_PER_PAGE) || 1;
+            const safeAdminFaqPage = Math.min(Math.max(1, adminFaqPage), totalAdminFaqPages);
+            const paginatedAdminFaqs = faqs.slice(
+              (safeAdminFaqPage - 1) * ADMIN_FAQS_PER_PAGE,
+              safeAdminFaqPage * ADMIN_FAQS_PER_PAGE
+            );
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <button
-                      type="button"
-                      onClick={() => onUpdateFaq && onUpdateFaq({ ...f, isPublished: f.isPublished === false ? true : false })}
-                      style={{
-                        padding: '5px 10px',
-                        borderRadius: '6px',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--border-card)',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.73rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {f.isPublished === false ? 'Tampilkan' : 'Sembunyikan'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingItem({ type: 'faq', item: { ...f } })}
-                      style={{
-                        padding: '5px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(14, 165, 233, 0.12)',
-                        border: '1px solid #0284c7',
-                        color: '#0284c7',
-                        fontSize: '0.73rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Edit2 size={12} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirm({ type: 'faq', id: f.id, name: f.question })}
-                      style={{
-                        padding: '5px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(244, 63, 94, 0.12)',
-                        border: '1px solid #f43f5e',
-                        color: '#f43f5e',
-                        fontSize: '0.73rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Trash2 size={12} />
-                      <span>Hapus</span>
-                    </button>
-                  </div>
+            if (faqs.length === 0) {
+              return (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                  Belum ada pertanyaan FAQ yang ditambahkan.
                 </div>
+              );
+            }
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {paginatedAdminFaqs.map((f) => (
+                  <div
+                    key={f.id}
+                    style={{
+                      padding: '16px 20px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--border-card)',
+                      borderLeft: `4px solid ${f.isPublished !== false ? 'var(--mandiri-gold)' : '#64748b'}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 300px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                          <span className="badge-cyan" style={{ fontSize: '0.66rem', padding: '2px 8px' }}>
+                            {f.category || 'Umum'}
+                          </span>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            color: f.isPublished !== false ? '#10b981' : '#f59e0b'
+                          }}>
+                            {f.isPublished !== false ? '● Ditampilkan di Publik' : '⏳ Menunggu Jawaban / Draft'}
+                          </span>
+                          {f.askedBy && f.askedBy !== 'Admin CNT' && (
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              background: 'rgba(255, 184, 0, 0.14)',
+                              border: '1px solid rgba(255, 184, 0, 0.4)',
+                              color: 'var(--mandiri-gold)'
+                            }}>
+                              💬 Ditanyakan oleh: {f.askedBy} {(f.createdAt || f.submittedAt) ? `• ${formatWibTimestamp(f.createdAt || f.submittedAt).exact || f.createdAt || f.submittedAt}` : ''}
+                            </span>
+                          )}
+                        </div>
+                        <h4 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0' }}>
+                          {f.question}
+                        </h4>
+                        <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
+                          {f.answer}
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={() => onUpdateFaq && onUpdateFaq({ ...f, isPublished: f.isPublished === false ? true : false })}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-muted)',
+                            fontSize: '0.73rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {f.isPublished === false ? 'Tampilkan' : 'Sembunyikan'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem({ type: 'faq', item: { ...f } })}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(14, 165, 233, 0.12)',
+                            border: '1px solid #0284c7',
+                            color: '#0284c7',
+                            fontSize: '0.73rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Edit2 size={12} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirm({ type: 'faq', id: f.id, name: f.question })}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(244, 63, 94, 0.12)',
+                            border: '1px solid #f43f5e',
+                            color: '#f43f5e',
+                            fontSize: '0.73rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Trash2 size={12} />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {totalAdminFaqPages > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    marginTop: '6px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-card)'
+                  }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Menampilkan <strong>{(safeAdminFaqPage - 1) * ADMIN_FAQS_PER_PAGE + 1} - {Math.min(safeAdminFaqPage * ADMIN_FAQS_PER_PAGE, faqs.length)}</strong> dari <strong>{faqs.length}</strong> pertanyaan FAQ
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        disabled={safeAdminFaqPage === 1}
+                        onClick={() => setAdminFaqPage(p => Math.max(1, p - 1))}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: safeAdminFaqPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: safeAdminFaqPage === 1 ? 'not-allowed' : 'pointer',
+                          opacity: safeAdminFaqPage === 1 ? 0.45 : 1
+                        }}
+                      >
+                        <ChevronLeft size={14} />
+                        <span>Sebelumnya</span>
+                      </button>
+                      {Array.from({ length: totalAdminFaqPages }, (_, i) => i + 1).map((pg) => {
+                        const isActive = pg === safeAdminFaqPage;
+                        return (
+                          <button
+                            key={pg}
+                            type="button"
+                            onClick={() => setAdminFaqPage(pg)}
+                            style={{
+                              minWidth: '28px',
+                              height: '28px',
+                              padding: '0 6px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                              color: isActive ? '#040914' : 'var(--text-main)',
+                              border: isActive ? 'none' : '1px solid var(--border-card)',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {pg}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        disabled={safeAdminFaqPage === totalAdminFaqPages}
+                        onClick={() => setAdminFaqPage(p => Math.min(totalAdminFaqPages, p + 1))}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: safeAdminFaqPage === totalAdminFaqPages ? 'var(--text-dim)' : 'var(--text-main)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: safeAdminFaqPage === totalAdminFaqPages ? 'not-allowed' : 'pointer',
+                          opacity: safeAdminFaqPage === totalAdminFaqPages ? 0.45 : 1
+                        }}
+                      >
+                        <span>Selanjutnya</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })()}
         </div>
       )}
 
