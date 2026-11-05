@@ -222,7 +222,19 @@ export default function App() {
       if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) setDivisions(cloud.divisions);
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
       if (Array.isArray(cloud.events)) setEvents(cloud.events);
-      if (Array.isArray(cloud.galleries)) setGalleries(cloud.galleries);
+      if (Array.isArray(cloud.galleries)) {
+        const currentDivs = (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) ? cloud.divisions : [];
+        const reconciledGals = cloud.galleries.map(g => {
+          if (!g.divisionId && g.division && currentDivs.length > 0) {
+            const found = currentDivs.find(d => d.name === g.division && (!g.tenureId || d.tenureId === g.tenureId)) || currentDivs.find(d => d.name === g.division);
+            if (found) {
+              return { ...g, divisionId: found.id, divisionName: found.name };
+            }
+          }
+          return g;
+        });
+        setGalleries(reconciledGals);
+      }
       if (Array.isArray(cloud.kudosList)) setKudosList(cloud.kudosList);
       if (Array.isArray(cloud.forms)) setForms(cloud.forms);
       if (Array.isArray(cloud.submissions)) setSubmissions(cloud.submissions);
@@ -325,13 +337,32 @@ export default function App() {
         pushCloudState('events', next);
         return next;
       });
+
+      // Auto-sync division / divisionName onto Galleries belonging to this division
+      const targetDiv = divisions.find(d => d.id === updatedDiv.id);
+      setGalleries((prev) => {
+        const hasMatch = prev.some(g =>
+          (g.divisionId === updatedDiv.id || (targetDiv && g.division === targetDiv.name)) &&
+          (g.division !== updatedDiv.name || g.divisionId !== updatedDiv.id)
+        );
+        if (!hasMatch) return prev;
+        const next = prev.map(g =>
+          (g.divisionId === updatedDiv.id || (targetDiv && g.division === targetDiv.name))
+            ? { ...g, divisionId: updatedDiv.id, division: updatedDiv.name, divisionName: updatedDiv.name }
+            : g
+        );
+        pushCloudState('galleries', next);
+        return next;
+      });
     }
   };
   const handleDeleteDivision = (divId) => {
-    // Defense-in-depth safety checks: do not delete division if members or events still depend on it
+    const targetDiv = divisions.find(d => d.id === divId);
+    // Defense-in-depth safety checks: do not delete division if members, events, or galleries still depend on it
     const hasMem = members.some(m => m.divisionId === divId);
     const hasEvt = events.some(e => e.divisionId === divId);
-    if (hasMem || hasEvt) return;
+    const hasGal = galleries.some(g => g.divisionId === divId || (targetDiv && g.division === targetDiv.name));
+    if (hasMem || hasEvt || hasGal) return;
 
     setDivisions((prev) => {
       const next = prev.filter(d => d.id !== divId);

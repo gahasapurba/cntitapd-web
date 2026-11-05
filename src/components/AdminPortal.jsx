@@ -310,7 +310,7 @@ export default function AdminPortal({
   const handleDeleteDivisionClick = (d) => {
     const memCount = (members || []).filter(m => m.divisionId === d.id).length;
     const evtCount = (events || []).filter(e => e.divisionId === d.id).length;
-    const galCount = (galleries || []).filter(g => g.division === d.name).length;
+    const galCount = (galleries || []).filter(g => g.divisionId === d.id || g.division === d.name).length;
     const totalDependentCount = memCount + evtCount + galCount;
 
     setDeleteConfirm({
@@ -387,6 +387,7 @@ export default function AdminPortal({
   // Form states for new Gallery Event
   const [galTitle, setGalTitle] = useState('');
   const [galDate, setGalDate] = useState('');
+  const [galDivisionId, setGalDivisionId] = useState('');
   const [galDivision, setGalDivision] = useState('Creative Media');
   const [galTenureId, setGalTenureId] = useState(activeTenure?.id || '');
   const [galDesc, setGalDesc] = useState('');
@@ -880,9 +881,10 @@ export default function AdminPortal({
 
     const targetGalTenureId = galTenureId || activeTenure?.id || '';
     const availableDivsForGal = divisions.filter(d => d.tenureId === targetGalTenureId);
+    const selectedDiv = availableDivsForGal.find(d => d.id === galDivisionId || d.name === galDivision);
     if (availableDivsForGal.length === 0) {
       errs.galDivision = 'Divisi masih kosong pada periode ini. Silakan buat divisi baru terlebih dahulu di tab Divisi.';
-    } else if (!galDivision || !availableDivsForGal.some(d => d.name === galDivision)) {
+    } else if (!selectedDiv) {
       errs.galDivision = 'Divisi penyelenggara wajib dipilih';
     }
 
@@ -923,10 +925,12 @@ export default function AdminPortal({
 
     onAddGallery({
       id: 'gal-' + Date.now(),
-      tenureId: galTenureId || activeTenure?.id || '',
+      tenureId: targetGalTenureId,
+      divisionId: selectedDiv ? selectedDiv.id : (galDivisionId || ''),
+      division: selectedDiv ? selectedDiv.name : galDivision,
+      divisionName: selectedDiv ? selectedDiv.name : galDivision,
       title: galTitle,
       date: galDate || '',
-      division: galDivision,
       description: galDesc,
       photos: photoList,
       docLinks: validDocLinks
@@ -935,6 +939,7 @@ export default function AdminPortal({
     const savedGalTitle = galTitle;
     setGalTitle('');
     setGalDate('');
+    setGalDivisionId('');
     setGalDesc('');
     setGalPhotos('');
     setUploadedPhotos([]);
@@ -3022,14 +3027,20 @@ export default function AdminPortal({
 
             {(() => {
               const availableDivsForGal = divisions.filter(d => d.tenureId === (galTenureId || activeTenure?.id));
+              const currentGalDivId = galDivisionId || availableDivsForGal.find(d => d.name === galDivision)?.id || '';
               return (
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                     Divisi Penyelenggara
                   </label>
                   <select
-                    value={galDivision}
-                    onChange={(e) => setGalDivision(e.target.value)}
+                    value={currentGalDivId}
+                    onChange={(e) => {
+                      const divId = e.target.value;
+                      setGalDivisionId(divId);
+                      const found = availableDivsForGal.find(d => d.id === divId);
+                      if (found) setGalDivision(found.name);
+                    }}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
@@ -3046,7 +3057,7 @@ export default function AdminPortal({
                       <>
                         <option value="">-- Pilih Divisi Penyelenggara --</option>
                         {availableDivsForGal.map((d) => (
-                          <option key={d.id} value={d.name}>{d.name}</option>
+                          <option key={d.id} value={d.id}>{d.name}</option>
                         ))}
                       </>
                     )}
@@ -6087,13 +6098,15 @@ export default function AdminPortal({
                       onChange={(e) => {
                         const newTenure = e.target.value;
                         const validDivs = divisions.filter(d => d.tenureId === newTenure);
-                        const keepDiv = validDivs.some(d => d.name === editingItem.item.division);
+                        const keepDiv = validDivs.find(d => d.id === editingItem.item.divisionId || d.name === editingItem.item.division);
                         setEditingItem({
                           ...editingItem,
                           item: {
                             ...editingItem.item,
                             tenureId: newTenure,
-                            division: keepDiv ? editingItem.item.division : ''
+                            divisionId: keepDiv ? keepDiv.id : '',
+                            division: keepDiv ? keepDiv.name : '',
+                            divisionName: keepDiv ? keepDiv.name : ''
                           }
                         });
                       }}
@@ -6121,11 +6134,24 @@ export default function AdminPortal({
                     {(() => {
                       const editGalTenure = editingItem.item.tenureId || activeTenure?.id || '';
                       const editGalDivs = divisions.filter(d => d.tenureId === editGalTenure);
+                      const currentDivId = editingItem.item.divisionId || editGalDivs.find(d => d.name === editingItem.item.division)?.id || '';
                       return (
                         <>
                           <select
-                            value={editingItem.item.division || ''}
-                            onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, division: e.target.value } })}
+                            value={currentDivId}
+                            onChange={(e) => {
+                              const selectedId = e.target.value;
+                              const selectedD = editGalDivs.find(d => d.id === selectedId);
+                              setEditingItem({
+                                ...editingItem,
+                                item: {
+                                  ...editingItem.item,
+                                  divisionId: selectedId,
+                                  division: selectedD ? selectedD.name : '',
+                                  divisionName: selectedD ? selectedD.name : ''
+                                }
+                              });
+                            }}
                             style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                           >
                             {editGalDivs.length === 0 ? (
@@ -6134,7 +6160,7 @@ export default function AdminPortal({
                               <>
                                 <option value="">-- Pilih Divisi Penyelenggara --</option>
                                 {editGalDivs.map(d => (
-                                  <option key={d.id} value={d.name}>{d.name}</option>
+                                  <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                               </>
                             )}

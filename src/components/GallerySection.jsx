@@ -26,7 +26,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
   const uniqueDivisions = Array.from(
     new Set([
       ...divisions.map(d => d.name),
-      ...galleries.map(g => g.division).filter(Boolean)
+      ...galleries.map(g => g.divisionName || g.division).filter(Boolean)
     ])
   );
 
@@ -39,7 +39,10 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
     : galleries;
 
   const filteredGalleries = scopedGalleries.filter(g => {
-    const matchesDiv = divFilter === 'all' || g.division === divFilter;
+    const matchesDiv = divFilter === 'all' || 
+      g.divisionId === divFilter || 
+      g.division === divFilter || 
+      g.divisionName === divFilter;
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch = !q ||
       (g.title || '').toLowerCase().includes(q) ||
@@ -275,7 +278,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
               <Calendar size={13} /> {activeEvent.date}
             </span>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Divisi: {activeEvent.division || 'CNT IT APD'}
+              Divisi: {activeEvent.divisionName || activeEvent.division || 'CNT IT APD'}
             </span>
           </div>
 
@@ -523,9 +526,9 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                     <span style={{ fontSize: '0.75rem', color: 'var(--mandiri-gold)', fontWeight: 700 }}>
                       {item.date}
                     </span>
-                    {item.division && (
+                    {(item.divisionName || item.division) && (
                       <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
-                        {item.division}
+                        {item.divisionName || item.division}
                       </span>
                     )}
                   </div>

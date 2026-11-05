@@ -48,6 +48,21 @@ const TABLE_MAP = {
   faqs: 'faqs'
 };
 
+let isGalleryDivisionIdChecked = false;
+let isGalleryDivisionIdSupported = false;
+
+export async function checkGalleryDivisionIdColumn() {
+  if (isGalleryDivisionIdChecked) return isGalleryDivisionIdSupported;
+  try {
+    const { error } = await supabase.from('galleries').select('division_id').limit(1);
+    isGalleryDivisionIdSupported = !error;
+    isGalleryDivisionIdChecked = true;
+  } catch (e) {
+    isGalleryDivisionIdSupported = false;
+  }
+  return isGalleryDivisionIdSupported;
+}
+
 export const rowMappers = {
   tenures: {
     toDb: (item, idx = 0) => ({
@@ -172,23 +187,31 @@ export const rowMappers = {
   },
 
   galleries: {
-    toDb: (item, idx = 0) => ({
-      id: String(item.id),
-      tenure_id: item.tenureId || null,
-      title: item.title || '',
-      date: item.date || '',
-      division: item.division || '',
-      description: item.description || '',
-      photos: Array.isArray(item.photos) ? item.photos : [],
-      doc_links: Array.isArray(item.docLinks) ? item.docLinks : [],
-      sort_order: idx
-    }),
+    toDb: (item, idx = 0) => {
+      const row = {
+        id: String(item.id),
+        tenure_id: item.tenureId || null,
+        title: item.title || '',
+        date: item.date || '',
+        division: item.divisionName || item.division || '',
+        description: item.description || '',
+        photos: Array.isArray(item.photos) ? item.photos : [],
+        doc_links: Array.isArray(item.docLinks) ? item.docLinks : [],
+        sort_order: idx
+      };
+      if (isGalleryDivisionIdSupported && item.divisionId) {
+        row.division_id = item.divisionId;
+      }
+      return row;
+    },
     fromDb: (row) => ({
       id: row.id,
       tenureId: row.tenure_id,
+      divisionId: row.division_id || undefined,
       title: row.title,
       date: row.date,
       division: row.division,
+      divisionName: row.division,
       description: row.description,
       photos: Array.isArray(row.photos) ? row.photos : [],
       docLinks: Array.isArray(row.doc_links) ? row.doc_links : []
@@ -371,6 +394,7 @@ export const rowMappers = {
  */
 export async function fetchAllCloudState() {
   try {
+    await checkGalleryDivisionIdColumn();
     const [
       tenuresRes,
       divisionsRes,
@@ -513,6 +537,10 @@ export async function pushCloudState(key, value) {
     const mapper = rowMappers[key];
     if (!tableName || !mapper || !Array.isArray(value)) {
       return false;
+    }
+
+    if (key === 'galleries') {
+      await checkGalleryDivisionIdColumn();
     }
 
     // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically
