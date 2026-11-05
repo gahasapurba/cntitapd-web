@@ -5026,14 +5026,14 @@ export default function AdminPortal({
                 fields: newFormRequiresTracking ? [
                   { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
                   { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true },
-                  { id: 'f-squad', label: 'Departemen', type: 'text', placeholder: 'Departemen asal', required: true, isSearchIndex: false },
+                  { id: 'f-squad', label: 'Departemen', type: 'select', source: 'departments', required: true, isSearchIndex: false },
                   { id: 'f-wa', label: 'Nomor WhatsApp Aktif', type: 'text', placeholder: '0812xxxxxxxx', required: true, isSearchIndex: false },
                   { id: 'f-divisi', label: 'Pilihan Divisi Terkait', type: 'select', source: 'divisions', required: true, isSearchIndex: false },
                   { id: 'f-notes', label: 'Catatan / Alasan Pendaftaran', type: 'textarea', placeholder: 'Tuliskan keterangan pendukung...', required: true, isSearchIndex: false },
                   { id: 'f-doc', label: 'Upload Dokumen / File Pendukung', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false, isSearchIndex: false }
                 ] : [
                   { id: 'f-name', label: 'Nama Lengkap', type: 'text', placeholder: 'Nama pengisi formulir', required: true, isSearchIndex: false },
-                  { id: 'f-unit', label: 'Departemen', type: 'text', placeholder: 'Departemen asal', required: true, isSearchIndex: false },
+                  { id: 'f-unit', label: 'Departemen', type: 'select', source: 'departments', required: true, isSearchIndex: false },
                   { id: 'f-feedback', label: 'Tanggapan / Isian', type: 'textarea', placeholder: 'Tuliskan respon Anda...', required: true, isSearchIndex: false }
                 ]
               };
@@ -8467,17 +8467,44 @@ export default function AdminPortal({
                             style={{ flex: '1 1 150px', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
                           <select
-                            value={fld.type || 'text'}
+                            value={
+                              fld.type === 'select' && fld.source === 'departments'
+                                ? 'select_department'
+                                : (fld.type === 'select' && fld.source === 'divisions'
+                                    ? 'select_division'
+                                    : (fld.type || 'text'))
+                            }
                             onChange={(e) => {
-                              const newType = e.target.value;
+                              const selectedVal = e.target.value;
                               const nextFields = editingItem.item.fields.map((item, i) => {
                                 if (i === idx) {
-                                  const updated = { ...item, type: newType };
-                                  if (newType === 'radio' && (!item.options || item.options.length === 0)) {
-                                    updated.options = ['Pilihan 1', 'Pilihan 2', 'Pilihan 3'];
-                                    updated.rawOptions = 'Pilihan 1, Pilihan 2, Pilihan 3';
+                                  if (selectedVal === 'select_department') {
+                                    return {
+                                      ...item,
+                                      type: 'select',
+                                      source: 'departments',
+                                      options: [],
+                                      rawOptions: undefined
+                                    };
+                                  } else if (selectedVal === 'select_division') {
+                                    return {
+                                      ...item,
+                                      type: 'select',
+                                      source: 'divisions',
+                                      options: [],
+                                      rawOptions: undefined
+                                    };
+                                  } else {
+                                    const updated = { ...item, type: selectedVal, source: undefined };
+                                    if (selectedVal === 'radio' && (!item.options || item.options.length === 0)) {
+                                      updated.options = ['Pilihan 1', 'Pilihan 2', 'Pilihan 3'];
+                                      updated.rawOptions = 'Pilihan 1, Pilihan 2, Pilihan 3';
+                                    } else if (selectedVal === 'select' && (!item.options || item.options.length === 0)) {
+                                      updated.options = ['Opsi 1', 'Opsi 2', 'Opsi 3'];
+                                      updated.rawOptions = 'Opsi 1, Opsi 2, Opsi 3';
+                                    }
+                                    return updated;
                                   }
-                                  return updated;
                                 }
                                 return item;
                               });
@@ -8488,7 +8515,9 @@ export default function AdminPortal({
                             <option value="text">Teks Singkat</option>
                             <option value="textarea">Paragraf</option>
                             <option value="radio">Pilihan Ganda (1 Jawaban)</option>
-                            <option value="select">Dropdown Pilihan</option>
+                            <option value="select">Dropdown Pilihan (Ketik Opsi Manual)</option>
+                            <option value="select_department">🏢 Dropdown Departemen (Otomatis dari DB)</option>
+                            <option value="select_division">👥 Dropdown Divisi (Otomatis dari DB)</option>
                             <option value="email">Email</option>
                             <option value="number">Angka</option>
                             <option value="file">Upload File</option>
@@ -8576,14 +8605,14 @@ export default function AdminPortal({
                           })()}
                         </div>
 
-                        {/* Option Editor for Dropdown & Multiple Choice (Radio) */}
-                        {(fld.type === 'select' || fld.type === 'radio') && fld.source !== 'divisions' && (
+                        {/* Option Editor for Custom Dropdown & Multiple Choice (Radio) */}
+                        {(fld.type === 'select' || fld.type === 'radio') && fld.source !== 'divisions' && fld.source !== 'departments' && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px', paddingLeft: '24px' }}>
                             <input
                               type="text"
                               placeholder={fld.type === 'radio'
                                 ? "Pilihan jawaban (pisahkan dengan koma, misal: Pilihan A, Pilihan B, Pilihan C)"
-                                : "Opsi dropdown (pisahkan dengan koma, misal: Tim A, Tim B, Tim C)"}
+                                : "Opsi dropdown (pisahkan dengan koma, misal: Opsi 1, Opsi 2, Opsi 3)"}
                               value={fld.rawOptions !== undefined ? fld.rawOptions : (Array.isArray(fld.options) ? fld.options.join(', ') : '')}
                               onChange={(e) => {
                                 const textVal = e.target.value;
@@ -8604,6 +8633,50 @@ export default function AdminPortal({
                                 <span>Ketik opsi dipisahkan koma (contoh: <code>Opsi 1, Opsi 2, Opsi 3</code>)</span>
                               )}
                             </div>
+                          </div>
+                        )}
+
+                        {/* Automatic Departments Dropdown Info */}
+                        {fld.type === 'select' && fld.source === 'departments' && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginTop: '2px',
+                            padding: '7px 12px',
+                            marginLeft: '24px',
+                            borderRadius: '6px',
+                            background: 'rgba(255, 184, 0, 0.08)',
+                            border: '1px solid rgba(255, 184, 0, 0.3)',
+                            fontSize: '0.75rem',
+                            color: 'var(--mandiri-gold)'
+                          }}>
+                            <Building2 size={14} style={{ flexShrink: 0 }} />
+                            <span>
+                              Opsi dropdown otomatis diambil dari <strong>{departments.length} Departemen</strong> di database (Kelola Departemen). Pilihan akan selalu sinkron otomatis tanpa perlu mengetik manual.
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Automatic Divisions Dropdown Info */}
+                        {fld.type === 'select' && fld.source === 'divisions' && (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginTop: '2px',
+                            padding: '7px 12px',
+                            marginLeft: '24px',
+                            borderRadius: '6px',
+                            background: 'rgba(56, 189, 248, 0.08)',
+                            border: '1px solid rgba(56, 189, 248, 0.3)',
+                            fontSize: '0.75rem',
+                            color: 'var(--neon-cyan)'
+                          }}>
+                            <Layers size={14} style={{ flexShrink: 0 }} />
+                            <span>
+                              Opsi dropdown otomatis diambil dari daftar <strong>{divisions.length} Divisi</strong> aktif di database.
+                            </span>
                           </div>
                         )}
                       </div>

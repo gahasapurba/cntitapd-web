@@ -26,6 +26,7 @@ import { getDeadlineStatus, formatDeadlineWib, formatWibDateTime, formatWibTimes
 export default function DynamicFormSection({ 
   forms = [], 
   divisions = [], 
+  departments = [],
   events = [], 
   submissions = [],
   onSubmitSubmission, 
@@ -783,6 +784,10 @@ export default function DynamicFormSection({
                     let options = field.options || [];
                     if (field.source === 'divisions') {
                       options = (divisions || []).map(d => d.name);
+                    } else if (field.source === 'departments') {
+                      options = (departments && departments.length > 0)
+                        ? departments.map(d => d.name)
+                        : (field.options || []);
                     } else if (field.source === 'events') {
                       options = (events || []).map(e => `${e.title} (${e.date})`);
                     }

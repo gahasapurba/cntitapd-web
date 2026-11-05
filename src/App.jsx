@@ -1276,6 +1276,7 @@ export default function App() {
             <DynamicFormSection
               forms={forms}
               divisions={divisions}
+              departments={departments}
               events={events}
               submissions={submissions}
               onSubmitSubmission={handleSubmitSubmission}
