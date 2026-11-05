@@ -3075,11 +3075,11 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                📅 Tanggal & Jam Pelaksanaan (WIB)
+                📅 Tanggal Pelaksanaan
               </label>
               <input
-                type="datetime-local"
-                value={toDatetimeLocalValue(galDate)}
+                type="date"
+                value={toDateInputValue(galDate)}
                 onChange={(e) => setGalDate(e.target.value)}
                 style={{
                   width: '100%',
@@ -6252,11 +6252,11 @@ export default function AdminPortal({
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      📅 Tanggal & Jam Pelaksanaan (WIB)
+                      📅 Tanggal Pelaksanaan
                     </label>
                     <input
-                      type="datetime-local"
-                      value={toDatetimeLocalValue(editingItem.item.date)}
+                      type="date"
+                      value={toDateInputValue(editingItem.item.date)}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />

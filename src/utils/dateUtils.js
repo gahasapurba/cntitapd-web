@@ -260,8 +260,11 @@ export function formatWibDateTime(str, options = {}) {
     return `${d} ${INDONESIAN_MONTHS[m - 1]} ${y}`;
   }
 
-  // Datetime local or ISO
-  const hasTime = trimmed.includes('T') || /:\d{2}/.test(trimmed);
+  // Check if timestamptz was created from date-only (midnight UTC) or has actual time
+  const isMidnightUtc = /T00:00(:00)?(\.0+)?(Z|\+00:?00)?$/i.test(trimmed);
+  const isPlainDate = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
+  const hasTime = !isMidnightUtc && !isPlainDate && (trimmed.includes('T') || /:\d{2}/.test(trimmed));
+
   const d = new Date(trimmed);
   if (!isNaN(d.getTime())) {
     const formatter = new Intl.DateTimeFormat('id-ID', {
