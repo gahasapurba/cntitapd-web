@@ -94,8 +94,9 @@ export default function Navbar({
             alignItems: 'center',
             gap: '8px',
             cursor: 'pointer',
-            flexShrink: 1,
-            minWidth: 0
+            flexShrink: 0,
+            minWidth: 0,
+            marginRight: '18px'
           }}
         >
           <img 
@@ -182,7 +183,7 @@ export default function Navbar({
                 fontSize: '0.8rem',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                margin: '0 4px 0 10px',
+                margin: '0 4px 0 16px',
                 flexShrink: 0,
                 transition: 'all 0.2s ease'
               }}

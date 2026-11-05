@@ -1236,6 +1236,7 @@ export default function App() {
               divisions={divisions}
               departments={departments}
               activeTenure={activeTenure}
+              tenures={tenures}
               theme={theme}
               onNavigateOprec={pageVisibility.oprec !== false ? () => setCurrentTab('oprec') : undefined}
               eventRsvps={eventRsvps}
@@ -1250,6 +1251,7 @@ export default function App() {
               galleries={galleries}
               divisions={divisions}
               activeTenure={activeTenure}
+              tenures={tenures}
               theme={theme}
             />
           )}

@@ -11,11 +11,12 @@ import {
   Search,
   Filter,
   Download,
+  Camera,
   X
 } from 'lucide-react';
 import { formatWibDateTime } from '../utils/dateUtils';
 
-export default function GallerySection({ galleries = [], divisions = [], activeTenure = null, theme }) {
+export default function GallerySection({ galleries = [], divisions = [], activeTenure = null, theme, tenures = [] }) {
   const isDark = theme === 'dark';
   const [selectedGalleryId, setSelectedGalleryId] = useState(null);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
@@ -25,16 +26,26 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [galleryPage, setGalleryPage] = useState(1);
 
-  const uniqueDivisions = Array.from(
-    new Set([
-      ...divisions.map(d => d.name),
-      ...galleries.map(g => g.divisionName || g.division).filter(Boolean)
-    ])
-  );
-
   const scopedGalleries = (tenureFilter === 'active' && activeTenure?.id)
     ? galleries.filter(g => g.tenureId === activeTenure.id)
     : galleries;
+
+  const scopedDivisions = (tenureFilter === 'active' && activeTenure?.id)
+    ? divisions.filter(d => d.tenureId === activeTenure.id)
+    : divisions;
+
+  const uniqueDivisions = Array.from(
+    new Set([
+      ...scopedDivisions.map(d => d.name),
+      ...scopedGalleries.map(g => g.divisionName || g.division).filter(Boolean)
+    ])
+  );
+
+  useEffect(() => {
+    if (divFilter !== 'all' && !uniqueDivisions.includes(divFilter)) {
+      setDivFilter('all');
+    }
+  }, [tenureFilter, activeTenure?.id, uniqueDivisions]);
 
   const filteredGalleries = scopedGalleries.filter(g => {
     const matchesDiv = divFilter === 'all' || 
@@ -52,20 +63,15 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
   const activeEvent =
     filteredGalleries.find(g => g.id === selectedGalleryId) ||
     filteredGalleries[0] ||
-    galleries[0] || {
-      title: 'Belum Ada Dokumentasi Kegiatan',
-      date: '-',
-      description: 'Dokumentasi kegiatan dapat ditambahkan oleh admin melalui portal pengurus.',
-      photos: ['/images/pimpro-adjie.jpg']
-    };
+    null;
 
   const nextPhoto = () => {
-    if (!activeEvent.photos || activeEvent.photos.length <= 1) return;
+    if (!activeEvent?.photos || activeEvent.photos.length <= 1) return;
     setCurrentPhotoIdx((prev) => (prev + 1) % activeEvent.photos.length);
   };
 
   const prevPhoto = () => {
-    if (!activeEvent.photos || activeEvent.photos.length <= 1) return;
+    if (!activeEvent?.photos || activeEvent.photos.length <= 1) return;
     setCurrentPhotoIdx((prev) => (prev - 1 + activeEvent.photos.length) % activeEvent.photos.length);
   };
 
@@ -84,8 +90,8 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
     return () => window.removeEventListener('keydown', handleKey);
   }, [isLightboxOpen, activeEvent]);
 
-  const safePhotoIdx = activeEvent.photos && currentPhotoIdx < activeEvent.photos.length ? currentPhotoIdx : 0;
-  const currentPhotoUrl = activeEvent.photos[safePhotoIdx] || activeEvent.photos[0];
+  const safePhotoIdx = activeEvent?.photos && currentPhotoIdx < activeEvent.photos.length ? currentPhotoIdx : 0;
+  const currentPhotoUrl = activeEvent?.photos?.[safePhotoIdx] || activeEvent?.photos?.[0] || '';
 
   const getDownloadPhotoUrl = (url) => {
     if (!url || typeof url !== 'string') return '';
@@ -112,6 +118,64 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
       </div>
 
       {/* Main Interactive Carousel Showcase */}
+      {!activeEvent || filteredGalleries.length === 0 ? (
+        <div className="glass-panel" style={{
+          padding: '48px 24px',
+          maxWidth: '1000px',
+          margin: '0 auto',
+          width: '100%',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: 'rgba(56, 189, 248, 0.12)',
+            color: 'var(--neon-cyan)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Camera size={26} />
+          </div>
+          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+            Belum Ada Dokumentasi Kegiatan
+          </div>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', maxWidth: '480px', margin: 0, lineHeight: 1.6 }}>
+            {scopedGalleries.length === 0
+              ? `Belum ada arsip dokumentasi atau foto kegiatan yang diunggah untuk periode kepengurusan ini (${activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}).`
+              : 'Tidak ada dokumentasi kegiatan yang cocok dengan filter atau kata kunci pencarian Anda.'}
+          </p>
+          {scopedGalleries.length > 0 && (divFilter !== 'all' || searchQuery.trim() !== '') && (
+            <button
+              type="button"
+              onClick={() => {
+                setDivFilter('all');
+                setSearchQuery('');
+                setGalleryPage(1);
+              }}
+              style={{
+                marginTop: '6px',
+                padding: '7px 18px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid var(--mandiri-blue)',
+                color: 'var(--neon-cyan)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Reset Filter Galeri
+            </button>
+          )}
+        </div>
+      ) : (
       <div className="glass-panel" style={{
         padding: '24px',
         maxWidth: '1000px',
@@ -381,6 +445,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
           </div>
         )}
       </div>
+      )}
 
       {/* Event List Tabs (Choose which event documentation to view) */}
       <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
@@ -487,7 +552,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                   cursor: 'pointer'
                 }}
               >
-                <option value="all">Semua Divisi</option>
+                <option value="all">Semua Divisi {uniqueDivisions.length > 0 ? `(${uniqueDivisions.length})` : ''}</option>
                 {uniqueDivisions.map((dName) => (
                   <option key={dName} value={dName}>{dName}</option>
                 ))}
@@ -661,7 +726,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
       </div>
 
       {/* FULLSCREEN LIGHTBOX MODAL FOR HD PHOTO VIEWING & DOWNLOAD */}
-      {isLightboxOpen && (
+      {isLightboxOpen && activeEvent && (
         <div
           onClick={() => setIsLightboxOpen(false)}
           style={{

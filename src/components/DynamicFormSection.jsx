@@ -344,10 +344,10 @@ export default function DynamicFormSection({
           </span>
         </div>
         <h1 style={{ fontSize: '2.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px', lineHeight: 1.2 }}>
-          Pusat Pendaftaran & Inisiatif Budaya
+          Pusat Registrasi & Formulir Terbuka
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
-          Pilih dan lengkapi formulir inisiatif, open recruitment, turnamen, atau kegiatan budaya kerja Group IT Application Delivery yang ingin Anda ikuti.
+          Pilih dan lengkapi formulir pendaftaran kepengurusan, survei, atau pendaftaran kegiatan CNT IT APD yang ingin Anda ikuti.
         </p>
       </div>
 
@@ -369,14 +369,11 @@ export default function DynamicFormSection({
               <Clock size={32} />
             </div>
             <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-              Pendaftaran Sedang Ditutup
+              Belum Ada Registrasi / Formulir Yang Sedang Dibuka
             </h2>
             <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-              Saat ini belum ada formulir pendaftaran baru yang sedang dibuka. Pantau terus kanal komunikasi resmi kami untuk informasi kegiatan dan jadwal seleksi berikutnya.
+              Saat ini belum ada formulir pendaftaran atau kegiatan yang sedang dibuka untuk periode ini. Pantau terus kanal komunikasi kami untuk informasi kegiatan dan pembukaan formulir.
             </p>
-            <div style={{ marginTop: '4px', padding: '8px 16px', background: 'var(--input-bg)', borderRadius: 'var(--radius-full)', fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-              Status: Hub Pendaftaran Standby
-            </div>
           </div>
         </div>
       )}

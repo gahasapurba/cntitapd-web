@@ -8003,9 +8003,12 @@ export default function AdminPortal({
                         <button
                           type="button"
                           onClick={() => {
-                            const nextPhotos = (editingItem.item.photos || []).filter((_, i) => i !== pIdx);
-                            setEditingItem({ ...editingItem, item: { ...editingItem.item, photos: nextPhotos } });
+                            if (window.confirm('Hapus foto ini dari daftar dokumentasi kegiatan? Foto di cloud storage akan otomatis dibersihkan saat Anda klik "Simpan Perubahan".')) {
+                              const nextPhotos = (editingItem.item.photos || []).filter((_, i) => i !== pIdx);
+                              setEditingItem({ ...editingItem, item: { ...editingItem.item, photos: nextPhotos } });
+                            }
                           }}
+                          title="Hapus foto ini"
                           style={{
                             position: 'absolute',
                             top: '2px',

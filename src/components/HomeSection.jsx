@@ -316,7 +316,7 @@ export default function HomeSection({
                 <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
                   {activeMembers.length} Personel
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT {activeTenure?.code ? `(${activeTenure.code})` : ''}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT IT APD {activeTenure?.code ? `(${activeTenure.code})` : ''}</div>
               </div>
             )}
 
@@ -468,7 +468,7 @@ export default function HomeSection({
                 <Target size={20} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Visi CNT IT {activeTenure?.code || ''}
+                Visi CNT IT APD {activeTenure?.code || ''}
               </h3>
             </div>
             <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', lineHeight: 1.7, fontStyle: 'italic' }}>
@@ -498,7 +498,7 @@ export default function HomeSection({
                 <ShieldCheck size={20} />
               </div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                Misi CNT IT {activeTenure?.code || ''}
+                Misi CNT IT APD {activeTenure?.code || ''}
               </h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
@@ -523,7 +523,7 @@ export default function HomeSection({
           <div>
             <span className="badge-gold" style={{ marginBottom: '6px' }}>Leadership & BPH</span>
             <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>
-              Pimpinan & Pengurus Inti CNT {activeTenure?.code || ''}
+              Pimpinan & Pengurus Inti CNT IT APD {activeTenure?.code || ''}
             </h2>
           </div>
           {isOrganisasiVisible && (
@@ -800,7 +800,7 @@ export default function HomeSection({
             4 Pilar Gerakan Budaya
           </span>
           <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '10px' }}>
-            Divisi & Ruang Lingkup CNT
+            Divisi & Ruang Lingkup CNT IT APD
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
             Setiap pilar dikawal oleh Pimpinan Proyek (Pimpro) berdedikasi tinggi
@@ -1152,7 +1152,7 @@ export default function HomeSection({
             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
               <span className="badge-gold" style={{ marginBottom: '10px' }}>
                 <HelpCircle size={13} style={{ display: 'inline', marginRight: '5px', verticalAlign: 'middle' }} />
-                Pusat Panduan & FAQ Budaya CNT
+                Pusat Panduan & FAQ Budaya CNT IT APD
               </span>
               <h2 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.3rem)', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px' }}>
                 Tanya Jawab Seputar Kegiatan & Operasional CNT IT APD
@@ -1441,7 +1441,7 @@ export default function HomeSection({
                     gap: '8px'
                   }}>
                     <CheckCircle2 size={15} />
-                    <span>Pertanyaan Anda berhasil dikirim ke antrean FAQ Pengurus CNT!</span>
+                    <span>Pertanyaan Anda berhasil dikirim ke antrean FAQ Pengurus CNT IT APD!</span>
                   </div>
                 )}
 
@@ -1481,7 +1481,7 @@ export default function HomeSection({
                       <option value="Operasional & Sekben">Topik: Operasional & Sekben</option>
                       <option value="Pendaftaran & Oprec">Topik: Pendaftaran & Oprec</option>
                       <option value="Aspirasi & Usulan">Topik: Aspirasi & Usulan</option>
-                      <option value="Tentang CNT">Topik: Tentang CNT</option>
+                      <option value="Tentang CNT">Topik: Tentang CNT IT APD</option>
                     </select>
                   </div>
 

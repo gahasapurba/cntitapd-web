@@ -35,7 +35,8 @@ export default function ProgramSection({
   theme,
   onNavigateOprec,
   initialEventId = null,
-  onSelectEventUrl
+  onSelectEventUrl,
+  tenures = []
 }) {
   const isDark = theme === 'dark';
   const [filterDiv, setFilterDiv] = useState('all');
@@ -199,6 +200,16 @@ export default function ProgramSection({
   const scopedEvents = (tenureFilter === 'active' && activeTenure?.id)
     ? events.filter((evt) => evt.tenureId === activeTenure.id)
     : events;
+
+  const scopedDivisions = (tenureFilter === 'active' && activeTenure?.id)
+    ? divisions.filter(d => d.tenureId === activeTenure.id)
+    : divisions;
+
+  useEffect(() => {
+    if (filterDiv !== 'all' && !scopedDivisions.some(d => d.id === filterDiv)) {
+      setFilterDiv('all');
+    }
+  }, [tenureFilter, activeTenure?.id, divisions]);
 
   const filteredEvents = scopedEvents.filter((evt) => {
     const matchesDiv = filterDiv === 'all' || evt.divisionId === filterDiv;
@@ -404,12 +415,46 @@ export default function ProgramSection({
               cursor: 'pointer'
             }}
           >
-            <option value="all">Semua Divisi</option>
-            {divisions.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
+            <option value="all">Semua Divisi {scopedDivisions.length > 0 ? `(${scopedDivisions.length})` : ''}</option>
+            {(() => {
+              if (tenureFilter === 'active') {
+                return scopedDivisions.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ));
+              }
+              // Lintas tahun (Semua Periode): kelompokkan divisi per tahun/tenure
+              const renderedDivIds = new Set();
+              const groups = (tenures || []).map((t) => {
+                const divsInTenure = divisions.filter(d => d.tenureId === t.id);
+                divsInTenure.forEach(d => renderedDivIds.add(d.id));
+                if (divsInTenure.length === 0) return null;
+                return (
+                  <optgroup key={t.id} label={`Periode ${t.code} (${t.title || 'Kepengurusan'})`}>
+                    {divsInTenure.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({t.code})
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              }).filter(Boolean);
+
+              const remainingDivs = divisions.filter(d => !renderedDivIds.has(d.id));
+              return (
+                <>
+                  {groups}
+                  {remainingDivs.length > 0 && (
+                    <optgroup label="Divisi Lainnya">
+                      {remainingDivs.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </>
+              );
+            })()}
           </select>
         </div>
       </div>
@@ -445,17 +490,19 @@ export default function ProgramSection({
               Belum ada event di daftar ini
             </div>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', maxWidth: '480px', margin: 0, lineHeight: 1.6 }}>
-              {filterDiv !== 'all' || activeTab !== 'all' || tenureFilter === 'active'
-                ? 'Tidak ada agenda kegiatan yang cocok dengan pilihan filter divisi, status, atau periode saat ini. Coba pilih filter lain atau reset filter.'
-                : 'Belum ada agenda kegiatan atau event budaya yang dipublikasikan. Pantau terus informasi terbaru dari pengurus CNT IT APD!'}
+              {scopedEvents.length === 0
+                ? `Belum ada agenda kegiatan atau event budaya yang dipublikasikan untuk periode kepengurusan ini (${activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}).`
+                : (filterDiv !== 'all' || activeTab !== 'all'
+                    ? 'Tidak ada agenda kegiatan yang cocok dengan pilihan filter divisi atau status saat ini. Coba pilih filter lain atau reset filter.'
+                    : 'Belum ada agenda kegiatan atau event budaya yang dipublikasikan. Pantau terus informasi terbaru dari pengurus CNT IT APD!')
+              }
             </p>
-            {(filterDiv !== 'all' || activeTab !== 'all' || tenureFilter === 'active') && (
+            {scopedEvents.length > 0 && (filterDiv !== 'all' || activeTab !== 'all') && (
               <button
                 type="button"
                 onClick={() => {
                   setFilterDiv('all');
                   setActiveTab('all');
-                  setTenureFilter('all');
                   setEventPage(1);
                 }}
                 style={{
@@ -471,7 +518,7 @@ export default function ProgramSection({
                   transition: 'all 0.2s ease'
                 }}
               >
-                Reset Semua Filter
+                Reset Filter
               </button>
             )}
           </div>
