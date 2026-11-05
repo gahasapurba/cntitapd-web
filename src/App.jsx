@@ -221,7 +221,18 @@ export default function App() {
       }
       if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) setDivisions(cloud.divisions);
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
-      if (Array.isArray(cloud.events)) setEvents(cloud.events);
+      if (Array.isArray(cloud.events)) {
+        const currentDivs = (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) ? cloud.divisions : divisions;
+        const reconciledEvts = cloud.events.map(e => {
+          const divObj = currentDivs.find(d => d.id === e.divisionId) || currentDivs.find(d => d.name === e.divisionName);
+          return {
+            ...e,
+            divisionId: e.divisionId || divObj?.id,
+            divisionName: divObj?.name || e.divisionName || 'CNT IT APD'
+          };
+        });
+        setEvents(reconciledEvts);
+      }
       if (Array.isArray(cloud.galleries)) {
         const currentDivs = (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) ? cloud.divisions : divisions;
         const reconciledGals = cloud.galleries.map(g => {

@@ -395,13 +395,14 @@ export default function AdminPortal({
 
   // Form states for Proker / Event
   const [eventTitle, setEventTitle] = useState('');
-  const [eventDivId, setEventDivId] = useState(divisions[0]?.id || 'div-exp');
+  const [eventDivId, setEventDivId] = useState('');
   const [eventTenureId, setEventTenureId] = useState(activeTenure?.id || '');
   const [eventStartDate, setEventStartDate] = useState('');
   const [eventEndDate, setEventEndDate] = useState('');
   const [eventLocation, setEventLocation] = useState('');
   const [eventKpi, setEventKpi] = useState('');
   const [eventDesc, setEventDesc] = useState('');
+  const [eventRab, setEventRab] = useState('');
   const [eventStatus, setEventStatus] = useState('Upcoming');
 
   // Form State: New FAQ
@@ -442,6 +443,9 @@ export default function AdminPortal({
     if (!eventStartDate) errs.eventStartDate = 'Tanggal Mulai wajib dipilih';
     if (!eventEndDate) errs.eventEndDate = 'Tanggal Berakhir wajib dipilih';
     if (!eventDesc.trim()) errs.eventDesc = 'Deskripsi Program Kerja wajib diisi';
+    if (eventRab === '' || eventRab === undefined || eventRab === null || isNaN(Number(eventRab)) || Number(eventRab) < 0) {
+      errs.eventRab = 'Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)';
+    }
 
     const targetEventTenureId = eventTenureId || activeTenure?.id || '';
     const availableDivsForEvent = divisions.filter(d => d.tenureId === targetEventTenureId);
@@ -494,7 +498,7 @@ export default function AdminPortal({
         kpi: eventKpi.trim() || 'Officer IT APD',
         description: eventDesc.trim(),
         status: eventStatus,
-        totalRab: 10000000
+        totalRab: Number(eventRab)
       });
     }
 
@@ -505,6 +509,7 @@ export default function AdminPortal({
     setEventLocation('');
     setEventKpi('');
     setEventDesc('');
+    setEventRab('');
     showToast(`Program Kerja "${savedTitle}" berhasil ditambahkan & disinkronkan!`);
   };
 
@@ -2642,6 +2647,54 @@ export default function AdminPortal({
               />
             </div>
 
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                💰 Estimasi Total RAB (Rp) <span style={{ color: '#f43f5e' }}>*</span>
+              </label>
+              <input
+                type="number"
+                placeholder="Contoh: 15000000 (tanpa titik)"
+                value={eventRab}
+                onChange={(e) => {
+                  setEventRab(e.target.value);
+                  clearFieldError('eventRab');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: `1.5px solid ${formErrors.eventRab ? '#f43f5e' : 'var(--border-card)'}`,
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+              {renderFieldError('eventRab')}
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Status Pelaksanaan
+              </label>
+              <select
+                value={eventStatus}
+                onChange={(e) => setEventStatus(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <option value="Upcoming">Upcoming (Akan Datang)</option>
+                <option value="Ongoing">Ongoing (Sedang Berjalan)</option>
+                <option value="Completed">Completed (Selesai)</option>
+              </select>
+            </div>
+
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Deskripsi Program Kerja <span style={{ color: '#f43f5e' }}>*</span>
@@ -2752,8 +2805,11 @@ export default function AdminPortal({
                         <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
                           📅 {evt.startDate} s/d {evt.endDate}
                         </div>
-                        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                          📍 {evt.location}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '4px', flexWrap: 'wrap', gap: '6px' }}>
+                          <span>📍 {evt.location}</span>
+                          <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>
+                            💰 Rp {Number(evt.totalRab || 0).toLocaleString('id-ID')}
+                          </span>
                         </div>
                       </div>
 
@@ -7045,11 +7101,17 @@ export default function AdminPortal({
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Estimasi RAB (Rp)</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      💰 Estimasi Total RAB (Rp) <span style={{ color: '#f43f5e' }}>*</span>
+                    </label>
                     <input
                       type="number"
-                      value={editingItem.item.totalRab ?? 0}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, totalRab: Number(e.target.value || 0) } })}
+                      placeholder="Contoh: 15000000 (wajib diisi)"
+                      value={editingItem.item.totalRab !== undefined && editingItem.item.totalRab !== null ? editingItem.item.totalRab : ''}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setEditingItem({ ...editingItem, item: { ...editingItem.item, totalRab: v === '' ? '' : Number(v) } });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />
                   </div>
@@ -7454,8 +7516,14 @@ export default function AdminPortal({
                       showToast('Divisi penyelenggara wajib dipilih untuk Program Kerja', 'error');
                       return;
                     }
+                    if (editingItem.item.totalRab === '' || editingItem.item.totalRab === undefined || editingItem.item.totalRab === null || isNaN(Number(editingItem.item.totalRab)) || Number(editingItem.item.totalRab) < 0) {
+                      setEditModalError('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)');
+                      showToast('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)', 'error');
+                      return;
+                    }
                     onUpdateEvent({
                       ...editingItem.item,
+                      totalRab: Number(editingItem.item.totalRab),
                       date: (editingItem.item.date || '').trim() || editingItem.item.startDate || 'TBD'
                     });
                   }

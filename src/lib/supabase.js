@@ -66,6 +66,21 @@ export async function checkGalleryDivisionIdColumn() {
   return isGalleryDivisionIdSupported;
 }
 
+let isEventDivisionNameChecked = false;
+let isEventDivisionNameSupported = false;
+
+export async function checkEventDivisionNameColumn() {
+  if (isEventDivisionNameChecked) return isEventDivisionNameSupported;
+  try {
+    const { error } = await supabase.from('events').select('division_name').limit(1);
+    isEventDivisionNameSupported = !error;
+    isEventDivisionNameChecked = true;
+  } catch (e) {
+    isEventDivisionNameSupported = false;
+  }
+  return isEventDivisionNameSupported;
+}
+
 export const rowMappers = {
   tenures: {
     toDb: (item, idx = 0) => ({
@@ -154,23 +169,28 @@ export const rowMappers = {
   },
 
   events: {
-    toDb: (item, idx = 0) => ({
-      id: String(item.id),
-      tenure_id: item.tenureId || null,
-      division_id: item.divisionId || null,
-      division_name: item.divisionName || '',
-      title: item.title || '',
-      date: item.date || '',
-      start_date: item.startDate || '',
-      end_date: item.endDate || '',
-      badge: item.badge || 'Program Budaya',
-      location: item.location || '',
-      kpi: item.kpi || '',
-      description: item.description || '',
-      total_rab: Number(item.totalRab || 0),
-      status: item.status || 'Upcoming',
-      sort_order: idx
-    }),
+    toDb: (item, idx = 0) => {
+      const row = {
+        id: String(item.id),
+        tenure_id: item.tenureId || null,
+        division_id: item.divisionId || null,
+        title: item.title || '',
+        date: item.date || '',
+        start_date: item.startDate || '',
+        end_date: item.endDate || '',
+        badge: item.badge || 'Program Budaya',
+        location: item.location || '',
+        kpi: item.kpi || '',
+        description: item.description || '',
+        total_rab: Number(item.totalRab || 0),
+        status: item.status || 'Upcoming',
+        sort_order: idx
+      };
+      if (isEventDivisionNameSupported && item.divisionName) {
+        row.division_name = item.divisionName;
+      }
+      return row;
+    },
     fromDb: (row) => ({
       id: row.id,
       tenureId: row.tenure_id,
@@ -397,7 +417,10 @@ export const rowMappers = {
  */
 export async function fetchAllCloudState() {
   try {
-    await checkGalleryDivisionIdColumn();
+    await Promise.all([
+      checkGalleryDivisionIdColumn(),
+      checkEventDivisionNameColumn()
+    ]);
     const [
       tenuresRes,
       divisionsRes,
@@ -544,6 +567,9 @@ export async function pushCloudState(key, value) {
 
     if (key === 'galleries') {
       await checkGalleryDivisionIdColumn();
+    }
+    if (key === 'events') {
+      await checkEventDivisionNameColumn();
     }
 
     // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically
