@@ -1340,7 +1340,7 @@ export default function App() {
                 <input
                   type="text"
                   autoFocus
-                  placeholder="Cari nama personel, program kerja, formulir oprec, galeri, atau asset logo..."
+                  placeholder="Cari nama personel, event, formulir registrasi, galeri, atau asset logo..."
                   value={quickSearchQuery}
                   onChange={(e) => setQuickSearchQuery(e.target.value)}
                   style={{
@@ -1425,7 +1425,7 @@ export default function App() {
                     <div>
                       <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Calendar size={13} color="var(--neon-cyan)" />
-                        <span>Program Kerja & Event Budaya</span>
+                        <span>Event Budaya</span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {matchedEvents.map(evt => (

@@ -977,18 +977,25 @@ export default function KudosSection({
       {/* CONTENT: ASPIRASI */}
       {activeSubTab === 'aspirasi' && (() => {
         const publicAspirasi = (aspirasiList || []).filter(a => a.isPublic !== false);
-        const filteredAspirasi = publicAspirasi.filter(a =>
-          aspirasiStatusFilter === 'all' || (a.status || 'Menunggu Review') === aspirasiStatusFilter
-        );
+        const normalizeAspirasiStatus = (status) => {
+          if (status === 'Masuk Rencana Proker') return 'Masuk Rencana Event';
+          return status || 'Menunggu Review';
+        };
+
+        const filteredAspirasi = publicAspirasi.filter(a => {
+          if (aspirasiStatusFilter === 'all') return true;
+          return normalizeAspirasiStatus(a.status) === aspirasiStatusFilter;
+        });
 
         const getAspirasiBadge = (status) => {
-          if (status === 'Sudah Direalisasikan') {
-            return { bg: 'rgba(16, 185, 129, 0.16)', border: '#10b981', color: '#10b981', icon: '✓' };
+          const norm = normalizeAspirasiStatus(status);
+          if (norm === 'Sudah Direalisasikan') {
+            return { bg: 'rgba(16, 185, 129, 0.16)', border: '#10b981', color: '#10b981', icon: '✓', label: 'Sudah Direalisasikan' };
           }
-          if (status === 'Masuk Rencana Proker') {
-            return { bg: 'rgba(255, 184, 0, 0.16)', border: 'var(--mandiri-gold)', color: 'var(--mandiri-gold)', icon: '🚀' };
+          if (norm === 'Masuk Rencana Event') {
+            return { bg: 'rgba(255, 184, 0, 0.16)', border: 'var(--mandiri-gold)', color: 'var(--mandiri-gold)', icon: '🚀', label: 'Masuk Rencana Event' };
           }
-          return { bg: 'rgba(56, 189, 248, 0.16)', border: 'var(--neon-cyan)', color: 'var(--neon-cyan)', icon: '⏳' };
+          return { bg: 'rgba(56, 189, 248, 0.16)', border: 'var(--neon-cyan)', color: 'var(--neon-cyan)', icon: '⏳', label: 'Menunggu Review' };
         };
 
         return (
@@ -1147,7 +1154,7 @@ export default function KudosSection({
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  {['all', 'Menunggu Review', 'Masuk Rencana Proker', 'Sudah Direalisasikan'].map((st) => (
+                  {['all', 'Menunggu Review', 'Masuk Rencana Event', 'Sudah Direalisasikan'].map((st) => (
                     <button
                       key={st}
                       type="button"
@@ -1216,7 +1223,7 @@ export default function KudosSection({
                             fontWeight: 800
                           }}>
                             <span>{badge.icon}</span>
-                            <span>{st}</span>
+                            <span>{badge.label || st}</span>
                           </span>
                         </div>
 

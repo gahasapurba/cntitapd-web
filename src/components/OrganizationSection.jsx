@@ -736,7 +736,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
                 <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--border-card)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                     <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', textTransform: 'uppercase', color: 'var(--neon-cyan)', fontWeight: 800 }}>
-                      📅 Program Kerja & Agenda Terkait ({relatedEvents.length}):
+                      📅 Event & Agenda Terkait ({relatedEvents.length}):
                     </span>
                     {onNavigateProgram && (
                       <button

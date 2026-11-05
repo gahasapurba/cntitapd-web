@@ -35,7 +35,7 @@ export default function Navbar({
   const allNavItems = [
     { id: 'home', label: 'Beranda', icon: Building2 },
     { id: 'organisasi', label: 'Organisasi', icon: Users },
-    { id: 'program', label: 'Program', icon: Calendar },
+    { id: 'program', label: 'Events', icon: Calendar },
     { id: 'galeri', label: 'Galeri', icon: ImageIcon },
     { id: 'kudos', label: 'Kudos', icon: MessageSquareHeart },
     { id: 'assets', label: 'Asset', icon: Download },

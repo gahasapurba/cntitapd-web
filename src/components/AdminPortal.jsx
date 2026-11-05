@@ -411,7 +411,7 @@ export default function AdminPortal({
   const [galDesc, setGalDesc] = useState('');
   const [galPhotos, setGalPhotos] = useState('');
 
-  // Form states for Proker / Event
+  // Form states for Event
   const [eventTitle, setEventTitle] = useState('');
   const [eventCategory, setEventCategory] = useState('Program Budaya');
   const [eventDivId, setEventDivId] = useState('');
@@ -458,10 +458,10 @@ export default function AdminPortal({
   const handleCreateEvent = (e) => {
     e.preventDefault();
     const errs = {};
-    if (!eventTitle.trim()) errs.eventTitle = 'Nama Program / Event wajib diisi';
+    if (!eventTitle.trim()) errs.eventTitle = 'Nama Event wajib diisi';
     if (!eventStartDate) errs.eventStartDate = 'Tanggal Mulai wajib dipilih';
     if (!eventEndDate) errs.eventEndDate = 'Tanggal Berakhir wajib dipilih';
-    if (!eventDesc.trim()) errs.eventDesc = 'Deskripsi Program Kerja wajib diisi';
+    if (!eventDesc.trim()) errs.eventDesc = 'Deskripsi Event wajib diisi';
     if (eventRab === '' || eventRab === undefined || eventRab === null || isNaN(Number(eventRab)) || Number(eventRab) < 0) {
       errs.eventRab = 'Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)';
     }
@@ -477,7 +477,7 @@ export default function AdminPortal({
 
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
-      showToast('Mohon lengkapi kolom wajib pada form Program Kerja', 'error');
+      showToast('Mohon lengkapi kolom wajib pada form Event', 'error');
       return;
     }
 
@@ -520,7 +520,7 @@ export default function AdminPortal({
     setEventKpi('');
     setEventDesc('');
     setEventRab('');
-    showToast(`Program Kerja "${savedTitle}" berhasil ditambahkan & disinkronkan!`);
+    showToast(`Event "${savedTitle}" berhasil ditambahkan & disinkronkan!`);
   };
 
   // Secure SHA-256 Authentication (Zero plaintext in code)
@@ -633,7 +633,7 @@ export default function AdminPortal({
       color: color,
       whatsapp: memWhatsapp.trim(),
       motto: memMotto || 'Dedikasi & Semangat untuk Insan IT APD',
-      responsibilities: ['Kontribusi aktif dalam pelaksanaan program kerja budaya CNT IT APD']
+      responsibilities: ['Kontribusi aktif dalam pelaksanaan event budaya CNT IT APD']
     });
 
     const savedName = memName;
@@ -663,7 +663,7 @@ export default function AdminPortal({
       color: newDivColor,
       motto: 'Mendorong Transformasi Budaya Berkelanjutan',
       description: newDivDesc || 'Divisi pengembangan inisiatif budaya di Group IT APD.',
-      focusAreas: newDivFocus ? newDivFocus.split(',').map(s => s.trim()).filter(Boolean) : ['Program Kerja Baru'],
+      focusAreas: newDivFocus ? newDivFocus.split(',').map(s => s.trim()).filter(Boolean) : ['Inisiatif Event Baru'],
       isRecruiting: true
     });
 
@@ -1467,7 +1467,7 @@ export default function AdminPortal({
       {/* Executive Summary Analytics Bar */}
       {(() => {
         const completedEvents = events.filter(e => e.status === 'Completed').length;
-        const prokerPercent = events.length > 0 ? Math.round((completedEvents / events.length) * 100) : 0;
+        const eventPercent = events.length > 0 ? Math.round((completedEvents / events.length) * 100) : 0;
         const totalRab = events.reduce((acc, e) => acc + Number(e.totalRab || 0), 0);
         const acceptedSubs = submissions.filter(s => s.status === 'Accepted').length;
         const pendingSubs = submissions.filter(s => !s.status || s.status === 'Submitted').length;
@@ -1500,10 +1500,10 @@ export default function AdminPortal({
 
             <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #10b981' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                Realisasi Proker
+                Realisasi Event
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
-                {completedEvents}/{events.length} <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10b981' }}>({prokerPercent}%)</span>
+                {completedEvents}/{events.length} <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10b981' }}>({eventPercent}%)</span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                 {events.length - completedEvents} Agenda Upcoming / Berjalan
@@ -1518,7 +1518,7 @@ export default function AdminPortal({
                 Rp {(totalRab / 1000000).toFixed(1)} Jt
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Akumulasi {events.length} Program Kerja
+                Akumulasi {events.length} Event
               </div>
             </div>
 
@@ -1559,7 +1559,7 @@ export default function AdminPortal({
         {[
           { id: 'members', label: `Pengurus & Anggota (${members.length})`, icon: Users },
           { id: 'visibility', label: 'Visibilitas Halaman & Navbar', icon: Eye },
-          { id: 'events', label: `Agenda & Proker (${events.length})`, icon: CalendarDays },
+          { id: 'events', label: `Event (${events.length})`, icon: CalendarDays },
           { id: 'forms', label: `Kelola Formulir (${forms.length})`, icon: ClipboardList },
           { id: 'submissions', label: `Berkas Masuk (${submissions.length + applications.length})`, icon: FileCheck2 },
           { id: 'kudos', label: `Wall of Kudos (${kudosList.length})`, icon: Heart },
@@ -1601,7 +1601,7 @@ export default function AdminPortal({
         const pageItems = [
           { id: 'home', label: 'Beranda Utama', desc: 'Halaman depan (Hero Banner, Statistik, Visi & Misi, Pimpinan, dan 4 Pilar Divisi)' },
           { id: 'organisasi', label: 'Struktur Organisasi', desc: 'Halaman bagan hierarki organigram interaktif Pembina, Inti, Pimpro & Anggota' },
-          { id: 'program', label: 'Program & Kalender', desc: 'Halaman daftar program kerja divisi & kalender budaya bulanan interaktif' },
+          { id: 'program', label: 'Events & Kalender', desc: 'Halaman daftar event divisi & kalender budaya bulanan interaktif' },
           { id: 'galeri', label: 'Galeri Kegiatan', desc: 'Halaman dokumentasi foto carousel kegiatan & tautan folder dokumentasi' },
           { id: 'kudos', label: 'Wall of Kudos', desc: 'Halaman papan apresiasi & pengiriman pesan terima kasih antar insan IT APD' },
           { id: 'assets', label: 'Asset', desc: 'Halaman transformasi logo & pengunduhan paket asset resmi CNT IT APD' },
@@ -2466,12 +2466,12 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* TAB CONTENT: AGENDA & PROKER (DENGAN TANGGAL MULAI & BERAKHIR) */}
+      {/* TAB CONTENT: EVENT (DENGAN TANGGAL MULAI & BERAKHIR) */}
       {activeTab === 'events' && (
         <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
-              Tambah Program Kerja & Event Budaya Baru
+              Tambah Event Baru
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               Setiap agenda dilengkapi <strong>Tanggal Mulai</strong> dan <strong>Tanggal Berakhir</strong> agar tersorot rapi dalam Kalender Budaya bulanan dan menampilkan popup interaktif saat di-hover.
@@ -2486,7 +2486,7 @@ export default function AdminPortal({
           }}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Nama Program / Event <span style={{ color: '#f43f5e' }}>*</span>
+                Nama Event <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
@@ -2751,11 +2751,11 @@ export default function AdminPortal({
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Deskripsi Program Kerja <span style={{ color: '#f43f5e' }}>*</span>
+                Deskripsi Event <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <textarea
                 rows={3}
-                placeholder="Jelaskan tujuan dan gambaran pelaksanaan program kerja..."
+                placeholder="Jelaskan tujuan dan gambaran pelaksanaan event..."
                 value={eventDesc}
                 onChange={(e) => {
                   setEventDesc(e.target.value);
@@ -2793,15 +2793,15 @@ export default function AdminPortal({
                 }}
               >
                 <Plus size={16} />
-                <span>Simpan Program Kerja</span>
+                <span>Simpan Event Baru</span>
               </button>
             </div>
           </form>
 
-          {/* List Program Kerja */}
+          {/* List Event */}
           <div>
             <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px' }}>
-              Daftar Program Kerja Aktif ({events.length})
+              Daftar Event Aktif ({events.length})
             </h4>
 
             {events.length === 0 ? (
@@ -2819,10 +2819,10 @@ export default function AdminPortal({
               }}>
                 <Calendar size={32} color="var(--text-dim)" />
                 <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Belum ada program kerja yang ditambahkan.
+                  Belum ada event yang ditambahkan.
                 </div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  Gunakan formulir di atas untuk menambahkan program kerja atau event budaya baru.
+                  Gunakan formulir di atas untuk menambahkan event baru.
                 </div>
               </div>
             ) : (
@@ -2878,7 +2878,7 @@ export default function AdminPortal({
                         <button
                           type="button"
                           onClick={() => setEditingItem({ type: 'event', item: { ...evt } })}
-                          title="Edit Proker"
+                          title="Edit Event"
                           style={{
                             padding: '6px 12px',
                             background: 'rgba(56, 189, 248, 0.1)',
@@ -2901,7 +2901,7 @@ export default function AdminPortal({
                           <button
                             type="button"
                             onClick={() => handleDeleteEventClick(evt)}
-                            title="Hapus Program Kerja"
+                            title="Hapus Event"
                             style={{
                               padding: '6px 12px',
                               background: 'rgba(244, 63, 94, 0.1)',
@@ -2936,7 +2936,7 @@ export default function AdminPortal({
                   📋 Daftar Hadir & Konfirmasi RSVP Kegiatan ({eventRsvps.length})
                 </h4>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                  Data kehadiran pegawai yang mengisi form RSVP Cepat pada kartu Program Kerja.
+                  Data kehadiran pegawai yang mengisi form RSVP Cepat pada kartu Event.
                 </p>
               </div>
 
@@ -2990,7 +2990,7 @@ export default function AdminPortal({
 
             {eventRsvps.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
-                Belum ada konfirmasi kehadiran RSVP pada program kerja.
+                Belum ada konfirmasi kehadiran RSVP pada event.
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
@@ -5109,7 +5109,7 @@ export default function AdminPortal({
                   const isPub = asp.isPublic !== false;
                   const statusColor = curStatus === 'Sudah Direalisasikan'
                     ? '#10b981'
-                    : curStatus === 'Masuk Rencana Proker'
+                    : (curStatus === 'Masuk Rencana Event' || curStatus === 'Masuk Rencana Proker')
                       ? 'var(--mandiri-gold)'
                       : 'var(--neon-cyan)';
 
@@ -5152,7 +5152,7 @@ export default function AdminPortal({
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <select
-                            value={curStatus}
+                            value={curStatus === 'Masuk Rencana Proker' ? 'Masuk Rencana Event' : curStatus}
                             onChange={(e) => {
                               const nextSt = e.target.value;
                               if (onUpdateAspirasi) {
@@ -5172,7 +5172,7 @@ export default function AdminPortal({
                             }}
                           >
                             <option value="Menunggu Review">⏳ Menunggu Review</option>
-                            <option value="Masuk Rencana Proker">🚀 Masuk Rencana Proker</option>
+                            <option value="Masuk Rencana Event">🚀 Masuk Rencana Event</option>
                             <option value="Sudah Direalisasikan">✓ Sudah Direalisasikan</option>
                           </select>
 
@@ -5904,7 +5904,7 @@ export default function AdminPortal({
                     editingItem.type === 'gallery' ? 'Dokumentasi Galeri' :
                     editingItem.type === 'kudos' ? 'Apresiasi / Kudos' :
                     editingItem.type === 'form' ? 'Formulir Pendaftaran' :
-                    editingItem.type === 'event' ? 'Program Kerja & Agenda' :
+                    editingItem.type === 'event' ? 'Event' :
                     editingItem.type === 'brand_asset' ? 'Asset & Template' :
                     editingItem.type === 'faq' ? 'Pertanyaan FAQ' :
                     'Periode Kepengurusan'
@@ -7238,7 +7238,7 @@ export default function AdminPortal({
             {editingItem.type === 'event' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Program Kerja</label>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Event</label>
                   <input
                     type="text"
                     value={editingItem.item.title || ''}
@@ -7846,8 +7846,8 @@ export default function AdminPortal({
                   }
                   if (editingItem.type === 'event' && onUpdateEvent) {
                     if (!editingItem.item.divisionId) {
-                      setEditModalError('Divisi penyelenggara wajib dipilih untuk Program Kerja');
-                      showToast('Divisi penyelenggara wajib dipilih untuk Program Kerja', 'error');
+                      setEditModalError('Divisi penyelenggara wajib dipilih untuk Event');
+                      showToast('Divisi penyelenggara wajib dipilih untuk Event', 'error');
                       return;
                     }
                     if (editingItem.item.totalRab === '' || editingItem.item.totalRab === undefined || editingItem.item.totalRab === null || isNaN(Number(editingItem.item.totalRab)) || Number(editingItem.item.totalRab) < 0) {
@@ -8007,7 +8007,7 @@ export default function AdminPortal({
                             : (deleteConfirm.type === 'member'
                                 ? 'Pimpro Masih Memimpin Anggota'
                                 : (deleteConfirm.type === 'event'
-                                    ? 'Program Kerja Memiliki Data RSVP'
+                                    ? 'Event Memiliki Data RSVP'
                                     : (deleteConfirm.type === 'form'
                                         ? 'Formulir Memiliki Berkas Masuk'
                                         : 'Data Masih Memiliki Ketergantungan')))))
@@ -8018,7 +8018,7 @@ export default function AdminPortal({
                             : (deleteConfirm.type === 'member'
                                 ? 'Konfirmasi Hapus Personel'
                                 : (deleteConfirm.type === 'event'
-                                    ? 'Konfirmasi Hapus Program Kerja'
+                                    ? 'Konfirmasi Hapus Event'
                                     : (deleteConfirm.type === 'form'
                                         ? 'Konfirmasi Hapus Formulir'
                                         : 'Konfirmasi Penghapusan Data'))))))}
@@ -8041,7 +8041,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    ⚠️ <strong>Proteksi Sistem:</strong> Website mewajibkan minimal <strong>1 periode kepengurusan</strong> tetap ada agar struktur organisasi, program kerja, dan informasi kabinet dapat beroperasi dengan normal.
+                    ⚠️ <strong>Proteksi Sistem:</strong> Website mewajibkan minimal <strong>1 periode kepengurusan</strong> tetap ada agar struktur organisasi, event, dan informasi kabinet dapat beroperasi dengan normal.
                   </div>
                 </>
               ) : deleteConfirm.isActiveTenure ? (
@@ -8125,7 +8125,7 @@ export default function AdminPortal({
                     }}>
                       <CalendarDays size={18} color={deleteConfirm.evtCount > 0 ? '#f43f5e' : 'var(--text-muted)'} />
                       <div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Program Kerja</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Event</div>
                         <div style={{ fontSize: '0.88rem', fontWeight: 800, color: deleteConfirm.evtCount > 0 ? '#f43f5e' : 'var(--text-muted)' }}>
                           {deleteConfirm.evtCount} Event
                         </div>
@@ -8179,7 +8179,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    ✓ <strong>Aman Dihapus:</strong> Periode ini tidak aktif dan tidak memiliki dependensi data (0 Divisi, 0 Anggota, 0 Program Kerja, 0 Galeri).
+                    ✓ <strong>Aman Dihapus:</strong> Periode ini tidak aktif dan tidak memiliki dependensi data (0 Divisi, 0 Anggota, 0 Event, 0 Galeri).
                   </div>
                 </>
               )
@@ -8232,7 +8232,7 @@ export default function AdminPortal({
                     }}>
                       <CalendarDays size={18} color={deleteConfirm.evtCount > 0 ? '#f43f5e' : 'var(--text-muted)'} />
                       <div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Program Kerja</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Event</div>
                         <div style={{ fontSize: '0.88rem', fontWeight: 800, color: deleteConfirm.evtCount > 0 ? '#f43f5e' : 'var(--text-muted)' }}>
                           {deleteConfirm.evtCount} Event
                         </div>
@@ -8270,7 +8270,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    💡 <strong>Petunjuk:</strong> Buka tab <strong>Anggota</strong> dan <strong>Program Kerja</strong> untuk memindahkan divisi personel/event atau menghapusnya terlebih dahulu sebelum menghapus divisi ini.
+                    💡 <strong>Petunjuk:</strong> Buka tab <strong>Anggota</strong> dan <strong>Event</strong> untuk memindahkan divisi personel/event atau menghapusnya terlebih dahulu sebelum menghapus divisi ini.
                   </div>
                 </>
               ) : (
@@ -8288,7 +8288,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    ✓ <strong>Aman Dihapus:</strong> Divisi ini tidak menaungi anggota maupun program kerja (0 Anggota, 0 Proker).
+                    ✓ <strong>Aman Dihapus:</strong> Divisi ini tidak menaungi anggota maupun event (0 Anggota, 0 Event).
                   </div>
                 </>
               )
@@ -8367,7 +8367,7 @@ export default function AdminPortal({
               deleteConfirm.isBlocked ? (
                 <>
                   <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-                    Program kerja <strong>"{deleteConfirm.name}"</strong> belum dapat dihapus karena masih memiliki <strong>{deleteConfirm.rsvpCount} data konfirmasi RSVP</strong> dari pegawai.
+                    Event <strong>"{deleteConfirm.name}"</strong> belum dapat dihapus karena masih memiliki <strong>{deleteConfirm.rsvpCount} data konfirmasi RSVP</strong> dari pegawai.
                   </p>
 
                   <div style={{
@@ -8412,7 +8412,7 @@ export default function AdminPortal({
               ) : (
                 <>
                   <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-                    Apakah Anda yakin ingin menghapus program kerja <strong>"{deleteConfirm.name}"</strong>?
+                    Apakah Anda yakin ingin menghapus event <strong>"{deleteConfirm.name}"</strong>?
                   </p>
                   <div style={{
                     background: 'rgba(16, 185, 129, 0.1)',
@@ -8424,7 +8424,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    ✓ <strong>Aman Dihapus:</strong> Program kerja ini tidak memiliki riwayat RSVP pendaftar (0 RSVP).
+                    ✓ <strong>Aman Dihapus:</strong> Event ini tidak memiliki riwayat RSVP pendaftar (0 RSVP).
                   </div>
                 </>
               )
@@ -8576,7 +8576,7 @@ export default function AdminPortal({
                                 : (deleteConfirm.type === 'member'
                                     ? `Personel "${deleteConfirm.name}" berhasil dihapus!`
                                     : (deleteConfirm.type === 'event'
-                                        ? `Program kerja "${deleteConfirm.name}" berhasil dihapus!`
+                                        ? `Event "${deleteConfirm.name}" berhasil dihapus!`
                                         : (deleteConfirm.type === 'form'
                                             ? `Formulir "${deleteConfirm.name}" berhasil dihapus!`
                                             : 'Data berhasil dihapus & disinkronkan!')))));
@@ -8605,7 +8605,7 @@ export default function AdminPortal({
                               : (deleteConfirm.type === 'member'
                                   ? 'Ya, Hapus Personel'
                                   : (deleteConfirm.type === 'event'
-                                      ? 'Ya, Hapus Program Kerja'
+                                      ? 'Ya, Hapus Event'
                                       : (deleteConfirm.type === 'form'
                                           ? 'Ya, Hapus Formulir'
                                           : 'Ya, Hapus Data')))))}
@@ -8620,7 +8620,7 @@ export default function AdminPortal({
       {/* PRINT-READY EXECUTIVE REPORT & LPJ MODAL */}
       {showExecutiveReportModal && (() => {
         const completedEvents = events.filter(e => e.status === 'Completed').length;
-        const prokerPercent = events.length > 0 ? Math.round((completedEvents / events.length) * 100) : 0;
+        const eventPercent = events.length > 0 ? Math.round((completedEvents / events.length) * 100) : 0;
         const totalRab = events.reduce((acc, e) => acc + Number(e.totalRab || 0), 0);
         const coreLeaders = members.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro');
         const realizedAspirasi = aspirasiList.filter(a => a.status === 'Sudah Direalisasikan').length;
@@ -8716,8 +8716,8 @@ export default function AdminPortal({
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{members.filter(m => m.category === 'pembina').length} Pembina • 4 Divisi & BPH Inti</div>
                 </div>
                 <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>REALISASI PROKER</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>{completedEvents}/{events.length} ({prokerPercent}%)</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>REALISASI KEGIATAN</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>{completedEvents}/{events.length} ({eventPercent}%)</div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{galleries.length} Dokumentasi Galeri</div>
                 </div>
                 <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
@@ -8732,16 +8732,16 @@ export default function AdminPortal({
                 </div>
               </div>
 
-              {/* 2. Tabel Realisasi Program Kerja & Anggaran */}
+              {/* 2. Tabel Realisasi Kegiatan & Anggaran */}
               <div>
                 <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
-                  I. Rekapitulasi Program Kerja & Rencana Anggaran Biaya (RAB)
+                  I. Rekapitulasi Kegiatan & Rencana Anggaran Biaya (RAB)
                 </h4>
                 <div style={{ overflowX: 'auto', border: '1px solid var(--border-card)', borderRadius: 'var(--radius-md)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: '580px' }}>
                     <thead>
                       <tr style={{ background: 'var(--input-bg)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Program Kerja</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Nama Kegiatan</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Divisi</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Jadwal</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Target Peserta</th>
@@ -8753,7 +8753,7 @@ export default function AdminPortal({
                       {events.length === 0 ? (
                         <tr>
                           <td colSpan="6" style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                            Belum ada program kerja yang terdaftar di database untuk periode ini.
+                            Belum ada kegiatan yang terdaftar di database untuk periode ini.
                           </td>
                         </tr>
                       ) : (

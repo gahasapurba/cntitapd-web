@@ -220,10 +220,10 @@ export default function ProgramSection({
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto' }}>
         <span className="badge-cyan" style={{ marginBottom: '12px' }}>
-          Kalender & Program Budaya
+          Kalender & Event Budaya
         </span>
         <h1 style={{ fontSize: '2.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
-          Program Kerja & Event CNT IT APD
+          Event CNT IT APD
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
           Rangkaian inisiatif terpadu untuk membangun keakraban tim, kesehatan mental & fisik, serta wadah ekspresi bakat seluruh insan IT APD.
@@ -426,12 +426,12 @@ export default function ProgramSection({
               <CalendarIcon size={26} />
             </div>
             <div style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              Belum ada program kerja di daftar ini
+              Belum ada event di daftar ini
             </div>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', maxWidth: '480px', margin: 0, lineHeight: 1.6 }}>
               {filterDiv !== 'all' || activeTab !== 'all' || tenureFilter === 'active'
                 ? 'Tidak ada agenda kegiatan yang cocok dengan pilihan filter divisi, status, atau periode saat ini. Coba pilih filter lain atau reset filter.'
-                : 'Belum ada agenda kegiatan atau program kerja budaya yang dipublikasikan. Pantau terus informasi terbaru dari pengurus CNT IT APD!'}
+                : 'Belum ada agenda kegiatan atau event budaya yang dipublikasikan. Pantau terus informasi terbaru dari pengurus CNT IT APD!'}
             </p>
             {(filterDiv !== 'all' || activeTab !== 'all' || (tenureFilter === 'active' && hasTenureEvents)) && (
               <button
@@ -676,7 +676,7 @@ export default function ProgramSection({
                     {monthNames[currentMonth]} {currentYear}
                   </h3>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-                    {currentMonthEvents.length} Program Kerja Terjadwal Bulan Ini
+                    {currentMonthEvents.length} Event Terjadwal Bulan Ini
                   </span>
                 </div>
               </div>
@@ -973,7 +973,7 @@ export default function ProgramSection({
 
               {currentMonthEvents.length === 0 ? (
                 <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  Tidak ada agenda program kerja pada bulan {monthNames[currentMonth]} {currentYear}. Gunakan tombol bulan untuk melihat agenda di bulan lainnya.
+                  Tidak ada agenda event pada bulan {monthNames[currentMonth]} {currentYear}. Gunakan tombol bulan untuk melihat agenda di bulan lainnya.
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>

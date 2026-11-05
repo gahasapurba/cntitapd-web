@@ -352,7 +352,7 @@ export default function HomeSection({
               </div>
             )}
 
-            {/* 3. Event (Program Kerja & Agenda) */}
+            {/* 3. Event (Agenda Budaya) */}
             {isProgramVisible && (
               <div 
                 className="glass-panel glass-panel-hover" 
@@ -961,7 +961,7 @@ export default function HomeSection({
                     📅 Kalender & Agenda Budaya
                   </span>
                   <h2 style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
-                    Program Kerja & Kegiatan Terdekat {activeTenure?.code ? `(${activeTenure.code})` : ''}
+                    Event & Kegiatan Terdekat {activeTenure?.code ? `(${activeTenure.code})` : ''}
                   </h2>
                 </div>
                 <button
