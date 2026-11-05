@@ -127,16 +127,21 @@ export default function App() {
     return DEFAULT_PAGE_VISIBILITY;
   });
 
-  // Default Departments in Bank Mandiri IT APD
+  // Default Departments in Bank Mandiri IT APD (13 Departemen resmi APD)
   const DEFAULT_DEPARTMENTS = [
-    { id: 'dept-core', name: 'Core Banking Delivery', code: 'CBD', description: 'Pengembangan dan pemeliharaan sistem inti perbankan (Core Banking).' },
-    { id: 'dept-digital', name: 'Digital Banking Delivery', code: 'DBD', description: 'Pengembangan channel digital Livin & Kopra by Mandiri.' },
-    { id: 'dept-wealth', name: 'Wealth & Retail Delivery', code: 'WRD', description: 'Solusi teknologi untuk nasabah wealth management dan segmen retail.' },
-    { id: 'dept-corporate', name: 'Corporate & Commercial Delivery', code: 'CCD', description: 'Solusi teknologi untuk nasabah korporat, komersial, dan wholesale.' },
-    { id: 'dept-cards', name: 'Cards & Payments Delivery', code: 'CPD', description: 'Pengembangan sistem kartu kredit, debit, dan pemrosesan pembayaran.' },
-    { id: 'dept-integration', name: 'Integration & API Delivery', code: 'IAD', description: 'Arsitektur integrasi sistem, middleware, dan Open API perbankan.' },
-    { id: 'dept-data', name: 'Data & Analytics Delivery', code: 'DAD', description: 'Pengembangan data warehouse, business intelligence, dan analitik AI.' },
-    { id: 'dept-governance', name: 'IT Architecture & Governance', code: 'IAG', description: 'Tata kelola arsitektur IT, kepatuhan teknologi, dan standar kualitas.' }
+    { id: 'dept-cbd', name: 'IT Core Banking Development', code: 'CBD', description: 'Pengembangan dan pemeliharaan core banking system Bank Mandiri.' },
+    { id: 'dept-cnd', name: 'IT Consumer Banking Development', code: 'CND', description: 'Pengembangan produk dan solusi layanan perbankan konsumer.' },
+    { id: 'dept-dsd', name: 'IT Data Services Development', code: 'DSD', description: 'Pengelolaan dan pengembangan layanan data serta analitik perbankan.' },
+    { id: 'dept-esd', name: 'IT Enterprise Services Development', code: 'ESD', description: 'Solusi teknologi dan layanan enterprise lintas domain.' },
+    { id: 'dept-fad', name: 'IT Finance & Accounting Development', code: 'FAD', description: 'Pengembangan sistem keuangan, akuntansi, dan pelaporan finansial.' },
+    { id: 'dept-lcd', name: 'IT LOS & Collection Development', code: 'LCD', description: 'Pengembangan Loan Origination System dan otomasi proses penagihan.' },
+    { id: 'dept-lbd', name: 'IT Low Code & Business Automation Development', code: 'LBD', description: 'Pengembangan platform low-code dan otomasi proses bisnis.' },
+    { id: 'dept-mid', name: 'IT Middleware & Integration Development', code: 'MID', description: 'Pengembangan middleware, arsitektur integrasi sistem, dan API gateway.' },
+    { id: 'dept-opd', name: 'IT Operation Platform Development', code: 'OPD', description: 'Pengembangan platform operasional IT dan pendukung kehandalan sistem.' },
+    { id: 'dept-rcd', name: 'IT Risk & Compliance Development', code: 'RCD', description: 'Pengembangan sistem manajemen risiko, kepatuhan, dan regulasi IT.' },
+    { id: 'dept-tibd', name: 'IT Treasury & International Banking Development', code: 'TIBD', description: 'Pengembangan sistem treasury, pasar uang, dan perbankan internasional.' },
+    { id: 'dept-wbd', name: 'IT Wholesale Banking Development', code: 'WBD', description: 'Pengembangan solusi teknologi perbankan korporasi dan wholesale.' },
+    { id: 'dept-dsdv', name: 'IT Development Services Development', code: 'DSDV', description: 'Layanan pendukung pengembangan perangkat lunak, QA, dan DevOps.' }
   ];
 
   // Default theme is LIGHT THEME as requested
