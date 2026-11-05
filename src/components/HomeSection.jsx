@@ -27,7 +27,7 @@ import {
   X
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
-import { getDeadlineStatus, formatWibTimestamp } from '../utils/dateUtils';
+import { getDeadlineStatus, formatWibTimestamp, formatDeadlineWib } from '../utils/dateUtils';
 
 export default function HomeSection({ 
   activeTenure, 
@@ -668,7 +668,7 @@ export default function HomeSection({
                     <span style={{ fontSize: '0.78rem', color: 'var(--mandiri-gold)', fontFamily: 'monospace', fontWeight: 700 }}>
                       {getDeadlineStatus(activeForms[0].deadline).isToday 
                         ? '⚠️ Hari Terakhir Pendaftaran!' 
-                        : `Deadline: ${activeForms[0].deadline}`}
+                        : `Deadline: ${formatDeadlineWib(activeForms[0].deadline)}`}
                     </span>
                   )}
                 </div>
@@ -733,7 +733,7 @@ export default function HomeSection({
                         }
                         return (
                           <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 600 }}>
-                            📅 {f.deadline}
+                            📅 {formatDeadlineWib(f.deadline)}
                           </span>
                         );
                       })()}

@@ -46,6 +46,8 @@ import {
   getDeadlineStatus, 
   formatWibTimestamp,
   formatWibDateTime,
+  formatDeadlineWib,
+  toDatetimeLocalSecondsValue,
   formatWibEventRange,
   toDatetimeLocalValue,
   toDateInputValue,
@@ -4229,13 +4231,14 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                📅 Batas Akhir / Deadline Pendaftaran
+                📅 Batas Akhir / Deadline Pendaftaran (WIB)
               </label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
                   <input
-                    type="date"
-                    value={toDateInputValue(newFormDeadline)}
+                    type="datetime-local"
+                    step="1"
+                    value={toDatetimeLocalSecondsValue(newFormDeadline)}
                     onChange={(e) => {
                       setNewFormDeadline(e.target.value);
                     }}
@@ -4283,7 +4286,7 @@ export default function AdminPortal({
                 )}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--mandiri-gold)', marginTop: '4px', fontWeight: 600 }}>
-                {newFormDeadline ? `Format: ${newFormDeadline}` : 'Pilih tanggal dari kalender di atas'}
+                {newFormDeadline ? `Tampilan di Web: ${formatDeadlineWib(newFormDeadline)}` : 'Pilih tanggal & waktu deadline'}
               </div>
             </div>
 
@@ -4358,7 +4361,7 @@ export default function AdminPortal({
                       })()}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      Deadline: {f.deadline ? formatWibDateTime(f.deadline) : 'Tanpa batas waktu'} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Berkas Masuk</strong>
+                      Deadline: {f.deadline ? formatDeadlineWib(f.deadline) : 'Tanpa batas waktu'} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Berkas Masuk</strong>
                     </div>
                   </div>
 
@@ -6848,13 +6851,14 @@ export default function AdminPortal({
                   </div>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      📅 Batas Akhir / Deadline
+                      📅 Batas Akhir / Deadline (WIB)
                     </label>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <div style={{ position: 'relative', flex: 1 }}>
                         <input
-                          type="date"
-                          value={toDateInputValue(editingItem.item.deadline || '')}
+                          type="datetime-local"
+                          step="1"
+                          value={toDatetimeLocalSecondsValue(editingItem.item.deadline || '')}
                           onChange={(e) => {
                             setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: e.target.value } });
                           }}
@@ -6902,7 +6906,7 @@ export default function AdminPortal({
                       )}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--mandiri-gold)', marginTop: '4px', fontWeight: 600 }}>
-                      {editingItem.item.deadline ? `Tampilan di Web: ${formatWibDateTime(editingItem.item.deadline)}` : 'Pilih tanggal dari kalender di atas'}
+                      {editingItem.item.deadline ? `Tampilan di Web: ${formatDeadlineWib(editingItem.item.deadline)}` : 'Pilih tanggal & waktu deadline'}
                     </div>
                   </div>
                 </div>

@@ -29,6 +29,7 @@ import {
   mergeAndPushCloudList,
   deleteMediaFromCloud
 } from './lib/supabase';
+import { formatDeadlineWib } from './utils/dateUtils';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'program', 'galeri', 'kudos', 'assets', 'oprec'];
 const VALID_TABS = [...PUBLIC_PAGE_IDS, 'admin'];
@@ -1494,7 +1495,7 @@ export default function App() {
                           >
                             <div>
                               <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>{f.title}</div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{f.category} • Deadline: {f.deadline}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{f.category} • Deadline: {formatDeadlineWib(f.deadline)}</div>
                             </div>
                             <ChevronRight size={15} color="var(--text-dim)" />
                           </button>

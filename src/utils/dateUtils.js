@@ -52,6 +52,101 @@ export function formatToIndonesianDate(isoOrDateStr) {
  * Evaluates the status of a form deadline string.
  * Considers end of the deadline day (23:59:59).
  */
+/**
+ * Format deadline string into human-readable Indonesian text with Day Name and WIB Time.
+ * Example: "Kamis, 05 November 2026 - 17.00 WIB"
+ */
+export function formatDeadlineWib(deadlineStr) {
+  if (!deadlineStr) return 'Tanpa batas waktu';
+  const trimmed = String(deadlineStr).trim();
+  if (!trimmed || trimmed.toLowerCase() === 'menyesuaikan' || trimmed.toLowerCase() === 'tanpa batas' || trimmed.toLowerCase() === 'tanpa batas waktu') {
+    return 'Tanpa batas waktu';
+  }
+
+  let d;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, dNum] = trimmed.split('-').map(Number);
+    d = new Date(y, m - 1, dNum, 23, 59, 59);
+  } else {
+    d = new Date(trimmed);
+  }
+
+  if (isNaN(d.getTime())) {
+    return trimmed;
+  }
+
+  const formatter = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+
+  const parts = formatter.formatToParts(d);
+  const m = {};
+  parts.forEach(p => { m[p.type] = p.value; });
+
+  const weekday = m.weekday || '';
+  const day = m.day || '';
+  const month = m.month || '';
+  const year = m.year || '';
+  const hour = m.hour || '00';
+  const minute = m.minute || '00';
+  const second = m.second || '00';
+
+  const timeStr = (second && second !== '00') 
+    ? `${hour}.${minute}.${second} WIB`
+    : `${hour}.${minute} WIB`;
+
+  return `${weekday}, ${day} ${month} ${year} - ${timeStr}`;
+}
+
+/**
+ * Converts date or timestamptz string into HTML5 <input type="datetime-local" step="1"> value
+ * strictly in Asia/Jakarta (WIB) timezone: YYYY-MM-DDTHH:mm:ss.
+ */
+export function toDatetimeLocalSecondsValue(str) {
+  if (!str) return '';
+  const trimmed = String(str).trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) {
+    return `${trimmed}:00`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T23:59:59`;
+  }
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    const formatter = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(d);
+    const m = {};
+    parts.forEach(p => { m[p.type] = p.value; });
+    if (m.year && m.month && m.day) {
+      return `${m.year}-${m.month}-${m.day}T${m.hour || '00'}:${m.minute || '00'}:${m.second || '00'}`;
+    }
+  }
+  return '';
+}
+
+/**
+ * Returns deadline status: isExpired, isToday, daysLeft, hoursLeft, and Indonesian formatted string.
+ */
 export function getDeadlineStatus(deadlineStr) {
   if (!deadlineStr || typeof deadlineStr !== 'string') {
     return {
@@ -59,34 +154,55 @@ export function getDeadlineStatus(deadlineStr) {
       isExpired: false,
       isToday: false,
       daysLeft: null,
+      hoursLeft: null,
       isoDate: '',
-      formatted: 'Menyesuaikan',
-      statusText: 'Menyesuaikan',
+      formatted: 'Tanpa batas waktu',
+      statusText: 'Tanpa batas waktu',
       statusBadge: null
     };
   }
 
   const trimmed = deadlineStr.trim();
-  if (!trimmed || trimmed.toLowerCase() === 'menyesuaikan' || trimmed.toLowerCase() === 'tanpa batas') {
+  if (!trimmed || trimmed.toLowerCase() === 'menyesuaikan' || trimmed.toLowerCase() === 'tanpa batas' || trimmed.toLowerCase() === 'tanpa batas waktu') {
     return {
       isValidDate: false,
       isExpired: false,
       isToday: false,
       daysLeft: null,
+      hoursLeft: null,
       isoDate: '',
-      formatted: trimmed || 'Menyesuaikan',
-      statusText: trimmed || 'Menyesuaikan',
+      formatted: 'Tanpa batas waktu',
+      statusText: 'Tanpa batas waktu',
       statusBadge: null
     };
   }
 
-  const iso = parseDateToIso(trimmed);
-  if (!iso) {
+  let deadlineDate = null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, dNum] = trimmed.split('-').map(Number);
+    deadlineDate = new Date(y, m - 1, dNum, 23, 59, 59, 999);
+  } else {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      deadlineDate = d;
+    }
+  }
+
+  if (!deadlineDate) {
+    const iso = parseDateToIso(trimmed);
+    if (iso) {
+      const [y, m, dNum] = iso.split('-').map(Number);
+      deadlineDate = new Date(y, m - 1, dNum, 23, 59, 59, 999);
+    }
+  }
+
+  if (!deadlineDate) {
     return {
       isValidDate: false,
       isExpired: false,
       isToday: false,
       daysLeft: null,
+      hoursLeft: null,
       isoDate: '',
       formatted: trimmed,
       statusText: trimmed,
@@ -94,15 +210,33 @@ export function getDeadlineStatus(deadlineStr) {
     };
   }
 
-  const [y, m, d] = iso.split('-').map(Number);
-  const deadlineEnd = new Date(y, m - 1, d, 23, 59, 59, 999);
   const now = new Date();
+  const isExpired = now.getTime() > deadlineDate.getTime();
+  const formatted = formatDeadlineWib(trimmed);
 
-  const isToday = now.getFullYear() === y && (now.getMonth() + 1) === m && now.getDate() === d;
-  const isExpired = now.getTime() > deadlineEnd.getTime();
-  const msDiff = deadlineEnd.getTime() - now.getTime();
+  // Check same day in Asia/Jakarta
+  const nowParts = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(now);
+  const mNow = {};
+  nowParts.forEach(p => { mNow[p.type] = p.value; });
+
+  const dlParts = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(deadlineDate);
+  const mDl = {};
+  dlParts.forEach(p => { mDl[p.type] = p.value; });
+
+  const isToday = mNow.year === mDl.year && mNow.month === mDl.month && mNow.day === mDl.day;
+  const msDiff = deadlineDate.getTime() - now.getTime();
+  const hoursLeft = Math.floor(msDiff / (1000 * 60 * 60));
   const daysLeft = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
-  const formatted = `${d} ${INDONESIAN_MONTHS[m - 1]} ${y}`;
 
   let statusText = formatted;
   let statusBadge = null;
@@ -111,7 +245,11 @@ export function getDeadlineStatus(deadlineStr) {
     statusText = `Ditutup (${formatted})`;
     statusBadge = 'expired';
   } else if (isToday) {
-    statusText = `Hari Terakhir! (${formatted})`;
+    if (hoursLeft > 0) {
+      statusText = `Hari Terakhir! Sisa ${hoursLeft} jam (${formatted})`;
+    } else {
+      statusText = `Hari Terakhir! (${formatted})`;
+    }
     statusBadge = 'today';
   } else if (daysLeft > 0 && daysLeft <= 3) {
     statusText = `Sisa ${daysLeft} hari (${formatted})`;
@@ -123,7 +261,8 @@ export function getDeadlineStatus(deadlineStr) {
     isExpired,
     isToday,
     daysLeft,
-    isoDate: iso,
+    hoursLeft,
+    isoDate: deadlineDate.toISOString(),
     formatted,
     statusText,
     statusBadge
