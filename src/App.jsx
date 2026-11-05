@@ -167,7 +167,18 @@ export default function App() {
     }
     return (Array.isArray(savedTenures) ? savedTenures.find(t => t.isActive) || savedTenures[0] : null) || null;
   });
-  const [divisions, setDivisions] = useState(() => loadLocalCache('divisions', []));
+  const [divisions, setDivisions] = useState(() => {
+    const cachedDivs = loadLocalCache('divisions', []);
+    const cachedMems = loadLocalCache('members', []);
+    return (cachedDivs || []).map(d => {
+      if (d.memberId) return d;
+      const pimpro = (cachedMems || []).find(m =>
+        (m.category || '').toLowerCase() === 'pimpro' &&
+        (m.divisionId === d.id || (d.leadName && m.name?.toLowerCase() === d.leadName?.toLowerCase()))
+      );
+      return pimpro ? { ...d, memberId: pimpro.id, leadName: pimpro.name } : d;
+    });
+  });
   const [members, setMembers] = useState(() => loadLocalCache('members', []));
   const [events, setEvents] = useState(() => loadLocalCache('events', []));
   const [galleries, setGalleries] = useState(() => loadLocalCache('galleries', []));
@@ -220,8 +231,19 @@ export default function App() {
           return stillExists || { ...defaultActive, isActive: true };
         });
       }
-      if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) setDivisions(cloud.divisions);
+      const currentMembers = (Array.isArray(cloud.members) && cloud.members.length > 0) ? cloud.members : members;
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
+      if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) {
+        const resolvedDivs = cloud.divisions.map(d => {
+          if (d.memberId) return d;
+          const pimpro = currentMembers.find(m =>
+            (m.category || '').toLowerCase() === 'pimpro' &&
+            (m.divisionId === d.id || (d.leadName && m.name?.toLowerCase() === d.leadName?.toLowerCase()))
+          );
+          return pimpro ? { ...d, memberId: pimpro.id, leadName: pimpro.name } : d;
+        });
+        setDivisions(resolvedDivs);
+      }
       if (Array.isArray(cloud.events)) {
         const currentDivs = (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) ? cloud.divisions : divisions;
         const reconciledEvts = cloud.events.map(e => {
@@ -311,26 +333,61 @@ export default function App() {
 
   // Dynamic Add, Edit & Delete Handlers (Persisted to LocalStorage + Supabase Cloud)
   const handleAddDivision = (newDiv) => {
+    let leadName = newDiv.leadName;
+    if (newDiv.memberId) {
+      const pimpro = members.find(m => m.id === newDiv.memberId);
+      if (pimpro) leadName = pimpro.name;
+    }
+    const finalDiv = { ...newDiv, leadName };
+
     setDivisions((prev) => {
-      const next = [...prev, newDiv];
+      const next = [...prev, finalDiv];
       pushCloudState('divisions', next);
       return next;
     });
+
+    if (finalDiv.memberId) {
+      setMembers((prev) => {
+        const targetMem = prev.find(m => m.id === finalDiv.memberId);
+        if (!targetMem || targetMem.divisionId === finalDiv.id) return prev;
+        const next = prev.map(m => m.id === finalDiv.memberId ? { ...m, divisionId: finalDiv.id } : m);
+        pushCloudState('members', next);
+        return next;
+      });
+    }
   };
   const handleUpdateDivision = (updatedDiv) => {
+    let leadName = updatedDiv.leadName;
+    if (updatedDiv.memberId) {
+      const pimpro = members.find(m => m.id === updatedDiv.memberId);
+      if (pimpro) leadName = pimpro.name;
+    }
+    const finalDiv = { ...updatedDiv, leadName };
+
     setDivisions((prev) => {
-      const next = prev.map(d => d.id === updatedDiv.id ? updatedDiv : d);
+      const next = prev.map(d => d.id === finalDiv.id ? finalDiv : d);
       pushCloudState('divisions', next);
       return next;
     });
-    // Auto-sync Pimpro name if leadName changed on Division
-    if (updatedDiv.leadName) {
+
+    // If division's memberId is set, ensure that member's divisionId points to this division
+    if (finalDiv.memberId) {
       setMembers((prev) => {
-        const hasPimpro = prev.some(m => m.category === 'pimpro' && m.divisionId === updatedDiv.id);
+        const targetMem = prev.find(m => m.id === finalDiv.memberId);
+        if (!targetMem || targetMem.divisionId === finalDiv.id) return prev;
+        const next = prev.map(m => m.id === finalDiv.memberId ? { ...m, divisionId: finalDiv.id } : m);
+        pushCloudState('members', next);
+        return next;
+      });
+    }
+    // Auto-sync Pimpro name if leadName changed on Division
+    else if (finalDiv.leadName) {
+      setMembers((prev) => {
+        const hasPimpro = prev.some(m => m.category === 'pimpro' && m.divisionId === finalDiv.id);
         if (!hasPimpro) return prev;
         const next = prev.map(m =>
-          (m.category === 'pimpro' && m.divisionId === updatedDiv.id)
-            ? { ...m, name: updatedDiv.leadName }
+          (m.category === 'pimpro' && m.divisionId === finalDiv.id)
+            ? { ...m, name: finalDiv.leadName }
             : m
         );
         pushCloudState('members', next);
@@ -473,10 +530,10 @@ export default function App() {
       pushCloudState('members', next);
       return next;
     });
-    // Auto-sync Division leadName when adding a Pimpro
-    if (newMem.category === 'pimpro' && newMem.divisionId && newMem.name) {
+    // Auto-sync Division memberId when adding a Pimpro
+    if (newMem.category === 'pimpro' && newMem.divisionId) {
       setDivisions((prev) => {
-        const next = prev.map(d => d.id === newMem.divisionId ? { ...d, leadName: newMem.name } : d);
+        const next = prev.map(d => d.id === newMem.divisionId ? { ...d, memberId: newMem.id, leadName: newMem.name || d.leadName } : d);
         pushCloudState('divisions', next);
         return next;
       });
@@ -492,10 +549,10 @@ export default function App() {
       pushCloudState('members', next);
       return next;
     });
-    // Auto-sync Division leadName when updating a Pimpro
-    if (updatedMem.category === 'pimpro' && updatedMem.divisionId && updatedMem.name) {
+    // Auto-sync Division memberId when updating a Pimpro
+    if (updatedMem.category === 'pimpro' && updatedMem.divisionId) {
       setDivisions((prev) => {
-        const next = prev.map(d => d.id === updatedMem.divisionId ? { ...d, leadName: updatedMem.name } : d);
+        const next = prev.map(d => d.id === updatedMem.divisionId ? { ...d, memberId: updatedMem.id, leadName: updatedMem.name || d.leadName } : d);
         pushCloudState('divisions', next);
         return next;
       });
@@ -513,6 +570,14 @@ export default function App() {
     setMembers((prev) => {
       const next = prev.filter(m => m.id !== memId);
       pushCloudState('members', next);
+      return next;
+    });
+    // Unlink memberId on Division if deleted member was a Pimpro
+    setDivisions((prev) => {
+      const hasLink = prev.some(d => d.memberId === memId);
+      if (!hasLink) return prev;
+      const next = prev.map(d => d.memberId === memId ? { ...d, memberId: null, leadName: '' } : d);
+      pushCloudState('divisions', next);
       return next;
     });
   };

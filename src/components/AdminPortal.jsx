@@ -259,6 +259,7 @@ export default function AdminPortal({
 
   // Form states for new division
   const [newDivName, setNewDivName] = useState('');
+  const [newDivMemberId, setNewDivMemberId] = useState('');
   const [newDivLead, setNewDivLead] = useState('');
   const [newDivColor, setNewDivColor] = useState('#00529B');
   const [newDivDesc, setNewDivDesc] = useState('');
@@ -349,7 +350,7 @@ export default function AdminPortal({
   // Helper to initiate member deletion with Pimpro / leadership checks
   const handleDeleteMemberClick = (m) => {
     const isPimpro = m.category === 'pimpro';
-    const divObj = (divisions || []).find(d => d.id === m.divisionId || d.leadName === m.name);
+    const divObj = (divisions || []).find(d => d.id === m.divisionId || d.memberId === m.id || d.leadName === m.name);
     const squadCount = isPimpro && m.divisionId 
       ? (members || []).filter(other => other.category === 'anggota' && other.divisionId === m.divisionId).length 
       : 0;
@@ -662,12 +663,14 @@ export default function AdminPortal({
       return;
     }
 
+    const selPimpro = members.find(m => m.id === newDivMemberId);
     onAddDivision({
       id: 'div-' + Date.now(),
       tenureId: newDivTenureId || activeTenure?.id || '',
       name: newDivName,
       slug: newDivName.toLowerCase().replace(/\s+/g, '-'),
-      leadName: newDivLead || 'TBD',
+      memberId: newDivMemberId || null,
+      leadName: selPimpro ? selPimpro.name : (newDivLead || 'TBD'),
       color: newDivColor,
       motto: 'Mendorong Transformasi Budaya Berkelanjutan',
       description: newDivDesc || 'Divisi pengembangan inisiatif budaya di Group IT APD.',
@@ -677,6 +680,7 @@ export default function AdminPortal({
 
     const savedDiv = newDivName;
     setNewDivName('');
+    setNewDivMemberId('');
     setNewDivLead('');
     setNewDivDesc('');
     setNewDivFocus('');
@@ -3970,23 +3974,49 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Nama Pimpro / PIC Divisi
+                Nama Pimpro / PIC Divisi (Kategori Pimpro)
               </label>
-              <input
-                type="text"
-                placeholder="Nama PIC"
-                value={newDivLead}
-                onChange={(e) => setNewDivLead(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.85rem'
-                }}
-              />
+              {(() => {
+                const targetDivTenure = newDivTenureId || activeTenure?.id;
+                const availablePimpros = (members || []).filter(m =>
+                  (m.category || '').toLowerCase() === 'pimpro' &&
+                  (!m.tenureId || m.tenureId === targetDivTenure)
+                );
+                return (
+                  <div>
+                    <select
+                      value={newDivMemberId}
+                      onChange={(e) => {
+                        const selId = e.target.value;
+                        setNewDivMemberId(selId);
+                        const selMem = members.find(m => m.id === selId);
+                        setNewDivLead(selMem ? selMem.name : '');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <option value="">-- Pilih Pimpro (Opsional / Ditentukan Nanti) --</option>
+                      {availablePimpros.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} {m.role ? `(${m.role})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {availablePimpros.length === 0 && (
+                      <span style={{ fontSize: '0.72rem', color: '#f59e0b', marginTop: '4px', display: 'block' }}>
+                        Belum ada anggota dengan kategori Pimpro pada periode kepengurusan ini.
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div>
@@ -3995,7 +4025,11 @@ export default function AdminPortal({
               </label>
               <select
                 value={newDivTenureId || activeTenure?.id || ''}
-                onChange={(e) => setNewDivTenureId(e.target.value)}
+                onChange={(e) => {
+                  setNewDivTenureId(e.target.value);
+                  setNewDivMemberId('');
+                  setNewDivLead('');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -4095,7 +4129,12 @@ export default function AdminPortal({
                   <div>
                     <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{d.name}</strong>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
-                      Pimpro: {d.leadName}
+                      Pimpro: {
+                        members.find(m => m.id === d.memberId)?.name ||
+                        members.find(m => (m.category || '').toLowerCase() === 'pimpro' && m.divisionId === d.id)?.name ||
+                        d.leadName ||
+                        'Belum ditentukan'
+                      }
                     </span>
                     {d.tenureId && (
                       <span className="badge-gold" style={{ fontSize: '0.68rem', marginLeft: '8px', padding: '2px 8px' }}>
@@ -6988,13 +7027,54 @@ export default function AdminPortal({
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Pimpro / PIC</label>
-                    <input
-                      type="text"
-                      value={editingItem.item.leadName || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, leadName: e.target.value } })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    />
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      Nama Pimpro / PIC (Kategori Pimpro)
+                    </label>
+                    {(() => {
+                      const editDivTenure = editingItem.item.tenureId || activeTenure?.id;
+                      const availableEditPimpros = (members || []).filter(m =>
+                        (m.category || '').toLowerCase() === 'pimpro' &&
+                        (!m.tenureId || m.tenureId === editDivTenure)
+                      );
+                      const currentSelectedMemberId = editingItem.item.memberId ||
+                        members.find(m => (m.category || '').toLowerCase() === 'pimpro' && m.divisionId === editingItem.item.id)?.id ||
+                        members.find(m => (m.category || '').toLowerCase() === 'pimpro' && m.name === editingItem.item.leadName)?.id ||
+                        '';
+
+                      return (
+                        <select
+                          value={currentSelectedMemberId}
+                          onChange={(e) => {
+                            const selId = e.target.value;
+                            const selMem = members.find(m => m.id === selId);
+                            setEditingItem({
+                              ...editingItem,
+                              item: {
+                                ...editingItem.item,
+                                memberId: selId || null,
+                                leadName: selMem ? selMem.name : ''
+                              }
+                            });
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '9px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--input-border)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.86rem'
+                          }}
+                        >
+                          <option value="">-- Pilih Pimpro (Opsional / Belum Ditentukan) --</option>
+                          {availableEditPimpros.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name} {m.role ? `(${m.role})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -7012,7 +7092,9 @@ export default function AdminPortal({
                           item: {
                             ...editingItem.item,
                             tenureId: newTenure,
-                            divisionId: keepDiv ? editingItem.item.divisionId : undefined
+                            divisionId: keepDiv ? editingItem.item.divisionId : undefined,
+                            memberId: null,
+                            leadName: ''
                           }
                         });
                       }}
@@ -8598,7 +8680,9 @@ export default function AdminPortal({
                       ? editingItem.item.rawFocusAreas.split(',').map(s => s.trim()).filter(Boolean)
                       : (Array.isArray(editingItem.item.focusAreas) ? editingItem.item.focusAreas : []);
                     const { rawFocusAreas, ...cleanItem } = editingItem.item;
-                    onUpdateDivision({ ...cleanItem, focusAreas: finalFocus });
+                    const selMem = members.find(m => m.id === cleanItem.memberId);
+                    const finalLeadName = selMem ? selMem.name : (cleanItem.leadName || '');
+                    onUpdateDivision({ ...cleanItem, leadName: finalLeadName, focusAreas: finalFocus });
                   }
                   if (editingItem.type === 'gallery' && onUpdateGallery) {
                     let finalPhotos = Array.isArray(editingItem.item.photos) ? [...editingItem.item.photos] : [];

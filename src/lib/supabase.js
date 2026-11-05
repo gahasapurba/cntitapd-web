@@ -97,18 +97,46 @@ export async function checkRsvpsDepartmentColumn() {
 }
 
 let isDivisionsSlugColChecked = false;
-let isDivisionsSlugColSupported = true;
+let isDivisionsSlugColSupported = false;
+let isDivisionsMemberIdColChecked = false;
+let isDivisionsMemberIdColSupported = false;
+let isDivisionsLeadNameColChecked = false;
+let isDivisionsLeadNameColSupported = true;
 
-export async function checkDivisionsSlugColumn() {
-  if (isDivisionsSlugColChecked) return isDivisionsSlugColSupported;
+export async function checkDivisionsSchema() {
   try {
-    const { error } = await supabase.from('divisions').select('slug').limit(1);
-    isDivisionsSlugColSupported = !error;
+    const { error: errSlug } = await supabase.from('divisions').select('slug').limit(1);
+    isDivisionsSlugColSupported = !errSlug;
     isDivisionsSlugColChecked = true;
   } catch (e) {
     isDivisionsSlugColSupported = false;
   }
-  return isDivisionsSlugColSupported;
+
+  try {
+    const { error: errMemberId } = await supabase.from('divisions').select('member_id').limit(1);
+    isDivisionsMemberIdColSupported = !errMemberId;
+    isDivisionsMemberIdColChecked = true;
+  } catch (e) {
+    isDivisionsMemberIdColSupported = false;
+  }
+
+  try {
+    const { error: errLeadName } = await supabase.from('divisions').select('lead_name').limit(1);
+    isDivisionsLeadNameColSupported = !errLeadName;
+    isDivisionsLeadNameColChecked = true;
+  } catch (e) {
+    isDivisionsLeadNameColSupported = false;
+  }
+
+  return {
+    isSlugSupported: isDivisionsSlugColSupported,
+    isMemberIdSupported: isDivisionsMemberIdColSupported,
+    isLeadNameSupported: isDivisionsLeadNameColSupported
+  };
+}
+
+export async function checkDivisionsSlugColumn() {
+  return checkDivisionsSchema().then(m => m.isSlugSupported);
 }
 
 let isEventsSchemaChecked = false;
@@ -216,7 +244,6 @@ export const rowMappers = {
         id: String(item.id),
         tenure_id: item.tenureId || null,
         name: item.name || '',
-        lead_name: item.leadName || '',
         color: item.color || '#0284c7',
         motto: item.motto || '',
         description: item.description || '',
@@ -224,6 +251,12 @@ export const rowMappers = {
         is_recruiting: Boolean(item.isRecruiting),
         sort_order: idx
       };
+      if (isDivisionsMemberIdColSupported) {
+        row.member_id = item.memberId || null;
+      }
+      if (isDivisionsLeadNameColSupported) {
+        row.lead_name = item.leadName || '';
+      }
       if (isDivisionsSlugColSupported) {
         row.slug = item.slug || (item.name ? item.name.toLowerCase().replace(/\s+/g, '-') : '');
       }
@@ -234,7 +267,8 @@ export const rowMappers = {
       tenureId: row.tenure_id,
       name: row.name,
       slug: row.slug || (row.name ? row.name.toLowerCase().replace(/\s+/g, '-') : ''),
-      leadName: row.lead_name,
+      memberId: row.member_id || null,
+      leadName: row.lead_name || '',
       color: row.color || '#0284c7',
       motto: row.motto,
       description: row.description,
@@ -552,7 +586,7 @@ export async function fetchAllCloudState() {
       detectEventsSchema(),
       checkFormsTrackingColumn(),
       checkRsvpsDepartmentColumn(),
-      checkDivisionsSlugColumn()
+      checkDivisionsSchema()
     ]);
     const [
       tenuresRes,
@@ -699,7 +733,7 @@ export async function pushCloudState(key, value) {
     }
 
     if (key === 'divisions') {
-      await checkDivisionsSlugColumn();
+      await checkDivisionsSchema();
     }
     if (key === 'galleries') {
       await checkGalleryDivisionIdColumn();

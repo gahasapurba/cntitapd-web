@@ -881,7 +881,12 @@ export default function HomeSection({
                     {div.name}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700, marginBottom: div.motto ? '6px' : '0' }}>
-                    Lead: {div.leadName}
+                    Lead: {
+                      members?.find(m => m.id === div.memberId)?.name ||
+                      members?.find(m => (m.category || '').toLowerCase() === 'pimpro' && m.divisionId === div.id)?.name ||
+                      div.leadName ||
+                      '-'
+                    }
                   </div>
                   {div.motto && (
                     <div style={{
