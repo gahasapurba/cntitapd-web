@@ -39,7 +39,9 @@ import {
   Share2,
   GripVertical,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { 
