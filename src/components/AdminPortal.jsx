@@ -4820,7 +4820,7 @@ export default function AdminPortal({
           return matchesForm && matchesStatus && matchesSearch;
         });
 
-        const SUBS_PER_PAGE = 10;
+        const SUBS_PER_PAGE = 3;
         const totalSubPages = Math.ceil(filteredSubmissions.length / SUBS_PER_PAGE) || 1;
         const safeSubPage = Math.min(Math.max(1, subCurrentPage), totalSubPages);
         const paginatedSubmissions = filteredSubmissions.slice(

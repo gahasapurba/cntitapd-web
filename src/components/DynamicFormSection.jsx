@@ -220,7 +220,7 @@ export default function DynamicFormSection({
     targetForms.forEach((f) => {
       (f.fields || []).forEach((fld) => {
         if (fld.isSearchIndex) {
-          keys.add(fld.label || 'Kunci Pendaftaran');
+          keys.add(fld.label || 'Indeks Pencarian');
         }
       });
     });
@@ -1102,7 +1102,7 @@ export default function DynamicFormSection({
                 boxSizing: 'border-box'
               }}>
                 <span style={{ flexShrink: 0, marginTop: '1px' }}>🔒</span>
-                <span><strong>Privasi Terjamin:</strong> Sistem menggunakan pencarian eksak (Exact Match) pada Kunci Indeks Resmi ({dynamicSearchKeysString}) & ID Unik pendaftaran. Pencarian parsial atau Nama Umum sengaja diblokir demi melindungi privasi seluruh pelamar.</span>
+                <span><strong>Privasi Terjamin:</strong> Sistem menggunakan pencarian eksak (Exact Match) pada Indeks Pencarian ({dynamicSearchKeysString}) & ID Unik pendaftaran. Pencarian parsial atau Nama Umum sengaja diblokir demi melindungi privasi seluruh pelamar.</span>
               </div>
             </div>
           </div>
