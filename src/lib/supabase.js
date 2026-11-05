@@ -370,8 +370,8 @@ export const rowMappers = {
         doc_links: Array.isArray(item.docLinks) ? item.docLinks : [],
         sort_order: idx
       };
-      if (isGalleryDivisionIdSupported && item.divisionId) {
-        row.division_id = item.divisionId;
+      if (isGalleryDivisionIdSupported) {
+        row.division_id = item.divisionId || null;
       }
       if (isGalleryDivisionColSupported) {
         row.division = item.divisionName || item.division || '';
@@ -474,7 +474,7 @@ export const rowMappers = {
   submissions: {
     toDb: (item) => ({
       id: String(item.id),
-      form_id: item.formId || '',
+      form_id: item.formId || null,
       status: item.status || 'Submitted',
       admin_notes: item.adminNotes || '',
       data: item.data || {},
@@ -525,7 +525,7 @@ export const rowMappers = {
       const deptVal = item.department || item.squadUnit || item.departemen || '';
       const row = {
         id: String(item.id),
-        event_id: item.eventId || '',
+        event_id: item.eventId || null,
         attendee_name: item.attendeeName || '',
         attendance_mode: item.attendanceMode || 'Hadir Onsite',
         notes: item.notes || '',
