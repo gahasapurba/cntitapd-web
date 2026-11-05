@@ -4137,13 +4137,9 @@ export default function AdminPortal({
                 <div style={{ position: 'relative', flex: 1 }}>
                   <input
                     type="date"
-                    value={parseDateToIso(newFormDeadline)}
+                    value={toDateInputValue(newFormDeadline)}
                     onChange={(e) => {
-                      if (!e.target.value) {
-                        setNewFormDeadline('');
-                      } else {
-                        setNewFormDeadline(formatToIndonesianDate(e.target.value));
-                      }
+                      setNewFormDeadline(e.target.value);
                     }}
                     style={{
                       width: '100%',
@@ -4264,7 +4260,7 @@ export default function AdminPortal({
                       })()}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      Deadline: {f.deadline} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Berkas Masuk</strong>
+                      Deadline: {f.deadline ? formatWibDateTime(f.deadline) : 'Tanpa batas waktu'} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Berkas Masuk</strong>
                     </div>
                   </div>
 
@@ -6629,10 +6625,9 @@ export default function AdminPortal({
                       <div style={{ position: 'relative', flex: 1 }}>
                         <input
                           type="date"
-                          value={parseDateToIso(editingItem.item.deadline || '')}
+                          value={toDateInputValue(editingItem.item.deadline || '')}
                           onChange={(e) => {
-                            const val = e.target.value ? formatToIndonesianDate(e.target.value) : '';
-                            setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: val } });
+                            setEditingItem({ ...editingItem, item: { ...editingItem.item, deadline: e.target.value } });
                           }}
                           style={{
                             width: '100%',
@@ -6678,7 +6673,7 @@ export default function AdminPortal({
                       )}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--mandiri-gold)', marginTop: '4px', fontWeight: 600 }}>
-                      {editingItem.item.deadline ? `Format: ${editingItem.item.deadline}` : 'Pilih tanggal dari kalender di atas'}
+                      {editingItem.item.deadline ? `Tampilan di Web: ${formatWibDateTime(editingItem.item.deadline)}` : 'Pilih tanggal dari kalender di atas'}
                     </div>
                   </div>
                 </div>

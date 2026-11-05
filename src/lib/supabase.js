@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { formatWibEventRange } from '../utils/dateUtils';
+import { formatWibEventRange } from '../utils/dateUtils.js';
 
 const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || 'https://xarcxbfgeoetyhpqsick.supabase.co';
 const supabaseAnonKey =
