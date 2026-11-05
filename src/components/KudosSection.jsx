@@ -1345,7 +1345,7 @@ export default function KudosSection({
                                 Oleh: {asp.sender || 'Anonim'}
                               </span>
                               <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                                • {asp.submittedAt}
+                                • {formatWibTimestamp(asp.createdAt || asp.submittedAt).exact || asp.submittedAt}
                               </span>
                             </div>
 

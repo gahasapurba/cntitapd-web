@@ -5687,7 +5687,7 @@ export default function AdminPortal({
                       a.status || 'Menunggu Review',
                       a.adminReply || '',
                       a.isPublic !== false ? 'Ya' : 'Tidak',
-                      a.submittedAt || ''
+                      formatWibTimestamp(a.createdAt || a.submittedAt).exact || a.submittedAt || a.createdAt || ''
                     ].map(escapeCsv).join(','));
                     const csvString = '\uFEFF' + [header, ...rows].join('\n');
                     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
