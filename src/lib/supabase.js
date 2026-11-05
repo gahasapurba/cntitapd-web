@@ -491,6 +491,15 @@ export const rowMappers = {
 
   forms: {
     toDb: (item, idx = 0) => {
+      const rawFields = Array.isArray(item.fields) ? [...item.fields] : [];
+      // Persist requiresTracking inside fields[0] as resilient fallback if database column does not exist yet
+      if (rawFields.length > 0) {
+        rawFields[0] = {
+          ...rawFields[0],
+          _requiresTracking: item.requiresTracking !== false
+        };
+      }
+
       const row = {
         id: String(item.id),
         title: item.title || '',
@@ -498,7 +507,7 @@ export const rowMappers = {
         category: item.category || 'Kegiatan & Event',
         deadline: item.deadline || '',
         is_open: item.isOpen !== false,
-        fields: Array.isArray(item.fields) ? item.fields : [],
+        fields: rawFields,
         sort_order: idx
       };
       if (isFormsTrackingColSupported) {
@@ -506,16 +515,26 @@ export const rowMappers = {
       }
       return row;
     },
-    fromDb: (row) => ({
-      id: row.id,
-      title: row.title,
-      subtitle: row.subtitle || row.description || '',
-      category: row.category,
-      deadline: row.deadline,
-      isOpen: row.is_open !== false,
-      requiresTracking: row.requires_tracking !== undefined ? row.requires_tracking !== false : true,
-      fields: Array.isArray(row.fields) ? row.fields : []
-    })
+    fromDb: (row) => {
+      const rawFields = Array.isArray(row.fields) ? row.fields : [];
+      let isTracking = true;
+      if (row.requires_tracking !== undefined && row.requires_tracking !== null) {
+        isTracking = row.requires_tracking !== false;
+      } else if (rawFields.length > 0 && rawFields[0]?._requiresTracking !== undefined) {
+        isTracking = rawFields[0]._requiresTracking !== false;
+      }
+
+      return {
+        id: row.id,
+        title: row.title,
+        subtitle: row.subtitle || row.description || '',
+        category: row.category,
+        deadline: row.deadline,
+        isOpen: row.is_open !== false,
+        requiresTracking: isTracking,
+        fields: rawFields
+      };
+    }
   },
 
   submissions: {
