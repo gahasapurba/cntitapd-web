@@ -2385,43 +2385,55 @@ export default function AdminPortal({
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Kategori Posisi *
               </label>
-              <select
-                value={memCategory}
-                onChange={(e) => {
-                  const newCat = e.target.value;
-                  setMemCategory(newCat);
-                  clearFieldError('memCategory');
-                  if (newCat === 'pembina') {
-                    setMemRole('Pembina');
-                    setMemDivisionId('');
-                  } else if (newCat === 'pimpro') {
-                    const dObj = divisions.find(d => d.id === memDivisionId);
-                    setMemRole(dObj ? `Pimpro ${dObj.name}` : 'Pimpro');
-                  } else if (newCat === 'anggota') {
-                    setMemRole('Anggota Divisi');
-                  } else if (newCat === 'inti') {
-                    setMemDivisionId('');
-                    if (!memRole || memRole === 'Pembina' || memRole === 'Anggota Divisi' || memRole.startsWith('Pimpro')) {
-                      setMemRole('Ketua');
-                    }
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--bg-card)',
-                  border: `1.5px solid ${formErrors.memCategory ? '#f43f5e' : 'var(--border-card)'}`,
-                  color: 'var(--text-main)',
-                  fontSize: '0.85rem'
-                }}
-              >
-                <option value="anggota">Anggota Divisi (Unlimited)</option>
-                <option value="pimpro">Pimpro / Ketua Divisi (Maks 1 per Divisi)</option>
-                <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekretaris Bendahara, Sekjen)</option>
-                <option value="pembina">Pembina / Advisor (Level 1)</option>
-                <option value="penasehat">Dewan Penasehat / Advisor Senior (Level 0)</option>
-              </select>
+              {(() => {
+                const currentTenureId = memTenureId || activeTenure?.id || '';
+                const quota = getTenureQuotaSummary(currentTenureId, members, divisions, roleQuotas);
+                const hasPenasehat = quota.hasPenasehatInQuota || (quota.penasehat?.current > 0);
+                return (
+                  <select
+                    value={memCategory}
+                    onChange={(e) => {
+                      const newCat = e.target.value;
+                      setMemCategory(newCat);
+                      clearFieldError('memCategory');
+                      if (newCat === 'pembina') {
+                        setMemRole(quota.quotas.pembinaName || 'Pembina');
+                        setMemDivisionId('');
+                      } else if (newCat === 'penasehat') {
+                        setMemRole('Dewan Penasehat');
+                        setMemDivisionId('');
+                      } else if (newCat === 'pimpro') {
+                        const dObj = divisions.find(d => d.id === memDivisionId);
+                        setMemRole(dObj ? `Pimpro ${dObj.name}` : 'Pimpro');
+                      } else if (newCat === 'anggota') {
+                        setMemRole('Anggota Divisi');
+                      } else if (newCat === 'inti') {
+                        setMemDivisionId('');
+                        if (!memRole || memRole === 'Pembina' || memRole === 'Anggota Divisi' || memRole.startsWith('Pimpro') || memRole.includes('Penasehat')) {
+                          setMemRole(quota.quotas.ketuaName || 'Ketua');
+                        }
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: `1.5px solid ${formErrors.memCategory ? '#f43f5e' : 'var(--border-card)'}`,
+                      color: 'var(--text-main)',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    <option value="anggota">Anggota Divisi (Unlimited)</option>
+                    <option value="pimpro">Pimpro / Ketua Divisi (Maks 1 per Divisi)</option>
+                    <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekretaris Bendahara, Sekjen)</option>
+                    <option value="pembina">{quota.quotas.pembinaName || 'Pembina'} / Advisor (Level 1)</option>
+                    {hasPenasehat && (
+                      <option value="penasehat">Dewan Penasehat / Advisor Senior (Level 0)</option>
+                    )}
+                  </select>
+                );
+              })()}
               {renderFieldError('memCategory')}
             </div>
 
@@ -2451,9 +2463,11 @@ export default function AdminPortal({
             </div>
 
             {/* Preset Tombol Cepat Peran Pengurus Inti & Custom Roles */}
-            {(memCategory === 'inti' || memCategory === 'penasehat') && (() => {
+            {(() => {
+              if (memCategory !== 'inti' && memCategory !== 'penasehat') return null;
               const currentTenureId = memTenureId || activeTenure?.id || '';
               const quota = getTenureQuotaSummary(currentTenureId, members, divisions, roleQuotas);
+              if (memCategory === 'penasehat' && !quota.hasPenasehatInQuota) return null;
               
               const presets = memCategory === 'penasehat'
                 ? [{ id: 'Penasehat', label: 'Penasehat' }, { id: 'Dewan Penasehat', label: 'Dewan Penasehat' }]
@@ -8170,39 +8184,54 @@ export default function AdminPortal({
                   </div>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Posisi</label>
-                    <select
-                      value={editingItem.item.category || 'anggota'}
-                      onChange={(e) => {
-                        const newCat = e.target.value;
-                        const updated = { ...editingItem.item, category: newCat };
-                        if (newCat === 'pembina') {
-                          updated.role = 'Pembina';
-                          updated.divisionId = undefined;
-                        } else if (newCat === 'pimpro') {
-                          const dObj = divisions.find(d => d.id === updated.divisionId);
-                          updated.role = dObj ? `Pimpro ${dObj.name}` : 'Pimpro';
-                        } else if (newCat === 'inti') {
-                          updated.divisionId = undefined;
-                          if (!updated.role || updated.role === 'Pembina' || updated.role === 'Anggota Divisi' || updated.role.startsWith('Pimpro')) {
-                            updated.role = 'Ketua';
-                          }
-                        }
-                        setEditingItem({ ...editingItem, item: updated });
-                      }}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    >
-                      <option value="penasehat">Dewan Penasehat / Advisor Senior (Level 0)</option>
-                      <option value="pembina">Pembina / Advisor (Level 1)</option>
-                      <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekretaris Bendahara, Sekjen)</option>
-                      <option value="pimpro">Ketua Divisi / Pimpro (Maks 1 per Divisi)</option>
-                      <option value="anggota">Anggota Divisi (Unlimited)</option>
-                    </select>
+                    {(() => {
+                      const editTenureId = editingItem.item.tenureId || activeTenure?.id || '';
+                      const editQuota = getTenureQuotaSummary(editTenureId, members, divisions, roleQuotas);
+                      const hasPenasehat = editQuota.hasPenasehatInQuota || (editQuota.penasehat?.current > 0);
+                      return (
+                        <select
+                          value={editingItem.item.category || 'anggota'}
+                          onChange={(e) => {
+                            const newCat = e.target.value;
+                            const updated = { ...editingItem.item, category: newCat };
+                            if (newCat === 'pembina') {
+                              updated.role = editQuota.quotas.pembinaName || 'Pembina';
+                              updated.divisionId = undefined;
+                            } else if (newCat === 'penasehat') {
+                              updated.role = 'Dewan Penasehat';
+                              updated.divisionId = undefined;
+                            } else if (newCat === 'pimpro') {
+                              const dObj = divisions.find(d => d.id === updated.divisionId);
+                              updated.role = dObj ? `Pimpro ${dObj.name}` : 'Pimpro';
+                            } else if (newCat === 'inti') {
+                              updated.divisionId = undefined;
+                              if (!updated.role || updated.role === 'Pembina' || updated.role === 'Anggota Divisi' || updated.role.startsWith('Pimpro') || updated.role.includes('Penasehat')) {
+                                updated.role = editQuota.quotas.ketuaName || 'Ketua';
+                              }
+                            }
+                            setEditingItem({ ...editingItem, item: updated });
+                          }}
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                        >
+                          <option value="anggota">Anggota Divisi (Unlimited)</option>
+                          <option value="pimpro">Ketua Divisi / Pimpro (Maks 1 per Divisi)</option>
+                          <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekretaris Bendahara, Sekjen)</option>
+                          <option value="pembina">{editQuota.quotas.pembinaName || 'Pembina'} / Advisor (Level 1)</option>
+                          {hasPenasehat && (
+                            <option value="penasehat">Dewan Penasehat / Advisor Senior (Level 0)</option>
+                          )}
+                        </select>
+                      );
+                    })()}
                   </div>
                 </div>
 
-                {(editingItem.item.category === 'inti' || editingItem.item.category === 'penasehat') && (() => {
+                {(() => {
+                  if (editingItem.item.category !== 'inti' && editingItem.item.category !== 'penasehat') return null;
                   const editTenureId = editingItem.item.tenureId || activeTenure?.id || '';
                   const editQuota = getTenureQuotaSummary(editTenureId, members, divisions, roleQuotas);
+                  if (editingItem.item.category === 'penasehat' && !editQuota.hasPenasehatInQuota) return null;
+
                   const presets = editingItem.item.category === 'penasehat'
                     ? [
                         { id: 'Dewan Penasehat', label: 'Dewan Penasehat' },

@@ -122,9 +122,13 @@ export function getTenureQuotaSummary(tenureId, members = [], divisions = [], ro
     };
   });
 
+  const penasehatRoleObj = (quotas.customRoles || []).find(r => r.name.toLowerCase().includes('penasehat') || r.name.toLowerCase().includes('penasihat'));
+  const hasPenasehatInQuota = Boolean(penasehatRoleObj && Number(penasehatRoleObj.max) > 0);
+
   return {
     quotas,
-    penasehat: { current: penasehats.length, max: quotas.customRoles.find(r => r.name.toLowerCase().includes('penasehat'))?.max || 1, members: penasehats },
+    hasPenasehatInQuota,
+    penasehat: { current: penasehats.length, max: penasehatRoleObj ? Number(penasehatRoleObj.max) : 0, members: penasehats },
     pembina: { current: pembinas.length, max: quotas.pembina, members: pembinas },
     ketua: { current: ketuas.length, max: quotas.ketua, members: ketuas },
     wakilKetua: { current: wakilKetuas.length, max: quotas.wakilKetua, members: wakilKetuas },
@@ -148,6 +152,20 @@ export function validateMemberQuota(
   const quotas = getTenureQuotas(targetTenureId, roleQuotas);
   const roleType = getMemberRoleType(category, role, title);
   const roleLower = String(role || '').toLowerCase();
+
+  // 0. Penasehat: HANYA BOLEH diinput jika jabatan Penasehat telah didaftarkan di "⚙️ Atur Kuota"
+  if (category === 'penasehat' || roleType === 'penasehat') {
+    const penasehatRole = (quotas.customRoles || []).find(
+      cr => cr.name.toLowerCase().includes('penasehat') || cr.name.toLowerCase().includes('penasihat')
+    );
+    if (!penasehatRole || Number(penasehatRole.max) <= 0) {
+      return {
+        isValid: false,
+        field: 'memCategory',
+        error: 'Jabatan / Kategori Penasehat belum didaftarkan di "⚙️ Atur Kuota" untuk periode ini. Silakan tambahkan role Penasehat dan tentukan kuotanya terlebih dahulu di panel Atur Kuota.'
+      };
+    }
+  }
 
   // 1. Cek Kuota Custom Roles Terdaftar Terlebih Dahulu
   for (const cr of (quotas.customRoles || [])) {
