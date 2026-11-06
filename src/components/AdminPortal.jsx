@@ -2409,7 +2409,7 @@ export default function AdminPortal({
                 <option value="anggota">Anggota Divisi (Unlimited)</option>
                 <option value="pimpro">Pimpro / Ketua Divisi (Maks 1 / Divisi)</option>
                 <option value="inti">Pengurus Inti (Ketua: 1, Wakil: 1, Sekretaris Bendahara: 2)</option>
-                <option value="pembina">Pembina / Advisor (Maks 1)</option>
+                <option value="pembina">Pembina / Advisor (Maks 2)</option>
               </select>
               {renderFieldError('memCategory')}
             </div>
@@ -2541,7 +2541,7 @@ export default function AdminPortal({
                       <span>🛡️ Batas Kuota Struktur Kepengurusan • {tenureName}</span>
                     </span>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      Maks: Pembina (1), Ketua (1), Wakil (1), Sekretaris Bendahara (2), Pimpro (1/divisi)
+                      Maks: Pembina (2), Ketua (1), Wakil (1), Sekretaris Bendahara (2), Pimpro (1/divisi)
                     </span>
                   </div>
 
@@ -7848,7 +7848,7 @@ export default function AdminPortal({
                       }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
-                      <option value="pembina">Pembina / Advisor (Maks 1)</option>
+                      <option value="pembina">Pembina / Advisor (Maks 2)</option>
                       <option value="inti">Pengurus Inti (Ketua: 1, Wakil: 1, Sekretaris Bendahara: 2)</option>
                       <option value="pimpro">Ketua Divisi / Pimpro (Maks 1 / Divisi)</option>
                       <option value="anggota">Anggota Divisi (Unlimited)</option>
@@ -7956,7 +7956,7 @@ export default function AdminPortal({
                           <span>🛡️ Status Kuota Kepengurusan • {tenureName}</span>
                         </span>
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                          Maks: Pembina (1), Ketua (1), Wakil (1), Sekretaris Bendahara (2), Pimpro (1/divisi)
+                          Maks: Pembina (2), Ketua (1), Wakil (1), Sekretaris Bendahara (2), Pimpro (1/divisi)
                         </span>
                       </div>
 

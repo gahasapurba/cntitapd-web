@@ -82,7 +82,38 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
 
   const pembinas = activeMembers.filter(m => m.category === 'pembina');
-  const inti = activeMembers.filter(m => m.category === 'inti');
+
+  // Urutan hierarki Pengurus Inti:
+  // 1: Ketua
+  // 2: Wakil Ketua
+  // 3: Sekretaris (atau Sekretaris Bendahara 1 / Sekben 1)
+  // 4: Bendahara (atau Sekretaris Bendahara 2 / Sekben 2)
+  // 5+: Inti lainnya
+  const getIntiRank = (m) => {
+    const role = (m.role || '').toLowerCase();
+    if (role.includes('ketua') && !role.includes('wakil')) return 1;
+    if (role.includes('wakil')) return 2;
+    if (role.includes('sekretaris') && !role.includes('bendahara')) return 3;
+    if (role.includes('sekben 1') || role.includes('sekretaris bendahara 1')) return 3;
+    if (role.includes('bendahara') && !role.includes('sekretaris')) return 4;
+    if (role.includes('sekben 2') || role.includes('sekretaris bendahara 2')) return 4;
+    if (role.includes('sekben') || role.includes('sekretaris') || role.includes('bendahara')) return 3.5;
+    return 5;
+  };
+
+  const sortedInti = [...activeMembers.filter(m => m.category === 'inti')].sort(
+    (a, b) => getIntiRank(a) - getIntiRank(b)
+  );
+
+  const level2Members = sortedInti.filter(m => {
+    const r = (m.role || '').toLowerCase();
+    return r.includes('ketua') || r.includes('wakil');
+  });
+  const displayLevel2 = level2Members.length > 0 ? level2Members.slice(0, 2) : sortedInti.slice(0, 2);
+
+  // Level 3 adalah pengurus inti di luar Ketua & Wakil (yaitu Sekretaris, Bendahara, atau Sekben)
+  const displayLevel3 = sortedInti.filter(m => !displayLevel2.some(l2 => l2.id === m.id));
+
   const pimpro = activeMembers.filter(m => m.category === 'pimpro');
 
   const isFiltering = searchQuery.trim() !== '' || categoryFilter !== 'all' || divisionFilter !== 'all';
@@ -330,88 +361,129 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
         )}
 
         {/* CONNECTING LINE 1 (Pembina down to Level 2) */}
-        <div className="org-tree-line" style={{
-          width: '5px',
-          height: '28px',
-          background: 'linear-gradient(to bottom, #FFB800, #34d399)',
-          boxShadow: '0 0 15px #34d399',
-          zIndex: 1
-        }} />
+        {pembinas.length > 0 && (
+          pembinas.length > 1 ? (
+            <div className="org-tree-line" style={{ position: 'relative', width: '100%', maxWidth: '820px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+              <div style={{ width: '100%', display: 'grid', gridTemplateColumns: `repeat(${pembinas.length}, 1fr)`, gap: '24px' }}>
+                {pembinas.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ width: '5px', height: '16px', background: '#FFB800', boxShadow: '0 0 10px #FFB800' }} />
+                  </div>
+                ))}
+              </div>
+              <div style={{ position: 'relative', width: '100%', height: '5px' }}>
+                <div style={{
+                  position: 'absolute',
+                  left: `calc(100% / (${pembinas.length} * 2))`,
+                  right: `calc(100% / (${pembinas.length} * 2))`,
+                  height: '5px',
+                  background: '#FFB800',
+                  boxShadow: '0 0 15px #FFB800',
+                  borderRadius: '3px'
+                }} />
+              </div>
+              <div style={{ width: '5px', height: '18px', background: 'linear-gradient(to bottom, #FFB800, #34d399)', boxShadow: '0 0 15px #34d399' }} />
+            </div>
+          ) : (
+            <div className="org-tree-line" style={{
+              width: '5px',
+              height: '28px',
+              background: 'linear-gradient(to bottom, #FFB800, #34d399)',
+              boxShadow: '0 0 15px #34d399',
+              zIndex: 1
+            }} />
+          )
+        )}
 
         {/* LEVEL 2: KETUA & WAKIL (Side by Side) */}
-        <div style={{ position: 'relative', width: '100%', maxWidth: '820px' }}>
-          {/* Horizontal Bridge between Ketua & Wakil */}
-          <div className="org-tree-line" style={{
-            position: 'absolute',
-            top: 0,
-            left: '25%',
-            right: '25%',
-            height: '5px',
-            background: '#34d399',
-            boxShadow: '0 0 15px #34d399',
-            zIndex: 1
-          }} />
+        {displayLevel2.length > 0 && (
+          <div style={{ position: 'relative', width: '100%', maxWidth: displayLevel2.length === 1 ? '440px' : '820px' }}>
+            {/* Horizontal Bridge between Ketua & Wakil */}
+            {displayLevel2.length > 1 && (
+              <div className="org-tree-line" style={{
+                position: 'absolute',
+                top: 0,
+                left: '25%',
+                right: '25%',
+                height: '5px',
+                background: '#34d399',
+                boxShadow: '0 0 15px #34d399',
+                zIndex: 1
+              }} />
+            )}
 
-          <div className="org-level-2">
-            {inti.slice(0, 2).map((person) => (
-              <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div className="org-tree-line" style={{ width: '5px', height: '16px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
-                <div style={{ width: '100%' }}>
-                  <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
+            <div className={displayLevel2.length === 1 ? '' : 'org-level-2'}>
+              {displayLevel2.map((person) => (
+                <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div className="org-tree-line" style={{ width: '5px', height: '16px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
+                  <div style={{ width: '100%' }}>
+                    <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* CONNECTING LINE 2 (Ketua & Wakil down to Sekben) */}
-        <div className="org-tree-line" style={{ position: 'relative', width: '100%', maxWidth: '820px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
-          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: '5px', height: '24px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: '5px', height: '24px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
+              ))}
             </div>
           </div>
-          {/* Horizontal Bridge between Sekben 1 & 2 */}
-          <div style={{ position: 'relative', width: '100%', height: '5px' }}>
-            <div style={{
-              position: 'absolute',
-              left: 'calc((100% - 24px) / 4 - 2.5px)',
-              right: 'calc((100% - 24px) / 4 - 2.5px)',
-              height: '5px',
-              background: '#c084fc',
-              boxShadow: '0 0 15px #c084fc',
-              borderRadius: '3px'
-            }} />
-          </div>
-        </div>
+        )}
 
-        {/* LEVEL 3: SEKBEN 1 & SEKBEN 2 */}
-        <div style={{ position: 'relative', width: '100%', maxWidth: '820px', zIndex: 10 }}>
-          <div className="org-level-3">
-            {inti.slice(2, 4).map((person) => (
-              <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div className="org-tree-line" style={{ width: '5px', height: '16px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
-                <div style={{ width: '100%' }}>
-                  <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
+        {/* CONNECTING LINE 2 (Ketua & Wakil down to Sekretaris & Bendahara) */}
+        {displayLevel3.length > 0 && (
+          <div className="org-tree-line" style={{ position: 'relative', width: '100%', maxWidth: '820px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
+            <div style={{ width: '100%', display: 'grid', gridTemplateColumns: `repeat(${Math.max(displayLevel2.length, 1)}, 1fr)`, gap: '24px' }}>
+              {displayLevel2.map(p => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ width: '5px', height: '24px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
                 </div>
+              ))}
+            </div>
+            {/* Horizontal Bridge between Level 3 cards */}
+            {displayLevel3.length > 1 && (
+              <div style={{ position: 'relative', width: '100%', height: '5px' }}>
+                <div style={{
+                  position: 'absolute',
+                  left: `calc(100% / (${displayLevel3.length} * 2))`,
+                  right: `calc(100% / (${displayLevel3.length} * 2))`,
+                  height: '5px',
+                  background: '#c084fc',
+                  boxShadow: '0 0 15px #c084fc',
+                  borderRadius: '3px'
+                }} />
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        )}
 
-        {/* 4-WAY DISTRIBUTOR TREE LINE (Sekben down to 4 Pimpro) */}
+        {/* LEVEL 3: SEKRETARIS & BENDAHARA */}
+        {displayLevel3.length > 0 && (
+          <div style={{ position: 'relative', width: '100%', maxWidth: displayLevel3.length === 1 ? '440px' : '820px', zIndex: 10 }}>
+            <div 
+              className={displayLevel3.length === 1 ? '' : 'org-level-3'}
+              style={{
+                display: displayLevel3.length > 2 ? 'grid' : undefined,
+                gridTemplateColumns: displayLevel3.length > 2 ? `repeat(${displayLevel3.length}, minmax(0, 1fr))` : undefined,
+                gap: displayLevel3.length > 2 ? '16px' : undefined
+              }}
+            >
+              {displayLevel3.map((person) => (
+                <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div className="org-tree-line" style={{ width: '5px', height: '16px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
+                  <div style={{ width: '100%' }}>
+                    <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 4-WAY DISTRIBUTOR TREE LINE (Sekretaris & Bendahara down to Pimpro) */}
         <div className="org-tree-line" style={{ width: '100%', maxWidth: '1240px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}>
-          {/* Incoming vertical lines from Sekben (matches Sekben's 820px grid exactly) */}
-          <div style={{ width: '100%', maxWidth: '820px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
-            </div>
+          {/* Incoming vertical lines from Level 3 */}
+          <div style={{ width: '100%', maxWidth: displayLevel3.length === 1 ? '440px' : '820px', display: 'grid', gridTemplateColumns: `repeat(${Math.max(displayLevel3.length, 1)}, 1fr)`, gap: '24px' }}>
+            {(displayLevel3.length > 0 ? displayLevel3 : [1]).map((_, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
+              </div>
+            ))}
           </div>
           {/* Continuous Horizontal bar spanning across columns */}
           {(() => {

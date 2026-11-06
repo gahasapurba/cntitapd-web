@@ -1,7 +1,7 @@
 /**
  * Member Quota & Role Validation Utilities for CNT IT APD
  * Rules per Tenure (Periode Kepengurusan):
- * 1. Pembina: Maksimal 1 orang
+ * 1. Pembina: Maksimal 2 orang
  * 2. Ketua: Maksimal 1 orang
  * 3. Wakil Ketua: Maksimal 1 orang
  * 4. Pimpro (Ketua Divisi): Maksimal 1 orang per masing-masing divisi
@@ -55,7 +55,7 @@ export function getTenureQuotaSummary(tenureId, members = [], divisions = []) {
   });
 
   return {
-    pembina: { current: pembinas.length, max: 1, members: pembinas },
+    pembina: { current: pembinas.length, max: 2, members: pembinas },
     ketua: { current: ketuas.length, max: 1, members: ketuas },
     wakilKetua: { current: wakilKetuas.length, max: 1, members: wakilKetuas },
     sekben: { current: sekbens.length, max: 2, members: sekbens },
@@ -75,18 +75,19 @@ export function validateMemberQuota(
   const targetTenureId = tenureId || '';
   const roleType = getMemberRoleType(category, role, title);
 
-  // 1. Pembina: Maksimal 1 orang per kepengurusan
+  // 1. Pembina: Maksimal 2 orang per kepengurusan
   if (category === 'pembina' || roleType === 'pembina') {
     const existing = (members || []).filter(m => 
       (!targetTenureId || m.tenureId === targetTenureId) &&
       m.id !== excludeMemberId &&
       m.category === 'pembina'
     );
-    if (existing.length >= 1) {
+    if (existing.length >= 2) {
+      const names = existing.map(e => `"${e.name}"`).join(' dan ');
       return {
         isValid: false,
         field: 'memCategory',
-        error: `Batas kuota Pembina telah terpenuhi (maksimal 1 Pembina per periode kepengurusan). Saat ini sudah diisi oleh "${existing[0].name}".`
+        error: `Batas kuota Pembina telah terpenuhi (maksimal 2 Pembina per periode kepengurusan). Saat ini sudah diisi oleh ${names}.`
       };
     }
   }
