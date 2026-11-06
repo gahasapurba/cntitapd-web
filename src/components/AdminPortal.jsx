@@ -713,7 +713,22 @@ export default function AdminPortal({
       return;
     }
 
-    let finalImageUrl = memImage || '';
+    let finalImageUrl = (memImage || '').trim();
+
+    // Validasi URL foto jika diinput dalam bentuk tautan web
+    if (finalImageUrl && !pendingMemberPhoto && !finalImageUrl.startsWith('blob:')) {
+      setIsUploadingMedia(true);
+      showToast('Memverifikasi tautan foto profil...');
+      const check = await verifyImageUrl(finalImageUrl, { requireHttps: true, allowRelative: false });
+      if (!check.valid) {
+        setIsUploadingMedia(false);
+        setFormErrors((prev) => ({ ...prev, memImage: check.error }));
+        showToast(`Tautan foto tidak valid: ${check.error}`, 'error');
+        return;
+      }
+      setIsUploadingMedia(false);
+    }
+
     if (pendingMemberPhoto) {
       setIsUploadingMedia(true);
       showToast('Mengunggah foto profil ke Cloud Storage...');
@@ -1186,23 +1201,31 @@ export default function AdminPortal({
   };
 
   // Helper to verify if an external image link is reachable and valid
-  const verifyImageUrl = (url) => {
+  const verifyImageUrl = (url, options = {}) => {
+    const { requireHttps = false, allowRelative = false } = options;
     return new Promise((resolve) => {
       if (!url || typeof url !== 'string') {
         return resolve({ valid: false, error: 'URL tidak boleh kosong' });
       }
       const trimmed = url.trim();
-      if (trimmed.startsWith('/images/') || trimmed.startsWith('/assets/')) {
+      if (trimmed.startsWith('blob:')) {
+        return resolve({ valid: true });
+      }
+      if (allowRelative && (trimmed.startsWith('/images/') || trimmed.startsWith('/assets/'))) {
         return resolve({ valid: true });
       }
       let parsed;
       try {
         parsed = new URL(trimmed);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        if (requireHttps) {
+          if (parsed.protocol !== 'https:') {
+            return resolve({ valid: false, error: 'Tautan URL foto wajib diawali dengan https://' });
+          }
+        } else if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
           return resolve({ valid: false, error: 'Tautan harus diawali dengan http:// atau https://' });
         }
       } catch {
-        return resolve({ valid: false, error: 'Format tautan URL tidak valid' });
+        return resolve({ valid: false, error: requireHttps ? 'Format tautan URL tidak valid (wajib diawali https://)' : 'Format tautan URL tidak valid' });
       }
 
       const hasImageExtension = /\.(jpe?g|png|webp|gif|svg|avif|bmp|ico)($|\?)/i.test(trimmed);
@@ -2790,16 +2813,19 @@ export default function AdminPortal({
                 </label>
                 <input
                   type="text"
-                  placeholder="Atau tempel URL foto (/images/... atau https://...)"
+                  placeholder="Atau tempel URL foto (https://...)"
                   value={memImage}
-                  onChange={(e) => setMemImage(e.target.value)}
+                  onChange={(e) => {
+                    setMemImage(e.target.value);
+                    clearFieldError('memImage');
+                  }}
                   style={{
                     flex: 1,
                     minWidth: '200px',
                     padding: '9px 12px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid var(--border-card)',
+                    border: `1px solid ${formErrors.memImage ? '#f43f5e' : 'var(--border-card)'}`,
                     color: 'var(--text-main)',
                     fontSize: '0.83rem'
                   }}
@@ -2807,13 +2833,18 @@ export default function AdminPortal({
                 {memImage && (
                   <button
                     type="button"
-                    onClick={() => setMemImage('')}
+                    onClick={() => {
+                      setMemImage('');
+                      setPendingMemberPhoto(null);
+                      clearFieldError('memImage');
+                    }}
                     style={{ background: 'transparent', border: 'none', color: '#f43f5e', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
                   >
                     Hapus Foto
                   </button>
                 )}
               </div>
+              {renderFieldError('memImage')}
             </div>
 
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
@@ -8685,9 +8716,12 @@ export default function AdminPortal({
                     </label>
                     <input
                       type="text"
-                      placeholder="URL Foto (/images/...)"
+                      placeholder="URL Foto (https://...)"
                       value={editingItem.item.image || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, image: e.target.value } })}
+                      onChange={(e) => {
+                        setEditingItem({ ...editingItem, item: { ...editingItem.item, image: e.target.value } });
+                        if (editModalError) setEditModalError('');
+                      }}
                       style={{ flex: 1, minWidth: '150px', padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                     />
                   </div>
@@ -10778,7 +10812,22 @@ export default function AdminPortal({
                       showToast(quotaCheck.error, 'error');
                       return;
                     }
-                    let finalImage = editingItem.item.image || '';
+                    let finalImage = (editingItem.item.image || '').trim();
+
+                    // Validasi URL foto jika diinput dalam bentuk tautan web
+                    if (finalImage && !editingItem.pendingPhoto && !finalImage.startsWith('blob:')) {
+                      setIsUploadingMedia(true);
+                      showToast('Memverifikasi tautan foto profil...');
+                      const check = await verifyImageUrl(finalImage, { requireHttps: true, allowRelative: false });
+                      if (!check.valid) {
+                        setIsUploadingMedia(false);
+                        setEditModalError(`Tautan foto tidak valid: ${check.error}`);
+                        showToast(`Tautan foto tidak valid: ${check.error}`, 'error');
+                        return;
+                      }
+                      setIsUploadingMedia(false);
+                    }
+
                     if (editingItem.pendingPhoto) {
                       setIsUploadingMedia(true);
                       showToast(`Mengunggah foto "${editingItem.pendingPhoto.name}" ke Cloud Storage...`);
