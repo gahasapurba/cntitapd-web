@@ -74,7 +74,8 @@ import {
   getTenureQuotaSummary,
   getMemberRoleType,
   formatLevelOptionLabel,
-  getDivisionLead
+  getDivisionLead,
+  getDivisionStructure
 } from '../utils/memberQuotaUtils';
 
 function formatWaPhone(raw = '') {
@@ -5698,11 +5699,22 @@ export default function AdminPortal({
                   <div>
                     <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{d.name}</strong>
                     {(() => {
+                      const { leaders } = getDivisionStructure(d, members, tenureRoles);
+                      if (leaders.length > 0) {
+                        return (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
+                            {leaders.map((l, i) => (
+                              <span key={l.id || i} style={{ marginRight: '8px' }}>
+                                {l.role}: <strong style={{ color: 'var(--text-main)' }}>{l.name}</strong>
+                              </span>
+                            ))}
+                          </span>
+                        );
+                      }
                       const lead = getDivisionLead(d, members, tenureRoles);
-                      const label = lead.roleName ? (lead.roleName.toLowerCase().includes('pimpro') ? 'Pimpro' : lead.roleName) : 'Pimpro';
                       return (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
-                          {label}: <strong style={{ color: lead.name ? 'var(--text-main)' : 'var(--text-dim)' }}>{lead.name || 'Belum ditentukan'}</strong>
+                          Pimpro: <strong style={{ color: lead.name ? 'var(--text-main)' : 'var(--text-dim)' }}>{lead.name || 'Belum ditentukan'}</strong>
                         </span>
                       );
                     })()}

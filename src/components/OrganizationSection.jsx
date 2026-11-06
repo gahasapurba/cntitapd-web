@@ -15,7 +15,7 @@ import {
 import CrewMemberCard from './CrewMemberCard';
 import { soundFx } from '../utils/audio';
 import { exportPresentationToPdf } from '../utils/exportPdf';
-import { getTenureRoles, getMemberLevel, findMatchingRole, getDivisionLead } from '../utils/memberQuotaUtils';
+import { getTenureRoles, getMemberLevel, findMatchingRole, getDivisionLead, getDivisionStructure } from '../utils/memberQuotaUtils';
 
 function formatWaNumber(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -589,21 +589,52 @@ export default function OrganizationSection({
                 }}
               >
                 {displayDivs.map((div, idx) => {
+                  const { leaders: divLeaders, members: divisionMembers } = getDivisionStructure(div, activeMembers, currentTenureRoles);
                   const leadObj = getDivisionLead(div, activeMembers, currentTenureRoles);
-                  const lead = leadObj.member
-                    || activeMembers.find(m => div.leadName && m.name === div.leadName)
-                    || (pimpro[idx] || null);
+                  const effectiveLeaders = divLeaders.length > 0
+                    ? divLeaders
+                    : (leadObj.member ? [leadObj.member] : (div.leadName ? activeMembers.filter(m => m.name === div.leadName) : (pimpro[idx] ? [pimpro[idx]] : [])));
                   const lineColor = div.color || (idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800');
-                  const divisionMembers = activeMembers.filter(m => m.id !== lead?.id && m.divisionId === div.id);
 
                   return (
                     <div key={div.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <div className="org-tree-line" style={{ width: '5px', height: '20px', background: lineColor, boxShadow: `0 0 10px ${lineColor}` }} />
                       
-                      {/* Ketua Divisi Card */}
+                      {/* Pimpinan / Ketua & Wakil Divisi (Setara jika satu tingkatan) */}
                       <div style={{ width: '100%' }}>
-                        {lead ? (
-                          <CrewMemberCard member={lead} onClick={() => handleMemberClick(lead)} compact={true} />
+                        {effectiveLeaders.length > 0 ? (
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            {/* Horizontal bridge connecting co-leaders when > 1 */}
+                            {effectiveLeaders.length > 1 && (
+                              <div className="org-tree-line" style={{
+                                position: 'relative',
+                                width: '100%',
+                                height: '4px',
+                                background: lineColor,
+                                boxShadow: `0 0 10px ${lineColor}`,
+                                borderRadius: '2px',
+                                marginBottom: '0px'
+                              }} />
+                            )}
+
+                            <div style={{
+                              width: '100%',
+                              display: 'grid',
+                              gridTemplateColumns: effectiveLeaders.length > 1 ? `repeat(auto-fit, minmax(min(100%, 260px), 1fr))` : '1fr',
+                              gap: '12px'
+                            }}>
+                              {effectiveLeaders.map((ldr) => (
+                                <div key={ldr.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                  {effectiveLeaders.length > 1 && (
+                                    <div className="org-tree-line" style={{ width: '3px', height: '14px', background: lineColor, opacity: 0.8 }} />
+                                  )}
+                                  <div style={{ width: '100%' }}>
+                                    <CrewMemberCard member={ldr} onClick={() => handleMemberClick(ldr)} compact={true} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         ) : (
                           <div className="glass-panel" style={{
                             padding: '16px 12px',

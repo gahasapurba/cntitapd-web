@@ -424,3 +424,76 @@ export function getDivisionLead(division, members = [], tenureRoles = []) {
     roleName: 'Pimpro'
   };
 }
+
+/**
+ * Mengelompokkan anggota divisi menjadi pimpinan (leaders) dan anggota biasa (members).
+ * Jika ada beberapa personel yang memegang tingkatan yang sama di puncak divisi
+ * (misal Kepala Divisi & Wakil Kepala Divisi yang sama-sama Level 3 atau Level 4),
+ * keduanya ditempatkan setara sebagai pimpinan divisi (leaders).
+ */
+export function getDivisionStructure(division, members = [], tenureRoles = []) {
+  if (!division) return { leaders: [], members: [] };
+  const divMembers = (members || []).filter(m => m.divisionId === division.id);
+  if (divMembers.length === 0) return { leaders: [], members: [] };
+
+  const enriched = divMembers.map(m => {
+    const roleObj = (tenureRoles || []).find(r => r.id === m.roleId) ||
+      (tenureRoles || []).find(r => r.name && r.name.toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
+    const roleName = String(roleObj?.name || m.role || '').toLowerCase();
+    const level = roleObj ? Number(roleObj.level) : (m.category === 'pimpro' ? 4 : 5);
+    const isExplicitWakil = roleName.includes('wakil') || roleName.includes('vice') || roleName.includes('co-');
+    
+    const isLeadershipWord = roleName.includes('pimpro') ||
+      roleName.includes('kepala') ||
+      roleName.includes('ketua') ||
+      roleName.includes('pimpinan') ||
+      roleName.includes('koordinator') ||
+      roleName.includes('lead');
+
+    return {
+      member: m,
+      roleObj,
+      roleTitle: roleObj?.name || m.role || 'Pimpro',
+      level,
+      isExplicitWakil,
+      isLeadershipWord
+    };
+  });
+
+  const minLevel = Math.min(...enriched.map(e => e.level));
+  let leaderItems = [];
+  let memberItems = [];
+
+  if (minLevel < 5) {
+    // Semua personel yang berada di tingkat minLevel (misal sama-sama level 3 atau sama-sama level 4)
+    // ATAU personel dengan level <= 4 yang memiliki kata kunci kepemimpinan
+    leaderItems = enriched.filter(e => 
+      e.level === minLevel || 
+      (e.level <= 4 && (e.isLeadershipWord || e.member.category === 'pimpro'))
+    );
+    memberItems = enriched.filter(e => !leaderItems.some(l => l.member.id === e.member.id));
+  } else {
+    const singleLead = getDivisionLead(division, members, tenureRoles);
+    if (singleLead?.member) {
+      leaderItems = enriched.filter(e => e.member.id === singleLead.member.id);
+      memberItems = enriched.filter(e => e.member.id !== singleLead.member.id);
+    } else {
+      leaderItems = [];
+      memberItems = enriched;
+    }
+  }
+
+  // Urutkan leaders: role non-wakil di posisi utama (kiri), wakil di posisi pendamping (kanan)
+  leaderItems.sort((a, b) => {
+    if (a.level !== b.level) return a.level - b.level;
+    if (a.isExplicitWakil !== b.isExplicitWakil) {
+      return (a.isExplicitWakil ? 1 : 0) - (b.isExplicitWakil ? 1 : 0);
+    }
+    return (a.member.sortOrder ?? 0) - (b.member.sortOrder ?? 0);
+  });
+
+  return {
+    leaders: leaderItems.map(l => l.member),
+    members: memberItems.map(m => m.member)
+  };
+}
