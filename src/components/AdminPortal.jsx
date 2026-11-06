@@ -2420,7 +2420,7 @@ export default function AdminPortal({
               </label>
               <input
                 type="text"
-                placeholder="Contoh: Ketua / Wakil Ketua / Sekretaris Bendahara 1 / Pimpro Experience & Activity"
+                placeholder="Contoh: Ketua / Wakil Ketua / Sekretaris Bendahara / Pimpro Experience & Activity"
                 value={memRole}
                 onChange={(e) => {
                   setMemRole(e.target.value);
@@ -2458,8 +2458,7 @@ export default function AdminPortal({
                   {[
                     { id: 'Ketua', label: 'Ketua (Maks 1)' },
                     { id: 'Wakil Ketua', label: 'Wakil Ketua (Maks 1)' },
-                    { id: 'Sekretaris Bendahara 1', label: 'Sekretaris Bendahara 1' },
-                    { id: 'Sekretaris Bendahara 2', label: 'Sekretaris Bendahara 2' },
+                    { id: 'Sekretaris Bendahara', label: 'Sekretaris Bendahara' },
                     { id: 'Sekretaris', label: 'Sekretaris' },
                     { id: 'Bendahara', label: 'Bendahara' }
                   ].map((preset) => {
@@ -7873,8 +7872,7 @@ export default function AdminPortal({
                       {[
                         { id: 'Ketua', label: 'Ketua' },
                         { id: 'Wakil Ketua', label: 'Wakil Ketua' },
-                        { id: 'Sekretaris Bendahara 1', label: 'Sekretaris Bendahara 1' },
-                        { id: 'Sekretaris Bendahara 2', label: 'Sekretaris Bendahara 2' },
+                        { id: 'Sekretaris Bendahara', label: 'Sekretaris Bendahara' },
                         { id: 'Sekretaris', label: 'Sekretaris' },
                         { id: 'Bendahara', label: 'Bendahara' }
                       ].map((preset) => {
