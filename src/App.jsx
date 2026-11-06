@@ -1311,6 +1311,7 @@ export default function App() {
               divisions={divisions}
               members={members}
               events={events}
+              roleQuotas={roleQuotas}
               onNavigateProgram={isPageVisible('event') ? () => setCurrentTab('event') : undefined}
               theme={theme}
             />

@@ -15,6 +15,7 @@ import {
 import CrewMemberCard from './CrewMemberCard';
 import { soundFx } from '../utils/audio';
 import { exportPresentationToPdf } from '../utils/exportPdf';
+import { getTenureRoles, getMemberLevel } from '../utils/memberQuotaUtils';
 
 function formatWaNumber(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -23,7 +24,7 @@ function formatWaNumber(raw = '') {
   return digits;
 }
 
-export default function OrganizationSection({ activeTenure, divisions, members, events = [], onNavigateProgram }) {
+export default function OrganizationSection({ activeTenure, divisions, members, events = [], roleQuotas = {}, onNavigateProgram }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,52 +82,27 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   const activeDivisions = (divisions || []).filter(d => d.tenureId === activeTenure?.id);
   const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
 
-  // Dewan Penasehat (Tingkat tertinggi di atas Pembina bila ada)
-  const penasehats = activeMembers.filter(m => 
-    m.category === 'penasehat' || 
-    (m.role || '').toLowerCase().includes('penasehat') || 
-    (m.role || '').toLowerCase().includes('penasihat')
-  );
+  const tenureRoles = getTenureRoles(activeTenure?.id, roleQuotas);
 
-  const pembinas = activeMembers.filter(m => 
-    (m.category === 'pembina' || (m.role || '').toLowerCase().includes('pembina')) && 
-    !penasehats.some(p => p.id === m.id)
-  );
+  // Dewan Penasehat (Level 0 - Tingkat tertinggi bila ada)
+  const penasehats = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 0);
 
-  // Urutan hierarki Pengurus Inti:
-  // 1: Ketua
-  // 2: Wakil Ketua
-  // 2.5: Sekretaris Jenderal (Sekjen)
-  // 3: Sekretaris (atau Sekretaris Bendahara 1 / Sekben 1)
-  // 4: Bendahara (atau Sekretaris Bendahara 2 / Sekben 2)
-  // 5+: Inti lainnya
-  const getIntiRank = (m) => {
-    const role = (m.role || '').toLowerCase();
-    if (role.includes('ketua') && !role.includes('wakil')) return 1;
-    if (role.includes('wakil')) return 2;
-    if (role.includes('sekretaris jenderal') || role.includes('sekjen')) return 2.5;
-    if (role.includes('sekretaris') && !role.includes('bendahara')) return 3;
-    if (role.includes('sekben 1') || role.includes('sekretaris bendahara 1')) return 3;
-    if (role.includes('bendahara') && !role.includes('sekretaris')) return 4;
-    if (role.includes('sekben 2') || role.includes('sekretaris bendahara 2')) return 4;
-    if (role.includes('sekben') || role.includes('sekretaris') || role.includes('bendahara')) return 3.5;
-    return 5;
-  };
+  // Pembina (Level 1)
+  const pembinas = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 1);
 
-  const sortedInti = [...activeMembers.filter(m => m.category === 'inti')].sort(
-    (a, b) => getIntiRank(a) - getIntiRank(b)
-  );
-
-  const level2Members = sortedInti.filter(m => {
-    const r = (m.role || '').toLowerCase();
-    return r.includes('ketua') || r.includes('wakil');
+  // Level 2: Ketua & Wakil Ketua
+  const level2Members = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 2);
+  const displayLevel2 = [...level2Members].sort((a, b) => {
+    const aIsWakil = (a.role || '').toLowerCase().includes('wakil');
+    const bIsWakil = (b.role || '').toLowerCase().includes('wakil');
+    return (aIsWakil ? 1 : 0) - (bIsWakil ? 1 : 0);
   });
-  const displayLevel2 = level2Members.length > 0 ? level2Members.slice(0, 2) : sortedInti.slice(0, 2);
 
-  // Level 3 adalah pengurus inti di luar Ketua & Wakil (Sekretaris Jenderal, Sekretaris, Bendahara, Sekben)
-  const displayLevel3 = sortedInti.filter(m => !displayLevel2.some(l2 => l2.id === m.id));
+  // Level 3: Pengurus Harian / BPH (Sekretaris, Bendahara, Sekben, Sekjen, dll.)
+  const displayLevel3 = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 3);
 
-  const pimpro = activeMembers.filter(m => m.category === 'pimpro');
+  // Level 4: Pimpinan Divisi / Pimpro
+  const pimpro = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 4 || m.category === 'pimpro');
 
   const isFiltering = searchQuery.trim() !== '' || categoryFilter !== 'all' || divisionFilter !== 'all';
 

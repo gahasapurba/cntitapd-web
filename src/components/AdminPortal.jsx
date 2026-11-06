@@ -62,6 +62,13 @@ import {
   formatLastUpdatedWib
 } from '../utils/dateUtils';
 import {
+  LEVEL_OPTIONS,
+  DEFAULT_TENURE_ROLES,
+  getTenureRoles,
+  getCategoryFromLevel,
+  canDeleteRole,
+  findMatchingRole,
+  getMemberLevel,
   validateMemberQuota,
   getTenureQuotaSummary,
   getMemberRoleType
@@ -229,12 +236,16 @@ export default function AdminPortal({
     } catch (e) {}
   };
 
-  // Dynamic Role Quotas Configuration State
-  const [editingQuotaTenureId, setEditingQuotaTenureId] = useState(null);
-  const [quotaFormValues, setQuotaFormValues] = useState({ pembina: 1, ketua: 1, wakilKetua: 1, sekben: 2, pimproPerDivisi: 1, customRoles: [] });
-  const [newCustomRoleName, setNewCustomRoleName] = useState('');
-  const [newCustomRoleMax, setNewCustomRoleMax] = useState(1);
-  const [newCustomRoleCategory, setNewCustomRoleCategory] = useState('inti');
+  // Dynamic Role & Organization Management States
+  const [isOrgRolesOpen, setIsOrgRolesOpen] = useState(false);
+  const [selectedOrgTenureId, setSelectedOrgTenureId] = useState(activeTenure?.id || tenures[0]?.id || '');
+  const [roleModal, setRoleModal] = useState({
+    isOpen: false,
+    mode: 'add',
+    tenureId: '',
+    role: { id: '', name: '', level: 5, max: 0, requiresDivision: true }
+  });
+  const [roleDeleteWarning, setRoleDeleteWarning] = useState(null);
 
   // Search & Filter states for Members in Admin
   const [adminMemSearch, setAdminMemSearch] = useState('');
@@ -279,6 +290,7 @@ export default function AdminPortal({
   const [memName, setMemName] = useState('');
   const [memCategory, setMemCategory] = useState('anggota'); // 'pembina' | 'inti' | 'pimpro' | 'anggota'
   const [memRole, setMemRole] = useState('');
+  const [memRoleId, setMemRoleId] = useState('');
   const [memDivisionId, setMemDivisionId] = useState(divisions[0]?.id || 'div-exp');
   const [memTenureId, setMemTenureId] = useState(activeTenure?.id || '');
   const [memWhatsapp, setMemWhatsapp] = useState('');
@@ -639,24 +651,31 @@ export default function AdminPortal({
     if (!memName.trim()) errs.memName = 'Nama Lengkap pengurus/anggota wajib diisi';
 
     const targetTenureId = memTenureId || activeTenure?.id || '';
-    const availableDivsForMember = divisions.filter(d => d.tenureId === targetTenureId);
+    const tenureRoles = getTenureRoles(targetTenureId, roleQuotas);
+    const selectedRole = tenureRoles.find(r => r.id === memRoleId) || 
+      tenureRoles.find(r => r.name.toLowerCase() === (memRole || '').toLowerCase()) ||
+      tenureRoles[0];
 
-    if (memCategory === 'anggota' || memCategory === 'pimpro') {
+    if (!selectedRole) {
+      errs.memRole = 'Jabatan / Role wajib dipilih';
+    }
+
+    if (selectedRole?.requiresDivision) {
+      const availableDivsForMember = divisions.filter(d => d.tenureId === targetTenureId);
       if (availableDivsForMember.length === 0) {
-        errs.memDivisionId = 'Divisi masih kosong pada periode ini. Silakan buat divisi baru pada tahun kepengurusan yang dipilih.';
+        errs.memDivisionId = 'Divisi masih kosong pada periode ini. Silakan buat divisi terlebih dahulu.';
       } else if (!memDivisionId || !availableDivsForMember.some(d => d.id === memDivisionId)) {
-        errs.memDivisionId = 'Divisi wajib dipilih untuk posisi Anggota / Pimpro';
+        errs.memDivisionId = `Divisi wajib dipilih untuk jabatan "${selectedRole.name}"`;
       }
     }
 
-    // Validasi Ketat Kuota Kepengurusan (Pembina maks 1, Ketua maks 1, Wakil maks 1, Pimpro maks 1/divisi, Sekben maks 2)
+    // Validasi kuota dinamis
     const quotaCheck = validateMemberQuota(
       {
         tenureId: targetTenureId,
-        category: memCategory,
-        role: memRole || (memCategory === 'pembina' ? 'Pembina' : memCategory === 'pimpro' ? 'Pimpro' : ''),
-        title: memRole,
-        divisionId: memDivisionId
+        roleId: selectedRole?.id,
+        role: selectedRole?.name || memRole,
+        divisionId: selectedRole?.requiresDivision ? memDivisionId : undefined
       },
       members,
       divisions,
@@ -664,7 +683,7 @@ export default function AdminPortal({
     );
 
     if (!quotaCheck.isValid) {
-      errs[quotaCheck.field || 'memCategory'] = quotaCheck.error;
+      errs[quotaCheck.field || 'memRole'] = quotaCheck.error;
       setFormErrors((prev) => ({ ...prev, ...errs }));
       showToast(quotaCheck.error, 'error');
       return;
@@ -690,19 +709,23 @@ export default function AdminPortal({
       setIsUploadingMedia(false);
     }
 
-    const divObj = divisions.find(d => d.id === memDivisionId);
-    const color = divObj?.color || '#FFB800';
+    const divObj = selectedRole?.requiresDivision ? divisions.find(d => d.id === memDivisionId) : null;
+    const finalRoleName = selectedRole?.requiresDivision && selectedRole?.name.toLowerCase() === 'pimpro' && divObj
+      ? `Pimpro ${divObj.name}`
+      : (selectedRole?.name || memRole || 'Anggota Divisi');
+    const finalCategory = getCategoryFromLevel(selectedRole?.level ?? 5);
 
     onAddMember({
       id: 'mem-' + Date.now(),
-      tenureId: memTenureId || activeTenure?.id || '',
-      divisionId: memCategory === 'anggota' || memCategory === 'pimpro' ? memDivisionId : undefined,
-      category: memCategory,
+      tenureId: targetTenureId,
+      divisionId: selectedRole?.requiresDivision ? memDivisionId : undefined,
+      roleId: selectedRole?.id,
+      category: finalCategory,
       name: memName,
-      role: memRole || (memCategory === 'anggota' ? 'Anggota Divisi' : 'Pengurus'),
-      title: memCategory === 'anggota' ? `Anggota ${divObj?.name || 'CNT'}` : memRole,
+      role: finalRoleName,
+      title: finalRoleName,
       image: finalImageUrl,
-      color: color,
+      color: divObj?.color || '#FFB800',
       whatsapp: memWhatsapp.trim(),
       motto: memMotto || 'Dedikasi & Semangat untuk Insan IT APD',
       responsibilities: ['Kontribusi aktif dalam pelaksanaan event budaya CNT IT APD']
@@ -711,11 +734,93 @@ export default function AdminPortal({
     const savedName = memName;
     setMemName('');
     setMemRole('');
+    setMemRoleId('');
     setMemWhatsapp('');
     setMemMotto('');
     setMemImage('');
     setPendingMemberPhoto(null);
     showToast(`Pengurus/Anggota "${savedName}" berhasil ditambahkan & tersimpan di Cloud!`);
+  };
+
+  const handleSaveRole = async (targetTenureId, roleData) => {
+    if (!roleData.name || !roleData.name.trim()) {
+      showToast('Nama Jabatan/Role wajib diisi', 'error');
+      return;
+    }
+    const currentRoles = getTenureRoles(targetTenureId, roleQuotas);
+    let updatedRoles;
+    if (roleData.id) {
+      updatedRoles = currentRoles.map(r => r.id === roleData.id ? {
+        ...r,
+        name: roleData.name.trim(),
+        level: Number(roleData.level ?? 5),
+        max: Number(roleData.max ?? 0),
+        requiresDivision: Boolean(roleData.requiresDivision)
+      } : r);
+    } else {
+      const newRole = {
+        id: `role-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        name: roleData.name.trim(),
+        level: Number(roleData.level ?? 5),
+        max: Number(roleData.max ?? 0),
+        requiresDivision: Boolean(roleData.requiresDivision)
+      };
+      updatedRoles = [...currentRoles, newRole];
+    }
+
+    const updatedQuotas = {
+      ...(roleQuotas || {}),
+      [targetTenureId]: {
+        ...(roleQuotas?.[targetTenureId] || {}),
+        roles: updatedRoles
+      }
+    };
+
+    if (onUpdateRoleQuotas) {
+      await onUpdateRoleQuotas(updatedQuotas);
+    }
+    setRoleModal({ isOpen: false, mode: 'add', tenureId: '', role: { id: '', name: '', level: 5, max: 0, requiresDivision: true } });
+    showToast(`Role "${roleData.name}" berhasil disimpan untuk periode kepengurusan ini!`);
+  };
+
+  const handleDeleteRole = async (targetTenureId, roleToDelete) => {
+    const check = canDeleteRole(roleToDelete, targetTenureId, members);
+    if (!check.canDelete) {
+      setRoleDeleteWarning({
+        role: roleToDelete,
+        tenureId: targetTenureId,
+        reason: check.reason,
+        members: check.members
+      });
+      return;
+    }
+    const currentRoles = getTenureRoles(targetTenureId, roleQuotas);
+    const updatedRoles = currentRoles.filter(r => r.id !== roleToDelete.id);
+    const updatedQuotas = {
+      ...(roleQuotas || {}),
+      [targetTenureId]: {
+        ...(roleQuotas?.[targetTenureId] || {}),
+        roles: updatedRoles
+      }
+    };
+    if (onUpdateRoleQuotas) {
+      await onUpdateRoleQuotas(updatedQuotas);
+    }
+    showToast(`Role "${roleToDelete.name}" berhasil dihapus.`);
+  };
+
+  const handleResetRolesToDefault = async (targetTenureId) => {
+    const updatedQuotas = {
+      ...(roleQuotas || {}),
+      [targetTenureId]: {
+        ...(roleQuotas?.[targetTenureId] || {}),
+        roles: DEFAULT_TENURE_ROLES
+      }
+    };
+    if (onUpdateRoleQuotas) {
+      await onUpdateRoleQuotas(updatedQuotas);
+    }
+    showToast(`Struktur role kepengurusan berhasil direset ke standar.`);
   };
 
   const handleCreateDivision = (e) => {
@@ -2382,643 +2487,111 @@ export default function AdminPortal({
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Kategori Posisi *
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Jabatan / Role Pengurus *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrgTenureId(memTenureId || activeTenure?.id || tenures[0]?.id || '');
+                    setIsOrgRolesOpen(true);
+                  }}
+                  style={{
+                    background: 'rgba(56, 189, 248, 0.1)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    color: 'var(--neon-cyan)',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                  title="Buka panel untuk atur role, kuota, atau tingkat organigram"
+                >
+                  <Settings size={11} />
+                  <span>Kelola Role</span>
+                </button>
+              </div>
               {(() => {
                 const currentTenureId = memTenureId || activeTenure?.id || '';
-                const quota = getTenureQuotaSummary(currentTenureId, members, divisions, roleQuotas);
-                const hasPenasehat = quota.hasPenasehatInQuota || (quota.penasehat?.current > 0);
+                const tenureRoles = getTenureRoles(currentTenureId, roleQuotas);
+                const currentRoleObj = tenureRoles.find(r => r.id === memRoleId) || 
+                  tenureRoles.find(r => r.name.toLowerCase() === (memRole || '').toLowerCase()) ||
+                  null;
+
                 return (
-                  <select
-                    value={memCategory}
-                    onChange={(e) => {
-                      const newCat = e.target.value;
-                      setMemCategory(newCat);
-                      clearFieldError('memCategory');
-                      if (newCat === 'pembina') {
-                        setMemRole(quota.quotas.pembinaName || 'Pembina');
-                        setMemDivisionId('');
-                      } else if (newCat === 'penasehat') {
-                        setMemRole('Dewan Penasehat');
-                        setMemDivisionId('');
-                      } else if (newCat === 'pimpro') {
-                        const dObj = divisions.find(d => d.id === memDivisionId);
-                        setMemRole(dObj ? `Pimpro ${dObj.name}` : 'Pimpro');
-                      } else if (newCat === 'anggota') {
-                        setMemRole('Anggota Divisi');
-                      } else if (newCat === 'inti') {
-                        setMemDivisionId('');
-                        if (!memRole || memRole === 'Pembina' || memRole === 'Anggota Divisi' || memRole.startsWith('Pimpro') || memRole.includes('Penasehat')) {
-                          setMemRole(quota.quotas.ketuaName || 'Ketua');
+                  <div>
+                    <select
+                      value={currentRoleObj?.id || ''}
+                      onChange={(e) => {
+                        const rId = e.target.value;
+                        const rObj = tenureRoles.find(r => r.id === rId);
+                        if (rObj) {
+                          setMemRoleId(rObj.id);
+                          setMemRole(rObj.name);
+                          setMemCategory(getCategoryFromLevel(rObj.level));
+                          if (!rObj.requiresDivision) {
+                            setMemDivisionId('');
+                          }
+                        } else {
+                          setMemRoleId('');
+                          setMemRole('');
                         }
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-card)',
-                      border: `1.5px solid ${formErrors.memCategory ? '#f43f5e' : 'var(--border-card)'}`,
-                      color: 'var(--text-main)',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    <option value="anggota">Anggota Divisi (Unlimited)</option>
-                    <option value="pimpro">Pimpro / Ketua Divisi (Maks 1 per Divisi)</option>
-                    <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekretaris Bendahara, Sekjen)</option>
-                    <option value="pembina">{quota.quotas.pembinaName || 'Pembina'} / Advisor (Level 1)</option>
-                    {hasPenasehat && (
-                      <option value="penasehat">Dewan Penasehat / Advisor Senior (Level 0)</option>
-                    )}
-                  </select>
+                        clearFieldError('memRole');
+                        clearFieldError('memDivisionId');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-card)',
+                        border: `1.5px solid ${formErrors.memRole ? '#f43f5e' : 'var(--border-card)'}`,
+                        color: 'var(--text-main)',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <option value="">-- Pilih Jabatan / Role --</option>
+                      {tenureRoles.map((r) => {
+                        const levelInfo = LEVEL_OPTIONS.find(l => l.level === r.level);
+                        const quotaText = r.max > 0 ? `Maks ${r.max}` : 'Unlimited';
+                        const divText = r.requiresDivision ? ' • Butuh Divisi' : '';
+                        return (
+                          <option key={r.id} value={r.id}>
+                            {r.name} ({levelInfo?.shortLabel || `Level ${r.level}`} • {quotaText}{divText})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {renderFieldError('memRole')}
+                  </div>
                 );
               })()}
-              {renderFieldError('memCategory')}
             </div>
 
-            <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Jabatan / Role Spesifik *
-              </label>
-              <input
-                type="text"
-                placeholder="Contoh: Ketua / Wakil Ketua / Sekretaris Bendahara / Pimpro Experience & Activity"
-                value={memRole}
-                onChange={(e) => {
-                  setMemRole(e.target.value);
-                  clearFieldError('memRole');
-                }}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: `1.5px solid ${formErrors.memRole ? '#f43f5e' : 'var(--border-card)'}`,
-                  color: 'var(--text-main)',
-                  fontSize: '0.85rem'
-                }}
-              />
-              {renderFieldError('memRole')}
-            </div>
-
-            {/* Preset Tombol Cepat Peran Pengurus Inti & Custom Roles */}
-            {(() => {
-              if (memCategory !== 'inti' && memCategory !== 'penasehat') return null;
-              const currentTenureId = memTenureId || activeTenure?.id || '';
-              const quota = getTenureQuotaSummary(currentTenureId, members, divisions, roleQuotas);
-              if (memCategory === 'penasehat' && !quota.hasPenasehatInQuota) return null;
-              
-              const presets = memCategory === 'penasehat'
-                ? [{ id: 'Penasehat', label: 'Penasehat' }, { id: 'Dewan Penasehat', label: 'Dewan Penasehat' }]
-                : [
-                    { id: quota.quotas.ketuaName || 'Ketua', label: quota.quotas.ketuaName || 'Ketua' },
-                    ...(!quota.quotas.disableWakil && quota.quotas.wakilKetua > 0 ? [{ id: quota.quotas.wakilKetuaName || 'Wakil Ketua', label: quota.quotas.wakilKetuaName || 'Wakil Ketua' }] : []),
-                    ...(!quota.quotas.disableSekben && quota.quotas.sekben > 0 ? [
-                      { id: quota.quotas.sekbenName || 'Sekretaris Bendahara', label: quota.quotas.sekbenName || 'Sekretaris Bendahara' },
-                      { id: 'Sekretaris', label: 'Sekretaris' },
-                      { id: 'Bendahara', label: 'Bendahara' }
-                    ] : []),
-                    ...(quota.quotas.customRoles || []).map(cr => ({ id: cr.name, label: cr.name }))
-                  ];
-
-              return (
-                <div style={{
-                  gridColumn: 'span 2',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  padding: '12px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-card)'
-                }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                    ⚡ Pilih Jabatan Cepat (Sesuai Struktur {memCategory === 'penasehat' ? 'Penasehat' : 'Pengurus Inti'}):
-                  </span>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {presets.map((preset) => {
-                      const isSelected = memRole === preset.id;
-                      return (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => {
-                            setMemRole(preset.id);
-                            clearFieldError('memRole');
-                          }}
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: 'var(--radius-full)',
-                            background: isSelected ? 'var(--mandiri-gold)' : 'var(--input-bg)',
-                            color: isSelected ? '#040914' : 'var(--text-main)',
-                            border: isSelected ? '1px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {preset.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* LIVE QUOTA INDICATOR PANEL */}
+            {/* DIVISI PENUGASAN: HANYA MUNCUL JIKA ROLE MEMBUTUHKAN DIVISI */}
             {(() => {
               const currentTenureId = memTenureId || activeTenure?.id || '';
-              const quota = getTenureQuotaSummary(currentTenureId, members, divisions, roleQuotas);
-              const tenureObj = tenures.find(t => t.id === currentTenureId);
-              const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Aktif';
+              const tenureRoles = getTenureRoles(currentTenureId, roleQuotas);
+              const currentRoleObj = tenureRoles.find(r => r.id === memRoleId) || 
+                tenureRoles.find(r => r.name.toLowerCase() === (memRole || '').toLowerCase()) ||
+                null;
 
-              const renderBadge = (label, current, max, occupants = []) => {
-                const isFull = current >= max;
-                const occNames = occupants.map(o => o.name).join(', ');
-                return (
-                  <div
-                    key={label}
-                    title={occNames ? `Terisi oleh: ${occNames}` : 'Slot masih tersedia'}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '4px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: isFull ? 'rgba(255, 184, 0, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-                      border: `1px solid ${isFull ? 'rgba(255, 184, 0, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: isFull ? 'var(--mandiri-gold)' : '#10b981'
-                    }}
-                  >
-                    <span>{label}: <strong>{current}/{max}</strong></span>
-                    {isFull && <span style={{ fontSize: '0.66rem', opacity: 0.85 }}>(Penuh)</span>}
-                  </div>
-                );
-              };
+              if (!currentRoleObj || !currentRoleObj.requiresDivision) {
+                return null;
+              }
 
+              const availableDivsForMember = divisions.filter(d => d.tenureId === currentTenureId);
               return (
-                <div style={{
-                  gridColumn: 'span 2',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  background: isDark ? 'rgba(56, 189, 248, 0.05)' : '#f0f9ff',
-                  padding: '12px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid #bae6fd'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                      <span>🛡️ Batas Kuota Struktur Kepengurusan • {tenureName}</span>
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                        Maks: {quota.quotas.pembinaName || 'Pembina'} ({quota.quotas.pembina}), {quota.quotas.ketuaName || 'Ketua'} ({quota.quotas.ketua}), {!quota.quotas.disableWakil && `${quota.quotas.wakilKetuaName || 'Wakil Ketua'} (${quota.quotas.wakilKetua}), `}{!quota.quotas.disableSekben && `${quota.quotas.sekbenName || 'Sekretaris Bendahara'} (${quota.quotas.sekben}), `}Pimpro ({quota.quotas.pimproPerDivisi} per divisi)
-                      </span>
-                      {onUpdateRoleQuotas && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (editingQuotaTenureId === currentTenureId) {
-                              setEditingQuotaTenureId(null);
-                            } else {
-                              setEditingQuotaTenureId(currentTenureId);
-                              setQuotaFormValues({
-                                pembina: quota.quotas.pembina,
-                                pembinaName: quota.quotas.pembinaName || 'Pembina',
-                                ketua: quota.quotas.ketua,
-                                ketuaName: quota.quotas.ketuaName || 'Ketua',
-                                wakilKetua: quota.quotas.wakilKetua,
-                                wakilKetuaName: quota.quotas.wakilKetuaName || 'Wakil Ketua',
-                                disableWakil: Boolean(quota.quotas.disableWakil),
-                                sekben: quota.quotas.sekben,
-                                sekbenName: quota.quotas.sekbenName || 'Sekretaris Bendahara',
-                                disableSekben: Boolean(quota.quotas.disableSekben),
-                                pimproPerDivisi: quota.quotas.pimproPerDivisi,
-                                customRoles: Array.isArray(quota.quotas.customRoles) ? [...quota.quotas.customRoles] : []
-                              });
-                            }
-                          }}
-                          style={{
-                            padding: '3px 10px',
-                            borderRadius: 'var(--radius-full)',
-                            background: editingQuotaTenureId === currentTenureId ? 'var(--mandiri-gold)' : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'),
-                            color: editingQuotaTenureId === currentTenureId ? '#040914' : 'var(--text-main)',
-                            border: '1px solid var(--border-card)',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <Settings size={12} />
-                          <span>{editingQuotaTenureId === currentTenureId ? 'Tutup Atur Kuota' : '⚙️ Atur Kuota'}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {editingQuotaTenureId === currentTenureId && (
-                    <div style={{
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: isDark ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.8)',
-                      border: '1px dashed var(--border-card)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
-                          ⚙️ Konfigurasi Batas Kuota Khusus Periode: {tenureName}
-                        </span>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                          Perubahan kuota & jabatan tersimpan di cloud & berlaku untuk kepengurusan ini.
-                        </span>
-                      </div>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                        gap: '10px'
-                      }}>
-                        {/* 1. PEMBINA */}
-                        <div style={{
-                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
-                          border: '1px solid var(--border-card)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                              Maks {quotaFormValues.pembinaName || 'Pembina'}
-                            </label>
-                            <span style={{ fontSize: '0.64rem', color: 'var(--mandiri-gold)', fontWeight: 600 }}>Level 1</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <input
-                              type="number"
-                              min="1"
-                              max="10"
-                              title="Batas maksimal jumlah Pembina"
-                              value={quotaFormValues.pembina}
-                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembina: parseInt(e.target.value) || 1 })}
-                              style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
-                            />
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang</span>
-                          </div>
-                        </div>
-
-                        {/* 2. KETUA */}
-                        <div style={{
-                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
-                          border: '1px solid var(--border-card)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                              Maks Ketua
-                            </label>
-                            <span style={{ fontSize: '0.64rem', color: 'var(--mandiri-gold)', fontWeight: 600 }}>Level 2</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <input
-                              type="number"
-                              min="1"
-                              max="5"
-                              value={quotaFormValues.ketua}
-                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, ketua: parseInt(e.target.value) || 1 })}
-                              style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
-                            />
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang</span>
-                          </div>
-                        </div>
-
-                        {/* 3. WAKIL KETUA */}
-                        <div style={{
-                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
-                          border: '1px solid var(--border-card)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                              Maks Wakil Ketua
-                            </label>
-                            {quotaFormValues.disableWakil ? (
-                              <button
-                                type="button"
-                                onClick={() => setQuotaFormValues({ ...quotaFormValues, disableWakil: false, wakilKetua: 1 })}
-                                style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.4)', color: 'var(--neon-cyan)', fontSize: '0.65rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}
-                              >
-                                + Aktifkan
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setQuotaFormValues({ ...quotaFormValues, disableWakil: true, wakilKetua: 0 })}
-                                style={{ background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.4)', color: '#f43f5e', fontSize: '0.65rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}
-                                title="Hapus / Nonaktifkan role Wakil Ketua untuk periode ini"
-                              >
-                                🗑️ Hapus
-                              </button>
-                            )}
-                          </div>
-                          {quotaFormValues.disableWakil ? (
-                            <div style={{ padding: '6px 8px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.08)', border: '1px dashed rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.72rem', textAlign: 'center' }}>
-                              ❌ Dinonaktifkan (0)
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <input
-                                type="number"
-                                min="0"
-                                max="5"
-                                value={quotaFormValues.wakilKetua}
-                                onChange={(e) => setQuotaFormValues({ ...quotaFormValues, wakilKetua: parseInt(e.target.value) || 0 })}
-                                style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
-                              />
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* 4. SEKRETARIS BENDAHARA */}
-                        <div style={{
-                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
-                          border: '1px solid var(--border-card)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                              Maks {quotaFormValues.sekbenName || 'Sekretaris Bendahara'}
-                            </label>
-                            {quotaFormValues.disableSekben ? (
-                              <button
-                                type="button"
-                                onClick={() => setQuotaFormValues({ ...quotaFormValues, disableSekben: false, sekben: 2 })}
-                                style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.4)', color: 'var(--neon-cyan)', fontSize: '0.65rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}
-                              >
-                                + Aktifkan
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setQuotaFormValues({ ...quotaFormValues, disableSekben: true, sekben: 0 })}
-                                style={{ background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.4)', color: '#f43f5e', fontSize: '0.65rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}
-                                title="Hapus / Nonaktifkan role Sekretaris Bendahara untuk periode ini"
-                              >
-                                🗑️ Hapus Role
-                              </button>
-                            )}
-                          </div>
-                          {quotaFormValues.disableSekben ? (
-                            <div style={{ padding: '6px 8px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.08)', border: '1px dashed rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.72rem', textAlign: 'center' }}>
-                              ❌ Dihapus / Nonaktif (0)
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={quotaFormValues.sekben}
-                                onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekben: parseInt(e.target.value) || 1 })}
-                                style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
-                              />
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* 5. PIMPRO PER DIVISI */}
-                        <div style={{
-                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
-                          border: '1px solid var(--border-card)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                              Maks Pimpro per Divisi
-                            </label>
-                            <span style={{ fontSize: '0.64rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>Tiap Divisi</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <input
-                              type="number"
-                              min="1"
-                              max="5"
-                              value={quotaFormValues.pimproPerDivisi}
-                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pimproPerDivisi: parseInt(e.target.value) || 1 })}
-                              style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
-                            />
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang / divisi</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Ganti Sebutan Nama Jabatan */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        flexWrap: 'wrap',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: isDark ? 'rgba(255, 255, 255, 0.015)' : 'rgba(0, 0, 0, 0.02)',
-                        border: '1px dashed var(--border-card)'
-                      }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                          ✏️ Ubah Sebutan Jabatan (Opsional):
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 180px' }}>
-                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Pembina:</label>
-                          <input
-                            type="text"
-                            placeholder="Pembina / Dewan Pembina"
-                            value={quotaFormValues.pembinaName || 'Pembina'}
-                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembinaName: e.target.value })}
-                            style={{ flex: 1, padding: '4px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.74rem' }}
-                          />
-                        </div>
-                        {!quotaFormValues.disableSekben && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 210px' }}>
-                            <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sekben:</label>
-                            <input
-                              type="text"
-                              placeholder="Sekretaris Bendahara"
-                              value={quotaFormValues.sekbenName || 'Sekretaris Bendahara'}
-                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekbenName: e.target.value })}
-                              style={{ flex: 1, padding: '4px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.74rem' }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Custom Roles Manager */}
-                      <div style={{ marginTop: '6px', borderTop: '1px solid var(--border-card)', paddingTop: '8px' }}>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>
-                          ➕ Jabatan / Role Tambahan Khusus Periode Ini (Contoh: Penasehat, Sekretaris Jenderal, dll.):
-                        </div>
-
-                        {(quotaFormValues.customRoles || []).length > 0 && (
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                            {quotaFormValues.customRoles.map((cr, idx) => (
-                              <div
-                                key={cr.id || idx}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '4px 10px',
-                                  borderRadius: 'var(--radius-sm)',
-                                  background: 'rgba(255, 184, 0, 0.1)',
-                                  border: '1px solid rgba(255, 184, 0, 0.4)',
-                                  fontSize: '0.72rem',
-                                  color: 'var(--text-main)'
-                                }}
-                              >
-                                <span><strong>{cr.name}</strong> (Maks: {cr.max})</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = (quotaFormValues.customRoles || []).filter((_, i) => i !== idx);
-                                    setQuotaFormValues({ ...quotaFormValues, customRoles: next });
-                                  }}
-                                  style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: 0, fontWeight: 800, fontSize: '0.85rem', marginLeft: '4px' }}
-                                  title="Hapus jabatan kustom ini"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                          <div style={{ flex: '1 1 180px' }}>
-                            <label style={{ fontSize: '0.66rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Nama Jabatan Baru</label>
-                            <input
-                              type="text"
-                              placeholder="Contoh: Sekretaris Jenderal / Penasehat"
-                              value={newCustomRoleName}
-                              onChange={(e) => setNewCustomRoleName(e.target.value)}
-                              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
-                            />
-                          </div>
-                          <div style={{ width: '90px' }}>
-                            <label style={{ fontSize: '0.66rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Kuota</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="10"
-                              value={newCustomRoleMax}
-                              onChange={(e) => setNewCustomRoleMax(parseInt(e.target.value) || 1)}
-                              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
-                            />
-                          </div>
-                          <div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!newCustomRoleName.trim()) return;
-                                const newRole = {
-                                  id: `cr-${Date.now()}`,
-                                  name: newCustomRoleName.trim(),
-                                  max: Number(newCustomRoleMax || 1),
-                                  category: newCustomRoleName.toLowerCase().includes('penasehat') ? 'penasehat' : 'inti'
-                                };
-                                setQuotaFormValues({
-                                  ...quotaFormValues,
-                                  customRoles: [...(quotaFormValues.customRoles || []), newRole]
-                                });
-                                setNewCustomRoleName('');
-                                setNewCustomRoleMax(1);
-                              }}
-                              style={{ padding: '6px 12px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.4)', color: 'var(--neon-cyan)', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
-                            >
-                              + Tambah Jabatan
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setEditingQuotaTenureId(null)}
-                          style={{ padding: '5px 12px', borderRadius: '4px', background: 'transparent', border: '1px solid var(--border-card)', color: 'var(--text-muted)', fontSize: '0.72rem', cursor: 'pointer' }}
-                        >
-                          Batal
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const updated = {
-                              ...(roleQuotas || {}),
-                              [currentTenureId]: quotaFormValues
-                            };
-                            await onUpdateRoleQuotas(updated);
-                            setEditingQuotaTenureId(null);
-                            showToast(`Batas kuota kepengurusan ${tenureName} berhasil diperbarui!`);
-                          }}
-                          style={{ padding: '5px 14px', borderRadius: '4px', background: 'var(--mandiri-gold)', border: 'none', color: '#040914', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}
-                        >
-                          Simpan Kuota Periode
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {(quota.penasehat.current > 0 || (quota.quotas.customRoles || []).some(r => r.name.toLowerCase().includes('penasehat'))) && (
-                      renderBadge('Penasehat', quota.penasehat.current, quota.penasehat.max, quota.penasehat.members)
-                    )}
-                    {renderBadge(quota.quotas.pembinaName || 'Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
-                    {renderBadge(quota.quotas.ketuaName || 'Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
-                    {!quota.quotas.disableWakil && quota.quotas.wakilKetua > 0 && renderBadge(quota.quotas.wakilKetuaName || 'Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
-                    {!quota.quotas.disableSekben && quota.quotas.sekben > 0 && renderBadge(quota.quotas.sekbenName || 'Sekretaris Bendahara', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
-                    {Object.values(quota.customRoleSummaries || {}).filter(cr => !cr.name.toLowerCase().includes('penasehat')).map(cr =>
-                      renderBadge(cr.name, cr.current, cr.max, cr.members)
-                    )}
-                    {Object.values(quota.pimproByDivision).map(pDiv =>
-                      renderBadge(`Pimpro ${pDiv.divisionName}`, pDiv.current, pDiv.max, pDiv.members)
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {(memCategory === 'anggota' || memCategory === 'pimpro') && (() => {
-              const availableDivsForMember = divisions.filter(d => d.tenureId === (memTenureId || activeTenure?.id));
-              return (
-                <div style={{ gridColumn: 'span 2' }}>
+                <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                    Divisi / Squad <span style={{ color: '#f43f5e' }}>*</span>
+                    Divisi Penugasan <span style={{ color: '#f43f5e' }}>*</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--neon-cyan)', marginLeft: '6px' }}>
+                      (Wajib untuk jabatan "{currentRoleObj.name}")
+                    </span>
                   </label>
                   <select
                     value={memDivisionId}
@@ -3037,7 +2610,7 @@ export default function AdminPortal({
                     }}
                   >
                     {availableDivsForMember.length === 0 ? (
-                      <option value="" disabled>-- Divisi masih kosong di periode ini. Silakan buat divisi baru pada tahun kepengurusan yang dipilih --</option>
+                      <option value="" disabled>-- Divisi masih kosong di periode ini. Silakan buat divisi baru di tab Divisi --</option>
                     ) : (
                       <>
                         <option value="">-- Pilih Divisi / Squad (Wajib) --</option>
@@ -3053,6 +2626,98 @@ export default function AdminPortal({
                     </div>
                   )}
                   {renderFieldError('memDivisionId')}
+                </div>
+              );
+            })()}
+
+            {/* RINGKASAN STATUS KUOTA PERIODE (COMPACT & RAPI) */}
+            {(() => {
+              const currentTenureId = memTenureId || activeTenure?.id || '';
+              const tenureRoles = getTenureRoles(currentTenureId, roleQuotas);
+              const tenureObj = tenures.find(t => t.id === currentTenureId);
+              const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Ini';
+              const targetMembers = members.filter(m => !currentTenureId || m.tenureId === currentTenureId);
+
+              return (
+                <div style={{
+                  gridColumn: 'span 2',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  background: isDark ? 'rgba(56, 189, 248, 0.04)' : '#f0f9ff',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: isDark ? '1px solid rgba(56, 189, 248, 0.2)' : '1px solid #bae6fd'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        🛡️ Status Kuota Kepengurusan: {tenureName}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        ({targetMembers.length} anggota terdaftar)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedOrgTenureId(currentTenureId);
+                        setIsOrgRolesOpen(true);
+                      }}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--mandiri-gold)',
+                        color: '#040914',
+                        border: 'none',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      <Settings size={12} />
+                      <span>🏛️ Kelola Struktur Role & Kuota</span>
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {tenureRoles.map(role => {
+                      const matched = targetMembers.filter(m => {
+                        if (m.roleId && m.roleId === role.id) return true;
+                        const mRole = String(m.role || '').toLowerCase().trim();
+                        const rName = role.name.toLowerCase().trim();
+                        return mRole === rName || (role.requiresDivision && mRole.startsWith(rName));
+                      });
+                      const count = matched.length;
+                      const isFull = role.max > 0 && count >= role.max;
+                      const occNames = matched.map(m => m.name).join(', ');
+
+                      return (
+                        <div
+                          key={role.id}
+                          title={occNames ? `Terisi oleh: ${occNames}` : (role.max > 0 ? `Tersedia ${role.max - count} slot` : 'Tanpa batas')}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isFull ? 'rgba(255, 184, 0, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                            border: `1px solid ${isFull ? 'rgba(255, 184, 0, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            color: isFull ? 'var(--mandiri-gold)' : '#10b981'
+                          }}
+                        >
+                          <span>{role.name}: <strong>{count}{role.max > 0 ? `/${role.max}` : ''}</strong></span>
+                          {isFull && <span style={{ fontSize: '0.64rem', opacity: 0.9 }}>(Penuh)</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })()}
@@ -8281,230 +7946,119 @@ export default function AdminPortal({
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Posisi</label>
-                    {(() => {
-                      const editTenureId = editingItem.item.tenureId || activeTenure?.id || '';
-                      const editQuota = getTenureQuotaSummary(editTenureId, members, divisions, roleQuotas);
-                      const hasPenasehat = editQuota.hasPenasehatInQuota || (editQuota.penasehat?.current > 0);
-                      return (
-                        <select
-                          value={editingItem.item.category || 'anggota'}
-                          onChange={(e) => {
-                            const newCat = e.target.value;
-                            const updated = { ...editingItem.item, category: newCat };
-                            if (newCat === 'pembina') {
-                              updated.role = editQuota.quotas.pembinaName || 'Pembina';
-                              updated.divisionId = undefined;
-                            } else if (newCat === 'penasehat') {
-                              updated.role = 'Dewan Penasehat';
-                              updated.divisionId = undefined;
-                            } else if (newCat === 'pimpro') {
-                              const dObj = divisions.find(d => d.id === updated.divisionId);
-                              updated.role = dObj ? `Pimpro ${dObj.name}` : 'Pimpro';
-                            } else if (newCat === 'inti') {
-                              updated.divisionId = undefined;
-                              if (!updated.role || updated.role === 'Pembina' || updated.role === 'Anggota Divisi' || updated.role.startsWith('Pimpro') || updated.role.includes('Penasehat')) {
-                                updated.role = editQuota.quotas.ketuaName || 'Ketua';
-                              }
-                            }
-                            setEditingItem({ ...editingItem, item: updated });
-                          }}
-                          style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                        >
-                          <option value="anggota">Anggota Divisi (Unlimited)</option>
-                          <option value="pimpro">Ketua Divisi / Pimpro (Maks 1 per Divisi)</option>
-                          <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekretaris Bendahara, Sekjen)</option>
-                          <option value="pembina">{editQuota.quotas.pembinaName || 'Pembina'} / Advisor (Level 1)</option>
-                          {hasPenasehat && (
-                            <option value="penasehat">Dewan Penasehat / Advisor Senior (Level 0)</option>
-                          )}
-                        </select>
-                      );
-                    })()}
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
+                    <div style={{ padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-card)', color: 'var(--mandiri-gold)', fontSize: '0.86rem', fontWeight: 700 }}>
+                      {(() => {
+                        const tObj = tenures.find(t => t.id === (editingItem.item.tenureId || activeTenure?.id));
+                        return tObj ? `${tObj.title || tObj.code} (${tObj.code})` : 'Periode Aktif';
+                      })()}
+                    </div>
                   </div>
                 </div>
 
+                {/* ROLE & DIVISI SELECTION IN EDIT MODAL */}
                 {(() => {
-                  if (editingItem.item.category !== 'inti' && editingItem.item.category !== 'penasehat') return null;
-                  const editTenureId = editingItem.item.tenureId || activeTenure?.id || '';
-                  const editQuota = getTenureQuotaSummary(editTenureId, members, divisions, roleQuotas);
-                  if (editingItem.item.category === 'penasehat' && !editQuota.hasPenasehatInQuota) return null;
-
-                  const presets = editingItem.item.category === 'penasehat'
-                    ? [
-                        { id: 'Dewan Penasehat', label: 'Dewan Penasehat' },
-                        { id: 'Penasehat', label: 'Penasehat' },
-                        { id: 'Senior Advisor', label: 'Senior Advisor' }
-                      ]
-                    : [
-                        { id: editQuota.quotas.ketuaName || 'Ketua', label: editQuota.quotas.ketuaName || 'Ketua' },
-                        ...(!editQuota.quotas.disableWakil && editQuota.quotas.wakilKetua > 0 ? [{ id: editQuota.quotas.wakilKetuaName || 'Wakil Ketua', label: editQuota.quotas.wakilKetuaName || 'Wakil Ketua' }] : []),
-                        ...(!editQuota.quotas.disableSekben && editQuota.quotas.sekben > 0 ? [
-                          { id: editQuota.quotas.sekbenName || 'Sekretaris Bendahara', label: editQuota.quotas.sekbenName || 'Sekretaris Bendahara' },
-                          { id: 'Sekretaris', label: 'Sekretaris' },
-                          { id: 'Bendahara', label: 'Bendahara' }
-                        ] : []),
-                        ...(editQuota.quotas.customRoles || []).map(cr => ({ id: cr.name, label: cr.name }))
-                      ];
-                  return (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      padding: '10px 14px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border-card)'
-                    }}>
-                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                        ⚡ Pilih Jabatan Cepat (Sesuai Struktur {editingItem.item.category === 'penasehat' ? 'Penasehat' : 'Pengurus Inti'}):
-                      </span>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {presets.map((preset) => {
-                          const isSelected = editingItem.item.role === preset.id;
-                          return (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => {
-                                setEditingItem({
-                                  ...editingItem,
-                                  item: { ...editingItem.item, role: preset.id }
-                                });
-                              }}
-                              style={{
-                                padding: '5px 12px',
-                                borderRadius: 'var(--radius-full)',
-                                background: isSelected ? 'var(--mandiri-gold)' : 'var(--input-bg)',
-                                color: isSelected ? '#040914' : 'var(--text-main)',
-                                border: isSelected ? '1px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
-                                fontSize: '0.74rem',
-                                fontWeight: 700,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {preset.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* LIVE QUOTA INDICATOR PANEL IN EDIT MODAL */}
-                {(() => {
-                  const editTenureId = editingItem.item.tenureId || activeTenure?.id || '';
-                  const quota = getTenureQuotaSummary(editTenureId, members, divisions, roleQuotas);
-                  const tenureObj = tenures.find(t => t.id === editTenureId);
-                  const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Aktif';
-
-                  const renderBadge = (label, current, max, occupants = []) => {
-                    const isFull = current >= max;
-                    const occNames = occupants.map(o => o.name).join(', ');
-                    return (
-                      <div
-                        key={label}
-                        title={occNames ? `Terisi oleh: ${occNames}` : 'Slot masih tersedia'}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '4px 10px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: isFull ? 'rgba(255, 184, 0, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-                          border: `1px solid ${isFull ? 'rgba(255, 184, 0, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          color: isFull ? 'var(--mandiri-gold)' : '#10b981'
-                        }}
-                      >
-                        <span>{label}: <strong>{current}/{max}</strong></span>
-                        {isFull && <span style={{ fontSize: '0.66rem', opacity: 0.85 }}>(Penuh)</span>}
-                      </div>
-                    );
-                  };
+                  const editMemberTenureId = editingItem.item.tenureId || activeTenure?.id || '';
+                  const tenureRoles = getTenureRoles(editMemberTenureId, roleQuotas);
+                  const selectedRole = tenureRoles.find(r => r.id === editingItem.item.roleId) ||
+                    tenureRoles.find(r => r.name.toLowerCase() === (editingItem.item.role || '').toLowerCase()) ||
+                    null;
+                  const requiresDiv = selectedRole ? selectedRole.requiresDivision : (editingItem.item.category === 'anggota' || editingItem.item.category === 'pimpro');
+                  const editMemberDivs = divisions.filter(d => d.tenureId === editMemberTenureId);
 
                   return (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                      background: isDark ? 'rgba(56, 189, 248, 0.05)' : '#f0f9ff',
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid #bae6fd'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <span>🛡️ Status Kuota Kepengurusan • {tenureName}</span>
-                        </span>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                          Maks: {quota.quotas.pembinaName || 'Pembina'} ({quota.quotas.pembina}), {quota.quotas.ketuaName || 'Ketua'} ({quota.quotas.ketua}), {!quota.quotas.disableWakil && `${quota.quotas.wakilKetuaName || 'Wakil Ketua'} (${quota.quotas.wakilKetua}), `}{!quota.quotas.disableSekben && `${quota.quotas.sekbenName || 'Sekretaris Bendahara'} (${quota.quotas.sekben}), `}Pimpro ({quota.quotas.pimproPerDivisi} per divisi)
-                        </span>
+                    <div className="mobile-two-col" style={{ gap: '10px' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Jabatan / Role *</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedOrgTenureId(editMemberTenureId);
+                              setIsOrgRolesOpen(true);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--neon-cyan)',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: 0
+                            }}
+                          >
+                            ⚙️ Kelola Role
+                          </button>
+                        </div>
+                        <select
+                          value={selectedRole?.id || ''}
+                          onChange={(e) => {
+                            const rId = e.target.value;
+                            const rObj = tenureRoles.find(r => r.id === rId);
+                            if (rObj) {
+                              const newCat = getCategoryFromLevel(rObj.level);
+                              setEditingItem({
+                                ...editingItem,
+                                item: {
+                                  ...editingItem.item,
+                                  roleId: rObj.id,
+                                  role: rObj.name,
+                                  category: newCat,
+                                  divisionId: rObj.requiresDivision ? editingItem.item.divisionId : undefined
+                                }
+                              });
+                            }
+                          }}
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                        >
+                          <option value="">-- Pilih Jabatan / Role --</option>
+                          {tenureRoles.map((r) => {
+                            const levelInfo = LEVEL_OPTIONS.find(l => l.level === r.level);
+                            const quotaText = r.max > 0 ? `Maks ${r.max}` : 'Unlimited';
+                            const divText = r.requiresDivision ? ' • Butuh Divisi' : '';
+                            return (
+                              <option key={r.id} value={r.id}>
+                                {r.name} ({levelInfo?.shortLabel || `Level ${r.level}`} • {quotaText}{divText})
+                              </option>
+                            );
+                          })}
+                        </select>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {(quota.penasehat.current > 0 || (quota.quotas.customRoles || []).some(r => r.name.toLowerCase().includes('penasehat'))) && (
-                          renderBadge('Penasehat', quota.penasehat.current, quota.penasehat.max, quota.penasehat.members)
-                        )}
-                        {renderBadge(quota.quotas.pembinaName || 'Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
-                        {renderBadge(quota.quotas.ketuaName || 'Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
-                        {!quota.quotas.disableWakil && quota.quotas.wakilKetua > 0 && renderBadge(quota.quotas.wakilKetuaName || 'Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
-                        {!quota.quotas.disableSekben && quota.quotas.sekben > 0 && renderBadge(quota.quotas.sekbenName || 'Sekretaris Bendahara', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
-                        {Object.values(quota.customRoleSummaries || {}).filter(cr => !cr.name.toLowerCase().includes('penasehat')).map(cr =>
-                          renderBadge(cr.name, cr.current, cr.max, cr.members)
-                        )}
-                        {Object.values(quota.pimproByDivision).map(pDiv =>
-                          renderBadge(`Pimpro ${pDiv.divisionName}`, pDiv.current, pDiv.max, pDiv.members)
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                <div className="mobile-two-col" style={{ gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Jabatan / Role</label>
-                    <input
-                      type="text"
-                      value={editingItem.item.role || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, role: e.target.value } })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Divisi Penugasan</label>
-                    {(() => {
-                      const editMemberTenureId = editingItem.item.tenureId || activeTenure?.id || '';
-                      const editMemberDivs = divisions.filter(d => d.tenureId === editMemberTenureId);
-                      return (
-                        <>
+                      {requiresDiv ? (
+                        <div>
+                          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                            Divisi Penugasan <span style={{ color: '#f43f5e' }}>*</span>
+                          </label>
                           <select
                             value={editingItem.item.divisionId || ''}
                             onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, divisionId: e.target.value || undefined } })}
                             style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                           >
-                            <option value="">-- Lintas Divisi / BPH --</option>
-                            {editMemberDivs.length === 0 ? (
-                              <option value="" disabled>-- Divisi masih kosong di periode ini --</option>
-                            ) : (
-                              editMemberDivs.map(d => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
-                              ))
-                            )}
+                            <option value="">-- Pilih Divisi / Squad --</option>
+                            {editMemberDivs.map(d => (
+                              <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
                           </select>
                           {editMemberDivs.length === 0 && (
                             <span style={{ fontSize: '0.72rem', color: '#f59e0b', display: 'block', marginTop: '3px' }}>
-                              ⚠️ Periode ini belum memiliki divisi. Silakan buat divisi baru di tab Divisi.
+                              ⚠️ Periode ini belum memiliki divisi.
                             </span>
                           )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-
+                        </div>
+                      ) : (
+                        <div>
+                          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                            Lingkup Tugas
+                          </label>
+                          <div style={{ padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-card)', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                            Lintas Divisi / Tidak Memerlukan Divisi Khusus
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Title / Sub-Jabatan</label>
@@ -10587,24 +10141,25 @@ export default function AdminPortal({
                   }
 
                   if (editingItem.type === 'member' && onUpdateMember) {
-                    const cat = editingItem.item.category || 'anggota';
                     const targetTenureId = editingItem.item.tenureId || activeTenure?.id || '';
-                    if (cat === 'anggota' || cat === 'pimpro') {
-                      if (!editingItem.item.divisionId) {
-                        setEditModalError('Divisi wajib dipilih untuk posisi Anggota / Pimpro');
-                        showToast('Divisi wajib dipilih untuk posisi Anggota / Pimpro', 'error');
-                        return;
-                      }
+                    const tenureRoles = getTenureRoles(targetTenureId, roleQuotas);
+                    const selectedRole = tenureRoles.find(r => r.id === editingItem.item.roleId) ||
+                      tenureRoles.find(r => r.name.toLowerCase() === (editingItem.item.role || '').toLowerCase()) ||
+                      tenureRoles[0];
+
+                    if (selectedRole?.requiresDivision && !editingItem.item.divisionId) {
+                      setEditModalError(`Divisi wajib dipilih untuk jabatan "${selectedRole.name}"`);
+                      showToast(`Divisi wajib dipilih untuk jabatan "${selectedRole.name}"`, 'error');
+                      return;
                     }
 
                     // Validasi Ketat Kuota Kepengurusan saat edit
                     const quotaCheck = validateMemberQuota(
                       {
                         tenureId: targetTenureId,
-                        category: cat,
-                        role: editingItem.item.role,
-                        title: editingItem.item.title,
-                        divisionId: editingItem.item.divisionId,
+                        roleId: selectedRole?.id,
+                        role: selectedRole?.name || editingItem.item.role,
+                        divisionId: selectedRole?.requiresDivision ? editingItem.item.divisionId : undefined,
                         excludeMemberId: editingItem.item.id
                       },
                       members,
@@ -10635,7 +10190,21 @@ export default function AdminPortal({
                       ? editingItem.item.rawResponsibilities.split('\n').map(s => s.trim()).filter(Boolean)
                       : (Array.isArray(editingItem.item.responsibilities) ? editingItem.item.responsibilities : []);
                     const { rawResponsibilities, ...cleanItem } = editingItem.item;
-                    onUpdateMember({ ...cleanItem, image: finalImage, responsibilities: finalResp });
+                    const finalCat = getCategoryFromLevel(selectedRole?.level ?? 5);
+                    const divObj = selectedRole?.requiresDivision ? divisions.find(d => d.id === cleanItem.divisionId) : null;
+                    const finalRoleName = selectedRole?.requiresDivision && selectedRole?.name.toLowerCase() === 'pimpro' && divObj
+                      ? `Pimpro ${divObj.name}`
+                      : (selectedRole?.name || cleanItem.role || 'Anggota Divisi');
+
+                    onUpdateMember({
+                      ...cleanItem,
+                      roleId: selectedRole?.id,
+                      role: finalRoleName,
+                      category: finalCat,
+                      divisionId: selectedRole?.requiresDivision ? cleanItem.divisionId : undefined,
+                      image: finalImage,
+                      responsibilities: finalResp
+                    });
                   }
                   if (editingItem.type === 'division' && onUpdateDivision) {
                     const finalFocus = editingItem.item.rawFocusAreas !== undefined
@@ -10804,6 +10373,626 @@ export default function AdminPortal({
                 }}
               >
                 {isUploadingMedia ? 'Mengunggah & Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1: PENGATURAN STRUKTUR ORGANISASI & ROLE KEPENGURUSAN */}
+      {isOrgRolesOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.82)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-card)',
+            borderRadius: 'var(--radius-lg)',
+            width: '100%',
+            maxWidth: '860px',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: '1px solid var(--border-card)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(255, 255, 255, 0.02)'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🏛️</span>
+                  <span>Pengaturan Struktur Organisasi & Role</span>
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Kelola daftar jabatan, kuota maksimal, tingkatan organigram, dan kebutuhan divisi untuk tiap periode kepengurusan.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOrgRolesOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: 'var(--radius-full)',
+                  display: 'flex'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Tenure Selector & Actions */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                padding: '14px 16px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border-card)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 280px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+                    Kepengurusan:
+                  </label>
+                  <select
+                    value={selectedOrgTenureId || activeTenure?.id || ''}
+                    onChange={(e) => setSelectedOrgTenureId(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.85rem',
+                      fontWeight: 700
+                    }}
+                  >
+                    {tenures.map(t => (
+                      <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const curTenure = selectedOrgTenureId || activeTenure?.id || tenures[0]?.id;
+                      setRoleModal({
+                        isOpen: true,
+                        mode: 'add',
+                        tenureId: curTenure,
+                        role: { id: '', name: '', level: 5, max: 0, requiresDivision: true }
+                      });
+                    }}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--mandiri-gold)',
+                      color: '#040914',
+                      border: 'none',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Plus size={14} />
+                    <span>Tambah Role Baru</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const curTenure = selectedOrgTenureId || activeTenure?.id || tenures[0]?.id;
+                      if (window.confirm('Reset daftar role kepengurusan ini ke struktur template standar?')) {
+                        handleResetRolesToDefault(curTenure);
+                      }
+                    }}
+                    style={{
+                      padding: '7px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'transparent',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.76rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                    title="Kembalikan daftar role kepengurusan ini ke standar"
+                  >
+                    ↺ Reset Standar
+                  </button>
+                </div>
+              </div>
+
+              {/* Roles Table */}
+              {(() => {
+                const curTenureId = selectedOrgTenureId || activeTenure?.id || tenures[0]?.id || '';
+                const roles = getTenureRoles(curTenureId, roleQuotas);
+                const tenureMembers = members.filter(m => !curTenureId || m.tenureId === curTenureId);
+
+                return (
+                  <div style={{
+                    border: '1px solid var(--border-card)',
+                    borderRadius: 'var(--radius-md)',
+                    overflow: 'hidden'
+                  }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255, 255, 255, 0.04)', borderBottom: '1px solid var(--border-card)' }}>
+                          <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Jabatan / Role</th>
+                          <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Tingkat Organigram</th>
+                          <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Kuota Maks</th>
+                          <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Perlu Divisi?</th>
+                          <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Terisi</th>
+                          <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }}>Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {roles.map((role) => {
+                          const levelInfo = LEVEL_OPTIONS.find(l => l.level === role.level);
+                          const matched = tenureMembers.filter(m => {
+                            if (m.roleId && m.roleId === role.id) return true;
+                            const mRole = String(m.role || '').toLowerCase().trim();
+                            const rName = role.name.toLowerCase().trim();
+                            return mRole === rName || (role.requiresDivision && mRole.startsWith(rName));
+                          });
+                          const isFull = role.max > 0 && matched.length >= role.max;
+                          const occNames = matched.map(m => m.name).join(', ');
+
+                          return (
+                            <tr key={role.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                              <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-main)' }}>
+                                {role.name}
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '3px 8px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: role.level <= 1 ? 'rgba(255, 184, 0, 0.15)' : (role.level <= 3 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.05)'),
+                                  color: role.level <= 1 ? 'var(--mandiri-gold)' : (role.level <= 3 ? 'var(--neon-cyan)' : 'var(--text-muted)'),
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700
+                                }}>
+                                  {levelInfo?.shortLabel || `Level ${role.level}`}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 14px', color: 'var(--text-main)' }}>
+                                {role.max > 0 ? (
+                                  <span style={{ fontWeight: 700 }}>{role.max} orang</span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)' }}>Unlimited</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>
+                                {role.requiresDivision ? (
+                                  <span style={{ color: 'var(--neon-cyan)', fontSize: '0.75rem', fontWeight: 600 }}>
+                                    ✓ Ya (Per Divisi)
+                                  </span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                    — Tidak (Global)
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <span
+                                  title={occNames ? `Terisi oleh: ${occNames}` : 'Belum ada anggota'}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '2px 8px',
+                                    borderRadius: 'var(--radius-full)',
+                                    background: isFull ? 'rgba(255, 184, 0, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                    color: isFull ? 'var(--mandiri-gold)' : '#10b981',
+                                    fontWeight: 700,
+                                    fontSize: '0.72rem'
+                                  }}
+                                >
+                                  {matched.length}{role.max > 0 ? `/${role.max}` : ''} {isFull && '(Penuh)'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                                <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRoleModal({
+                                        isOpen: true,
+                                        mode: 'edit',
+                                        tenureId: curTenureId,
+                                        role: { ...role }
+                                      });
+                                    }}
+                                    style={{
+                                      padding: '5px 8px',
+                                      borderRadius: 'var(--radius-sm)',
+                                      background: 'rgba(56, 189, 248, 0.1)',
+                                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                                      color: 'var(--neon-cyan)',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 600
+                                    }}
+                                    title="Edit Role ini"
+                                  >
+                                    <Edit2 size={12} />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRole(curTenureId, role)}
+                                    style={{
+                                      padding: '5px 8px',
+                                      borderRadius: 'var(--radius-sm)',
+                                      background: 'rgba(244, 63, 94, 0.1)',
+                                      border: '1px solid rgba(244, 63, 94, 0.3)',
+                                      color: '#f43f5e',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 600
+                                    }}
+                                    title="Hapus Role ini"
+                                  >
+                                    <Trash2 size={12} />
+                                    <span>Hapus</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '14px 24px',
+              borderTop: '1px solid var(--border-card)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              background: 'rgba(255, 255, 255, 0.02)'
+            }}>
+              <button
+                type="button"
+                onClick={() => setIsOrgRolesOpen(false)}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Selesai & Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: ADD / EDIT ROLE */}
+      {roleModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-card)',
+            borderRadius: 'var(--radius-lg)',
+            width: '100%',
+            maxWidth: '480px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                {roleModal.mode === 'add' ? '➕ Tambah Role / Jabatan Baru' : '✏️ Edit Role / Jabatan'}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setRoleModal({ ...roleModal, isOpen: false })}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Nama Jabatan / Role *
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Sekretaris Jenderal, Wakil Pimpro, Dewan Penasehat"
+                value={roleModal.role.name}
+                onChange={(e) => setRoleModal({ ...roleModal, role: { ...roleModal.role, name: e.target.value } })}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Tingkatan di Bagan Organigram *
+              </label>
+              <select
+                value={roleModal.role.level ?? 5}
+                onChange={(e) => setRoleModal({ ...roleModal, role: { ...roleModal.role, level: Number(e.target.value) } })}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                {LEVEL_OPTIONS.map((lvl) => (
+                  <option key={lvl.level} value={lvl.level}>
+                    {lvl.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Batas Maksimal Kuota Personel
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0 = Unlimited"
+                  value={roleModal.role.max ?? 0}
+                  onChange={(e) => setRoleModal({ ...roleModal, role: { ...roleModal.role, max: parseInt(e.target.value) || 0 } })}
+                  style={{
+                    width: '100px',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem',
+                    textAlign: 'center',
+                    fontWeight: 700
+                  }}
+                />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {Number(roleModal.role.max) > 0 ? 'orang (dibatasi)' : 'orang (Tanpa Batas / Unlimited)'}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                Isi 0 jika tidak ada kuota maksimal (misal untuk Anggota Divisi).
+              </span>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-card)'
+            }}>
+              <input
+                type="checkbox"
+                id="modalRequireDiv"
+                checked={Boolean(roleModal.role.requiresDivision)}
+                onChange={(e) => setRoleModal({ ...roleModal, role: { ...roleModal.role, requiresDivision: e.target.checked } })}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              <label htmlFor="modalRequireDiv" style={{ fontSize: '0.8rem', color: 'var(--text-main)', cursor: 'pointer', lineHeight: 1.4 }}>
+                <strong>Memerlukan Pilihan Divisi</strong>
+                <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  Centang jika personel dengan role ini wajib ditempatkan di divisi tertentu (contoh: Pimpro, Anggota Divisi).
+                </span>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setRoleModal({ ...roleModal, isOpen: false })}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaveRole(roleModal.tenureId, roleModal.role)}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Simpan Role
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: ROLE DELETE DEPENDENCY WARNING */}
+      {roleDeleteWarning && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10001,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid rgba(244, 63, 94, 0.4)',
+            borderRadius: 'var(--radius-lg)',
+            width: '100%',
+            maxWidth: '480px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            boxShadow: '0 25px 50px -12px rgba(244, 63, 94, 0.3)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(244, 63, 94, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#f43f5e',
+                flexShrink: 0
+              }}>
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#f43f5e' }}>
+                  Tidak Dapat Menghapus Role
+                </h4>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Role "{roleDeleteWarning.role.name}" masih memiliki ketergantungan personel
+                </div>
+              </div>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+              Role ini tidak dapat dihapus karena masih digunakan oleh <strong>{roleDeleteWarning.members.length} anggota</strong> pada kepengurusan ini:
+            </p>
+
+            <div style={{
+              maxHeight: '160px',
+              overflowY: 'auto',
+              padding: '10px 12px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(0, 0, 0, 0.25)',
+              border: '1px solid var(--border-card)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              {roleDeleteWarning.members.map((m, idx) => (
+                <div key={m.id || idx} style={{ fontSize: '0.78rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>•</span>
+                  <span><strong>{m.name}</strong> ({m.role})</span>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+              💡 <em>Silakan ubah terlebih dahulu jabatan personel di atas ke role lain melalui tombol edit di tabel personel sebelum menghapus role ini.</em>
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button
+                type="button"
+                onClick={() => setRoleDeleteWarning(null)}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Mengerti & Tutup
               </button>
             </div>
           </div>
