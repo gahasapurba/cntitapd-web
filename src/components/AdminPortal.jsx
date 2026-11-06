@@ -758,7 +758,7 @@ export default function AdminPortal({
       category: finalCategory,
       name: memName,
       role: finalRoleName,
-      title: finalRoleName,
+      title: divObj?.name || '',
       image: finalImageUrl,
       color: divObj?.color || '#FFB800',
       whatsapp: memWhatsapp.trim(),
@@ -2988,7 +2988,15 @@ export default function AdminPortal({
                             {m.name}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {m.role} {m.title ? `• ${m.title}` : ''}
+                            {(() => {
+                              const divObj = (divisions || []).find(d => d.id === m.divisionId);
+                              const divName = divObj?.name;
+                              const roleText = m.role || 'Anggota';
+                              const hasDistinctTitle = m.title && m.title.trim().toLowerCase() !== roleText.trim().toLowerCase() && !roleText.toLowerCase().includes(m.title.toLowerCase());
+                              const hasDistinctDiv = divName && !roleText.toLowerCase().includes(divName.toLowerCase());
+                              const extra = hasDistinctDiv ? divName : (hasDistinctTitle ? m.title : null);
+                              return extra ? `${roleText} • ${extra}` : roleText;
+                            })()}
                           </div>
                           {m.updatedAt && (
                             <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '2px' }}>
@@ -10784,6 +10792,7 @@ export default function AdminPortal({
                       ...cleanItem,
                       roleId: selectedRole?.id,
                       role: finalRoleName,
+                      title: divObj?.name || '',
                       category: finalCat,
                       divisionId: selectedRole?.requiresDivision ? cleanItem.divisionId : undefined,
                       image: finalImage,

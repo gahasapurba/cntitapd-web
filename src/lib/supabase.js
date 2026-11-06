@@ -943,7 +943,7 @@ export async function fetchAllCloudState() {
             titleName = dName;
           } else {
             roleName = roleName || rName;
-            titleName = titleName || rName;
+            titleName = divObj?.name || (titleName && titleName.toLowerCase() !== roleName.toLowerCase() ? titleName : '');
           }
         }
 
@@ -952,7 +952,7 @@ export async function fetchAllCloudState() {
           roleId: roleObj?.id || m.roleId || '',
           category: cat,
           role: roleName || 'Anggota',
-          title: titleName || roleName || 'Anggota'
+          title: titleName || ''
         };
       });
       saveLocalCache('members', result.members);

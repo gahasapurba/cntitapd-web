@@ -1684,7 +1684,17 @@ export default function App() {
                           >
                             <div>
                               <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>{m.name}</div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{m.role} • {m.title}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                {(() => {
+                                  const divObj = (divisions || []).find(d => d.id === m.divisionId);
+                                  const divName = divObj?.name;
+                                  const roleText = m.role || 'Anggota';
+                                  const hasDistinctTitle = m.title && m.title.trim().toLowerCase() !== roleText.trim().toLowerCase() && !roleText.toLowerCase().includes(m.title.toLowerCase());
+                                  const hasDistinctDiv = divName && !roleText.toLowerCase().includes(divName.toLowerCase());
+                                  const extra = hasDistinctDiv ? divName : (hasDistinctTitle ? m.title : null);
+                                  return extra ? `${roleText} • ${extra}` : roleText;
+                                })()}
+                              </div>
                             </div>
                             <ChevronRight size={15} color="var(--text-dim)" />
                           </button>
