@@ -804,16 +804,24 @@ export async function fetchAllCloudState() {
     if (!settingsRes.error && Array.isArray(settingsRes.data)) {
       for (const row of settingsRes.data) {
         if (row.key === 'page_visibility' && row.value) {
-          result.pageVisibility = row.value;
-          saveLocalCache('pageVisibility', row.value);
+          const valWithUpdated = {
+            ...row.value,
+            _updatedAt: row.updated_at
+          };
+          result.pageVisibility = valWithUpdated;
+          saveLocalCache('pageVisibility', valWithUpdated);
         }
         if (row.key === 'active_tenure_id' && row.value?.id) {
           result.activeTenureId = row.value.id;
           saveLocalCache('activeTenureId', row.value.id);
         }
         if (row.key === 'announcement_bar' && row.value) {
-          result.announcementBar = row.value;
-          saveLocalCache('announcementBar', row.value);
+          const valWithUpdated = {
+            ...row.value,
+            _updatedAt: row.updated_at
+          };
+          result.announcementBar = valWithUpdated;
+          saveLocalCache('announcementBar', valWithUpdated);
         }
       }
     }
@@ -833,9 +841,11 @@ export async function pushCloudState(key, value) {
   try {
     // Handle global settings in `public.page_settings`
     if (key === 'pageVisibility') {
+      const cleanValue = { ...value };
+      delete cleanValue._updatedAt;
       await supabase.from('page_settings').upsert({
         key: 'page_visibility',
-        value,
+        value: cleanValue,
         updated_at: new Date().toISOString()
       });
       return true;
@@ -851,9 +861,11 @@ export async function pushCloudState(key, value) {
     }
 
     if (key === 'announcementBar') {
+      const cleanValue = { ...value };
+      delete cleanValue._updatedAt;
       await supabase.from('page_settings').upsert({
         key: 'announcement_bar',
-        value,
+        value: cleanValue,
         updated_at: new Date().toISOString()
       });
       return true;

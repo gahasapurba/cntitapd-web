@@ -352,7 +352,8 @@ export default function App() {
 
   const setPageVisibility = (nextVis) => {
     const resolved = typeof nextVis === 'function' ? nextVis(pageVisibility) : nextVis;
-    const merged = { ...DEFAULT_PAGE_VISIBILITY, ...resolved };
+    const now = new Date().toISOString();
+    const merged = { ...DEFAULT_PAGE_VISIBILITY, ...resolved, _updatedAt: now };
     setPageVisibilityState(merged);
     try { localStorage.setItem('cnt_page_visibility', JSON.stringify(merged)); } catch (e) {}
     pushCloudState('pageVisibility', merged);
@@ -840,7 +841,8 @@ export default function App() {
   // Announcement Bar Handler
   const handleUpdateAnnouncementBar = (nextBar) => {
     const resolved = typeof nextBar === 'function' ? nextBar(announcementBar) : nextBar;
-    const merged = { ...DEFAULT_ANNOUNCEMENT_BAR, ...resolved };
+    const now = new Date().toISOString();
+    const merged = { ...DEFAULT_ANNOUNCEMENT_BAR, ...resolved, _updatedAt: now };
     setAnnouncementBar(merged);
     setIsBannerDismissed(false);
     pushCloudState('announcementBar', merged);

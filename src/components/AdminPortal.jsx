@@ -1848,9 +1848,14 @@ export default function AdminPortal({
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>
                   Kontrol Visibilitas Halaman & Navbar (View / Hide)
                 </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '650px', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '650px', lineHeight: 1.5, margin: 0 }}>
                   Atur halaman mana saja yang ditampilkan atau disembunyikan dari publik, termasuk visibilitas <strong>Navbar Utama</strong>. Jika seluruh halaman di-hide, pengunjung otomatis dialihkan ke tampilan <em>Mode Standby / Maintenance</em> yang tetap menyediakan tombol akses ke Portal Admin.
                 </p>
+                {pageVisibility?._updatedAt && (
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '8px' }}>
+                    {formatLastUpdatedWib(pageVisibility._updatedAt)}
+                  </div>
+                )}
               </div>
 
               {/* Quick Bulk Actions */}
@@ -2040,6 +2045,11 @@ export default function AdminPortal({
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                       Tampilkan pengumuman cepat (info Townhall, batas akhir Oprec, atau jadwal penting) di bagian paling atas halaman publik.
                     </div>
+                    {announcementBar?._updatedAt && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                        {formatLastUpdatedWib(announcementBar._updatedAt)}
+                      </div>
+                    )}
                   </div>
 
                   <button
@@ -4417,6 +4427,11 @@ export default function AdminPortal({
                           <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                             {d.description}
                           </p>
+                        )}
+                        {d.updatedAt && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                            {formatLastUpdatedWib(d.updatedAt)}
+                          </div>
                         )}
                       </div>
 
