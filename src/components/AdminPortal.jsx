@@ -669,11 +669,14 @@ export default function AdminPortal({
 
     const targetTenureId = memTenureId || activeTenure?.id || '';
     const availableRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
+    if (availableRoles.length === 0) {
+      errs.memRole = 'Role kepengurusan masih kosong pada periode ini. Silakan buat role baru terlebih dahulu di menu Kelola Role & Jabatan.';
+    }
     const selectedRole = availableRoles.find(r => r.id === memRoleId) || 
       availableRoles.find(r => r.name.toLowerCase() === (memRole || '').toLowerCase()) ||
-      availableRoles[0];
+      null;
 
-    if (!selectedRole) {
+    if (!selectedRole && availableRoles.length > 0) {
       errs.memRole = 'Jabatan / Role wajib dipilih';
     }
 
@@ -2611,18 +2614,29 @@ export default function AdminPortal({
                         fontSize: '0.85rem'
                       }}
                     >
-                      <option value="">-- Pilih Jabatan / Role --</option>
-                      {availableRoles.map((r) => {
-                        const levelInfo = LEVEL_OPTIONS.find(l => l.level === r.level);
-                        const quotaText = r.max > 0 ? `Maks ${r.max}` : 'Unlimited';
-                        const divText = r.requiresDivision ? ' • Butuh Divisi' : '';
-                        return (
-                          <option key={r.id} value={r.id}>
-                            {r.name} ({levelInfo?.shortLabel || `Level ${r.level}`} • {quotaText}{divText})
-                          </option>
-                        );
-                      })}
+                      {availableRoles.length === 0 ? (
+                        <option value="" disabled>-- Role kepengurusan masih kosong di periode ini. Silakan buat role baru di menu Kelola Role & Jabatan --</option>
+                      ) : (
+                        <>
+                          <option value="">-- Pilih Jabatan / Role --</option>
+                          {availableRoles.map((r) => {
+                            const levelInfo = LEVEL_OPTIONS.find(l => l.level === r.level);
+                            const quotaText = r.max > 0 ? `Maks ${r.max}` : 'Unlimited';
+                            const divText = r.requiresDivision ? ' • Butuh Divisi' : '';
+                            return (
+                              <option key={r.id} value={r.id}>
+                                {r.name} ({levelInfo?.shortLabel || `Level ${r.level}`} • {quotaText}{divText})
+                              </option>
+                            );
+                          })}
+                        </>
+                      )}
                     </select>
+                    {availableRoles.length === 0 && (
+                      <div style={{ fontSize: '0.74rem', color: '#f59e0b', marginTop: '6px', lineHeight: 1.4 }}>
+                        ⚠️ <strong>Role kepengurusan masih kosong</strong> pada periode kepengurusan ini. Silakan buat role baru terlebih dahulu di menu <strong>Kelola Role & Jabatan</strong>.
+                      </div>
+                    )}
                     {renderFieldError('memRole')}
                   </div>
                 );
@@ -8559,18 +8573,29 @@ export default function AdminPortal({
                           }}
                           style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                         >
-                          <option value="">-- Pilih Jabatan / Role --</option>
-                          {availableRoles.map((r) => {
-                            const levelInfo = LEVEL_OPTIONS.find(l => l.level === r.level);
-                            const quotaText = r.max > 0 ? `Maks ${r.max}` : 'Unlimited';
-                            const divText = r.requiresDivision ? ' • Butuh Divisi' : '';
-                            return (
-                              <option key={r.id} value={r.id}>
-                                {r.name} ({levelInfo?.shortLabel || `Level ${r.level}`} • {quotaText}{divText})
-                              </option>
-                            );
-                          })}
+                          {availableRoles.length === 0 ? (
+                            <option value="" disabled>-- Role kepengurusan masih kosong di periode ini. Silakan buat role baru di menu Kelola Role & Jabatan --</option>
+                          ) : (
+                            <>
+                              <option value="">-- Pilih Jabatan / Role --</option>
+                              {availableRoles.map((r) => {
+                                const levelInfo = LEVEL_OPTIONS.find(l => l.level === r.level);
+                                const quotaText = r.max > 0 ? `Maks ${r.max}` : 'Unlimited';
+                                const divText = r.requiresDivision ? ' • Butuh Divisi' : '';
+                                return (
+                                  <option key={r.id} value={r.id}>
+                                    {r.name} ({levelInfo?.shortLabel || `Level ${r.level}`} • {quotaText}{divText})
+                                  </option>
+                                );
+                              })}
+                            </>
+                          )}
                         </select>
+                        {availableRoles.length === 0 && (
+                          <div style={{ fontSize: '0.74rem', color: '#f59e0b', marginTop: '6px', lineHeight: 1.4 }}>
+                            ⚠️ <strong>Role kepengurusan masih kosong</strong> pada periode kepengurusan ini. Silakan buat role baru terlebih dahulu di menu <strong>Kelola Role & Jabatan</strong>.
+                          </div>
+                        )}
                       </div>
 
                       {requiresDiv ? (
@@ -10782,9 +10807,20 @@ export default function AdminPortal({
                   if (editingItem.type === 'member' && onUpdateMember) {
                     const targetTenureId = editingItem.item.tenureId || activeTenure?.id || '';
                     const availableRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
+                    if (availableRoles.length === 0) {
+                      setEditModalError('Role kepengurusan masih kosong pada periode ini. Silakan buat role baru terlebih dahulu di menu Kelola Role & Jabatan.');
+                      showToast('Role kepengurusan masih kosong pada periode ini.', 'error');
+                      return;
+                    }
                     const selectedRole = availableRoles.find(r => r.id === editingItem.item.roleId) ||
                       availableRoles.find(r => r.name.toLowerCase() === (editingItem.item.role || '').toLowerCase()) ||
-                      availableRoles[0];
+                      null;
+
+                    if (!selectedRole) {
+                      setEditModalError('Jabatan / Role wajib dipilih');
+                      showToast('Jabatan / Role wajib dipilih', 'error');
+                      return;
+                    }
 
                     if (selectedRole?.requiresDivision && !editingItem.item.divisionId) {
                       setEditModalError(`Divisi wajib dipilih untuk jabatan "${selectedRole.name}"`);
