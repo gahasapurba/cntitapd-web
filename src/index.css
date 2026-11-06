@@ -338,13 +338,13 @@ select option {
 
 .org-level-3 {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(var(--level3-cols, 2), minmax(0, 1fr));
   gap: 24px;
 }
 
 .org-pimpro-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--pimpro-cols, 4), minmax(0, 1fr));
   gap: 16px;
   width: 100%;
   position: relative;
@@ -353,7 +353,7 @@ select option {
 
 @media (max-width: 960px) {
   .org-pimpro-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 16px;
   }
   .org-tree-line {

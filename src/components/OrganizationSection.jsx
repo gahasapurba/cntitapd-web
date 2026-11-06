@@ -458,9 +458,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
             <div 
               className={displayLevel3.length === 1 ? '' : 'org-level-3'}
               style={{
-                display: displayLevel3.length > 2 ? 'grid' : undefined,
-                gridTemplateColumns: displayLevel3.length > 2 ? `repeat(${displayLevel3.length}, minmax(0, 1fr))` : undefined,
-                gap: displayLevel3.length > 2 ? '16px' : undefined
+                '--level3-cols': displayLevel3.length > 0 ? displayLevel3.length : 2
               }}
             >
               {displayLevel3.map((person) => (
@@ -521,7 +519,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
               <div 
                 className="org-pimpro-grid"
                 style={{
-                  gridTemplateColumns: displayDivs.length > 0 ? `repeat(${displayDivs.length}, minmax(0, 1fr))` : undefined
+                  '--pimpro-cols': displayDivs.length > 0 ? displayDivs.length : 4
                 }}
               >
                 {displayDivs.map((div, idx) => {
