@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { formatWibEventRange } from '../utils/dateUtils.js';
+import { getCategoryFromLevel } from '../utils/memberQuotaUtils.js';
 
 const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || 'https://xarcxbfgeoetyhpqsick.supabase.co';
 const supabaseAnonKey =
@@ -129,6 +130,21 @@ export async function checkMembersRoleIdColumn() {
     isMembersRoleIdSupported = false;
   }
   return isMembersRoleIdSupported;
+}
+
+let isLegacyMemberColsChecked = false;
+let isLegacyMemberColsSupported = true;
+
+export async function checkLegacyMemberColumns() {
+  if (isLegacyMemberColsChecked) return isLegacyMemberColsSupported;
+  try {
+    const { error } = await supabase.from('members').select('category, role, title').limit(1);
+    isLegacyMemberColsSupported = !error;
+    isLegacyMemberColsChecked = true;
+  } catch (e) {
+    isLegacyMemberColsSupported = false;
+  }
+  return isLegacyMemberColsSupported;
 }
 
 export async function checkTenureRolesTable() {
@@ -422,10 +438,7 @@ export const rowMappers = {
         id: String(item.id),
         tenure_id: item.tenureId || null,
         division_id: item.divisionId || null,
-        category: item.category || 'anggota',
         name: item.name || '',
-        role: item.role || '',
-        title: item.title || '',
         image: item.image || '',
         color: item.color || '#FFB800',
         whatsapp: item.whatsapp || '',
@@ -436,6 +449,11 @@ export const rowMappers = {
       if (isMembersRoleIdSupported) {
         row.role_id = item.roleId || null;
       }
+      if (isLegacyMemberColsSupported) {
+        row.category = item.category || 'anggota';
+        row.role = item.role || '';
+        row.title = item.title || '';
+      }
       return row;
     },
     fromDb: (row) => ({
@@ -443,10 +461,10 @@ export const rowMappers = {
       tenureId: row.tenure_id,
       divisionId: row.division_id || undefined,
       roleId: row.role_id || '',
-      category: row.category,
+      category: row.category || '',
       name: row.name,
-      role: row.role,
-      title: row.title,
+      role: row.role || '',
+      title: row.title || '',
       image: row.image || '',
       color: row.color || '#FFB800',
       whatsapp: row.whatsapp || '',
@@ -777,7 +795,8 @@ export async function fetchAllCloudState() {
       checkDivisionsSchema(),
       checkDepartmentsTable(),
       checkTenureRolesTable(),
-      checkMembersRoleIdColumn()
+      checkMembersRoleIdColumn(),
+      checkLegacyMemberColumns()
     ]);
     const [
       tenuresRes,
@@ -900,6 +919,43 @@ export async function fetchAllCloudState() {
       }
     }
 
+    // Enrich and reconcile members with role_id, divisions, and category
+    if (result.members && Array.isArray(result.members)) {
+      const rList = result.tenureRoles || [];
+      const dList = result.divisions || [];
+      result.members = result.members.map(m => {
+        const roleObj = rList.find(r => r.id === m.roleId) ||
+          rList.find(r => r.name.toLowerCase() === (m.role || '').toLowerCase());
+        const divObj = dList.find(d => d.id === m.divisionId);
+        const level = roleObj ? Number(roleObj.level) : 5;
+        const cat = roleObj ? getCategoryFromLevel(level) : (m.category || 'anggota');
+
+        let roleName = m.role;
+        let titleName = m.title;
+
+        if (roleObj) {
+          if (roleObj.requiresDivision && divObj) {
+            roleName = roleObj.name.toLowerCase().includes(divObj.name.toLowerCase())
+              ? roleObj.name
+              : `${roleObj.name} ${divObj.name}`;
+            titleName = divObj.name;
+          } else {
+            roleName = roleName || roleObj.name;
+            titleName = titleName || roleObj.name;
+          }
+        }
+
+        return {
+          ...m,
+          roleId: roleObj?.id || m.roleId || '',
+          category: cat,
+          role: roleName || 'Anggota',
+          title: titleName || roleName || 'Anggota'
+        };
+      });
+      saveLocalCache('members', result.members);
+    }
+
     return result;
   } catch (e) {
     return null;
@@ -971,6 +1027,7 @@ export async function pushCloudState(key, value) {
     }
     if (key === 'members') {
       await checkMembersRoleIdColumn();
+      await checkLegacyMemberColumns();
     }
     if (key === 'galleries') {
       await checkGalleryDivisionIdColumn();
