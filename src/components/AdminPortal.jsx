@@ -316,8 +316,6 @@ export default function AdminPortal({
 
   // Form states for new division
   const [newDivName, setNewDivName] = useState('');
-  const [newDivMemberId, setNewDivMemberId] = useState('');
-  const [newDivLead, setNewDivLead] = useState('');
   const [newDivColor, setNewDivColor] = useState('#00529B');
   const [newDivDesc, setNewDivDesc] = useState('');
   const [newDivFocus, setNewDivFocus] = useState('');
@@ -867,14 +865,13 @@ export default function AdminPortal({
       return;
     }
 
-    const selPimpro = members.find(m => m.id === newDivMemberId);
     onAddDivision({
       id: 'div-' + Date.now(),
       tenureId: newDivTenureId || activeTenure?.id || '',
       name: newDivName,
       slug: newDivName.toLowerCase().replace(/\s+/g, '-'),
-      memberId: newDivMemberId || null,
-      leadName: selPimpro ? selPimpro.name : (newDivLead || 'TBD'),
+      memberId: null,
+      leadName: '',
       color: newDivColor,
       motto: 'Mendorong Transformasi Budaya Berkelanjutan',
       description: newDivDesc || 'Divisi pengembangan inisiatif budaya di Group IT APD.',
@@ -884,8 +881,6 @@ export default function AdminPortal({
 
     const savedDiv = newDivName;
     setNewDivName('');
-    setNewDivMemberId('');
-    setNewDivLead('');
     setNewDivDesc('');
     setNewDivFocus('');
     showToast(`Divisi "${savedDiv}" berhasil ditambahkan & disinkronkan!`);
@@ -5590,62 +5585,11 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Nama Pimpro / PIC Divisi (Kategori Pimpro)
-              </label>
-              {(() => {
-                const targetDivTenure = newDivTenureId || activeTenure?.id;
-                const availablePimpros = (members || []).filter(m =>
-                  (m.category || '').toLowerCase() === 'pimpro' &&
-                  (!m.tenureId || m.tenureId === targetDivTenure)
-                );
-                return (
-                  <div>
-                    <select
-                      value={newDivMemberId}
-                      onChange={(e) => {
-                        const selId = e.target.value;
-                        setNewDivMemberId(selId);
-                        const selMem = members.find(m => m.id === selId);
-                        setNewDivLead(selMem ? selMem.name : '');
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border-card)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      <option value="">-- Pilih Pimpro (Opsional / Ditentukan Nanti) --</option>
-                      {availablePimpros.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} {m.role ? `(${m.role})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                    {availablePimpros.length === 0 && (
-                      <span style={{ fontSize: '0.72rem', color: '#f59e0b', marginTop: '4px', display: 'block' }}>
-                        Belum ada anggota dengan kategori Pimpro pada periode kepengurusan ini.
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Periode Kepengurusan *
               </label>
               <select
                 value={newDivTenureId || activeTenure?.id || ''}
-                onChange={(e) => {
-                  setNewDivTenureId(e.target.value);
-                  setNewDivMemberId('');
-                  setNewDivLead('');
-                }}
+                onChange={(e) => setNewDivTenureId(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -8791,59 +8735,6 @@ export default function AdminPortal({
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      Nama Pimpro / PIC (Kategori Pimpro)
-                    </label>
-                    {(() => {
-                      const editDivTenure = editingItem.item.tenureId || activeTenure?.id;
-                      const availableEditPimpros = (members || []).filter(m =>
-                        (m.category || '').toLowerCase() === 'pimpro' &&
-                        (!m.tenureId || m.tenureId === editDivTenure)
-                      );
-                      const currentSelectedMemberId = editingItem.item.memberId ||
-                        members.find(m => (m.category || '').toLowerCase() === 'pimpro' && m.divisionId === editingItem.item.id)?.id ||
-                        members.find(m => (m.category || '').toLowerCase() === 'pimpro' && m.name === editingItem.item.leadName)?.id ||
-                        '';
-
-                      return (
-                        <select
-                          value={currentSelectedMemberId}
-                          onChange={(e) => {
-                            const selId = e.target.value;
-                            const selMem = members.find(m => m.id === selId);
-                            setEditingItem({
-                              ...editingItem,
-                              item: {
-                                ...editingItem.item,
-                                memberId: selId || null,
-                                leadName: selMem ? selMem.name : ''
-                              }
-                            });
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: 'var(--radius-sm)',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--input-border)',
-                            color: 'var(--text-main)',
-                            fontSize: '0.86rem'
-                          }}
-                        >
-                          <option value="">-- Pilih Pimpro (Opsional / Belum Ditentukan) --</option>
-                          {availableEditPimpros.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.name} {m.role ? `(${m.role})` : ''}
-                            </option>
-                          ))}
-                        </select>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                <div className="mobile-two-col" style={{ gap: '10px' }}>
-                  <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
                     <select
                       value={editingItem.item.tenureId || activeTenure?.id || ''}
@@ -8856,9 +8747,7 @@ export default function AdminPortal({
                           item: {
                             ...editingItem.item,
                             tenureId: newTenure,
-                            divisionId: keepDiv ? editingItem.item.divisionId : undefined,
-                            memberId: null,
-                            leadName: ''
+                            divisionId: keepDiv ? editingItem.item.divisionId : undefined
                           }
                         });
                       }}
@@ -8869,6 +8758,9 @@ export default function AdminPortal({
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Status Rekrutmen Divisi (Publik)</label>
                     <select
@@ -8880,23 +8772,22 @@ export default function AdminPortal({
                       <option value="closed">○ Ditutup (Badge Hilang di Web)</option>
                     </select>
                   </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Warna Identitas Divisi</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="color"
-                      value={editingItem.item.color || '#0284c7'}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
-                      style={{ width: '40px', height: '36px', border: 'none', background: 'transparent', cursor: 'pointer' }}
-                    />
-                    <input
-                      type="text"
-                      value={editingItem.item.color || '#0284c7'}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
-                    />
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Warna Identitas Divisi</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="color"
+                        value={editingItem.item.color || '#0284c7'}
+                        onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
+                        style={{ width: '40px', height: '36px', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                      />
+                      <input
+                        type="text"
+                        value={editingItem.item.color || '#0284c7'}
+                        onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, color: e.target.value } })}
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.84rem' }}
+                      />
+                    </div>
                   </div>
                 </div>
 
