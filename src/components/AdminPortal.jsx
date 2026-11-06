@@ -61,6 +61,11 @@ import {
   buildFlexibleDate,
   formatLastUpdatedWib
 } from '../utils/dateUtils';
+import {
+  validateMemberQuota,
+  getTenureQuotaSummary,
+  getMemberRoleType
+} from '../utils/memberQuotaUtils';
 
 function formatWaPhone(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -633,6 +638,26 @@ export default function AdminPortal({
       } else if (!memDivisionId || !availableDivsForMember.some(d => d.id === memDivisionId)) {
         errs.memDivisionId = 'Divisi wajib dipilih untuk posisi Anggota / Pimpro';
       }
+    }
+
+    // Validasi Ketat Kuota Kepengurusan (Pembina maks 1, Ketua maks 1, Wakil maks 1, Pimpro maks 1/divisi, Sekben maks 2)
+    const quotaCheck = validateMemberQuota(
+      {
+        tenureId: targetTenureId,
+        category: memCategory,
+        role: memRole || (memCategory === 'pembina' ? 'Pembina' : memCategory === 'pimpro' ? 'Pimpro' : ''),
+        title: memRole,
+        divisionId: memDivisionId
+      },
+      members,
+      divisions
+    );
+
+    if (!quotaCheck.isValid) {
+      errs[quotaCheck.field || 'memCategory'] = quotaCheck.error;
+      setFormErrors((prev) => ({ ...prev, ...errs }));
+      showToast(quotaCheck.error, 'error');
+      return;
     }
 
     if (Object.keys(errs).length > 0) {
@@ -2352,44 +2377,184 @@ export default function AdminPortal({
               </label>
               <select
                 value={memCategory}
-                onChange={(e) => setMemCategory(e.target.value)}
+                onChange={(e) => {
+                  const newCat = e.target.value;
+                  setMemCategory(newCat);
+                  clearFieldError('memCategory');
+                  if (newCat === 'pembina') {
+                    setMemRole('Pembina');
+                    setMemDivisionId('');
+                  } else if (newCat === 'pimpro') {
+                    const dObj = divisions.find(d => d.id === memDivisionId);
+                    setMemRole(dObj ? `Pimpro ${dObj.name}` : 'Pimpro');
+                  } else if (newCat === 'anggota') {
+                    setMemRole('Anggota Divisi');
+                  } else if (newCat === 'inti') {
+                    setMemDivisionId('');
+                    if (!memRole || memRole === 'Pembina' || memRole === 'Anggota Divisi' || memRole.startsWith('Pimpro')) {
+                      setMemRole('Ketua');
+                    }
+                  }
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--bg-card)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.memCategory ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               >
-                <option value="anggota">Anggota Divisi</option>
-                <option value="pimpro">Pimpro / Ketua Divisi</option>
-                <option value="inti">Pengurus Inti (Ketua / Wakil / Sekben)</option>
-                <option value="pembina">Pembina / Advisor</option>
+                <option value="anggota">Anggota Divisi (Unlimited)</option>
+                <option value="pimpro">Pimpro / Ketua Divisi (Maks 1 / Divisi)</option>
+                <option value="inti">Pengurus Inti (Ketua: 1, Wakil: 1, Sekben: 2)</option>
+                <option value="pembina">Pembina / Advisor (Maks 1)</option>
               </select>
+              {renderFieldError('memCategory')}
             </div>
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Jabatan / Role Spesifik
+                Jabatan / Role Spesifik *
               </label>
               <input
                 type="text"
-                placeholder="Contoh: Officer Creative Designer / Turnamen Lead"
+                placeholder="Contoh: Ketua / Wakil Ketua / Sekben 1 / Pimpro Experience & Activity"
                 value={memRole}
-                onChange={(e) => setMemRole(e.target.value)}
+                onChange={(e) => {
+                  setMemRole(e.target.value);
+                  clearFieldError('memRole');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.memRole ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('memRole')}
             </div>
+
+            {/* Preset Tombol Cepat Peran Pengurus Inti */}
+            {memCategory === 'inti' && (
+              <div style={{
+                gridColumn: 'span 2',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-card)'
+              }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  ⚡ Pilih Jabatan Pengurus Inti (Maksimal per Kepengurusan):
+                </span>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'Ketua', label: 'Ketua (Maks 1)' },
+                    { id: 'Wakil Ketua', label: 'Wakil Ketua (Maks 1)' },
+                    { id: 'Sekben 1', label: 'Sekben 1 (Maks 2)' },
+                    { id: 'Sekben 2', label: 'Sekben 2 (Maks 2)' }
+                  ].map((preset) => {
+                    const isSelected = memRole === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setMemRole(preset.id);
+                          clearFieldError('memRole');
+                        }}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: 'var(--radius-full)',
+                          background: isSelected ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                          color: isSelected ? '#040914' : 'var(--text-main)',
+                          border: isSelected ? '1px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* LIVE QUOTA INDICATOR PANEL */}
+            {(() => {
+              const currentTenureId = memTenureId || activeTenure?.id || '';
+              const quota = getTenureQuotaSummary(currentTenureId, members, divisions);
+              const tenureObj = tenures.find(t => t.id === currentTenureId);
+              const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Aktif';
+
+              const renderBadge = (label, current, max, occupants = []) => {
+                const isFull = current >= max;
+                const occNames = occupants.map(o => o.name).join(', ');
+                return (
+                  <div
+                    key={label}
+                    title={occNames ? `Terisi oleh: ${occNames}` : 'Slot masih tersedia'}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: isFull ? 'rgba(255, 184, 0, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                      border: `1px solid ${isFull ? 'rgba(255, 184, 0, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      color: isFull ? 'var(--mandiri-gold)' : '#10b981'
+                    }}
+                  >
+                    <span>{label}: <strong>{current}/{max}</strong></span>
+                    {isFull && <span style={{ fontSize: '0.66rem', opacity: 0.85 }}>(Penuh)</span>}
+                  </div>
+                );
+              };
+
+              return (
+                <div style={{
+                  gridColumn: 'span 2',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  background: isDark ? 'rgba(56, 189, 248, 0.05)' : '#f0f9ff',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid #bae6fd'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <span>🛡️ Batas Kuota Struktur Kepengurusan • {tenureName}</span>
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      Maks: Pembina (1), Ketua (1), Wakil (1), Sekben (2), Pimpro (1/divisi)
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {renderBadge('Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
+                    {renderBadge('Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
+                    {renderBadge('Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
+                    {renderBadge('Sekben', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
+                    {Object.values(quota.pimproByDivision).map(pDiv =>
+                      renderBadge(`Pimpro ${pDiv.divisionName}`, pDiv.current, pDiv.max, pDiv.members)
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {(memCategory === 'anggota' || memCategory === 'pimpro') && (() => {
               const availableDivsForMember = divisions.filter(d => d.tenureId === (memTenureId || activeTenure?.id));
@@ -7662,16 +7827,82 @@ export default function AdminPortal({
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Posisi</label>
                     <select
                       value={editingItem.item.category || 'anggota'}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
+                      onChange={(e) => {
+                        const newCat = e.target.value;
+                        const updated = { ...editingItem.item, category: newCat };
+                        if (newCat === 'pembina') {
+                          updated.role = 'Pembina';
+                          updated.divisionId = undefined;
+                        } else if (newCat === 'pimpro') {
+                          const dObj = divisions.find(d => d.id === updated.divisionId);
+                          updated.role = dObj ? `Pimpro ${dObj.name}` : 'Pimpro';
+                        } else if (newCat === 'inti') {
+                          updated.divisionId = undefined;
+                          if (!updated.role || updated.role === 'Pembina' || updated.role === 'Anggota Divisi' || updated.role.startsWith('Pimpro')) {
+                            updated.role = 'Ketua';
+                          }
+                        }
+                        setEditingItem({ ...editingItem, item: updated });
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
-                      <option value="pembina">Pembina</option>
-                      <option value="inti">Pengurus Inti (BPH)</option>
-                      <option value="pimpro">Ketua Divisi (Pimpro)</option>
-                      <option value="anggota">Anggota Divisi</option>
+                      <option value="pembina">Pembina / Advisor (Maks 1)</option>
+                      <option value="inti">Pengurus Inti (Ketua: 1, Wakil: 1, Sekben: 2)</option>
+                      <option value="pimpro">Ketua Divisi / Pimpro (Maks 1 / Divisi)</option>
+                      <option value="anggota">Anggota Divisi (Unlimited)</option>
                     </select>
                   </div>
                 </div>
+
+                {editingItem.item.category === 'inti' && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-card)'
+                  }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                      ⚡ Pilih Jabatan Pengurus Inti:
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {[
+                        { id: 'Ketua', label: 'Ketua' },
+                        { id: 'Wakil Ketua', label: 'Wakil Ketua' },
+                        { id: 'Sekben 1', label: 'Sekben 1' },
+                        { id: 'Sekben 2', label: 'Sekben 2' }
+                      ].map((preset) => {
+                        const isSelected = editingItem.item.role === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => {
+                              setEditingItem({
+                                ...editingItem,
+                                item: { ...editingItem.item, role: preset.id }
+                              });
+                            }}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: 'var(--radius-full)',
+                              background: isSelected ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                              color: isSelected ? '#040914' : 'var(--text-main)',
+                              border: isSelected ? '1px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {preset.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
@@ -9798,12 +10029,33 @@ export default function AdminPortal({
 
                   if (editingItem.type === 'member' && onUpdateMember) {
                     const cat = editingItem.item.category || 'anggota';
+                    const targetTenureId = editingItem.item.tenureId || activeTenure?.id || '';
                     if (cat === 'anggota' || cat === 'pimpro') {
                       if (!editingItem.item.divisionId) {
                         setEditModalError('Divisi wajib dipilih untuk posisi Anggota / Pimpro');
                         showToast('Divisi wajib dipilih untuk posisi Anggota / Pimpro', 'error');
                         return;
                       }
+                    }
+
+                    // Validasi Ketat Kuota Kepengurusan saat edit
+                    const quotaCheck = validateMemberQuota(
+                      {
+                        tenureId: targetTenureId,
+                        category: cat,
+                        role: editingItem.item.role,
+                        title: editingItem.item.title,
+                        divisionId: editingItem.item.divisionId,
+                        excludeMemberId: editingItem.item.id
+                      },
+                      members,
+                      divisions
+                    );
+
+                    if (!quotaCheck.isValid) {
+                      setEditModalError(quotaCheck.error);
+                      showToast(quotaCheck.error, 'error');
+                      return;
                     }
                     let finalImage = editingItem.item.image || '';
                     if (editingItem.pendingPhoto) {
