@@ -1037,6 +1037,45 @@ export default function AdminPortal({
     });
   };
 
+  const handleAddPhotoLinkToEditModal = async () => {
+    const raw = (editingItem?.photoUrlInput || '').trim();
+    if (!raw) {
+      showToast('Masukkan minimal satu tautan link foto terlebih dahulu', 'error');
+      return;
+    }
+    const urls = raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    if (!urls.length) return;
+
+    setIsUploadingMedia(true);
+    showToast(`Memverifikasi ${urls.length} link foto...`);
+    const validUrls = [];
+    for (const u of urls) {
+      const check = await verifyImageUrl(u);
+      if (!check.valid) {
+        setIsUploadingMedia(false);
+        showToast(`Tautan foto "${u}" tidak valid: ${check.error}`, 'error');
+        return;
+      }
+      validUrls.push(u);
+    }
+    setIsUploadingMedia(false);
+
+    setEditingItem(prev => {
+      if (!prev) return null;
+      const existing = Array.isArray(prev.item.photos) ? prev.item.photos : [];
+      return {
+        ...prev,
+        photoUrlInput: '',
+        item: {
+          ...prev.item,
+          photos: [...existing, ...validUrls]
+        }
+      };
+    });
+    soundFx?.playSuccess?.();
+    showToast(`Berhasil menambahkan ${validUrls.length} link foto ke carousel!`);
+  };
+
   const handleCreateGallery = async (e) => {
     e.preventDefault();
     const errs = {};
@@ -8144,6 +8183,67 @@ export default function AdminPortal({
                       ));
                     })()}
                   </div>
+
+                  {/* Option B: Input Tambah Link URL Foto */}
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--border-card)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <label style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Link2 size={13} color="var(--mandiri-gold)" />
+                      <span>Atau Tambah Foto via Link URL (Web / Supabase):</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <textarea
+                        rows={2}
+                        placeholder="https://...link-foto-1.jpg&#10;https://...link-foto-2.png"
+                        value={editingItem.photoUrlInput || ''}
+                        onChange={(e) => setEditingItem({ ...editingItem, photoUrlInput: e.target.value })}
+                        style={{
+                          flex: 1,
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--input-border)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.8rem',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddPhotoLinkToEditModal}
+                        disabled={isUploadingMedia || !(editingItem.photoUrlInput || '').trim()}
+                        style={{
+                          padding: '7px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: (editingItem.photoUrlInput || '').trim() ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                          color: (editingItem.photoUrlInput || '').trim() ? '#040914' : 'var(--text-dim)',
+                          border: '1px solid var(--border-card)',
+                          fontWeight: 700,
+                          fontSize: '0.76rem',
+                          cursor: (editingItem.photoUrlInput || '').trim() ? 'pointer' : 'not-allowed',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          height: 'fit-content'
+                        }}
+                      >
+                        <Plus size={13} />
+                        <span>+ Tambah Link</span>
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
+                      * Link diverifikasi aktif sebelum masuk ke carousel. Bisa masukkan beberapa link dipisahkan baris baru.
+                    </div>
+                  </div>
                 </div>
 
                 {/* DocLinks Manager in Edit Modal */}
@@ -9488,6 +9588,29 @@ export default function AdminPortal({
                       setIsUploadingMedia(false);
                     }
                     finalPhotos = finalPhotos.filter(u => typeof u === 'string' && !u.startsWith('blob:'));
+
+                    // Auto-include any pending photo links entered in the textarea
+                    const pendingRawUrls = (editingItem.photoUrlInput || '').trim();
+                    if (pendingRawUrls) {
+                      const urls = pendingRawUrls.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+                      for (const u of urls) {
+                        const check = await verifyImageUrl(u);
+                        if (!check.valid) {
+                          setEditModalError(`Tautan foto "${u}" tidak valid: ${check.error}`);
+                          showToast(`Tautan foto tidak valid: ${check.error}`, 'error');
+                          return;
+                        }
+                        if (!finalPhotos.includes(u)) {
+                          finalPhotos.push(u);
+                        }
+                      }
+                    }
+
+                    if (finalPhotos.length === 0) {
+                      setEditModalError('Dokumentasi kegiatan wajib memiliki minimal 1 foto!');
+                      showToast('Dokumentasi kegiatan wajib memiliki minimal 1 foto!', 'error');
+                      return;
+                    }
                     const {
                       _dateMode,
                       _dateVal,
