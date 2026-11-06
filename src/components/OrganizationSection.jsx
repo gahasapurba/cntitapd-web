@@ -15,7 +15,7 @@ import {
 import CrewMemberCard from './CrewMemberCard';
 import { soundFx } from '../utils/audio';
 import { exportPresentationToPdf } from '../utils/exportPdf';
-import { getTenureRoles, getMemberLevel } from '../utils/memberQuotaUtils';
+import { getTenureRoles, getMemberLevel, findMatchingRole } from '../utils/memberQuotaUtils';
 
 function formatWaNumber(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -28,7 +28,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   const [selectedMember, setSelectedMember] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [divisionFilter, setDivisionFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
@@ -104,7 +104,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   // Level 4: Pimpinan Divisi / Pimpro
   const pimpro = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 4 || m.category === 'pimpro');
 
-  const isFiltering = searchQuery.trim() !== '' || categoryFilter !== 'all' || divisionFilter !== 'all';
+  const isFiltering = searchQuery.trim() !== '' || roleFilter !== 'all' || divisionFilter !== 'all';
 
   const filteredDirectoryMembers = activeMembers.filter(m => {
     const q = searchQuery.trim().toLowerCase();
@@ -113,9 +113,15 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       (m.role || '').toLowerCase().includes(q) ||
       (m.title || '').toLowerCase().includes(q) ||
       (Array.isArray(m.responsibilities) && m.responsibilities.some(r => r.toLowerCase().includes(q)));
-    const matchesCat = categoryFilter === 'all' || m.category === categoryFilter;
+    
+    const memberRole = findMatchingRole(m, currentTenureRoles);
+    const matchesRole = roleFilter === 'all' ||
+      m.roleId === roleFilter ||
+      memberRole?.id === roleFilter ||
+      (memberRole?.name && memberRole.name.toLowerCase() === roleFilter.toLowerCase());
+
     const matchesDiv = divisionFilter === 'all' || m.divisionId === divisionFilter;
-    return matchesSearch && matchesCat && matchesDiv;
+    return matchesSearch && matchesRole && matchesDiv;
   });
 
   const handleMemberClick = (member) => {
@@ -212,8 +218,8 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
           </div>
 
           <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
             style={{
               padding: '9px 12px',
               borderRadius: 'var(--radius-full)',
@@ -226,11 +232,18 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
               flex: '0 1 auto'
             }}
           >
-            <option value="all">Semua Posisi ({activeMembers.length})</option>
-            <option value="pembina">Pembina</option>
-            <option value="inti">Pengurus Inti (BPH)</option>
-            <option value="pimpro">Ketua Divisi (Pimpro)</option>
-            <option value="anggota">Anggota Divisi</option>
+            <option value="all">Semua Posisi / Role ({activeMembers.length})</option>
+            {currentTenureRoles.map(r => {
+              const count = activeMembers.filter(m => {
+                const mr = findMatchingRole(m, currentTenureRoles);
+                return m.roleId === r.id || mr?.id === r.id;
+              }).length;
+              return (
+                <option key={r.id} value={r.id}>
+                  {r.name} ({count})
+                </option>
+              );
+            })}
           </select>
 
           <select
@@ -259,7 +272,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
               type="button"
               onClick={() => {
                 setSearchQuery('');
-                setCategoryFilter('all');
+                setRoleFilter('all');
                 setDivisionFilter('all');
               }}
               style={{
@@ -542,11 +555,11 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
                 }}
               >
                 {displayDivs.map((div, idx) => {
-                  const lead = activeMembers.find(m => m.divisionId === div.id && (m.category === 'pimpro' || (m.role || '').toLowerCase().startsWith('pimpro') || String(m.roleId || '').includes('pimpro')))
+                  const lead = activeMembers.find(m => m.divisionId === div.id && (getMemberLevel(m, currentTenureRoles) === 4 || m.category === 'pimpro' || (m.role || '').toLowerCase().startsWith('pimpro') || String(m.roleId || '').includes('pimpro')))
                     || activeMembers.find(m => div.leadName && m.name === div.leadName)
                     || (pimpro[idx] || null);
                   const lineColor = div.color || (idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800');
-                  const divisionMembers = activeMembers.filter(m => m.category === 'anggota' && m.divisionId === div.id);
+                  const divisionMembers = activeMembers.filter(m => m.id !== lead?.id && m.divisionId === div.id && (m.category === 'anggota' || getMemberLevel(m, currentTenureRoles) === 5));
 
                   return (
                     <div key={div.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
