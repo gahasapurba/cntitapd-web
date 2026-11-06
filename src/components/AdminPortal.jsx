@@ -8237,7 +8237,7 @@ export default function AdminPortal({
                         }}
                       >
                         <Plus size={13} />
-                        <span>+ Tambah Link</span>
+                        <span>Tambah Link</span>
                       </button>
                     </div>
                     <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
