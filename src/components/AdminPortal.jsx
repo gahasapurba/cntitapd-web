@@ -283,9 +283,9 @@ export default function AdminPortal({
 
   // Form states for new Brand Asset
   const [assetTitle, setAssetTitle] = useState('');
-  const [assetCategory, setAssetCategory] = useState('Logo & Brand');
-  const [assetBadge, setAssetBadge] = useState('Official Asset');
-  const [assetFileType, setAssetFileType] = useState('PNG / ZIP');
+  const [assetCategory, setAssetCategory] = useState('');
+  const [assetBadge, setAssetBadge] = useState('');
+  const [assetFileType, setAssetFileType] = useState('');
   const [assetFileSize, setAssetFileSize] = useState('');
   const [assetFileUrl, setAssetFileUrl] = useState('');
   const [assetPreviewUrl, setAssetPreviewUrl] = useState('');
@@ -309,7 +309,7 @@ export default function AdminPortal({
   const [memCategory, setMemCategory] = useState('anggota'); // 'pembina' | 'inti' | 'pimpro' | 'anggota'
   const [memRole, setMemRole] = useState('');
   const [memRoleId, setMemRoleId] = useState('');
-  const [memDivisionId, setMemDivisionId] = useState(divisions[0]?.id || 'div-exp');
+  const [memDivisionId, setMemDivisionId] = useState('');
   const [memTenureId, setMemTenureId] = useState(activeTenure?.id || '');
   const [memWhatsapp, setMemWhatsapp] = useState('');
   const [memMotto, setMemMotto] = useState('');
@@ -344,7 +344,7 @@ export default function AdminPortal({
 
   // Form Creator & Field Builder States
   const [newFormTitle, setNewFormTitle] = useState('');
-  const [newFormCategory, setNewFormCategory] = useState('Kegiatan & Event');
+  const [newFormCategory, setNewFormCategory] = useState('');
   const [newFormDeadline, setNewFormDeadline] = useState('');
   const [newFormSubtitle, setNewFormSubtitle] = useState('');
   const [newFormRequiresTracking, setNewFormRequiresTracking] = useState(true);
@@ -485,14 +485,14 @@ export default function AdminPortal({
   const [galMonth, setGalMonth] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
   const [galYear, setGalYear] = useState(String(new Date().getFullYear()));
   const [galDivisionId, setGalDivisionId] = useState('');
-  const [galDivision, setGalDivision] = useState('Creative Media');
+  const [galDivision, setGalDivision] = useState('');
   const [galTenureId, setGalTenureId] = useState(activeTenure?.id || '');
   const [galDesc, setGalDesc] = useState('');
   const [galPhotos, setGalPhotos] = useState('');
 
   // Form states for Event
   const [eventTitle, setEventTitle] = useState('');
-  const [eventCategory, setEventCategory] = useState('Program Budaya');
+  const [eventCategory, setEventCategory] = useState('');
   const [eventDivId, setEventDivId] = useState('');
   const [eventTenureId, setEventTenureId] = useState(activeTenure?.id || '');
   const [eventStartDate, setEventStartDate] = useState('');
@@ -504,31 +504,33 @@ export default function AdminPortal({
   const [eventStatus, setEventStatus] = useState('Upcoming');
 
   // Form State: New FAQ
-  const [faqCategory, setFaqCategory] = useState('Tentang CNT');
+  const [faqCategory, setFaqCategory] = useState('');
   const [faqQuestion, setFaqQuestion] = useState('');
   const [faqAnswer, setFaqAnswer] = useState('');
 
   const handleCreateFaq = (e) => {
     e.preventDefault();
     const errs = {};
+    if (!faqCategory.trim()) errs.faqCategory = 'Kategori Topik FAQ wajib dipilih / diisi';
     if (!faqQuestion.trim()) errs.faqQuestion = 'Pertanyaan FAQ wajib diisi';
     if (!faqAnswer.trim()) errs.faqAnswer = 'Jawaban / penjelasan FAQ wajib diisi';
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
-      showToast('Mohon lengkapi Pertanyaan dan Jawaban FAQ', 'error');
+      showToast('Mohon lengkapi seluruh kolom wajib pada form FAQ', 'error');
       return;
     }
 
     if (onAddFaq) {
       onAddFaq({
         id: 'faq-' + Date.now(),
-        category: faqCategory || 'Umum',
+        category: faqCategory.trim(),
         question: faqQuestion.trim(),
         answer: faqAnswer.trim(),
         isPublished: true
       });
     }
 
+    setFaqCategory('');
     setFaqQuestion('');
     setFaqAnswer('');
     showToast('Pertanyaan FAQ baru berhasil ditambahkan & disinkronkan!');
@@ -538,6 +540,7 @@ export default function AdminPortal({
     e.preventDefault();
     const errs = {};
     if (!eventTitle.trim()) errs.eventTitle = 'Nama Event wajib diisi';
+    if (!eventCategory.trim()) errs.eventCategory = 'Kategori Kegiatan wajib dipilih / diisi';
     if (!eventStartDate) errs.eventStartDate = 'Tanggal Mulai wajib dipilih';
     if (!eventEndDate) errs.eventEndDate = 'Tanggal Berakhir wajib dipilih';
     if (!eventDesc.trim()) errs.eventDesc = 'Deskripsi Event wajib diisi';
@@ -566,14 +569,14 @@ export default function AdminPortal({
     const eDate = eventEndDate || sDate;
     const dateLabel = formatWibEventRange(sDate, eDate);
 
-    const finalCategory = eventCategory.trim() || 'Program Budaya';
+    const finalCategory = eventCategory.trim();
 
     if (onAddEvent) {
       onAddEvent({
         id: 'evt-' + Date.now(),
         tenureId: eventTenureId || activeTenure?.id || '',
         divisionId: eventDivId,
-        divisionName: divObj?.name || 'CNT IT APD',
+        divisionName: divObj?.name || '',
         title: eventTitle.trim(),
         date: dateLabel,
         startDate: sDate,
@@ -592,7 +595,7 @@ export default function AdminPortal({
 
     const savedTitle = eventTitle.trim();
     setEventTitle('');
-    setEventCategory('Program Budaya');
+    setEventCategory('');
     setEventStartDate('');
     setEventEndDate('');
     setEventLocation('');
@@ -1094,12 +1097,14 @@ export default function AdminPortal({
     e.preventDefault();
     const errs = {};
     if (!assetTitle.trim()) errs.assetTitle = 'Judul Asset / Template wajib diisi';
+    if (!assetCategory.trim()) errs.assetCategory = 'Kategori Asset wajib dipilih';
+    if (!assetFileType.trim()) errs.assetFileType = 'Format File Asset wajib diisi';
     if (!pendingAssetFile && !pendingPreviewFile && !assetFileUrl.trim() && !assetPreviewUrl.trim()) {
       errs.assetFileUrl = 'File atau URL Download wajib dipilih / diisi';
     }
     if (Object.keys(errs).length > 0) {
       setFormErrors(prev => ({ ...prev, ...errs }));
-      showToast('Mohon lengkapi Judul dan File/URL Asset', 'error');
+      showToast('Mohon lengkapi seluruh kolom wajib pada form Asset', 'error');
       return;
     }
 
@@ -1139,9 +1144,9 @@ export default function AdminPortal({
       onAddBrandAsset({
         id: 'asset-' + Date.now(),
         title: assetTitle.trim(),
-        category: assetCategory,
-        badge: assetBadge.trim() || assetCategory,
-        fileType: assetFileType.trim() || 'FILE',
+        category: assetCategory.trim(),
+        badge: assetBadge.trim() || '',
+        fileType: assetFileType.trim(),
         fileSize: assetFileSize.trim() || '',
         fileUrl: effectiveFileUrl,
         previewUrl: effectivePreviewUrl,
@@ -1151,6 +1156,9 @@ export default function AdminPortal({
 
     const saved = assetTitle.trim();
     setAssetTitle('');
+    setAssetCategory('');
+    setAssetBadge('');
+    setAssetFileType('');
     setAssetFileUrl('');
     setAssetPreviewUrl('');
     setAssetFileSize('');
@@ -3808,20 +3816,23 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                🏷️ Kategori Kegiatan
+                🏷️ Kategori Kegiatan <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
                 list="event-category-list"
                 placeholder="Pilih atau ketik kategori..."
                 value={eventCategory}
-                onChange={(e) => setEventCategory(e.target.value)}
+                onChange={(e) => {
+                  setEventCategory(e.target.value);
+                  clearFieldError('eventCategory');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
+                  border: `1.5px solid ${formErrors.eventCategory ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
@@ -3835,6 +3846,7 @@ export default function AdminPortal({
                 <option value="Apresiasi & Rekognisi" />
                 <option value="Townhall & Perayaan" />
               </datalist>
+              {renderFieldError('eventCategory')}
             </div>
 
             <div>
@@ -4624,7 +4636,7 @@ export default function AdminPortal({
               return (
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                    Divisi Penyelenggara
+                    Divisi Penyelenggara <span style={{ color: '#f43f5e' }}>*</span>
                   </label>
                   <select
                     value={currentGalDivId}
@@ -4632,14 +4644,15 @@ export default function AdminPortal({
                       const divId = e.target.value;
                       setGalDivisionId(divId);
                       const found = availableDivsForGal.find(d => d.id === divId);
-                      if (found) setGalDivision(found.name);
+                      setGalDivision(found ? found.name : '');
+                      clearFieldError('galDivision');
                     }}
                     style={{
                       width: '100%',
                       padding: '9px 12px',
                       borderRadius: 'var(--radius-sm)',
                       background: 'var(--bg-card)',
-                      border: '1px solid var(--border-card)',
+                      border: `1.5px solid ${formErrors.galDivision ? '#f43f5e' : 'var(--border-card)'}`,
                       color: 'var(--text-main)',
                       fontSize: '0.85rem'
                     }}
@@ -4648,13 +4661,14 @@ export default function AdminPortal({
                       <option value="" disabled>-- Divisi masih kosong di periode ini. Silakan buat divisi baru pada tahun kepengurusan yang dipilih --</option>
                     ) : (
                       <>
-                        <option value="">-- Pilih Divisi Penyelenggara --</option>
+                        <option value="">-- Pilih Divisi Penyelenggara (Wajib) --</option>
                         {availableDivsForGal.map((d) => (
                           <option key={d.id} value={d.id}>{d.name}</option>
                         ))}
                       </>
                     )}
                   </select>
+                  {renderFieldError('galDivision')}
                   {availableDivsForGal.length === 0 && (
                     <div style={{ fontSize: '0.74rem', color: '#f59e0b', marginTop: '6px', lineHeight: 1.4 }}>
                       ⚠️ <strong>Divisi masih kosong</strong> pada periode kepengurusan ini. Silakan buat divisi baru terlebih dahulu di tab <strong>Divisi</strong>.
@@ -6103,9 +6117,12 @@ export default function AdminPortal({
             noValidate
             onSubmit={(e) => {
               e.preventDefault();
-              if (!newFormTitle.trim()) {
-                setFormErrors((prev) => ({ ...prev, newFormTitle: 'Judul Formulir wajib diisi' }));
-                showToast('Mohon isi Judul Formulir terlebih dahulu', 'error');
+              const errs = {};
+              if (!newFormTitle.trim()) errs.newFormTitle = 'Judul Formulir wajib diisi';
+              if (!newFormCategory.trim()) errs.newFormCategory = 'Kategori Formulir wajib dipilih';
+              if (Object.keys(errs).length > 0) {
+                setFormErrors((prev) => ({ ...prev, ...errs }));
+                showToast('Mohon lengkapi kolom wajib pada form Formulir', 'error');
                 return;
               }
 
@@ -6113,9 +6130,9 @@ export default function AdminPortal({
               const newForm = {
                 id: 'form-' + Date.now(),
                 title: newFormTitle.trim(),
-                subtitle: newFormSubtitle.trim() || 'Silakan lengkapi formulir di bawah ini.',
-                category: newFormCategory,
-                deadline: newFormDeadline.trim() || 'Menyesuaikan',
+                subtitle: newFormSubtitle.trim() || '',
+                category: newFormCategory.trim(),
+                deadline: newFormDeadline.trim() || '',
                 isOpen: true,
                 requiresTracking: newFormRequiresTracking,
                 tenureId: targetTenureId,
@@ -6138,6 +6155,7 @@ export default function AdminPortal({
               setNewFormTitle('');
               setNewFormSubtitle('');
               setNewFormDeadline('');
+              setNewFormCategory('');
               setNewFormRequiresTracking(true);
               showToast(`Formulir "${newForm.title}" berhasil dibuat & dipublikasikan!`);
             }}
@@ -6192,19 +6210,24 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Kategori Formulir
+                Kategori Formulir <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <select
                 value={newFormCategory}
-                onChange={(e) => setNewFormCategory(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                onChange={(e) => {
+                  setNewFormCategory(e.target.value);
+                  clearFieldError('newFormCategory');
+                }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.newFormCategory ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
               >
+                <option value="">-- Pilih Kategori Formulir (Wajib) --</option>
                 <option value="Kegiatan & Event">Kegiatan & Event</option>
                 <option value="Rekrutmen">Rekrutmen & Oprec</option>
                 <option value="Turnamen & Olahraga">Turnamen & Olahraga</option>
                 <option value="Survei & Aspirasi">Survei & Aspirasi</option>
                 <option value="Workshop & Sharing">Workshop & Sharing</option>
               </select>
+              {renderFieldError('newFormCategory')}
             </div>
 
             <div>
@@ -7677,18 +7700,23 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Kategori Katalog
+                Kategori Katalog <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <select
                 value={assetCategory}
-                onChange={(e) => setAssetCategory(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                onChange={(e) => {
+                  setAssetCategory(e.target.value);
+                  clearFieldError('assetCategory');
+                }}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.assetCategory ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
               >
+                <option value="">-- Pilih Kategori Asset (Wajib) --</option>
                 <option value="Logo & Brand">Logo & Brand</option>
                 <option value="Template Presentasi">Template Presentasi (PPT)</option>
                 <option value="Virtual Background">Virtual Background (Teams / Zoom)</option>
                 <option value="Media & Publikasi">Media, Twibbon & Publikasi</option>
               </select>
+              {renderFieldError('assetCategory')}
             </div>
 
             <div>
@@ -7707,15 +7735,19 @@ export default function AdminPortal({
             <div className="mobile-two-col" style={{ gap: '8px' }}>
               <div>
                 <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Format File
+                  Format File <span style={{ color: '#f43f5e' }}>*</span>
                 </label>
                 <input
                   type="text"
                   placeholder="PNG / PPTX / ZIP"
                   value={assetFileType}
-                  onChange={(e) => setAssetFileType(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                  onChange={(e) => {
+                    setAssetFileType(e.target.value);
+                    clearFieldError('assetFileType');
+                  }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.assetFileType ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
                 />
+                {renderFieldError('assetFileType')}
               </div>
               <div>
                 <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
@@ -8016,21 +8048,25 @@ export default function AdminPortal({
             <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Kategori Topik
+                  Kategori Topik <span style={{ color: '#f43f5e' }}>*</span>
                 </label>
                 <select
                   value={faqCategory}
-                  onChange={(e) => setFaqCategory(e.target.value)}
+                  onChange={(e) => {
+                    setFaqCategory(e.target.value);
+                    clearFieldError('faqCategory');
+                  }}
                   style={{
                     width: '100%',
                     padding: '9px 12px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'var(--input-bg)',
-                    border: '1px solid var(--border-card)',
+                    border: `1.5px solid ${formErrors.faqCategory ? '#f43f5e' : 'var(--border-card)'}`,
                     color: 'var(--text-main)',
                     fontSize: '0.85rem'
                   }}
                 >
+                  <option value="">-- Pilih Kategori Topik (Wajib) --</option>
                   <option value="Tentang CNT">Tentang CNT</option>
                   <option value="Kegiatan & Event">Kegiatan & Event</option>
                   <option value="Operasional & Sekben">Operasional & Sekben</option>
@@ -8038,6 +8074,7 @@ export default function AdminPortal({
                   <option value="Pendaftaran & Oprec">Pendaftaran & Oprec</option>
                   <option value="Umum">Umum</option>
                 </select>
+                {renderFieldError('faqCategory')}
               </div>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
