@@ -413,132 +413,174 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
               <div style={{ width: '5px', height: '24px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
             </div>
           </div>
-          {/* Continuous Horizontal bar spanning all 4 columns seamlessly */}
-          <div style={{ position: 'relative', width: '100%', height: '5px' }}>
-            <div style={{
-              position: 'absolute',
-              left: 'calc((100% - 48px) / 8 - 2.5px)',
-              right: 'calc((100% - 48px) / 8 - 2.5px)',
-              height: '5px',
-              background: 'linear-gradient(to right, #38bdf8 0%, #f87171 33%, #c084fc 66%, #FFB800 100%)',
-              boxShadow: '0 0 15px rgba(56, 189, 248, 0.4)',
-              borderRadius: '3px'
-            }} />
-          </div>
+          {/* Continuous Horizontal bar spanning across columns */}
+          {(() => {
+            const displayDivs = activeDivisions.length > 0
+              ? activeDivisions
+              : pimpro.map((p, idx) => ({ id: p.divisionId || `div-${idx}`, name: p.role?.replace(/^Pimpro\s+/i, '') || `Divisi ${idx + 1}`, color: p.color }));
+            if (displayDivs.length <= 1) return null;
+            const spanFactor = displayDivs.length * 2;
+            return (
+              <div style={{ position: 'relative', width: '100%', height: '5px' }}>
+                <div style={{
+                  position: 'absolute',
+                  left: `calc(100% / ${spanFactor})`,
+                  right: `calc(100% / ${spanFactor})`,
+                  height: '5px',
+                  background: 'linear-gradient(to right, #38bdf8 0%, #f87171 33%, #c084fc 66%, #FFB800 100%)',
+                  boxShadow: '0 0 15px rgba(56, 189, 248, 0.4)',
+                  borderRadius: '3px'
+                }} />
+              </div>
+            );
+          })()}
         </div>
 
-        {/* LEVEL 4: PIMPRO 1 - 4 (Ketua Divisi) & ANGGOTA DIVISI */}
-        <div style={{ width: '100%', maxWidth: '1240px', zIndex: 10 }}>
-          <div className="org-pimpro-grid">
-            {pimpro.map((lead, idx) => {
-              const lineColor = idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800';
-              // Find all squad members in this division
-              const divisionMembers = activeMembers.filter(m => m.category === 'anggota' && m.divisionId === lead.divisionId);
+        {/* LEVEL 4: PIMPRO (Ketua Divisi) & ANGGOTA DIVISI - DINAMIS MENYESUAIKAN JUMLAH DIVISI */}
+        {(() => {
+          const displayDivs = activeDivisions.length > 0
+            ? activeDivisions
+            : pimpro.map((p, idx) => ({ id: p.divisionId || `div-${idx}`, name: p.role?.replace(/^Pimpro\s+/i, '') || `Divisi ${idx + 1}`, color: p.color }));
 
-              return (
-                <div key={lead.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div className="org-tree-line" style={{ width: '5px', height: '20px', background: lineColor, boxShadow: `0 0 10px ${lineColor}` }} />
-                  
-                  {/* Ketua Divisi Card (Sejajar 4 Divisi) */}
-                  <div style={{ width: '100%' }}>
-                    <CrewMemberCard member={lead} onClick={() => handleMemberClick(lead)} compact={true} />
-                  </div>
+          if (displayDivs.length === 0 && pimpro.length === 0) return null;
 
-                  {/* Connecting Line from Ketua Divisi down to Anggota */}
-                  {divisionMembers.length > 0 && (
-                    <div className="org-anggota-wrapper" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '8px' }}>
-                      <div className="org-tree-line" style={{ width: '2px', height: '14px', background: lineColor, opacity: 0.6 }} />
+          return (
+            <div style={{ width: '100%', maxWidth: '1240px', zIndex: 10 }}>
+              <div 
+                className="org-pimpro-grid"
+                style={{
+                  gridTemplateColumns: displayDivs.length > 0 ? `repeat(${displayDivs.length}, minmax(0, 1fr))` : undefined
+                }}
+              >
+                {displayDivs.map((div, idx) => {
+                  const lead = activeMembers.find(m => m.category === 'pimpro' && (m.divisionId === div.id || (div.leadName && m.name === div.leadName)))
+                    || (pimpro[idx] || null);
+                  const lineColor = div.color || (idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800');
+                  const divisionMembers = activeMembers.filter(m => m.category === 'anggota' && m.divisionId === div.id);
+
+                  return (
+                    <div key={div.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div className="org-tree-line" style={{ width: '5px', height: '20px', background: lineColor, boxShadow: `0 0 10px ${lineColor}` }} />
                       
-                      {/* Anggota Divisi Box */}
-                      <div className="org-anggota-box" style={{
-                        width: '100%',
-                        background: 'rgba(255, 255, 255, 0.02)',
-                        border: '1px dashed var(--border-card)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px'
-                      }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          paddingBottom: '4px',
-                          borderBottom: '1px solid var(--border-card)'
-                        }}>
-                          <span style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
-                            textTransform: 'uppercase',
-                            color: 'var(--text-muted)',
-                            letterSpacing: '0.04em'
+                      {/* Ketua Divisi Card */}
+                      <div style={{ width: '100%' }}>
+                        {lead ? (
+                          <CrewMemberCard member={lead} onClick={() => handleMemberClick(lead)} compact={true} />
+                        ) : (
+                          <div className="glass-panel" style={{
+                            padding: '16px 12px',
+                            textAlign: 'center',
+                            borderRadius: 'var(--radius-md)',
+                            border: `1px dashed ${lineColor}`,
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}>
-                            Anggota Divisi ({divisionMembers.length})
-                          </span>
-                        </div>
+                            <span style={{ fontSize: '0.72rem', color: lineColor, fontWeight: 800 }}>Pimpro {div.name}</span>
+                            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Belum Ditentukan</span>
+                          </div>
+                        )}
+                      </div>
 
-                        {divisionMembers.map((member) => (
-                          <div
-                            key={member.id}
-                            onClick={() => handleMemberClick(member)}
-                            className="glass-panel-hover"
-                            style={{
+                      {/* Connecting Line from Ketua Divisi down to Anggota */}
+                      {divisionMembers.length > 0 && (
+                        <div className="org-anggota-wrapper" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '8px' }}>
+                          <div className="org-tree-line" style={{ width: '2px', height: '14px', background: lineColor, opacity: 0.6 }} />
+                          
+                          {/* Anggota Divisi Box */}
+                          <div className="org-anggota-box" style={{
+                            width: '100%',
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px dashed var(--border-card)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '14px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px'
+                          }}>
+                            <div style={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              padding: '8px 10px',
-                              borderRadius: 'var(--radius-sm)',
-                              background: 'var(--bg-card)',
-                              border: '1px solid var(--border-card)',
-                              cursor: 'pointer',
-                              gap: '8px'
-                            }}
-                          >
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {member.name}
-                              </div>
-                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {member.role}
-                              </div>
+                              paddingBottom: '4px',
+                              borderBottom: '1px solid var(--border-card)'
+                            }}>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                color: 'var(--text-muted)',
+                                letterSpacing: '0.04em'
+                              }}>
+                                Anggota Divisi ({divisionMembers.length})
+                              </span>
                             </div>
 
-                            {member.whatsapp && (
-                              <a
-                                href={`https://wa.me/${formatWaNumber(member.whatsapp)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                title="Chat WhatsApp"
+                            {divisionMembers.map((member) => (
+                              <div
+                                key={member.id}
+                                onClick={() => handleMemberClick(member)}
+                                className="glass-panel-hover"
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '50%',
-                                  background: 'rgba(37, 211, 102, 0.15)',
-                                  border: '1px solid rgba(37, 211, 102, 0.4)',
-                                  color: '#25d366',
-                                  fontSize: '0.85rem',
-                                  flexShrink: 0,
-                                  textDecoration: 'none'
+                                  justifyContent: 'space-between',
+                                  padding: '8px 10px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: 'var(--bg-card)',
+                                  border: '1px solid var(--border-card)',
+                                  cursor: 'pointer',
+                                  gap: '8px'
                                 }}
                               >
-                                💬
-                              </a>
-                            )}
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {member.name}
+                                  </div>
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {member.role}
+                                  </div>
+                                </div>
+
+                                {member.whatsapp && (
+                                  <a
+                                    href={`https://wa.me/${formatWaNumber(member.whatsapp)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title="Chat WhatsApp"
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: '28px',
+                                      height: '28px',
+                                      borderRadius: '50%',
+                                      background: 'rgba(37, 211, 102, 0.15)',
+                                      border: '1px solid rgba(37, 211, 102, 0.4)',
+                                      color: '#25d366',
+                                      fontSize: '0.85rem',
+                                      flexShrink: 0,
+                                      textDecoration: 'none'
+                                    }}
+                                  >
+                                    💬
+                                  </a>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
       )}
