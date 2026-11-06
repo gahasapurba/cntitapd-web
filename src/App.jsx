@@ -218,12 +218,17 @@ export default function App() {
     const cachedDivs = loadLocalCache('divisions', []);
     const cachedMems = loadLocalCache('members', []);
     return (cachedDivs || []).map(d => {
-      if (d.memberId) return d;
       const pimpro = (cachedMems || []).find(m =>
-        (m.category || '').toLowerCase() === 'pimpro' &&
-        (m.divisionId === d.id || (d.leadName && m.name?.toLowerCase() === d.leadName?.toLowerCase()))
+        m.divisionId === d.id &&
+        ((m.category || '').toLowerCase() === 'pimpro' ||
+         (m.role || '').toLowerCase().startsWith('pimpro') ||
+         String(m.roleId || '').includes('pimpro'))
       );
-      return pimpro ? { ...d, memberId: pimpro.id, leadName: pimpro.name } : d;
+      return {
+        ...d,
+        memberId: pimpro ? pimpro.id : (d.memberId || null),
+        leadName: pimpro ? pimpro.name : (d.leadName || '')
+      };
     });
   });
   const [departments, setDepartments] = useState(() => loadLocalCache('departments', DEFAULT_DEPARTMENTS));
@@ -305,12 +310,17 @@ export default function App() {
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
       if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) {
         const resolvedDivs = cloud.divisions.map(d => {
-          if (d.memberId) return d;
           const pimpro = currentMembers.find(m =>
-            (m.category || '').toLowerCase() === 'pimpro' &&
-            (m.divisionId === d.id || (d.leadName && m.name?.toLowerCase() === d.leadName?.toLowerCase()))
+            m.divisionId === d.id &&
+            ((m.category || '').toLowerCase() === 'pimpro' ||
+             (m.role || '').toLowerCase().startsWith('pimpro') ||
+             String(m.roleId || '').includes('pimpro'))
           );
-          return pimpro ? { ...d, memberId: pimpro.id, leadName: pimpro.name } : d;
+          return {
+            ...d,
+            memberId: pimpro ? pimpro.id : (d.memberId || null),
+            leadName: pimpro ? pimpro.name : (d.leadName || '')
+          };
         });
         setDivisions(resolvedDivs);
       }

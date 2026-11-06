@@ -542,7 +542,8 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
                 }}
               >
                 {displayDivs.map((div, idx) => {
-                  const lead = activeMembers.find(m => m.category === 'pimpro' && (m.divisionId === div.id || (div.leadName && m.name === div.leadName)))
+                  const lead = activeMembers.find(m => m.divisionId === div.id && (m.category === 'pimpro' || (m.role || '').toLowerCase().startsWith('pimpro') || String(m.roleId || '').includes('pimpro')))
+                    || activeMembers.find(m => div.leadName && m.name === div.leadName)
                     || (pimpro[idx] || null);
                   const lineColor = div.color || (idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800');
                   const divisionMembers = activeMembers.filter(m => m.category === 'anggota' && m.divisionId === div.id);

@@ -958,6 +958,25 @@ export async function fetchAllCloudState() {
       saveLocalCache('members', result.members);
     }
 
+    // Reconcile divisions with pimpro resolved directly from members
+    if (result.divisions && Array.isArray(result.divisions)) {
+      const memList = result.members || [];
+      result.divisions = result.divisions.map(d => {
+        const pimpro = memList.find(m =>
+          m.divisionId === d.id &&
+          ((m.category || '').toLowerCase() === 'pimpro' ||
+           (m.role || '').toLowerCase().startsWith('pimpro') ||
+           String(m.roleId || '').includes('pimpro'))
+        );
+        return {
+          ...d,
+          memberId: pimpro ? pimpro.id : (d.memberId || null),
+          leadName: pimpro ? pimpro.name : (d.leadName || '')
+        };
+      });
+      saveLocalCache('divisions', result.divisions);
+    }
+
     return result;
   } catch (e) {
     return null;

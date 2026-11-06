@@ -5740,8 +5740,8 @@ export default function AdminPortal({
                     <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{d.name}</strong>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
                       Pimpro: {
+                        members.find(m => m.divisionId === d.id && ((m.category || '').toLowerCase() === 'pimpro' || (m.role || '').toLowerCase().startsWith('pimpro') || String(m.roleId || '').includes('pimpro')))?.name ||
                         members.find(m => m.id === d.memberId)?.name ||
-                        members.find(m => (m.category || '').toLowerCase() === 'pimpro' && m.divisionId === d.id)?.name ||
                         d.leadName ||
                         'Belum ditentukan'
                       }

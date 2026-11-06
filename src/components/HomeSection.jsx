@@ -898,8 +898,8 @@ export default function HomeSection({
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700, marginBottom: div.motto ? '6px' : '0' }}>
                     Lead: {
+                      members?.find(m => m.divisionId === div.id && ((m.category || '').toLowerCase() === 'pimpro' || (m.role || '').toLowerCase().startsWith('pimpro') || String(m.roleId || '').includes('pimpro')))?.name ||
                       members?.find(m => m.id === div.memberId)?.name ||
-                      members?.find(m => (m.category || '').toLowerCase() === 'pimpro' && m.divisionId === div.id)?.name ||
                       div.leadName ||
                       '-'
                     }
