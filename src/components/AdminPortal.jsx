@@ -128,10 +128,12 @@ export default function AdminPortal({
     navbar: true,
     home: true,
     organisasi: true,
+    event: true,
     program: true,
     galeri: true,
     kudos: true,
     assets: true,
+    form: true,
     oprec: true
   },
   onUpdatePageVisibility,
@@ -1815,27 +1817,44 @@ export default function AdminPortal({
         const pageItems = [
           { id: 'home', label: 'Beranda Utama', desc: 'Halaman depan (Hero Banner, Statistik, Visi & Misi, Pimpinan, dan 4 Pilar Divisi)' },
           { id: 'organisasi', label: 'Struktur Organisasi', desc: 'Halaman bagan hierarki organigram interaktif Pembina, Inti, Pimpro & Anggota' },
-          { id: 'program', label: 'Events & Kalender', desc: 'Halaman daftar event divisi & kalender budaya bulanan interaktif' },
+          { id: 'event', label: 'Events & Kalender', desc: 'Halaman daftar event divisi & kalender budaya bulanan interaktif' },
           { id: 'galeri', label: 'Galeri Kegiatan', desc: 'Halaman dokumentasi foto carousel kegiatan & tautan folder dokumentasi' },
           { id: 'kudos', label: 'Kudos & Aspirasi', desc: 'Halaman papan apresiasi & pengiriman pesan terima kasih serta ide aspirasi antar insan IT APD' },
           { id: 'assets', label: 'Asset', desc: 'Halaman transformasi logo & pengunduhan paket asset resmi CNT IT APD' },
-          { id: 'oprec', label: 'Registrasi & Formulir', desc: 'Halaman pusat pendaftaran event, open recruitment & survei dinamis' },
+          { id: 'form', label: 'Registrasi & Formulir', desc: 'Halaman pusat pendaftaran event, open recruitment & survei dinamis' },
         ];
 
-        const visiblePagesCount = pageItems.filter(p => pageVisibility[p.id] !== false).length;
+        const isPageItemVisible = (id) => {
+          if (id === 'event' || id === 'program') return pageVisibility.event !== false && pageVisibility.program !== false;
+          if (id === 'form' || id === 'oprec') return pageVisibility.form !== false && pageVisibility.oprec !== false;
+          return pageVisibility[id] !== false;
+        };
+
+        const visiblePagesCount = pageItems.filter(p => isPageItemVisible(p.id)).length;
         const isNavbarVisible = pageVisibility.navbar !== false;
 
         const handleToggleKey = (key) => {
           if (!onUpdatePageVisibility) return;
-          onUpdatePageVisibility({
+          const currentVal = isPageItemVisible(key);
+          const nextVal = !currentVal;
+          const nextState = {
             ...pageVisibility,
-            [key]: pageVisibility[key] === false ? true : false
-          });
+            [key]: nextVal
+          };
+          if (key === 'event') nextState.program = nextVal;
+          if (key === 'form') nextState.oprec = nextVal;
+          onUpdatePageVisibility(nextState);
         };
 
         const handleSetAll = (showPages, showNavbar) => {
           if (!onUpdatePageVisibility) return;
-          const nextState = { navbar: showNavbar };
+          const nextState = {
+            navbar: showNavbar,
+            event: showPages,
+            program: showPages,
+            form: showPages,
+            oprec: showPages
+          };
           pageItems.forEach(p => {
             nextState[p.id] = showPages;
           });
@@ -2148,7 +2167,7 @@ export default function AdminPortal({
               </h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px' }}>
                 {pageItems.map((page) => {
-                  const isVisible = pageVisibility[page.id] !== false;
+                  const isVisible = isPageItemVisible(page.id);
                   return (
                     <div
                       key={page.id}

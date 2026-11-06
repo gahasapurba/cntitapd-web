@@ -367,12 +367,40 @@ export default function App() {
   const setPageVisibility = (nextVis) => {
     const resolved = typeof nextVis === 'function' ? nextVis(pageVisibility) : nextVis;
     const now = new Date().toISOString();
-    if (resolved.event !== undefined) resolved.program = resolved.event;
-    else if (resolved.program !== undefined) resolved.event = resolved.program;
-    if (resolved.form !== undefined) resolved.oprec = resolved.form;
-    else if (resolved.oprec !== undefined) resolved.form = resolved.oprec;
 
-    const merged = { ...DEFAULT_PAGE_VISIBILITY, ...resolved, _updatedAt: now };
+    // Check what was toggled to reliably sync dual keys (event/program, form/oprec)
+    let targetEvent = pageVisibility.event !== false && pageVisibility.program !== false;
+    if (resolved.event !== undefined && resolved.event !== pageVisibility.event) {
+      targetEvent = resolved.event;
+    } else if (resolved.program !== undefined && resolved.program !== pageVisibility.program) {
+      targetEvent = resolved.program;
+    } else if (resolved.event !== undefined) {
+      targetEvent = resolved.event;
+    } else if (resolved.program !== undefined) {
+      targetEvent = resolved.program;
+    }
+
+    let targetForm = pageVisibility.form !== false && pageVisibility.oprec !== false;
+    if (resolved.form !== undefined && resolved.form !== pageVisibility.form) {
+      targetForm = resolved.form;
+    } else if (resolved.oprec !== undefined && resolved.oprec !== pageVisibility.oprec) {
+      targetForm = resolved.oprec;
+    } else if (resolved.form !== undefined) {
+      targetForm = resolved.form;
+    } else if (resolved.oprec !== undefined) {
+      targetForm = resolved.oprec;
+    }
+
+    const merged = {
+      ...DEFAULT_PAGE_VISIBILITY,
+      ...resolved,
+      event: targetEvent,
+      program: targetEvent,
+      form: targetForm,
+      oprec: targetForm,
+      _updatedAt: now
+    };
+
     setPageVisibilityState(merged);
     try { localStorage.setItem('cnt_page_visibility', JSON.stringify(merged)); } catch (e) {}
     pushCloudState('pageVisibility', merged);
