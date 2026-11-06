@@ -32,7 +32,7 @@ import {
   pushRoleQuotas
 } from './lib/supabase';
 import { formatDeadlineWib } from './utils/dateUtils';
-import { DEFAULT_TENURE_ROLES, getTenureRoles } from './utils/memberQuotaUtils';
+import { getTenureRoles } from './utils/memberQuotaUtils';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'assets', 'form'];
 const VALID_TABS = [...PUBLIC_PAGE_IDS, 'program', 'oprec', 'admin'];
@@ -234,22 +234,8 @@ export default function App() {
   const [departments, setDepartments] = useState(() => loadLocalCache('departments', DEFAULT_DEPARTMENTS));
   const [tenureRoles, setTenureRoles] = useState(() => {
     const cached = loadLocalCache('tenureRoles', null);
-    if (Array.isArray(cached) && cached.length > 0) return cached;
-    const initialTenures = loadLocalCache('tenures', []);
-    const initial = [];
-    (initialTenures || []).forEach(t => {
-      DEFAULT_TENURE_ROLES.forEach((r, idx) => {
-        initial.push({
-          ...r,
-          id: `${r.id}-${t.id}`,
-          tenureId: t.id,
-          sortOrder: idx,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-      });
-    });
-    return initial.length > 0 ? initial : DEFAULT_TENURE_ROLES;
+    if (Array.isArray(cached)) return cached;
+    return [];
   });
   const [members, setMembers] = useState(() => loadLocalCache('members', []));
   const [events, setEvents] = useState(() => loadLocalCache('events', []));
@@ -262,9 +248,7 @@ export default function App() {
   const [eventRsvps, setEventRsvps] = useState(() => loadLocalCache('eventRsvps', []));
   const [faqs, setFaqs] = useState(() => loadLocalCache('faqs', []));
   const [announcementBar, setAnnouncementBar] = useState(() => loadLocalCache('announcementBar', DEFAULT_ANNOUNCEMENT_BAR));
-  const [roleQuotas, setRoleQuotas] = useState(() => loadLocalCache('roleQuotas', {
-    'tenure-2027': { pembina: 1, ketua: 1, wakilKetua: 1, sekben: 2, pimproPerDivisi: 1 }
-  }));
+  const [roleQuotas, setRoleQuotas] = useState(() => loadLocalCache('roleQuotas', {}));
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [syncStatus, setSyncStatus] = useState('synced');
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
@@ -357,7 +341,7 @@ export default function App() {
       if (Array.isArray(cloud.brandAssets)) setBrandAssets(cloud.brandAssets);
       if (Array.isArray(cloud.eventRsvps)) setEventRsvps(cloud.eventRsvps);
       if (Array.isArray(cloud.departments) && cloud.departments.length > 0) setDepartments(cloud.departments);
-      if (Array.isArray(cloud.tenureRoles) && cloud.tenureRoles.length > 0) {
+      if (Array.isArray(cloud.tenureRoles)) {
         setTenureRoles(cloud.tenureRoles);
         saveLocalCache('tenureRoles', cloud.tenureRoles);
       }

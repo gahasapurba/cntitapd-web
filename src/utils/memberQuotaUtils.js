@@ -47,11 +47,10 @@ export function formatLevelOptionLabel(lvl, tenureRoles = [], targetTenureId = n
   const levelNum = typeof lvl === 'object' ? lvl.level : Number(lvl);
   const baseLvlObj = LEVEL_OPTIONS.find(l => l.level === levelNum) || { level: levelNum, label: `Level ${levelNum}`, shortLabel: `Level ${levelNum}` };
 
-  const rolesInTenure = (tenureRoles || []).filter(r => !targetTenureId || r.tenureId === targetTenureId);
-  let matched = rolesInTenure.filter(r => Number(r.level) === levelNum);
-  if (matched.length === 0 && (tenureRoles || []).length > 0) {
-    matched = (tenureRoles || []).filter(r => Number(r.level) === levelNum);
-  }
+  const rolesInTenure = targetTenureId
+    ? (tenureRoles || []).filter(r => r.tenureId === targetTenureId)
+    : (tenureRoles || []);
+  const matched = rolesInTenure.filter(r => Number(r.level) === levelNum);
   const roleNames = Array.from(new Set(matched.map(r => String(r.name || '').trim()).filter(Boolean)));
 
   if (roleNames.length > 0) {
@@ -64,12 +63,12 @@ export function formatLevelOptionLabel(lvl, tenureRoles = [], targetTenureId = n
 }
 
 /**
- * Mengambil daftar role resmi untuk tenure tertentu dari konfigurasi cloud/local.
- * Jika belum ada atau masih format lama, otomatis dikonversi/fallback dengan aman.
+ * Mengambil daftar role resmi untuk tenure tertentu dari database (tenureRoles) atau konfigurasi cloud.
+ * Jika belum ada role terdaftar untuk periode ini, TETAP KOSONG ([]) - TANPA FALLBACK DEFAULT.
  */
 export function getTenureRoles(tenureId, roleQuotas = {}, tenureRoles = []) {
   // 1. Jika argumen roleQuotas berupa array langsung (daftar tenureRoles)
-  if (Array.isArray(roleQuotas) && roleQuotas.length > 0) {
+  if (Array.isArray(roleQuotas)) {
     const fromArray = roleQuotas.filter(r => !tenureId || r.tenureId === tenureId);
     return fromArray.map((r, idx) => ({
       id: r.id || `role-${idx}`,
@@ -86,7 +85,7 @@ export function getTenureRoles(tenureId, roleQuotas = {}, tenureRoles = []) {
   }
 
   // 2. Jika argumen ke-3 tenureRoles berupa array dari database
-  if (Array.isArray(tenureRoles) && tenureRoles.length > 0) {
+  if (Array.isArray(tenureRoles)) {
     const fromArray = tenureRoles.filter(r => !tenureId || r.tenureId === tenureId);
     return fromArray.map((r, idx) => ({
       id: r.id || `role-${idx}`,
@@ -104,10 +103,10 @@ export function getTenureRoles(tenureId, roleQuotas = {}, tenureRoles = []) {
 
   const config = (roleQuotas && typeof roleQuotas === 'object' && roleQuotas[tenureId])
     ? roleQuotas[tenureId]
-    : ((roleQuotas && typeof roleQuotas === 'object' && roleQuotas.default) || null);
+    : null;
 
-  // Jika sudah format baru dengan array roles
-  if (config && Array.isArray(config.roles) && config.roles.length > 0) {
+  // 3. Jika format array roles di roleQuotas
+  if (config && Array.isArray(config.roles)) {
     return config.roles.map((r, idx) => ({
       id: r.id || `role-${idx}-${Date.now()}`,
       tenureId: r.tenureId || tenureId,
@@ -122,71 +121,8 @@ export function getTenureRoles(tenureId, roleQuotas = {}, tenureRoles = []) {
     }));
   }
 
-  // Migrasi otomatis dari struktur kuota lama
-  const migrated = [];
-
-  const pembinaName = config?.pembinaName || 'Pembina';
-  const pembinaMax = config?.pembina !== undefined ? Number(config.pembina) : 1;
-  if (pembinaMax > 0) {
-    migrated.push({ id: 'role-pembina', name: pembinaName, level: 1, max: pembinaMax, requiresDivision: false });
-  }
-
-  const ketuaName = config?.ketuaName || 'Ketua';
-  const ketuaMax = config?.ketua !== undefined ? Number(config.ketua) : 1;
-  migrated.push({ id: 'role-ketua', name: ketuaName, level: 2, max: ketuaMax, requiresDivision: false });
-
-  if (!config?.disableWakil && (config?.wakilKetua === undefined || Number(config.wakilKetua) > 0)) {
-    migrated.push({
-      id: 'role-wakil-ketua',
-      name: config?.wakilKetuaName || 'Wakil Ketua',
-      level: 2,
-      max: config?.wakilKetua !== undefined ? Number(config.wakilKetua) : 1,
-      requiresDivision: false
-    });
-  }
-
-  if (!config?.disableSekben && (config?.sekben === undefined || Number(config.sekben) > 0)) {
-    migrated.push({
-      id: 'role-sekben',
-      name: config?.sekbenName || 'Sekretaris Bendahara',
-      level: 3,
-      max: config?.sekben !== undefined ? Number(config.sekben) : 2,
-      requiresDivision: false
-    });
-  }
-
-  migrated.push({
-    id: 'role-pimpro',
-    name: 'Pimpro',
-    level: 4,
-    max: config?.pimproPerDivisi !== undefined ? Number(config.pimproPerDivisi) : 1,
-    requiresDivision: true
-  });
-
-  migrated.push({
-    id: 'role-anggota',
-    name: 'Anggota Divisi',
-    level: 5,
-    max: 0,
-    requiresDivision: true
-  });
-
-  if (Array.isArray(config?.customRoles)) {
-    config.customRoles.forEach((cr, i) => {
-      if (!cr || !cr.name) return;
-      const lower = cr.name.toLowerCase();
-      const isPenasehat = lower.includes('penasehat') || lower.includes('penasihat');
-      migrated.push({
-        id: cr.id || `role-cr-${i}`,
-        name: cr.name,
-        level: isPenasehat ? 0 : 3,
-        max: Number(cr.max || 1),
-        requiresDivision: Boolean(cr.requiresDivision)
-      });
-    });
-  }
-
-  return migrated.length > 0 ? migrated : DEFAULT_TENURE_ROLES;
+  // Jika belum ada role di database/konfigurasi, TIDAK ADA fallback default role: tetap kosong
+  return [];
 }
 
 /**
@@ -282,13 +218,14 @@ export function validateMemberQuota(
   { tenureId, roleId, role = '', divisionId, excludeMemberId = null },
   members = [],
   divisions = [],
-  roleQuotas = {}
+  roleQuotas = {},
+  tenureRoles = []
 ) {
   const targetTenureId = tenureId || '';
-  const tenureRoles = getTenureRoles(targetTenureId, roleQuotas);
+  const resolvedRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
 
   // Cari role yang dimaksud
-  const roleObj = tenureRoles.find(r => 
+  const roleObj = resolvedRoles.find(r => 
     (roleId && r.id === roleId) ||
     (role && r.name.toLowerCase().trim() === role.toLowerCase().trim()) ||
     (role && (r.name.toLowerCase().startsWith(role.toLowerCase()) || role.toLowerCase().startsWith(r.name.toLowerCase())))
@@ -361,8 +298,8 @@ export function validateMemberQuota(
 /**
  * Ringkasan status keterisian semua role dalam suatu kepengurusan.
  */
-export function getTenureQuotaSummary(tenureId, members = [], divisions = [], roleQuotas = {}) {
-  const roles = getTenureRoles(tenureId, roleQuotas);
+export function getTenureQuotaSummary(tenureId, members = [], divisions = [], roleQuotas = {}, tenureRoles = []) {
+  const roles = getTenureRoles(tenureId, roleQuotas, tenureRoles);
   const targetMembers = (members || []).filter(m => !tenureId || m.tenureId === tenureId);
   const targetDivisions = (divisions || []).filter(d => !tenureId || d.tenureId === tenureId);
 

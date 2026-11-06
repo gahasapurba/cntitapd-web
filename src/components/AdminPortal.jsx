@@ -696,7 +696,8 @@ export default function AdminPortal({
       },
       members,
       divisions,
-      roleQuotas
+      roleQuotas,
+      tenureRoles
     );
 
     if (!quotaCheck.isValid) {
@@ -2667,6 +2668,9 @@ export default function AdminPortal({
             {(() => {
               const currentTenureId = memTenureId || activeTenure?.id || '';
               const availableRoles = getTenureRoles(currentTenureId, roleQuotas, tenureRoles);
+              if (availableRoles.length === 0) {
+                return null;
+              }
               const tenureObj = tenures.find(t => t.id === currentTenureId);
               const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Ini';
               const targetMembers = members.filter(m => !currentTenureId || m.tenureId === currentTenureId);
@@ -10765,7 +10769,8 @@ export default function AdminPortal({
                       },
                       members,
                       divisions,
-                      roleQuotas
+                      roleQuotas,
+                      tenureRoles
                     );
 
                     if (!quotaCheck.isValid) {
@@ -11283,6 +11288,13 @@ export default function AdminPortal({
                             </tr>
                           );
                         })}
+                        {roles.length === 0 && (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                              Belum ada role/jabatan terdaftar untuk periode ini. Silakan klik tombol <strong>Tambah Role Baru</strong> di atas untuk membuat role.
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
