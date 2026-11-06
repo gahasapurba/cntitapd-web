@@ -1285,7 +1285,7 @@ export default function AdminPortal({
               <Lock size={24} />
             </div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              Portal Pengurus CNT
+              Portal Pengurus CNT IT APD
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
               Masuk untuk mengelola galeri, event, divisi, form, dll.
@@ -1976,7 +1976,7 @@ export default function AdminPortal({
                 <div style={{ fontSize: '0.84rem', color: 'var(--text-main)' }}>
                   {visiblePagesCount === 0 ? (
                     <span>
-                      <strong>Perhatian: Semua halaman sedang di-Hide!</strong> Pengunjung saat ini melihat layar <em>Mode Standby / Pemeliharaan</em> dengan akses langsung ke Portal Pengurus.
+                      <strong>Perhatian: Semua halaman sedang di-Hide!</strong> Pengunjung saat ini melihat layar <em>Mode Standby / Pemeliharaan</em> dengan akses langsung ke Portal Pengurus CNT IT APD.
                     </span>
                   ) : (
                     <span>
