@@ -81,11 +81,22 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   const activeDivisions = (divisions || []).filter(d => d.tenureId === activeTenure?.id);
   const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
 
-  const pembinas = activeMembers.filter(m => m.category === 'pembina');
+  // Dewan Penasehat (Tingkat tertinggi di atas Pembina bila ada)
+  const penasehats = activeMembers.filter(m => 
+    m.category === 'penasehat' || 
+    (m.role || '').toLowerCase().includes('penasehat') || 
+    (m.role || '').toLowerCase().includes('penasihat')
+  );
+
+  const pembinas = activeMembers.filter(m => 
+    (m.category === 'pembina' || (m.role || '').toLowerCase().includes('pembina')) && 
+    !penasehats.some(p => p.id === m.id)
+  );
 
   // Urutan hierarki Pengurus Inti:
   // 1: Ketua
   // 2: Wakil Ketua
+  // 2.5: Sekretaris Jenderal (Sekjen)
   // 3: Sekretaris (atau Sekretaris Bendahara 1 / Sekben 1)
   // 4: Bendahara (atau Sekretaris Bendahara 2 / Sekben 2)
   // 5+: Inti lainnya
@@ -93,6 +104,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
     const role = (m.role || '').toLowerCase();
     if (role.includes('ketua') && !role.includes('wakil')) return 1;
     if (role.includes('wakil')) return 2;
+    if (role.includes('sekretaris jenderal') || role.includes('sekjen')) return 2.5;
     if (role.includes('sekretaris') && !role.includes('bendahara')) return 3;
     if (role.includes('sekben 1') || role.includes('sekretaris bendahara 1')) return 3;
     if (role.includes('bendahara') && !role.includes('sekretaris')) return 4;
@@ -111,7 +123,7 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   });
   const displayLevel2 = level2Members.length > 0 ? level2Members.slice(0, 2) : sortedInti.slice(0, 2);
 
-  // Level 3 adalah pengurus inti di luar Ketua & Wakil (yaitu Sekretaris, Bendahara, atau Sekben)
+  // Level 3 adalah pengurus inti di luar Ketua & Wakil (Sekretaris Jenderal, Sekretaris, Bendahara, Sekben)
   const displayLevel3 = sortedInti.filter(m => !displayLevel2.some(l2 => l2.id === m.id));
 
   const pimpro = activeMembers.filter(m => m.category === 'pimpro');
@@ -340,6 +352,37 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
       ) : (
         <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1240px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         
+        {/* LEVEL 0: DEWAN PENASEHAT (Puncak Tertinggi bila ada) */}
+        {penasehats.length > 0 && (
+          <>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '20px',
+              flexWrap: 'wrap',
+              width: '100%',
+              maxWidth: penasehats.length > 1 ? '900px' : '440px',
+              zIndex: 10
+            }}>
+              {penasehats.map(p => (
+                <div key={p.id} style={{ flex: penasehats.length > 1 ? '1 1 360px' : '1 1 auto', maxWidth: '440px', width: '100%' }}>
+                  <CrewMemberCard member={p} onClick={() => handleMemberClick(p)} />
+                </div>
+              ))}
+            </div>
+
+            {/* Connecting line from Penasehat down to Pembina / Ketua */}
+            <div className="org-tree-line" style={{
+              width: '5px',
+              height: '24px',
+              background: 'linear-gradient(to bottom, #38bdf8, #FFB800)',
+              boxShadow: '0 0 15px #38bdf8',
+              zIndex: 1
+            }} />
+          </>
+        )}
+
         {/* LEVEL 1: PEMBINA (Top Center - Mendukung 1 atau Banyak Pembina) */}
         {pembinas.length > 0 && (
           <div style={{

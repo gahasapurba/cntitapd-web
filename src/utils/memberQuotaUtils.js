@@ -6,7 +6,8 @@
  * 3. Wakil Ketua: Default 1 orang
  * 4. Pimpro (Ketua Divisi): Default 1 orang per masing-masing divisi
  * 5. Sekretaris & Bendahara: Default 2 orang
- * 6. Anggota Divisi: Tidak terbatas (unlimited)
+ * 6. Role / Jabatan Kustom (e.g. Penasehat, Sekretaris Jenderal, dll.): Fleksibel per periode
+ * 7. Anggota Divisi: Tidak terbatas (unlimited)
  */
 
 export const DEFAULT_QUOTAS = {
@@ -14,7 +15,8 @@ export const DEFAULT_QUOTAS = {
   ketua: 1,
   wakilKetua: 1,
   sekben: 2,
-  pimproPerDivisi: 1
+  pimproPerDivisi: 1,
+  customRoles: []
 };
 
 export function getTenureQuotas(tenureId, roleQuotas = {}) {
@@ -22,12 +24,15 @@ export function getTenureQuotas(tenureId, roleQuotas = {}) {
     ? roleQuotas[tenureId]
     : ((roleQuotas && typeof roleQuotas === 'object' && roleQuotas.default) || DEFAULT_QUOTAS);
 
+  const customRoles = Array.isArray(config?.customRoles) ? config.customRoles : [];
+
   return {
     pembina: Math.max(1, Number(config?.pembina ?? DEFAULT_QUOTAS.pembina)),
     ketua: Math.max(1, Number(config?.ketua ?? DEFAULT_QUOTAS.ketua)),
     wakilKetua: Math.max(0, Number(config?.wakilKetua ?? DEFAULT_QUOTAS.wakilKetua)),
     sekben: Math.max(1, Number(config?.sekben ?? DEFAULT_QUOTAS.sekben)),
-    pimproPerDivisi: Math.max(1, Number(config?.pimproPerDivisi ?? DEFAULT_QUOTAS.pimproPerDivisi))
+    pimproPerDivisi: Math.max(1, Number(config?.pimproPerDivisi ?? DEFAULT_QUOTAS.pimproPerDivisi)),
+    customRoles
   };
 }
 
@@ -35,6 +40,7 @@ export function getMemberRoleType(category = '', role = '', title = '') {
   const cat = String(category || '').toLowerCase().trim();
   const text = `${role} ${title}`.toLowerCase();
 
+  if (cat === 'penasehat' || text.includes('penasehat') || text.includes('penasihat')) return 'penasehat';
   if (cat === 'pembina') return 'pembina';
   if (cat === 'pimpro') return 'pimpro';
   if (cat === 'anggota') return 'anggota';
@@ -42,6 +48,7 @@ export function getMemberRoleType(category = '', role = '', title = '') {
   if (cat === 'inti') {
     if (text.includes('wakil')) return 'wakil_ketua';
     if (text.includes('ketua')) return 'ketua';
+    if (text.includes('sekretaris jenderal') || text.includes('sekjen')) return 'sekjen';
     if (text.includes('sekben') || text.includes('sekretaris') || text.includes('bendahara')) return 'sekben';
     return 'inti_lainnya';
   }
@@ -57,7 +64,8 @@ export function getTenureQuotaSummary(tenureId, members = [], divisions = [], ro
   const targetMembers = (members || []).filter(m => !tenureId || m.tenureId === tenureId);
   const targetDivisions = (divisions || []).filter(d => !tenureId || d.tenureId === tenureId);
 
-  const pembinas = targetMembers.filter(m => m.category === 'pembina');
+  const penasehats = targetMembers.filter(m => getMemberRoleType(m.category, m.role, m.title) === 'penasehat');
+  const pembinas = targetMembers.filter(m => m.category === 'pembina' && !penasehats.includes(m));
   const ketuas = targetMembers.filter(m => getMemberRoleType(m.category, m.role, m.title) === 'ketua');
   const wakilKetuas = targetMembers.filter(m => getMemberRoleType(m.category, m.role, m.title) === 'wakil_ketua');
   const sekbens = targetMembers.filter(m => getMemberRoleType(m.category, m.role, m.title) === 'sekben');
@@ -77,13 +85,38 @@ export function getTenureQuotaSummary(tenureId, members = [], divisions = [], ro
     };
   });
 
+  // Calculate dynamic custom role quotas
+  const customRoleSummaries = {};
+  (quotas.customRoles || []).forEach(cr => {
+    if (!cr || !cr.name) return;
+    const search = cr.name.toLowerCase().trim();
+    const matched = targetMembers.filter(m => {
+      const r = (m.role || '').toLowerCase();
+      const cat = (m.category || '').toLowerCase();
+      if (search === 'penasehat' || search === 'penasihat') {
+        return cat === 'penasehat' || r.includes('penasehat') || r.includes('penasihat');
+      }
+      return r.includes(search) || (cr.category && cat === cr.category.toLowerCase() && r.includes(search));
+    });
+    customRoleSummaries[cr.id || cr.name] = {
+      id: cr.id || cr.name,
+      name: cr.name,
+      current: matched.length,
+      max: Number(cr.max || 1),
+      category: cr.category || 'inti',
+      members: matched
+    };
+  });
+
   return {
     quotas,
+    penasehat: { current: penasehats.length, max: quotas.customRoles.find(r => r.name.toLowerCase().includes('penasehat'))?.max || 1, members: penasehats },
     pembina: { current: pembinas.length, max: quotas.pembina, members: pembinas },
     ketua: { current: ketuas.length, max: quotas.ketua, members: ketuas },
     wakilKetua: { current: wakilKetuas.length, max: quotas.wakilKetua, members: wakilKetuas },
     sekben: { current: sekbens.length, max: quotas.sekben, members: sekbens },
-    pimproByDivision
+    pimproByDivision,
+    customRoleSummaries
   };
 }
 
@@ -100,9 +133,35 @@ export function validateMemberQuota(
   const targetTenureId = tenureId || '';
   const quotas = getTenureQuotas(targetTenureId, roleQuotas);
   const roleType = getMemberRoleType(category, role, title);
+  const roleLower = String(role || '').toLowerCase();
 
-  // 1. Pembina: Maksimal sesuai kuota periode
-  if (category === 'pembina' || roleType === 'pembina') {
+  // 1. Cek Kuota Custom Roles Terdaftar Terlebih Dahulu
+  for (const cr of (quotas.customRoles || [])) {
+    if (!cr || !cr.name) continue;
+    const crNameLower = cr.name.toLowerCase().trim();
+    const isCustomMatch = roleLower.includes(crNameLower) || 
+      ((crNameLower.includes('penasehat') || crNameLower.includes('penasihat')) && (category === 'penasehat' || roleLower.includes('penasehat') || roleLower.includes('penasihat')));
+
+    if (isCustomMatch) {
+      const existing = (members || []).filter(m => 
+        (!targetTenureId || m.tenureId === targetTenureId) &&
+        m.id !== excludeMemberId &&
+        ((m.role || '').toLowerCase().includes(crNameLower) || 
+          ((crNameLower.includes('penasehat') || crNameLower.includes('penasihat')) && (m.category === 'penasehat' || (m.role || '').toLowerCase().includes('penasehat') || (m.role || '').toLowerCase().includes('penasihat'))))
+      );
+      if (existing.length >= Number(cr.max || 1)) {
+        const names = existing.map(e => `"${e.name}"`).join(' dan ');
+        return {
+          isValid: false,
+          field: 'memRole',
+          error: `Batas kuota ${cr.name} telah terpenuhi (maksimal ${cr.max} orang untuk periode ini). Saat ini sudah diisi oleh ${names}.`
+        };
+      }
+    }
+  }
+
+  // 2. Pembina: Maksimal sesuai kuota periode (jika bukan custom role terpisah)
+  if ((category === 'pembina' || roleType === 'pembina') && roleType !== 'penasehat') {
     const existing = (members || []).filter(m => 
       (!targetTenureId || m.tenureId === targetTenureId) &&
       m.id !== excludeMemberId &&
@@ -118,9 +177,9 @@ export function validateMemberQuota(
     }
   }
 
-  // 2. Pengurus Inti
+  // 3. Pengurus Inti
   if (category === 'inti') {
-    // 2a. Ketua
+    // 3a. Ketua
     if (roleType === 'ketua') {
       const existing = (members || []).filter(m => 
         (!targetTenureId || m.tenureId === targetTenureId) &&
@@ -136,7 +195,7 @@ export function validateMemberQuota(
       }
     }
 
-    // 2b. Wakil Ketua
+    // 3b. Wakil Ketua
     if (roleType === 'wakil_ketua') {
       const existing = (members || []).filter(m => 
         (!targetTenureId || m.tenureId === targetTenureId) &&
@@ -152,25 +211,28 @@ export function validateMemberQuota(
       }
     }
 
-    // 2c. Sekretaris & Bendahara (Sekben)
+    // 3c. Sekretaris & Bendahara (Sekben) - Cek bila bukan custom role khusus
     if (roleType === 'sekben') {
-      const existing = (members || []).filter(m => 
-        (!targetTenureId || m.tenureId === targetTenureId) &&
-        m.id !== excludeMemberId &&
-        getMemberRoleType(m.category, m.role, m.title) === 'sekben'
-      );
-      if (existing.length >= quotas.sekben) {
-        const names = existing.map(e => `"${e.name}"`).join(' dan ');
-        return {
-          isValid: false,
-          field: 'memRole',
-          error: `Batas kuota Sekretaris Bendahara telah terpenuhi (maksimal ${quotas.sekben} orang untuk periode ini). Saat ini sudah diisi oleh ${names}.`
-        };
+      const hasSpecificCustomRole = (quotas.customRoles || []).some(cr => roleLower.includes(cr.name.toLowerCase()));
+      if (!hasSpecificCustomRole) {
+        const existing = (members || []).filter(m => 
+          (!targetTenureId || m.tenureId === targetTenureId) &&
+          m.id !== excludeMemberId &&
+          getMemberRoleType(m.category, m.role, m.title) === 'sekben'
+        );
+        if (existing.length >= quotas.sekben) {
+          const names = existing.map(e => `"${e.name}"`).join(' dan ');
+          return {
+            isValid: false,
+            field: 'memRole',
+            error: `Batas kuota Sekretaris Bendahara telah terpenuhi (maksimal ${quotas.sekben} orang untuk periode ini). Saat ini sudah diisi oleh ${names}.`
+          };
+        }
       }
     }
   }
 
-  // 3. Pimpro / Ketua Divisi: Maksimal kuota per divisi dalam kepengurusan
+  // 4. Pimpro / Ketua Divisi: Maksimal kuota per divisi dalam kepengurusan
   if (category === 'pimpro') {
     if (!divisionId) {
       return {
