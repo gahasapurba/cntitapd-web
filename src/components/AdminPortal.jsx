@@ -2545,35 +2545,9 @@ export default function AdminPortal({
             </div>
 
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Jabatan / Role Pengurus *
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedOrgTenureId(memTenureId || activeTenure?.id || tenures[0]?.id || '');
-                    setIsOrgRolesOpen(true);
-                  }}
-                  style={{
-                    background: 'rgba(56, 189, 248, 0.1)',
-                    border: '1px solid rgba(56, 189, 248, 0.3)',
-                    color: 'var(--neon-cyan)',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-full)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                  title="Buka panel untuk atur role, kuota, atau tingkat organigram"
-                >
-                  <Settings size={11} />
-                  <span>Kelola Role</span>
-                </button>
-              </div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Jabatan / Role Pengurus <span style={{ color: '#f43f5e' }}>*</span>
+              </label>
               {(() => {
                 const currentTenureId = memTenureId || activeTenure?.id || '';
                 const availableRoles = getTenureRoles(currentTenureId, roleQuotas, tenureRoles);
@@ -2716,29 +2690,6 @@ export default function AdminPortal({
                         ({targetMembers.length} anggota terdaftar)
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedOrgTenureId(currentTenureId);
-                        setIsOrgRolesOpen(true);
-                      }}
-                      style={{
-                        padding: '3px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'var(--mandiri-gold)',
-                        color: '#040914',
-                        border: 'none',
-                        fontSize: '0.7rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px'
-                      }}
-                    >
-                      <Settings size={12} />
-                      <span>🏛️ Kelola Struktur Role & Kuota</span>
-                    </button>
                   </div>
 
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -8544,27 +8495,9 @@ export default function AdminPortal({
                   return (
                     <div className="mobile-two-col" style={{ gap: '10px' }}>
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Jabatan / Role *</label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedOrgTenureId(editMemberTenureId);
-                              setIsOrgRolesOpen(true);
-                            }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--neon-cyan)',
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              padding: 0
-                            }}
-                          >
-                            ⚙️ Kelola Role
-                          </button>
-                        </div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                          Jabatan / Role <span style={{ color: '#f43f5e' }}>*</span>
+                        </label>
                         <select
                           value={selectedRole?.id || ''}
                           onChange={(e) => {
