@@ -14,9 +14,10 @@ export default async function handler(request, context) {
   const url = new URL(request.url);
   const galleryId = url.searchParams.get("gallery") || url.searchParams.get("galleryId");
   const eventId = url.searchParams.get("event") || url.searchParams.get("eventId");
+  const formId = url.searchParams.get("form") || url.searchParams.get("formId");
 
-  // Only intercept if gallery or event query param is present
-  if (!galleryId && !eventId) {
+  // Only intercept if gallery, event, or form query param is present
+  if (!galleryId && !eventId && !formId) {
     return context.next();
   }
 
@@ -116,14 +117,14 @@ export default async function handler(request, context) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           const evt = data[0];
-          let eventImg = evt.banner_image || evt.image || `${url.origin}/assets/CNT_IT_APD_LOGO_SUITE/01-APD%20Master%20Brand%20Logo.png`;
+          let eventImg = evt.banner_image || evt.image || evt.poster_url || `${url.origin}/assets/CNT_IT_APD_LOGO_SUITE/01-APD%20Master%20Brand%20Logo.png`;
           if (eventImg.startsWith("/")) {
             eventImg = `${url.origin}${eventImg}`;
           }
 
           const rawDesc = evt.description || "Agenda kegiatan dan program kerja insan IT Application Delivery Bank Mandiri";
           const snippetDesc = rawDesc.length > 200 ? rawDesc.slice(0, 197) + "..." : rawDesc;
-          const canonicalUrl = `${url.origin}/?event=${encodeURIComponent(evt.id)}#program`;
+          const canonicalUrl = `${url.origin}/?event=${encodeURIComponent(evt.id)}#event`;
 
           const html = `<!DOCTYPE html>
 <html lang="id">
@@ -167,6 +168,74 @@ export default async function handler(request, context) {
         }
       }
     }
+
+    // 3. Handle Form Preview for WhatsApp / Social Crawlers
+    if (formId) {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/forms?id=eq.${encodeURIComponent(formId)}&select=*`,
+        {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const frm = data[0];
+          let formImg = frm.banner_image || frm.poster_url || frm.image || `${url.origin}/assets/CNT_IT_APD_LOGO_SUITE/01-APD%20Master%20Brand%20Logo.png`;
+          if (formImg.startsWith("/")) {
+            formImg = `${url.origin}${formImg}`;
+          }
+
+          const rawDesc = frm.subtitle || frm.description || "Formulir pendaftaran dan registrasi resmi Culture Network Team IT APD Bank Mandiri";
+          const snippetDesc = rawDesc.length > 200 ? rawDesc.slice(0, 197) + "..." : rawDesc;
+          const canonicalUrl = `${url.origin}/?form=${encodeURIComponent(frm.id)}#form`;
+
+          const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(frm.title)} — Formulir Registrasi CNT IT APD</title>
+  <meta name="description" content="${escapeHtml(snippetDesc)}" />
+  
+  <!-- Open Graph / WhatsApp Preview Meta Tags -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="CNT IT APD Bank Mandiri" />
+  <meta property="og:title" content="${escapeHtml(frm.title)}" />
+  <meta property="og:description" content="${escapeHtml(snippetDesc)}" />
+  <meta property="og:image" content="${escapeHtml(formImg)}" />
+  <meta property="og:image:secure_url" content="${escapeHtml(formImg)}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(frm.title)}" />
+  <meta name="twitter:description" content="${escapeHtml(snippetDesc)}" />
+  <meta name="twitter:image" content="${escapeHtml(formImg)}" />
+
+  <meta http-equiv="refresh" content="0;url=${escapeHtml(canonicalUrl)}" />
+</head>
+<body>
+  <script>window.location.replace("${escapeHtml(canonicalUrl)}");</script>
+  <p>Membuka <a href="${escapeHtml(canonicalUrl)}">${escapeHtml(frm.title)}</a>...</p>
+</body>
+</html>`;
+
+          return new Response(html, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "public, max-age=300"
+            }
+          });
+        }
+      }
+    }
   } catch (err) {
     console.error("OG Preview Edge Function error:", err);
   }
@@ -178,4 +247,3 @@ export default async function handler(request, context) {
 export const config = {
   path: "/*"
 };
-

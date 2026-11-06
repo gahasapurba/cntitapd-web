@@ -122,8 +122,7 @@ export default function ProgramSection({
   };
 
   const getEventDirectUrl = (evtId) => {
-    const base = window.location.origin + window.location.pathname;
-    return `${base}#program?event=${encodeURIComponent(evtId)}`;
+    return `${window.location.origin}/?event=${encodeURIComponent(evtId)}#event`;
   };
 
   const handleCopyEventLink = (evt) => {
@@ -139,7 +138,8 @@ export default function ProgramSection({
     if (!evt) return;
     const url = getEventDirectUrl(evt.id);
     const dateText = formatWibEventRange(evt.startDate, evt.endDate, evt.date);
-    const text = `Halo Insan IT APD! Yuk ikuti & konfirmasi kehadiranmu (RSVP) di kegiatan *${evt.title}* (${dateText} • ${evt.location || 'Plaza Mandiri'}):\n${url}`;
+    const locText = evt.location || 'Plaza Mandiri';
+    const text = `🎉 *Agenda Kegiatan CNT IT APD*\n*${evt.title}*\n📅 ${dateText} • 📍 ${locText}\n\nYuk ikuti & konfirmasi kehadiranmu (RSVP) di:\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   };
 

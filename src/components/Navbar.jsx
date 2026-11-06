@@ -35,14 +35,21 @@ export default function Navbar({
   const allNavItems = [
     { id: 'home', label: 'Beranda', icon: Building2 },
     { id: 'organisasi', label: 'Organisasi', icon: Users },
-    { id: 'program', label: 'Events', icon: Calendar },
+    { id: 'event', label: 'Events', icon: Calendar },
     { id: 'galeri', label: 'Galeri', icon: ImageIcon },
     { id: 'kudos', label: 'Kudos & Aspirasi', icon: MessageSquareHeart },
     { id: 'assets', label: 'Asset', icon: Download },
   ];
 
-  const navItems = allNavItems.filter(tab => pageVisibility[tab.id] !== false);
-  const isOprecVisible = pageVisibility.oprec !== false;
+  const isTabVisible = (id) => {
+    if (id === 'event' || id === 'program') return pageVisibility.event !== false && pageVisibility.program !== false;
+    if (id === 'form' || id === 'oprec') return pageVisibility.form !== false && pageVisibility.oprec !== false;
+    return pageVisibility[id] !== false;
+  };
+
+  const navItems = allNavItems.filter(tab => isTabVisible(tab.id));
+  const isFormVisible = isTabVisible('form');
+  const isFormActive = currentTab === 'form' || currentTab === 'oprec';
 
   const handleSelectTab = (tabId) => {
     setCurrentTab(tabId);
@@ -54,8 +61,8 @@ export default function Navbar({
       setCurrentTab('home');
     } else if (navItems.length > 0) {
       setCurrentTab(navItems[0].id);
-    } else if (isOprecVisible) {
-      setCurrentTab('oprec');
+    } else if (isFormVisible) {
+      setCurrentTab('form');
     }
     setIsMobileMenuOpen(false);
   };
@@ -132,7 +139,7 @@ export default function Navbar({
         }}>
           {navItems.map((tab) => {
             const Icon = tab.icon;
-            const isActive = currentTab === tab.id;
+            const isActive = currentTab === tab.id || (tab.id === 'event' && currentTab === 'program') || (tab.id === 'form' && currentTab === 'oprec');
 
             return (
               <button
@@ -162,22 +169,22 @@ export default function Navbar({
           })}
 
           {/* Highlighted Dynamic Registration / Forms Button */}
-          {isOprecVisible && (
+          {isFormVisible && (
             <button
-              onClick={() => handleSelectTab('oprec')}
-              className={currentTab === 'oprec' ? '' : (activeFormsCount > 0 ? 'pulse-glow' : '')}
+              onClick={() => handleSelectTab('form')}
+              className={isFormActive ? '' : (activeFormsCount > 0 ? 'pulse-glow' : '')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '6px clamp(10px, 1.2vw, 16px)',
                 borderRadius: 'var(--radius-full)',
-                background: currentTab === 'oprec' 
+                background: isFormActive 
                   ? 'var(--mandiri-gold)' 
                   : (activeFormsCount > 0 
                       ? (isDark ? 'rgba(255, 184, 0, 0.18)' : '#fef3c7')
                       : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9')),
-                color: currentTab === 'oprec' 
+                color: isFormActive 
                   ? '#040914' 
                   : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
                 border: `1px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,
@@ -389,7 +396,7 @@ export default function Navbar({
           </div>
           {navItems.map((tab) => {
             const Icon = tab.icon;
-            const isActive = currentTab === tab.id;
+            const isActive = currentTab === tab.id || (tab.id === 'event' && currentTab === 'program') || (tab.id === 'form' && currentTab === 'oprec');
 
             return (
               <button
@@ -418,9 +425,9 @@ export default function Navbar({
           })}
 
           {/* Dynamic Registration in Mobile Menu */}
-          {isOprecVisible && (
+          {isFormVisible && (
             <button
-              onClick={() => handleSelectTab('oprec')}
+              onClick={() => handleSelectTab('form')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -428,12 +435,12 @@ export default function Navbar({
                 gap: '10px',
                 padding: '13px 16px',
                 borderRadius: 'var(--radius-md)',
-                background: currentTab === 'oprec' 
+                background: isFormActive 
                   ? 'var(--mandiri-gold)' 
                   : (activeFormsCount > 0 
                       ? (isDark ? 'rgba(255, 184, 0, 0.2)' : '#fef3c7')
                       : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9')),
-                color: currentTab === 'oprec' 
+                color: isFormActive 
                   ? '#040914' 
                   : (activeFormsCount > 0 ? '#b45309' : 'var(--text-muted)'),
                 border: `1.5px solid ${activeFormsCount > 0 ? 'var(--mandiri-gold)' : 'var(--border-card)'}`,

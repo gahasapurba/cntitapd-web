@@ -17,7 +17,8 @@ import {
   HelpCircle,
   Share2,
   Check,
-  Search
+  Search,
+  MessageCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadMediaToCloud } from '../lib/supabase';
@@ -76,12 +77,25 @@ export default function DynamicFormSection({
   // Self-Service Status Tracker state
   const [statusQuery, setStatusQuery] = useState('');
 
-  const handleCopyFormLink = () => {
-    if (!currentForm) return;
-    const shareUrl = `${window.location.origin}${window.location.pathname}#oprec?form=${encodeURIComponent(currentForm.id)}`;
+  const getFormDirectUrl = (fId) => {
+    return `${window.location.origin}/?form=${encodeURIComponent(fId)}#form`;
+  };
+
+  const handleCopyFormLink = (targetForm = currentForm) => {
+    if (!targetForm) return;
+    const shareUrl = getFormDirectUrl(targetForm.id);
     navigator.clipboard?.writeText(shareUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleShareFormWa = (targetForm = currentForm) => {
+    if (!targetForm) return;
+    const shareUrl = getFormDirectUrl(targetForm.id);
+    const dl = getDeadlineStatus(targetForm.deadline);
+    const deadlineText = dl.isExpired ? 'Pendaftaran Ditutup' : (dl.formatted || 'Sesuai jadwal');
+    const text = `📋 *Formulir Registrasi CNT IT APD*\n*${targetForm.title}*\n⏳ Batas Pengisian: ${deadlineText}\n\nSilakan isi formulir melalui tautan resmi berikut:\n${shareUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleCopySubId = (subId) => {
@@ -738,10 +752,10 @@ export default function DynamicFormSection({
                       </>
                     );
                   })()}
-                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       type="button"
-                      onClick={handleCopyFormLink}
+                      onClick={() => handleCopyFormLink(currentForm)}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -757,7 +771,28 @@ export default function DynamicFormSection({
                       }}
                     >
                       {copiedLink ? <Check size={13} /> : <Share2 size={13} />}
-                      <span>{copiedLink ? 'Link Formulir Tersalin!' : 'Salin Link Langsung Formulir Ini'}</span>
+                      <span>{copiedLink ? 'Link Formulir Tersalin!' : 'Salin Link'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleShareFormWa(currentForm)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(37, 211, 102, 0.12)',
+                        border: '1px solid rgba(37, 211, 102, 0.4)',
+                        color: '#25D366',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <MessageCircle size={13} />
+                      <span>Bagikan ke WhatsApp</span>
                     </button>
                   </div>
                 </div>

@@ -31,14 +31,14 @@ import {
 } from './lib/supabase';
 import { formatDeadlineWib } from './utils/dateUtils';
 
-const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'program', 'galeri', 'kudos', 'assets', 'oprec'];
-const VALID_TABS = [...PUBLIC_PAGE_IDS, 'admin'];
+const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'assets', 'form'];
+const VALID_TABS = [...PUBLIC_PAGE_IDS, 'program', 'oprec', 'admin'];
 
 function parseLocationRoute() {
   const rawHash = (window.location.hash || '').replace(/^#/, '');
   const [hashTab, hashQuery] = rawHash.split('?');
   const params = new URLSearchParams(hashQuery || window.location.search || '');
-  const formId = params.get('form') || null;
+  const formId = params.get('form') || params.get('formId') || null;
   const eventId = params.get('eventId') || params.get('event') || null;
   const galleryId = params.get('gallery') || params.get('galleryId') || null;
   const pathname = (window.location.pathname || '').replace(/\/+$/, '');
@@ -46,17 +46,25 @@ function parseLocationRoute() {
   if (pathname === '/admin' || hashTab === 'admin') {
     return { tab: 'admin', formId, eventId, galleryId };
   }
-  if (hashTab && VALID_TABS.includes(hashTab)) {
-    return { tab: hashTab, formId, eventId, galleryId };
-  }
   if (formId) {
-    return { tab: 'oprec', formId, eventId: null, galleryId: null };
+    return { tab: 'form', formId, eventId: null, galleryId: null };
   }
   if (eventId) {
-    return { tab: 'program', formId: null, eventId, galleryId: null };
+    return { tab: 'event', formId: null, eventId, galleryId: null };
   }
   if (galleryId) {
     return { tab: 'galeri', formId: null, eventId: null, galleryId };
+  }
+  if (hashTab) {
+    if (hashTab === 'program' || hashTab === 'event') {
+      return { tab: 'event', formId, eventId, galleryId };
+    }
+    if (hashTab === 'oprec' || hashTab === 'form') {
+      return { tab: 'form', formId, eventId, galleryId };
+    }
+    if (VALID_TABS.includes(hashTab)) {
+      return { tab: hashTab, formId, eventId, galleryId };
+    }
   }
   return { tab: 'home', formId: null, eventId: null, galleryId: null };
 }
@@ -65,10 +73,12 @@ const DEFAULT_PAGE_VISIBILITY = {
   navbar: true,
   home: true,
   organisasi: true,
+  event: true,
   program: true,
   galeri: true,
   kudos: true,
   assets: true,
+  form: true,
   oprec: true
 };
 
@@ -83,14 +93,18 @@ const sortTenuresDesc = (list = []) => {
 };
 
 export default function App() {
-  // Navigation: 'home' | 'organisasi' | 'program' | 'galeri' | 'kudos' | 'assets' | 'oprec' | 'admin'
+  // Navigation: 'home' | 'organisasi' | 'event' | 'galeri' | 'kudos' | 'assets' | 'form' | 'admin'
   const [currentTab, setCurrentTabState] = useState(() => parseLocationRoute().tab);
   const [activeFormIdFromUrl, setActiveFormIdFromUrl] = useState(() => parseLocationRoute().formId);
   const [activeEventIdFromUrl, setActiveEventIdFromUrl] = useState(() => parseLocationRoute().eventId);
   const [activeGalleryIdFromUrl, setActiveGalleryIdFromUrl] = useState(() => parseLocationRoute().galleryId);
 
   const setCurrentTab = useCallback((nextTab, formIdParam = null, eventIdParam = null, shouldScroll = true, galleryIdParam = null) => {
-    const targetTab = VALID_TABS.includes(nextTab) ? nextTab : 'home';
+    let targetTab = nextTab;
+    if (targetTab === 'program') targetTab = 'event';
+    if (targetTab === 'oprec') targetTab = 'form';
+    if (!VALID_TABS.includes(targetTab)) targetTab = 'home';
+
     setCurrentTabState(targetTab);
     const isPathAdmin = (window.location.pathname || '').replace(/\/+$/, '') === '/admin';
     const basePrefix = isPathAdmin ? '/' : '';
@@ -99,17 +113,17 @@ export default function App() {
       setActiveFormIdFromUrl(formIdParam);
       setActiveEventIdFromUrl(null);
       setActiveGalleryIdFromUrl(null);
-      window.history.replaceState(null, '', `${basePrefix}#${targetTab}?form=${encodeURIComponent(formIdParam)}`);
+      window.history.replaceState(null, '', `${basePrefix}?form=${encodeURIComponent(formIdParam)}#form`);
     } else if (eventIdParam) {
       setActiveEventIdFromUrl(eventIdParam);
       setActiveFormIdFromUrl(null);
       setActiveGalleryIdFromUrl(null);
-      window.history.replaceState(null, '', `${basePrefix}#${targetTab}?event=${encodeURIComponent(eventIdParam)}`);
+      window.history.replaceState(null, '', `${basePrefix}?event=${encodeURIComponent(eventIdParam)}#event`);
     } else if (galleryIdParam) {
       setActiveGalleryIdFromUrl(galleryIdParam);
       setActiveFormIdFromUrl(null);
       setActiveEventIdFromUrl(null);
-      window.history.replaceState(null, '', `${basePrefix}?gallery=${encodeURIComponent(galleryIdParam)}#${targetTab}`);
+      window.history.replaceState(null, '', `${basePrefix}?gallery=${encodeURIComponent(galleryIdParam)}#galeri`);
     } else {
       setActiveFormIdFromUrl(null);
       setActiveEventIdFromUrl(null);
@@ -353,6 +367,11 @@ export default function App() {
   const setPageVisibility = (nextVis) => {
     const resolved = typeof nextVis === 'function' ? nextVis(pageVisibility) : nextVis;
     const now = new Date().toISOString();
+    if (resolved.event !== undefined) resolved.program = resolved.event;
+    else if (resolved.program !== undefined) resolved.event = resolved.program;
+    if (resolved.form !== undefined) resolved.oprec = resolved.form;
+    else if (resolved.oprec !== undefined) resolved.form = resolved.oprec;
+
     const merged = { ...DEFAULT_PAGE_VISIBILITY, ...resolved, _updatedAt: now };
     setPageVisibilityState(merged);
     try { localStorage.setItem('cnt_page_visibility', JSON.stringify(merged)); } catch (e) {}
@@ -988,8 +1007,15 @@ export default function App() {
     await syncFromCloud();
   };
 
+  // Helper to check page visibility with alias support
+  const isPageVisible = (id) => {
+    if (id === 'event' || id === 'program') return pageVisibility.event !== false && pageVisibility.program !== false;
+    if (id === 'form' || id === 'oprec') return pageVisibility.form !== false && pageVisibility.oprec !== false;
+    return pageVisibility[id] !== false;
+  };
+
   // Determine visible public pages and effective active tab
-  const visiblePublicPages = PUBLIC_PAGE_IDS.filter(id => pageVisibility[id] !== false);
+  const visiblePublicPages = PUBLIC_PAGE_IDS.filter(id => isPageVisible(id));
   const allPagesHidden = visiblePublicPages.length === 0;
   const isNavbarVisible = pageVisibility.navbar !== false;
   const isDark = theme === 'dark';
@@ -999,7 +1025,9 @@ export default function App() {
     ? 'admin'
     : (allPagesHidden
         ? 'all-hidden'
-        : (pageVisibility[currentTab] !== false ? currentTab : visiblePublicPages[0]));
+        : (isPageVisible(currentTab)
+            ? (currentTab === 'program' ? 'event' : currentTab === 'oprec' ? 'form' : currentTab)
+            : visiblePublicPages[0]));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
@@ -1240,12 +1268,12 @@ export default function App() {
               divisions={divisions}
               members={members}
               events={events}
-              onNavigateProgram={pageVisibility.program !== false ? () => setCurrentTab('program') : undefined}
+              onNavigateProgram={isPageVisible('event') ? () => setCurrentTab('event') : undefined}
               theme={theme}
             />
           )}
 
-          {effectiveTab === 'program' && (
+          {(effectiveTab === 'event' || effectiveTab === 'program') && (
             <ProgramSection
               events={events}
               divisions={divisions}
@@ -1253,11 +1281,11 @@ export default function App() {
               activeTenure={activeTenure}
               tenures={tenures}
               theme={theme}
-              onNavigateOprec={pageVisibility.oprec !== false ? () => setCurrentTab('oprec') : undefined}
+              onNavigateOprec={isPageVisible('form') ? () => setCurrentTab('form') : undefined}
               eventRsvps={eventRsvps}
               onAddEventRsvp={handleAddEventRsvp}
               initialEventId={activeEventIdFromUrl}
-              onSelectEventUrl={(eId) => setCurrentTab('program', null, eId, false)}
+              onSelectEventUrl={(eId) => setCurrentTab('event', null, eId, false)}
             />
           )}
 
@@ -1291,7 +1319,7 @@ export default function App() {
             />
           )}
 
-          {effectiveTab === 'oprec' && (
+          {(effectiveTab === 'form' || effectiveTab === 'oprec') && (
             <DynamicFormSection
               forms={forms}
               divisions={divisions}
@@ -1301,7 +1329,7 @@ export default function App() {
               onSubmitSubmission={handleSubmitSubmission}
               theme={theme}
               initialFormId={activeFormIdFromUrl}
-              onSelectFormUrl={(fId) => setCurrentTab('oprec', fId)}
+              onSelectFormUrl={(fId) => setCurrentTab('form', fId)}
               activeTenure={activeTenure}
             />
           )}
@@ -1572,7 +1600,7 @@ export default function App() {
                   )}
 
                   {/* Events Results */}
-                  {matchedEvents.length > 0 && pageVisibility.program !== false && (
+                  {matchedEvents.length > 0 && isPageVisible('event') && (
                     <div>
                       <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Calendar size={13} color="var(--neon-cyan)" />
@@ -1584,7 +1612,7 @@ export default function App() {
                             key={evt.id}
                             type="button"
                             onClick={() => {
-                              setCurrentTab('program', null, evt.id);
+                              setCurrentTab('event', null, evt.id);
                               setIsQuickSearchOpen(false);
                             }}
                             style={{
@@ -1614,7 +1642,7 @@ export default function App() {
                   )}
 
                   {/* Active Forms Results */}
-                  {matchedForms.length > 0 && pageVisibility.oprec !== false && (
+                  {matchedForms.length > 0 && isPageVisible('form') && (
                     <div>
                       <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <ClipboardList size={13} color="#10b981" />
@@ -1626,7 +1654,7 @@ export default function App() {
                             key={f.id}
                             type="button"
                             onClick={() => {
-                              setCurrentTab('oprec', f.id);
+                              setCurrentTab('form', f.id);
                               setIsQuickSearchOpen(false);
                             }}
                             style={{

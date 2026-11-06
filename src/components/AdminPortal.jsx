@@ -33,6 +33,7 @@ import {
   RefreshCw,
   Upload,
   MessageSquare,
+  MessageCircle,
   RotateCcw,
   Search,
   FolderOpen,
@@ -5472,7 +5473,7 @@ export default function AdminPortal({
                     <button
                       type="button"
                       onClick={() => {
-                        const url = `${window.location.origin}${window.location.pathname}#oprec?form=${encodeURIComponent(f.id)}`;
+                        const url = `${window.location.origin}/?form=${encodeURIComponent(f.id)}#form`;
                         navigator.clipboard?.writeText(url);
                         showToast(`Link langsung formulir "${f.title}" berhasil disalin!`);
                       }}
@@ -5489,10 +5490,38 @@ export default function AdminPortal({
                         alignItems: 'center',
                         gap: '4px'
                       }}
-                      title="Salin link langsung ke formulir ini untuk dibagikan ke WhatsApp / Teams"
+                      title="Salin link langsung ke formulir ini untuk dibagikan"
                     >
                       <Share2 size={12} />
                       <span>Salin Link</span>
+                    </button>
+
+                    {/* Share to WhatsApp */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}/?form=${encodeURIComponent(f.id)}#form`;
+                        const dl = f.deadline ? formatDeadlineWib(f.deadline) : 'Tanpa batas waktu';
+                        const text = `📋 *Formulir Registrasi CNT IT APD*\n*${f.title}*\n⏳ Batas Pengisian: ${dl}\n\nSilakan isi formulir melalui tautan resmi berikut:\n${url}`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        background: 'rgba(37, 211, 102, 0.12)',
+                        border: '1px solid rgba(37, 211, 102, 0.4)',
+                        color: '#25D366',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Bagikan formulir ini ke WhatsApp"
+                    >
+                      <MessageCircle size={12} />
+                      <span>WhatsApp</span>
                     </button>
 
                     {/* Switch Buka/Tutup */}

@@ -97,11 +97,11 @@ export default function HomeSection({
     setTimeout(() => setIsSubmittingAsk(false), 500);
     setTimeout(() => setAskSuccess(false), 5000);
   };
-  const isOprecVisible = pageVisibility.oprec !== false;
+  const isFormVisible = pageVisibility.form !== false && pageVisibility.oprec !== false;
   const isOrganisasiVisible = pageVisibility.organisasi !== false;
-  const isProgramVisible = pageVisibility.program !== false;
+  const isEventVisible = pageVisibility.event !== false && pageVisibility.program !== false;
   const isKudosVisible = pageVisibility.kudos !== false;
-  const activeForms = isOprecVisible 
+  const activeForms = isFormVisible 
     ? forms.filter(f => f.isOpen !== false && (!activeTenure?.id || f.tenureId === activeTenure.id) && !getDeadlineStatus(f.deadline).isExpired) 
     : [];
   const primaryForm = activeForms[0] || recruitmentInfo || null;
@@ -113,9 +113,13 @@ export default function HomeSection({
   const wakil = activeMembers.find(m => m.role === 'Wakil Ketua');
 
   const handleTabChange = (tabId, formIdParam = null, eventIdParam = null) => {
-    if (pageVisibility[tabId] === false) return;
+    let target = tabId;
+    if (target === 'program') target = 'event';
+    if (target === 'oprec') target = 'form';
+    const isVisible = target === 'event' ? isEventVisible : target === 'form' ? isFormVisible : pageVisibility[target] !== false;
+    if (!isVisible) return;
     soundFx.playClick();
-    setCurrentTab(tabId, formIdParam, eventIdParam);
+    setCurrentTab(target, formIdParam, eventIdParam);
   };
 
   return (
@@ -206,7 +210,7 @@ export default function HomeSection({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '48px' }}>
           {activeForms.length > 0 ? (
             <button
-              onClick={() => handleTabChange('oprec')}
+              onClick={() => handleTabChange('form')}
               className="pulse-glow"
               style={{
                 display: 'flex',
@@ -230,9 +234,9 @@ export default function HomeSection({
               </span>
               <ArrowRight size={18} />
             </button>
-          ) : isProgramVisible ? (
+          ) : isEventVisible ? (
             <button
-              onClick={() => handleTabChange('program')}
+              onClick={() => handleTabChange('event')}
               className="pulse-glow"
               style={{
                 display: 'flex',
@@ -280,7 +284,7 @@ export default function HomeSection({
         </div>
 
         {/* Quick Stats Grid (Identik dengan presentasi) */}
-        {(isOrganisasiVisible || isProgramVisible || isKudosVisible) && (
+        {(isOrganisasiVisible || isEventVisible || isKudosVisible) && (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -353,10 +357,10 @@ export default function HomeSection({
             )}
 
             {/* 3. Event (Agenda Budaya) */}
-            {isProgramVisible && (
+            {isEventVisible && (
               <div 
                 className="glass-panel glass-panel-hover" 
-                onClick={() => handleTabChange('program')}
+                onClick={() => handleTabChange('event')}
                 style={{ 
                   padding: '20px', 
                   textAlign: 'center', 
@@ -636,7 +640,7 @@ export default function HomeSection({
             </div>
             {activeForms.length > 1 && (
               <button
-                onClick={() => handleTabChange('oprec')}
+                onClick={() => handleTabChange('form')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -695,7 +699,7 @@ export default function HomeSection({
               </div>
 
               <button
-                onClick={() => handleTabChange('oprec', activeForms[0].id)}
+                onClick={() => handleTabChange('form', activeForms[0].id)}
                 className="pulse-glow"
                 style={{
                   display: 'flex',
@@ -766,7 +770,7 @@ export default function HomeSection({
                       ✓ Terbuka untuk Officer APD
                     </span>
                     <button
-                      onClick={() => handleTabChange('oprec', f.id)}
+                      onClick={() => handleTabChange('form', f.id)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -954,10 +958,10 @@ export default function HomeSection({
       </section>
 
       {/* 5. AGENDA TERDEKAT & SPOTLIGHT KUDOS TERBARU (Dynamic Activity Hub) */}
-      {(isProgramVisible || isKudosVisible) && (
+      {(isEventVisible || isKudosVisible) && (
         <section style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '36px' }}>
           {/* 5A. Agenda Kegiatan Terdekat */}
-          {isProgramVisible && activeEvents.length > 0 && (
+          {isEventVisible && activeEvents.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
@@ -970,7 +974,7 @@ export default function HomeSection({
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleTabChange('program')}
+                  onClick={() => handleTabChange('event')}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -983,7 +987,7 @@ export default function HomeSection({
                     cursor: 'pointer'
                   }}
                 >
-                  <span>Buka Semua Program & RSVP</span>
+                  <span>Buka Semua Event & RSVP</span>
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -996,7 +1000,7 @@ export default function HomeSection({
                   return (
                     <div
                       key={evt.id}
-                      onClick={() => handleTabChange('program', null, evt.id)}
+                      onClick={() => handleTabChange('event', null, evt.id)}
                       className="glass-panel glass-panel-hover"
                       style={{
                         padding: '22px',
