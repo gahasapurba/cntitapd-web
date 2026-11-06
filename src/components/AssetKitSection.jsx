@@ -360,16 +360,20 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--mandiri-gold)' }}>
                         <FolderOpen size={34} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>{item.fileType || 'File Resmi'}</span>
+                        {item.fileType && (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>{item.fileType}</span>
+                        )}
                       </div>
                     )}
                   </div>
 
                   {/* Badges */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                    <span className="badge-gold" style={{ fontSize: '0.66rem', padding: '3px 10px' }}>
-                      {item.badge || item.category || 'Official Asset'}
-                    </span>
+                    {(item.badge || item.category) ? (
+                      <span className="badge-gold" style={{ fontSize: '0.66rem', padding: '3px 10px' }}>
+                        {item.badge || item.category}
+                      </span>
+                    ) : <span />}
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
                       {[item.fileType, item.fileSize].filter(Boolean).join(' • ')}
                     </span>

@@ -66,11 +66,11 @@ export default function OrganizationSection({
     const vcardLines = [
       'BEGIN:VCARD',
       'VERSION:3.0',
-      `FN:${member.name || 'Pengurus CNT IT APD'}`,
+      `FN:${member.name || ''}`,
       'ORG:Bank Mandiri - Culture Network Team (CNT) IT Application Delivery',
-      `TITLE:${member.role || ''} (${member.title || 'CNT IT APD'})`,
+      `TITLE:${member.role || ''}`,
       phone ? `TEL;TYPE=CELL,VOICE:+${phone}` : '',
-      `NOTE:${member.motto || 'Pengurus Culture Network Team (CNT) Group IT APD'}`,
+      `NOTE:${member.motto || ''}`,
       'END:VCARD'
     ].filter(Boolean).join('\r\n');
 
@@ -718,7 +718,7 @@ export default function OrganizationSection({
                                     color: 'var(--text-muted)',
                                     border: '1px solid var(--border-card)'
                                   }}>
-                                    {member.role || 'Anggota Divisi'}
+                                    {member.role || ''}
                                   </span>
                                 </div>
 
@@ -945,30 +945,34 @@ export default function OrganizationSection({
               </div>
             </div>
 
-            <div style={{
-              background: 'rgba(255,255,255,0.04)',
-              borderLeft: `3px solid ${selectedMember.color || 'var(--mandiri-gold)'}`,
-              padding: '12px 16px',
-              borderRadius: '0 8px 8px 0',
-              fontStyle: 'italic',
-              fontSize: '0.88rem',
-              color: 'var(--text-main)',
-              marginBottom: '20px'
-            }}>
-              "{selectedMember.motto || 'Berdedikasi untuk Kemajuan Insan IT APD'}"
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '0.78rem', fontFamily: 'monospace', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 700 }}>
-                Tanggung Jawab Utama:
+            {selectedMember.motto && (
+              <div style={{
+                background: 'rgba(255,255,255,0.04)',
+                borderLeft: `3px solid ${selectedMember.color || 'var(--mandiri-gold)'}`,
+                padding: '12px 16px',
+                borderRadius: '0 8px 8px 0',
+                fontStyle: 'italic',
+                fontSize: '0.88rem',
+                color: 'var(--text-main)',
+                marginBottom: '20px'
+              }}>
+                "{selectedMember.motto}"
               </div>
-              {selectedMember.responsibilities?.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '10px', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                  <CheckCircle2 size={16} color={selectedMember.color || 'var(--mandiri-gold)'} style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <span>{item}</span>
+            )}
+
+            {Array.isArray(selectedMember.responsibilities) && selectedMember.responsibilities.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.78rem', fontFamily: 'monospace', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 700 }}>
+                  Tanggung Jawab Utama:
                 </div>
-              ))}
-            </div>
+                {selectedMember.responsibilities.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '10px', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                    <CheckCircle2 size={16} color={selectedMember.color || 'var(--mandiri-gold)'} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Related Division Programs in Member Detail Modal (hanya untuk role dengan divisi & saat page event aktif) */}
             {(() => {
@@ -993,7 +997,7 @@ export default function OrganizationSection({
               if (relatedEvents.length === 0) return null;
 
               const divObj = (divisions || []).find(d => d.id === selectedMember.divisionId);
-              const divName = divObj?.name || selectedMember.division || 'Divisi';
+              const divName = divObj?.name || selectedMember.division || '';
 
               return (
                 <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--border-card)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
