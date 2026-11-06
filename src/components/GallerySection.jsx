@@ -12,13 +12,25 @@ import {
   Filter,
   Download,
   Camera,
-  X
+  X,
+  Share2,
+  Link2,
+  CheckCircle2
 } from 'lucide-react';
 import { formatWibDateTime } from '../utils/dateUtils';
 
-export default function GallerySection({ galleries = [], divisions = [], activeTenure = null, theme, tenures = [] }) {
+export default function GallerySection({ 
+  galleries = [], 
+  divisions = [], 
+  activeTenure = null, 
+  theme, 
+  tenures = [],
+  initialGalleryId = null,
+  onSelectGalleryUrl
+}) {
   const isDark = theme === 'dark';
   const [selectedGalleryId, setSelectedGalleryId] = useState(null);
+  const [copiedGalleryId, setCopiedGalleryId] = useState(null);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [divFilter, setDivFilter] = useState('all');
@@ -107,6 +119,58 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
       return url.replace(/https:\/\/[^/]+\.supabase\.co\/storage\/v1\//, '/storage-proxy/');
     }
     return url;
+  };
+
+  useEffect(() => {
+    if (initialGalleryId && galleries.some(g => g.id === initialGalleryId)) {
+      setSelectedGalleryId(initialGalleryId);
+      const targetGal = galleries.find(g => g.id === initialGalleryId);
+      if (targetGal && activeTenure && targetGal.tenureId !== activeTenure.id) {
+        setTenureFilter('all');
+      }
+    }
+  }, [initialGalleryId, galleries, activeTenure]);
+
+  const getGalleryShareUrl = (galId) => {
+    const origin = window.location.origin;
+    return `${origin}/?gallery=${encodeURIComponent(galId)}#galeri`;
+  };
+
+  const handleCopyGalleryLink = (gal, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!gal) return;
+    try {
+      navigator.clipboard.writeText(getGalleryShareUrl(gal.id));
+      setCopiedGalleryId(gal.id);
+      setTimeout(() => setCopiedGalleryId(null), 2500);
+    } catch (err) {}
+  };
+
+  const handleShareGalleryWa = (gal, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!gal) return;
+    const url = getGalleryShareUrl(gal.id);
+    const dateText = formatWibDateTime(gal.date) || '';
+    const divText = gal.divisionName || gal.division || 'CNT IT APD';
+    const descText = gal.description ? (gal.description.length > 150 ? gal.description.slice(0, 147) + '...' : gal.description) : '';
+
+    const text = `📸 *Dokumentasi Kegiatan CNT IT APD*\n*${gal.title}*\n${dateText ? `📅 ${dateText} • ${divText}\n` : ''}${descText ? `\n"${descText}"\n` : ''}\nLihat foto dokumentasi selengkapnya di web:\n${url}`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSelectGallery = (gId) => {
+    setSelectedGalleryId(gId);
+    setCurrentPhotoIdx(0);
+    if (onSelectGalleryUrl) {
+      onSelectGalleryUrl(gId);
+    }
   };
 
   return (
@@ -265,6 +329,54 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
               <Download size={13} />
               <span>Unduh</span>
             </a>
+
+            <button
+              type="button"
+              onClick={(e) => handleCopyGalleryLink(activeEvent, e)}
+              title="Salin Link Galeri Kegiatan Ini"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: copiedGalleryId === activeEvent.id ? 'rgba(16, 185, 129, 0.85)' : 'rgba(0,0,0,0.68)',
+                color: '#ffffff',
+                border: copiedGalleryId === activeEvent.id ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.25)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {copiedGalleryId === activeEvent.id ? <CheckCircle2 size={13} /> : <Link2 size={13} />}
+              <span>{copiedGalleryId === activeEvent.id ? 'Tersalin!' : 'Salin'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => handleShareGalleryWa(activeEvent, e)}
+              title="Bagikan Dokumentasi Galeri ke WhatsApp"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(37, 211, 102, 0.28)',
+                color: '#25D366',
+                border: '1px solid rgba(37, 211, 102, 0.65)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Share2 size={13} />
+              <span>WhatsApp</span>
+            </button>
           </div>
 
           {/* Navigation Arrows */}
@@ -343,13 +455,63 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
 
         {/* Event Detail Information */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
-              <Calendar size={13} /> {formatWibDateTime(activeEvent.date) || '-'}
-            </span>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Divisi: {activeEvent.divisionName || activeEvent.division || 'CNT IT APD'}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
+                <Calendar size={13} /> {formatWibDateTime(activeEvent.date) || '-'}
+              </span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Divisi: {activeEvent.divisionName || activeEvent.division || 'CNT IT APD'}
+              </span>
+            </div>
+
+            {/* Quick Share Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={(e) => handleCopyGalleryLink(activeEvent, e)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  background: copiedGalleryId === activeEvent.id ? 'rgba(16, 185, 129, 0.16)' : 'var(--input-bg)',
+                  border: `1px solid ${copiedGalleryId === activeEvent.id ? '#10b981' : 'var(--border-card)'}`,
+                  color: copiedGalleryId === activeEvent.id ? '#10b981' : 'var(--text-main)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {copiedGalleryId === activeEvent.id ? <CheckCircle2 size={13} /> : <Link2 size={13} />}
+                <span>{copiedGalleryId === activeEvent.id ? '✓ Link Tersalin!' : 'Salin Link'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => handleShareGalleryWa(activeEvent, e)}
+                title="Bagikan Dokumentasi ke WhatsApp"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'rgba(37, 211, 102, 0.14)',
+                  border: '1px solid rgba(37, 211, 102, 0.55)',
+                  color: '#25D366',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Share2 size={13} />
+                <span>Bagikan ke WhatsApp</span>
+              </button>
+            </div>
           </div>
 
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>
@@ -640,10 +802,7 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                   return (
                     <div 
                       key={item.id || gIdx}
-                      onClick={() => {
-                        setSelectedGalleryId(item.id);
-                        setCurrentPhotoIdx(0);
-                      }}
+                      onClick={() => handleSelectGallery(item.id)}
                       className="glass-panel glass-panel-hover"
                       style={{
                         padding: '16px 20px',
@@ -669,8 +828,63 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {item.description}
                       </p>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '8px' }}>
-                        📷 {item.photos?.length || 0} Dokumentasi Foto
+                      
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginTop: '10px',
+                        paddingTop: '8px',
+                        borderTop: '1px solid var(--border-card)'
+                      }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                          📷 {item.photos?.length || 0} Foto
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => handleCopyGalleryLink(item, e)}
+                            title="Salin Link Dokumentasi Ini"
+                            style={{
+                              background: copiedGalleryId === item.id ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${copiedGalleryId === item.id ? '#10b981' : 'var(--border-card)'}`,
+                              color: copiedGalleryId === item.id ? '#10b981' : 'var(--text-muted)',
+                              padding: '3px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            {copiedGalleryId === item.id ? <CheckCircle2 size={11} /> : <Link2 size={11} />}
+                            <span>{copiedGalleryId === item.id ? 'Tersalin' : 'Salin'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleShareGalleryWa(item, e)}
+                            title="Bagikan ke WhatsApp"
+                            style={{
+                              background: 'rgba(37, 211, 102, 0.14)',
+                              border: '1px solid rgba(37, 211, 102, 0.45)',
+                              color: '#25D366',
+                              padding: '3px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Share2 size={11} />
+                            <span>WA</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -821,7 +1035,49 @@ export default function GallerySection({ galleries = [], divisions = [], activeT
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={(e) => handleCopyGalleryLink(activeEvent, e)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  background: copiedGalleryId === activeEvent.id ? 'rgba(16, 185, 129, 0.85)' : 'rgba(255, 255, 255, 0.14)',
+                  border: copiedGalleryId === activeEvent.id ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.25)',
+                  color: '#ffffff',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {copiedGalleryId === activeEvent.id ? <CheckCircle2 size={13} /> : <Link2 size={13} />}
+                <span>{copiedGalleryId === activeEvent.id ? 'Tersalin' : 'Salin'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => handleShareGalleryWa(activeEvent, e)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'rgba(37, 211, 102, 0.28)',
+                  border: '1px solid rgba(37, 211, 102, 0.65)',
+                  color: '#25D366',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Share2 size={13} />
+                <span>WhatsApp</span>
+              </button>
+
               <a
                 href={getDownloadPhotoUrl(currentPhotoUrl)}
                 download={`${(activeEvent.title || 'dokumentasi').replace(/\s+/g, '_')}_${currentPhotoIdx + 1}.jpg`}

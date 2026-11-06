@@ -40,21 +40,25 @@ function parseLocationRoute() {
   const params = new URLSearchParams(hashQuery || window.location.search || '');
   const formId = params.get('form') || null;
   const eventId = params.get('eventId') || params.get('event') || null;
+  const galleryId = params.get('gallery') || params.get('galleryId') || null;
   const pathname = (window.location.pathname || '').replace(/\/+$/, '');
 
   if (pathname === '/admin' || hashTab === 'admin') {
-    return { tab: 'admin', formId, eventId };
+    return { tab: 'admin', formId, eventId, galleryId };
   }
   if (hashTab && VALID_TABS.includes(hashTab)) {
-    return { tab: hashTab, formId, eventId };
+    return { tab: hashTab, formId, eventId, galleryId };
   }
   if (formId) {
-    return { tab: 'oprec', formId, eventId: null };
+    return { tab: 'oprec', formId, eventId: null, galleryId: null };
   }
   if (eventId) {
-    return { tab: 'program', formId: null, eventId };
+    return { tab: 'program', formId: null, eventId, galleryId: null };
   }
-  return { tab: 'home', formId: null, eventId: null };
+  if (galleryId) {
+    return { tab: 'galeri', formId: null, eventId: null, galleryId };
+  }
+  return { tab: 'home', formId: null, eventId: null, galleryId: null };
 }
 
 const DEFAULT_PAGE_VISIBILITY = {
@@ -83,8 +87,9 @@ export default function App() {
   const [currentTab, setCurrentTabState] = useState(() => parseLocationRoute().tab);
   const [activeFormIdFromUrl, setActiveFormIdFromUrl] = useState(() => parseLocationRoute().formId);
   const [activeEventIdFromUrl, setActiveEventIdFromUrl] = useState(() => parseLocationRoute().eventId);
+  const [activeGalleryIdFromUrl, setActiveGalleryIdFromUrl] = useState(() => parseLocationRoute().galleryId);
 
-  const setCurrentTab = useCallback((nextTab, formIdParam = null, eventIdParam = null, shouldScroll = true) => {
+  const setCurrentTab = useCallback((nextTab, formIdParam = null, eventIdParam = null, shouldScroll = true, galleryIdParam = null) => {
     const targetTab = VALID_TABS.includes(nextTab) ? nextTab : 'home';
     setCurrentTabState(targetTab);
     const isPathAdmin = (window.location.pathname || '').replace(/\/+$/, '') === '/admin';
@@ -93,14 +98,22 @@ export default function App() {
     if (formIdParam) {
       setActiveFormIdFromUrl(formIdParam);
       setActiveEventIdFromUrl(null);
+      setActiveGalleryIdFromUrl(null);
       window.history.replaceState(null, '', `${basePrefix}#${targetTab}?form=${encodeURIComponent(formIdParam)}`);
     } else if (eventIdParam) {
       setActiveEventIdFromUrl(eventIdParam);
       setActiveFormIdFromUrl(null);
+      setActiveGalleryIdFromUrl(null);
       window.history.replaceState(null, '', `${basePrefix}#${targetTab}?event=${encodeURIComponent(eventIdParam)}`);
+    } else if (galleryIdParam) {
+      setActiveGalleryIdFromUrl(galleryIdParam);
+      setActiveFormIdFromUrl(null);
+      setActiveEventIdFromUrl(null);
+      window.history.replaceState(null, '', `${basePrefix}?gallery=${encodeURIComponent(galleryIdParam)}#${targetTab}`);
     } else {
       setActiveFormIdFromUrl(null);
       setActiveEventIdFromUrl(null);
+      setActiveGalleryIdFromUrl(null);
       if (targetTab === 'admin') {
         window.history.replaceState(null, '', isPathAdmin ? '/admin' : '#admin');
       } else {
@@ -1253,6 +1266,8 @@ export default function App() {
               activeTenure={activeTenure}
               tenures={tenures}
               theme={theme}
+              initialGalleryId={activeGalleryIdFromUrl}
+              onSelectGalleryUrl={(gId) => setCurrentTab('galeri', null, null, false, gId)}
             />
           )}
 
