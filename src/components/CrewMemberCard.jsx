@@ -122,15 +122,6 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
             {member.name}
           </h3>
 
-          <p style={{
-            fontSize: '0.78rem',
-            color: 'var(--neon-cyan)',
-            fontWeight: 600,
-            marginTop: '2px'
-          }}>
-            {member.title}
-          </p>
-
           {!compact && member.motto && (
             <p style={{
               fontSize: '0.75rem',
