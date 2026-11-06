@@ -2417,8 +2417,8 @@ export default function AdminPortal({
                 }}
               >
                 <option value="anggota">Anggota Divisi (Unlimited)</option>
-                <option value="pimpro">Pimpro / Ketua Divisi (Maks 1 / Divisi)</option>
-                <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekben, Sekjen)</option>
+                <option value="pimpro">Pimpro / Ketua Divisi (Maks 1 per Divisi)</option>
+                <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekretaris Bendahara, Sekjen)</option>
                 <option value="pembina">Pembina / Advisor (Level 1)</option>
                 <option value="penasehat">Dewan Penasehat / Advisor Senior (Level 0)</option>
               </select>
@@ -2458,11 +2458,13 @@ export default function AdminPortal({
               const presets = memCategory === 'penasehat'
                 ? [{ id: 'Penasehat', label: 'Penasehat' }, { id: 'Dewan Penasehat', label: 'Dewan Penasehat' }]
                 : [
-                    { id: 'Ketua', label: 'Ketua' },
-                    { id: 'Wakil Ketua', label: 'Wakil Ketua' },
-                    { id: 'Sekretaris Bendahara', label: 'Sekretaris Bendahara' },
-                    { id: 'Sekretaris', label: 'Sekretaris' },
-                    { id: 'Bendahara', label: 'Bendahara' },
+                    { id: quota.quotas.ketuaName || 'Ketua', label: quota.quotas.ketuaName || 'Ketua' },
+                    ...(!quota.quotas.disableWakil && quota.quotas.wakilKetua > 0 ? [{ id: quota.quotas.wakilKetuaName || 'Wakil Ketua', label: quota.quotas.wakilKetuaName || 'Wakil Ketua' }] : []),
+                    ...(!quota.quotas.disableSekben && quota.quotas.sekben > 0 ? [
+                      { id: quota.quotas.sekbenName || 'Sekretaris Bendahara', label: quota.quotas.sekbenName || 'Sekretaris Bendahara' },
+                      { id: 'Sekretaris', label: 'Sekretaris' },
+                      { id: 'Bendahara', label: 'Bendahara' }
+                    ] : []),
                     ...(quota.quotas.customRoles || []).map(cr => ({ id: cr.name, label: cr.name }))
                   ];
 
@@ -2562,7 +2564,7 @@ export default function AdminPortal({
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                        Maks: Pembina ({quota.quotas.pembina}), Ketua ({quota.quotas.ketua}), Wakil ({quota.quotas.wakilKetua}), Sekben ({quota.quotas.sekben}), Pimpro ({quota.quotas.pimproPerDivisi}/divisi)
+                        Maks: {quota.quotas.pembinaName || 'Pembina'} ({quota.quotas.pembina}), {quota.quotas.ketuaName || 'Ketua'} ({quota.quotas.ketua}), {!quota.quotas.disableWakil && `${quota.quotas.wakilKetuaName || 'Wakil Ketua'} (${quota.quotas.wakilKetua}), `}{!quota.quotas.disableSekben && `${quota.quotas.sekbenName || 'Sekretaris Bendahara'} (${quota.quotas.sekben}), `}Pimpro ({quota.quotas.pimproPerDivisi} per divisi)
                       </span>
                       {onUpdateRoleQuotas && (
                         <button
@@ -2574,9 +2576,15 @@ export default function AdminPortal({
                               setEditingQuotaTenureId(currentTenureId);
                               setQuotaFormValues({
                                 pembina: quota.quotas.pembina,
+                                pembinaName: quota.quotas.pembinaName || 'Pembina',
                                 ketua: quota.quotas.ketua,
+                                ketuaName: quota.quotas.ketuaName || 'Ketua',
                                 wakilKetua: quota.quotas.wakilKetua,
+                                wakilKetuaName: quota.quotas.wakilKetuaName || 'Wakil Ketua',
+                                disableWakil: Boolean(quota.quotas.disableWakil),
                                 sekben: quota.quotas.sekben,
+                                sekbenName: quota.quotas.sekbenName || 'Sekretaris Bendahara',
+                                disableSekben: Boolean(quota.quotas.disableSekben),
                                 pimproPerDivisi: quota.quotas.pimproPerDivisi,
                                 customRoles: Array.isArray(quota.quotas.customRoles) ? [...quota.quotas.customRoles] : []
                               });
@@ -2618,21 +2626,35 @@ export default function AdminPortal({
                           ⚙️ Konfigurasi Batas Kuota Khusus Periode: {tenureName}
                         </span>
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                          Perubahan kuota tersimpan di cloud & berlaku untuk kepengurusan ini.
+                          Perubahan kuota & jabatan tersimpan di cloud & berlaku untuk kepengurusan ini.
                         </span>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
                         <div>
-                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Pembina</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={quotaFormValues.pembina}
-                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembina: parseInt(e.target.value) || 1 })}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
-                          />
+                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                            Maks {quotaFormValues.pembinaName || 'Pembina'}
+                          </label>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <input
+                              type="text"
+                              placeholder="Nama Role (mis: Pembina / Dewan Pembina)"
+                              title="Ubah nama sebutan role Pembina"
+                              value={quotaFormValues.pembinaName || 'Pembina'}
+                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembinaName: e.target.value })}
+                              style={{ flex: 1, padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.74rem' }}
+                            />
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              title="Batas maksimal jumlah Pembina"
+                              value={quotaFormValues.pembina}
+                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembina: parseInt(e.target.value) || 1 })}
+                              style={{ width: '48px', padding: '5px 6px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem', textAlign: 'center' }}
+                            />
+                          </div>
                         </div>
+
                         <div>
                           <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Ketua</label>
                           <input
@@ -2644,30 +2666,96 @@ export default function AdminPortal({
                             style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
                           />
                         </div>
+
                         <div>
-                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Wakil Ketua</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="5"
-                            value={quotaFormValues.wakilKetua}
-                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, wakilKetua: parseInt(e.target.value) || 0 })}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
-                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                            <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Maks Wakil Ketua</label>
+                            {quotaFormValues.disableWakil ? (
+                              <button
+                                type="button"
+                                onClick={() => setQuotaFormValues({ ...quotaFormValues, disableWakil: false, wakilKetua: 1 })}
+                                style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', fontSize: '0.65rem', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                              >
+                                + Aktifkan
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setQuotaFormValues({ ...quotaFormValues, disableWakil: true, wakilKetua: 0 })}
+                                style={{ background: 'none', border: 'none', color: '#f43f5e', fontSize: '0.65rem', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                                title="Hapus / Nonaktifkan role Wakil Ketua untuk periode ini"
+                              >
+                                🗑️ Hapus
+                              </button>
+                            )}
+                          </div>
+                          {quotaFormValues.disableWakil ? (
+                            <div style={{ padding: '5px 8px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.08)', border: '1px dashed rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.72rem', textAlign: 'center' }}>
+                              Nonaktif (0)
+                            </div>
+                          ) : (
+                            <input
+                              type="number"
+                              min="0"
+                              max="5"
+                              value={quotaFormValues.wakilKetua}
+                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, wakilKetua: parseInt(e.target.value) || 0 })}
+                              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                            />
+                          )}
                         </div>
+
                         <div>
-                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Sekben</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={quotaFormValues.sekben}
-                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekben: parseInt(e.target.value) || 1 })}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
-                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                            <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Maks Sekretaris Bendahara</label>
+                            {quotaFormValues.disableSekben ? (
+                              <button
+                                type="button"
+                                onClick={() => setQuotaFormValues({ ...quotaFormValues, disableSekben: false, sekben: 2 })}
+                                style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', fontSize: '0.65rem', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                              >
+                                + Aktifkan
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setQuotaFormValues({ ...quotaFormValues, disableSekben: true, sekben: 0 })}
+                                style={{ background: 'none', border: 'none', color: '#f43f5e', fontSize: '0.65rem', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                                title="Hapus / Nonaktifkan role Sekretaris Bendahara untuk periode ini"
+                              >
+                                🗑️ Hapus Role
+                              </button>
+                            )}
+                          </div>
+                          {quotaFormValues.disableSekben ? (
+                            <div style={{ padding: '5px 8px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.08)', border: '1px dashed rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.72rem', textAlign: 'center' }}>
+                              ❌ Dihapus / Nonaktif
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <input
+                                type="text"
+                                placeholder="Sekretaris Bendahara"
+                                title="Ubah nama sebutan role Sekretaris Bendahara"
+                                value={quotaFormValues.sekbenName || 'Sekretaris Bendahara'}
+                                onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekbenName: e.target.value })}
+                                style={{ flex: 1, padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.74rem' }}
+                              />
+                              <input
+                                type="number"
+                                min="1"
+                                max="10"
+                                title="Batas maksimal jumlah Sekretaris Bendahara"
+                                value={quotaFormValues.sekben}
+                                onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekben: parseInt(e.target.value) || 1 })}
+                                style={{ width: '48px', padding: '5px 6px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem', textAlign: 'center' }}
+                              />
+                            </div>
+                          )}
                         </div>
+
                         <div>
-                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Pimpro / Divisi</label>
+                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Pimpro per Divisi</label>
                           <input
                             type="number"
                             min="1"
@@ -2798,10 +2886,10 @@ export default function AdminPortal({
                     {(quota.penasehat.current > 0 || (quota.quotas.customRoles || []).some(r => r.name.toLowerCase().includes('penasehat'))) && (
                       renderBadge('Penasehat', quota.penasehat.current, quota.penasehat.max, quota.penasehat.members)
                     )}
-                    {renderBadge('Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
-                    {renderBadge('Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
-                    {renderBadge('Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
-                    {renderBadge('Sekretaris Bendahara', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
+                    {renderBadge(quota.quotas.pembinaName || 'Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
+                    {renderBadge(quota.quotas.ketuaName || 'Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
+                    {!quota.quotas.disableWakil && quota.quotas.wakilKetua > 0 && renderBadge(quota.quotas.wakilKetuaName || 'Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
+                    {!quota.quotas.disableSekben && quota.quotas.sekben > 0 && renderBadge(quota.quotas.sekbenName || 'Sekretaris Bendahara', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
                     {Object.values(quota.customRoleSummaries || {}).filter(cr => !cr.name.toLowerCase().includes('penasehat')).map(cr =>
                       renderBadge(cr.name, cr.current, cr.max, cr.members)
                     )}
@@ -8105,8 +8193,8 @@ export default function AdminPortal({
                     >
                       <option value="penasehat">Dewan Penasehat / Advisor Senior (Level 0)</option>
                       <option value="pembina">Pembina / Advisor (Level 1)</option>
-                      <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekben, Sekjen)</option>
-                      <option value="pimpro">Ketua Divisi / Pimpro (Maks 1 / Divisi)</option>
+                      <option value="inti">Pengurus Inti / BPH (Ketua, Wakil, Sekretaris Bendahara, Sekjen)</option>
+                      <option value="pimpro">Ketua Divisi / Pimpro (Maks 1 per Divisi)</option>
                       <option value="anggota">Anggota Divisi (Unlimited)</option>
                     </select>
                   </div>
@@ -8122,11 +8210,13 @@ export default function AdminPortal({
                         { id: 'Senior Advisor', label: 'Senior Advisor' }
                       ]
                     : [
-                        { id: 'Ketua', label: 'Ketua' },
-                        { id: 'Wakil Ketua', label: 'Wakil Ketua' },
-                        { id: 'Sekretaris Bendahara', label: 'Sekretaris Bendahara' },
-                        { id: 'Sekretaris', label: 'Sekretaris' },
-                        { id: 'Bendahara', label: 'Bendahara' },
+                        { id: editQuota.quotas.ketuaName || 'Ketua', label: editQuota.quotas.ketuaName || 'Ketua' },
+                        ...(!editQuota.quotas.disableWakil && editQuota.quotas.wakilKetua > 0 ? [{ id: editQuota.quotas.wakilKetuaName || 'Wakil Ketua', label: editQuota.quotas.wakilKetuaName || 'Wakil Ketua' }] : []),
+                        ...(!editQuota.quotas.disableSekben && editQuota.quotas.sekben > 0 ? [
+                          { id: editQuota.quotas.sekbenName || 'Sekretaris Bendahara', label: editQuota.quotas.sekbenName || 'Sekretaris Bendahara' },
+                          { id: 'Sekretaris', label: 'Sekretaris' },
+                          { id: 'Bendahara', label: 'Bendahara' }
+                        ] : []),
                         ...(editQuota.quotas.customRoles || []).map(cr => ({ id: cr.name, label: cr.name }))
                       ];
                   return (
@@ -8223,7 +8313,7 @@ export default function AdminPortal({
                           <span>🛡️ Status Kuota Kepengurusan • {tenureName}</span>
                         </span>
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                          Maks: Pembina ({quota.quotas.pembina}), Ketua ({quota.quotas.ketua}), Wakil ({quota.quotas.wakilKetua}), Sekben ({quota.quotas.sekben}), Pimpro ({quota.quotas.pimproPerDivisi}/divisi)
+                          Maks: {quota.quotas.pembinaName || 'Pembina'} ({quota.quotas.pembina}), {quota.quotas.ketuaName || 'Ketua'} ({quota.quotas.ketua}), {!quota.quotas.disableWakil && `${quota.quotas.wakilKetuaName || 'Wakil Ketua'} (${quota.quotas.wakilKetua}), `}{!quota.quotas.disableSekben && `${quota.quotas.sekbenName || 'Sekretaris Bendahara'} (${quota.quotas.sekben}), `}Pimpro ({quota.quotas.pimproPerDivisi} per divisi)
                         </span>
                       </div>
 
@@ -8231,10 +8321,10 @@ export default function AdminPortal({
                         {(quota.penasehat.current > 0 || (quota.quotas.customRoles || []).some(r => r.name.toLowerCase().includes('penasehat'))) && (
                           renderBadge('Penasehat', quota.penasehat.current, quota.penasehat.max, quota.penasehat.members)
                         )}
-                        {renderBadge('Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
-                        {renderBadge('Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
-                        {renderBadge('Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
-                        {renderBadge('Sekretaris Bendahara', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
+                        {renderBadge(quota.quotas.pembinaName || 'Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
+                        {renderBadge(quota.quotas.ketuaName || 'Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
+                        {!quota.quotas.disableWakil && quota.quotas.wakilKetua > 0 && renderBadge(quota.quotas.wakilKetuaName || 'Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
+                        {!quota.quotas.disableSekben && quota.quotas.sekben > 0 && renderBadge(quota.quotas.sekbenName || 'Sekretaris Bendahara', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
                         {Object.values(quota.customRoleSummaries || {}).filter(cr => !cr.name.toLowerCase().includes('penasehat')).map(cr =>
                           renderBadge(cr.name, cr.current, cr.max, cr.members)
                         )}

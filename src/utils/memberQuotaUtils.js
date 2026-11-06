@@ -12,9 +12,15 @@
 
 export const DEFAULT_QUOTAS = {
   pembina: 1,
+  pembinaName: 'Pembina',
   ketua: 1,
+  ketuaName: 'Ketua',
   wakilKetua: 1,
+  wakilKetuaName: 'Wakil Ketua',
+  disableWakil: false,
   sekben: 2,
+  sekbenName: 'Sekretaris Bendahara',
+  disableSekben: false,
   pimproPerDivisi: 1,
   customRoles: []
 };
@@ -25,13 +31,21 @@ export function getTenureQuotas(tenureId, roleQuotas = {}) {
     : ((roleQuotas && typeof roleQuotas === 'object' && roleQuotas.default) || DEFAULT_QUOTAS);
 
   const customRoles = Array.isArray(config?.customRoles) ? config.customRoles : [];
+  const disableSekben = Boolean(config?.disableSekben || config?.sekben === 0);
+  const disableWakil = Boolean(config?.disableWakil || config?.wakilKetua === 0);
 
   return {
-    pembina: Math.max(1, Number(config?.pembina ?? DEFAULT_QUOTAS.pembina)),
-    ketua: Math.max(1, Number(config?.ketua ?? DEFAULT_QUOTAS.ketua)),
-    wakilKetua: Math.max(0, Number(config?.wakilKetua ?? DEFAULT_QUOTAS.wakilKetua)),
-    sekben: Math.max(1, Number(config?.sekben ?? DEFAULT_QUOTAS.sekben)),
-    pimproPerDivisi: Math.max(1, Number(config?.pimproPerDivisi ?? DEFAULT_QUOTAS.pimproPerDivisi)),
+    pembina: config?.pembina !== undefined ? Math.max(1, Number(config.pembina)) : DEFAULT_QUOTAS.pembina,
+    pembinaName: config?.pembinaName || DEFAULT_QUOTAS.pembinaName,
+    ketua: config?.ketua !== undefined ? Math.max(1, Number(config.ketua)) : DEFAULT_QUOTAS.ketua,
+    ketuaName: config?.ketuaName || DEFAULT_QUOTAS.ketuaName,
+    wakilKetua: disableWakil ? 0 : (config?.wakilKetua !== undefined ? Math.max(0, Number(config.wakilKetua)) : DEFAULT_QUOTAS.wakilKetua),
+    wakilKetuaName: config?.wakilKetuaName || DEFAULT_QUOTAS.wakilKetuaName,
+    disableWakil,
+    sekben: disableSekben ? 0 : (config?.sekben !== undefined ? Math.max(0, Number(config.sekben)) : DEFAULT_QUOTAS.sekben),
+    sekbenName: config?.sekbenName || DEFAULT_QUOTAS.sekbenName,
+    disableSekben,
+    pimproPerDivisi: config?.pimproPerDivisi !== undefined ? Math.max(1, Number(config.pimproPerDivisi)) : DEFAULT_QUOTAS.pimproPerDivisi,
     customRoles
   };
 }
@@ -172,7 +186,7 @@ export function validateMemberQuota(
       return {
         isValid: false,
         field: 'memCategory',
-        error: `Batas kuota Pembina telah terpenuhi (maksimal ${quotas.pembina} Pembina untuk periode ini). Saat ini sudah diisi oleh ${names}.`
+        error: `Batas kuota ${quotas.pembinaName || 'Pembina'} telah terpenuhi (maksimal ${quotas.pembina} orang untuk periode ini). Saat ini sudah diisi oleh ${names}.`
       };
     }
   }
@@ -190,13 +204,20 @@ export function validateMemberQuota(
         return {
           isValid: false,
           field: 'memRole',
-          error: `Batas kuota Ketua telah terpenuhi (maksimal ${quotas.ketua} Ketua untuk periode ini). Saat ini sudah diisi oleh "${existing[0].name}".`
+          error: `Batas kuota ${quotas.ketuaName || 'Ketua'} telah terpenuhi (maksimal ${quotas.ketua} orang untuk periode ini). Saat ini sudah diisi oleh "${existing[0].name}".`
         };
       }
     }
 
     // 3b. Wakil Ketua
     if (roleType === 'wakil_ketua') {
+      if (quotas.disableWakil || quotas.wakilKetua === 0) {
+        return {
+          isValid: false,
+          field: 'memRole',
+          error: `Jabatan ${quotas.wakilKetuaName || 'Wakil Ketua'} dinonaktifkan/tidak digunakan pada periode kepengurusan ini.`
+        };
+      }
       const existing = (members || []).filter(m => 
         (!targetTenureId || m.tenureId === targetTenureId) &&
         m.id !== excludeMemberId &&
@@ -206,7 +227,7 @@ export function validateMemberQuota(
         return {
           isValid: false,
           field: 'memRole',
-          error: `Batas kuota Wakil Ketua telah terpenuhi (maksimal ${quotas.wakilKetua} Wakil Ketua untuk periode ini). Saat ini sudah diisi oleh "${existing[0].name}".`
+          error: `Batas kuota ${quotas.wakilKetuaName || 'Wakil Ketua'} telah terpenuhi (maksimal ${quotas.wakilKetua} orang untuk periode ini). Saat ini sudah diisi oleh "${existing[0].name}".`
         };
       }
     }
@@ -215,6 +236,13 @@ export function validateMemberQuota(
     if (roleType === 'sekben') {
       const hasSpecificCustomRole = (quotas.customRoles || []).some(cr => roleLower.includes(cr.name.toLowerCase()));
       if (!hasSpecificCustomRole) {
+        if (quotas.disableSekben || quotas.sekben === 0) {
+          return {
+            isValid: false,
+            field: 'memRole',
+            error: `Jabatan ${quotas.sekbenName || 'Sekretaris Bendahara'} telah dihapus/dinonaktifkan pada periode kepengurusan ini.`
+          };
+        }
         const existing = (members || []).filter(m => 
           (!targetTenureId || m.tenureId === targetTenureId) &&
           m.id !== excludeMemberId &&
@@ -225,7 +253,7 @@ export function validateMemberQuota(
           return {
             isValid: false,
             field: 'memRole',
-            error: `Batas kuota Sekretaris Bendahara telah terpenuhi (maksimal ${quotas.sekben} orang untuk periode ini). Saat ini sudah diisi oleh ${names}.`
+            error: `Batas kuota ${quotas.sekbenName || 'Sekretaris Bendahara'} telah terpenuhi (maksimal ${quotas.sekben} orang untuk periode ini). Saat ini sudah diisi oleh ${names}.`
           };
         }
       }
