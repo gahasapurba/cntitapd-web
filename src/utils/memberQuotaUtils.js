@@ -18,15 +18,6 @@ export const LEVEL_OPTIONS = [
   { level: 5, label: 'Level 5 (Tingkat Anggota Divisi)', shortLabel: 'Level 5', defaultCategory: 'anggota' }
 ];
 
-export const DEFAULT_TENURE_ROLES = [
-  { id: 'role-pembina', name: 'Pembina', level: 1, max: 1, requiresDivision: false },
-  { id: 'role-ketua', name: 'Ketua', level: 2, max: 1, requiresDivision: false },
-  { id: 'role-wakil-ketua', name: 'Wakil Ketua', level: 2, max: 1, requiresDivision: false },
-  { id: 'role-sekben', name: 'Sekretaris Bendahara', level: 3, max: 2, requiresDivision: false },
-  { id: 'role-pimpro', name: 'Pimpro', level: 4, max: 1, requiresDivision: true },
-  { id: 'role-anggota', name: 'Anggota Divisi', level: 5, max: 0, requiresDivision: true }
-];
-
 export function getCategoryFromLevel(level) {
   switch (Number(level)) {
     case 0: return 'penasehat';
@@ -147,10 +138,14 @@ export function findMatchingRole(member, tenureRoles = []) {
   const exact = tenureRoles.find(r => r.name.toLowerCase().trim() === roleName);
   if (exact) return exact;
 
-  // 3. Cocokkan parsial (misal: "Pimpro Experience" -> role "Pimpro")
-  const partial = tenureRoles.find(r => {
+  // 3. Cocokkan parsial (prioritaskan nama role yang lebih panjang/spesifik terlebih dahulu)
+  const sortedRoles = [...tenureRoles].sort((a, b) => (b.name || '').length - (a.name || '').length);
+  const byPrefix = sortedRoles.find(r => roleName.startsWith(r.name.toLowerCase().trim()));
+  if (byPrefix) return byPrefix;
+
+  const partial = sortedRoles.find(r => {
     const rLower = r.name.toLowerCase().trim();
-    return roleName.startsWith(rLower) || roleName.includes(rLower) || rLower.includes(roleName);
+    return roleName.includes(rLower) || rLower.includes(roleName);
   });
   if (partial) return partial;
 
@@ -402,7 +397,7 @@ export function getDivisionStructure(division, members = [], tenureRoles = []) {
  * Murni berbasis data DB tanpa pengecekan string manual.
  */
 export function getDivisionLead(division, members = [], tenureRoles = []) {
-  if (!division) return { member: null, name: '', roleName: 'Pimpro' };
+  if (!division) return { member: null, name: '', roleName: '' };
   const { leaders } = getDivisionStructure(division, members, tenureRoles);
   if (leaders.length > 0) {
     const primary = leaders[0];
@@ -410,7 +405,7 @@ export function getDivisionLead(division, members = [], tenureRoles = []) {
     return {
       member: primary,
       name: primary.name,
-      roleName: roleObj?.name || primary.role || 'Pimpro'
+      roleName: roleObj?.name || primary.role || 'Pimpinan'
     };
   }
 
@@ -420,13 +415,13 @@ export function getDivisionLead(division, members = [], tenureRoles = []) {
     return {
       member: byId,
       name: byId.name,
-      roleName: roleObj?.name || byId.role || 'Pimpro'
+      roleName: roleObj?.name || byId.role || 'Pimpinan'
     };
   }
 
   return {
     member: null,
     name: division.leadName || '',
-    roleName: 'Pimpro'
+    roleName: ''
   };
 }

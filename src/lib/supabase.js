@@ -477,8 +477,8 @@ export const rowMappers = {
 
   events: {
     toDb: (item, idx = 0) => {
-      const catVal = item.kategori || item.category || item.badge || 'Program Budaya';
-      const pesertaVal = item.peserta || item.kpi || 'Officer IT APD';
+      const catVal = item.kategori || item.category || item.badge || '';
+      const pesertaVal = item.peserta || item.kpi || '';
       const row = {
         id: String(item.id),
         tenure_id: item.tenureId || null,
@@ -511,12 +511,12 @@ export const rowMappers = {
       date: row.date || formatWibEventRange(row.start_date, row.end_date),
       startDate: row.start_date,
       endDate: row.end_date,
-      kategori: row.kategori || row.category || row.badge || 'Program Budaya',
-      category: row.kategori || row.category || row.badge || 'Program Budaya',
-      badge: row.kategori || row.category || row.badge || 'Program Budaya',
-      location: row.location,
-      peserta: row.peserta || row.kpi || 'Officer IT APD',
-      kpi: row.peserta || row.kpi || 'Officer IT APD',
+      kategori: row.kategori || row.category || row.badge || '',
+      category: row.kategori || row.category || row.badge || '',
+      badge: row.kategori || row.category || row.badge || '',
+      location: row.location || '',
+      peserta: row.peserta || row.kpi || '',
+      kpi: row.peserta || row.kpi || '',
       description: row.description,
       totalRab: Number(row.total_rab || 0),
       status: row.status || 'Upcoming',

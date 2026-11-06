@@ -157,23 +157,6 @@ export default function App() {
     return DEFAULT_PAGE_VISIBILITY;
   });
 
-  // Default Departments in Bank Mandiri IT APD (13 Departemen resmi APD)
-  const DEFAULT_DEPARTMENTS = [
-    { id: 'dept-cbd', name: 'IT Core Banking Development', code: 'CBD', description: 'Pengembangan dan pemeliharaan core banking system Bank Mandiri.' },
-    { id: 'dept-cnd', name: 'IT Consumer Banking Development', code: 'CND', description: 'Pengembangan produk dan solusi layanan perbankan konsumer.' },
-    { id: 'dept-dsd', name: 'IT Data Services Development', code: 'DSD', description: 'Pengelolaan dan pengembangan layanan data serta analitik perbankan.' },
-    { id: 'dept-esd', name: 'IT Enterprise Services Development', code: 'ESD', description: 'Solusi teknologi dan layanan enterprise lintas domain.' },
-    { id: 'dept-fad', name: 'IT Finance & Accounting Development', code: 'FAD', description: 'Pengembangan sistem keuangan, akuntansi, dan pelaporan finansial.' },
-    { id: 'dept-lcd', name: 'IT LOS & Collection Development', code: 'LCD', description: 'Pengembangan Loan Origination System dan otomasi proses penagihan.' },
-    { id: 'dept-lbd', name: 'IT Low Code & Business Automation Development', code: 'LBD', description: 'Pengembangan platform low-code dan otomasi proses bisnis.' },
-    { id: 'dept-mid', name: 'IT Middleware & Integration Development', code: 'MID', description: 'Pengembangan middleware, arsitektur integrasi sistem, dan API gateway.' },
-    { id: 'dept-opd', name: 'IT Operation Platform Development', code: 'OPD', description: 'Pengembangan platform operasional IT dan pendukung kehandalan sistem.' },
-    { id: 'dept-rcd', name: 'IT Risk & Compliance Development', code: 'RCD', description: 'Pengembangan sistem manajemen risiko, kepatuhan, dan regulasi IT.' },
-    { id: 'dept-tibd', name: 'IT Treasury & International Banking Development', code: 'TIBD', description: 'Pengembangan sistem treasury, pasar uang, dan perbankan internasional.' },
-    { id: 'dept-wbd', name: 'IT Wholesale Banking Development', code: 'WBD', description: 'Pengembangan solusi teknologi perbankan korporasi dan wholesale.' },
-    { id: 'dept-dsdv', name: 'IT Development Services Development', code: 'DSDV', description: 'Layanan pendukung pengembangan perangkat lunak, QA, dan DevOps.' }
-  ];
-
   // Default theme is LIGHT THEME as requested
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('cnt_theme') || 'light';
@@ -227,7 +210,7 @@ export default function App() {
       };
     });
   });
-  const [departments, setDepartments] = useState(() => loadLocalCache('departments', DEFAULT_DEPARTMENTS));
+  const [departments, setDepartments] = useState(() => loadLocalCache('departments', []));
   const [tenureRoles, setTenureRoles] = useState(() => {
     const cached = loadLocalCache('tenureRoles', null);
     if (Array.isArray(cached)) return cached;
@@ -1686,13 +1669,14 @@ export default function App() {
                               <div style={{ fontSize: '0.88rem', fontWeight: 800 }}>{m.name}</div>
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                 {(() => {
+                                  const roleObj = (tenureRoles || []).find(r => r.id === m.roleId) ||
+                                    (tenureRoles || []).find(r => String(r.name || '').toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
+                                  const roleName = roleObj?.name || m.role || 'Anggota';
                                   const divObj = (divisions || []).find(d => d.id === m.divisionId);
-                                  const divName = divObj?.name;
-                                  const roleText = m.role || 'Anggota';
-                                  const hasDistinctTitle = m.title && m.title.trim().toLowerCase() !== roleText.trim().toLowerCase() && !roleText.toLowerCase().includes(m.title.toLowerCase());
-                                  const hasDistinctDiv = divName && !roleText.toLowerCase().includes(divName.toLowerCase());
-                                  const extra = hasDistinctDiv ? divName : (hasDistinctTitle ? m.title : null);
-                                  return extra ? `${roleText} • ${extra}` : roleText;
+                                  if (divObj && !roleName.toLowerCase().includes(divObj.name.toLowerCase())) {
+                                    return `${roleName} • ${divObj.name}`;
+                                  }
+                                  return roleName;
                                 })()}
                               </div>
                             </div>

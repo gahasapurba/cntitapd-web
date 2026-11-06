@@ -28,7 +28,7 @@ import {
   X
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
-import { getDivisionLead, getDivisionStructure } from '../utils/memberQuotaUtils';
+import { getDivisionLead, getDivisionStructure, getMemberLevel } from '../utils/memberQuotaUtils';
 import { getDeadlineStatus, formatWibTimestamp, formatDeadlineWib } from '../utils/dateUtils';
 
 export default function HomeSection({ 
@@ -169,44 +169,50 @@ export default function HomeSection({
           margin: '0 auto 20px auto',
           letterSpacing: '-0.03em'
         }}>
-          {activeTenure?.heroHeadline || 'COMMITTED TO CULTIVATE'}{' '}
-          <span style={{
-            background: 'linear-gradient(135deg, #FFB800 0%, #38bdf8 50%, #c084fc 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            textShadow: '0 0 35px rgba(56, 189, 248, 0.3)'
-          }}>
-            {activeTenure?.heroHighlight || 'EXCELLENCE & SYNERGY'}
-          </span>
+          {activeTenure?.heroHeadline && (
+            <>
+              {activeTenure.heroHeadline}{' '}
+            </>
+          )}
+          {activeTenure?.heroHighlight && (
+            <span style={{
+              background: 'linear-gradient(135deg, #FFB800 0%, #38bdf8 50%, #c084fc 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '0 0 35px rgba(56, 189, 248, 0.3)'
+            }}>
+              {activeTenure.heroHighlight}
+            </span>
+          )}
         </h1>
 
         {/* Dynamic Tagline & Motto per Tenure */}
-        <div style={{
-          fontSize: 'clamp(1.05rem, 2vw, 1.35rem)',
-          fontWeight: 700,
-          color: 'var(--mandiri-gold)',
-          maxWidth: '860px',
-          margin: '0 auto 16px auto',
-          lineHeight: 1.5,
-          fontStyle: 'italic'
-        }}>
-          "{activeTenure?.themeTagline || 'Sinergi, Inovasi & Cultural Excellence'}"
-        </div>
+        {activeTenure?.themeTagline && (
+          <div style={{
+            fontSize: 'clamp(1.05rem, 2vw, 1.35rem)',
+            fontWeight: 700,
+            color: 'var(--mandiri-gold)',
+            maxWidth: '860px',
+            margin: '0 auto 16px auto',
+            lineHeight: 1.5,
+            fontStyle: 'italic'
+          }}>
+            "{activeTenure.themeTagline}"
+          </div>
+        )}
 
         {/* Subtitle */}
-        <p style={{
-          fontSize: '1.05rem',
-          color: 'var(--text-muted)',
-          maxWidth: '820px',
-          margin: '0 auto 36px auto',
-          lineHeight: 1.7,
-        }}>
-          {activeTenure?.description || (
-            <>
-              Pusat gerakan budaya kerja <strong style={{ color: 'var(--text-main)' }}>Culture Network Team (CNT)</strong> Group IT Application Delivery, Direktorat IT Bank Mandiri. Mengobarkan semangat kolaborasi lintas squad, inovasi engineering, dan harmoni kerja.
-            </>
-          )}
-        </p>
+        {activeTenure?.description && (
+          <p style={{
+            fontSize: '1.05rem',
+            color: 'var(--text-muted)',
+            maxWidth: '820px',
+            margin: '0 auto 36px auto',
+            lineHeight: 1.7,
+          }}>
+            {activeTenure.description}
+          </p>
+        )}
 
         {/* Quick Actions (Cerdas & Dinamis Mengikuti Form Aktif & Visibilitas Page) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '48px' }}>
@@ -553,25 +559,30 @@ export default function HomeSection({
           )}
         </div>
 
-        {activeMembers.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').length === 0 ? (
-          <div className="glass-panel" style={{
-            padding: '40px 24px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-md)',
-            border: '1px dashed var(--border-card)',
-            background: 'rgba(255, 255, 255, 0.02)'
-          }}>
-            <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', margin: 0 }}>
-              Belum ada pimpinan atau pengurus terdaftar pada periode kepengurusan ini ({activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}).
-            </p>
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '16px'
-          }}>
-            {activeMembers.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro').map((person) => (
+        {(() => {
+          const leadershipMembers = activeMembers.filter(m => getMemberLevel(m, tenureRoles) <= 4);
+          if (leadershipMembers.length === 0) {
+            return (
+              <div className="glass-panel" style={{
+                padding: '40px 24px',
+                textAlign: 'center',
+                borderRadius: 'var(--radius-md)',
+                border: '1px dashed var(--border-card)',
+                background: 'rgba(255, 255, 255, 0.02)'
+              }}>
+                <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Belum ada pimpinan atau pengurus terdaftar pada periode kepengurusan ini ({activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}).
+                </p>
+              </div>
+            );
+          }
+          return (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '16px'
+            }}>
+              {leadershipMembers.map((person) => (
               <div
                 key={person.id}
                 onClick={() => isOrganisasiVisible && handleTabChange('organisasi')}
@@ -622,7 +633,8 @@ export default function HomeSection({
               </div>
             ))}
           </div>
-        )}
+        );
+      })()}
       </section>
 
       {/* 4. RECRUITMENT & FORMS SECTION (Theme-aware dynamic cards) */}

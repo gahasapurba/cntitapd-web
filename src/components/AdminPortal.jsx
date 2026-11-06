@@ -64,7 +64,6 @@ import {
 } from '../utils/dateUtils';
 import {
   LEVEL_OPTIONS,
-  DEFAULT_TENURE_ROLES,
   getTenureRoles,
   getCategoryFromLevel,
   canDeleteRole,
@@ -582,9 +581,9 @@ export default function AdminPortal({
         category: finalCategory,
         kategori: finalCategory,
         badge: finalCategory,
-        location: eventLocation.trim() || 'Plaza Mandiri',
-        peserta: eventKpi.trim() || 'Officer IT APD',
-        kpi: eventKpi.trim() || 'Officer IT APD',
+        location: eventLocation.trim() || '',
+        peserta: eventKpi.trim() || '',
+        kpi: eventKpi.trim() || '',
         description: eventDesc.trim(),
         status: eventStatus,
         totalRab: Number(eventRab)
@@ -763,8 +762,8 @@ export default function AdminPortal({
       image: finalImageUrl,
       color: divObj?.color || '#FFB800',
       whatsapp: memWhatsapp.trim(),
-      motto: memMotto || 'Dedikasi & Semangat untuk Insan IT APD',
-      responsibilities: ['Kontribusi aktif dalam pelaksanaan event budaya CNT IT APD']
+      motto: memMotto.trim() || '',
+      responsibilities: []
     });
 
     const savedName = memName;
@@ -845,20 +844,6 @@ export default function AdminPortal({
     showToast(`Role "${roleToDelete.name}" berhasil dihapus.`);
   };
 
-  const handleResetRolesToDefault = async (targetTenureId) => {
-    const updatedQuotas = {
-      ...(roleQuotas || {}),
-      [targetTenureId]: {
-        ...(roleQuotas?.[targetTenureId] || {}),
-        roles: DEFAULT_TENURE_ROLES
-      }
-    };
-    if (onUpdateRoleQuotas) {
-      await onUpdateRoleQuotas(updatedQuotas);
-    }
-    showToast(`Struktur role kepengurusan berhasil direset ke standar.`);
-  };
-
   const handleCreateDivision = (e) => {
     e.preventDefault();
     if (!newDivName.trim()) {
@@ -874,10 +859,10 @@ export default function AdminPortal({
       slug: newDivName.toLowerCase().replace(/\s+/g, '-'),
       memberId: null,
       leadName: '',
-      color: newDivColor,
-      motto: 'Mendorong Transformasi Budaya Berkelanjutan',
-      description: newDivDesc || 'Divisi pengembangan inisiatif budaya di Group IT APD.',
-      focusAreas: newDivFocus ? newDivFocus.split(',').map(s => s.trim()).filter(Boolean) : ['Inisiatif Event Baru'],
+      color: newDivColor || '#00529B',
+      motto: '',
+      description: newDivDesc.trim() || '',
+      focusAreas: newDivFocus ? newDivFocus.split(',').map(s => s.trim()).filter(Boolean) : [],
       isRecruiting: false
     });
 
@@ -950,7 +935,7 @@ export default function AdminPortal({
         id: 'dept-' + Date.now(),
         name: newDeptName.trim(),
         code: newDeptCode.trim().toUpperCase(),
-        description: newDeptDesc.trim() || 'Departemen di lingkungan Group IT Application Delivery.',
+        description: newDeptDesc.trim() || '',
         sortOrder: departments.length
       });
     }
@@ -997,17 +982,14 @@ export default function AdminPortal({
     onAddTenure({
       id: 'tenure-' + newTenureCode,
       code: newTenureCode,
-      title: newTenureTitle || `Kepengurusan CNT IT APD ${newTenureCode}`,
-      themeTagline: newTenureTagline || 'Sinergi, Inovasi & Cultural Excellence',
-      heroHeadline: newTenureHeadline || 'COMMITTED TO CULTIVATE',
-      heroHighlight: newTenureHighlight || 'EXCELLENCE & SYNERGY',
-      visi: newTenureVisi || 'Menjadi akselerator budaya kerja kolaboratif, agile, dan profesional.',
+      title: newTenureTitle.trim() || '',
+      themeTagline: newTenureTagline.trim() || '',
+      heroHeadline: newTenureHeadline.trim() || '',
+      heroHighlight: newTenureHighlight.trim() || '',
+      visi: newTenureVisi.trim() || '',
       misi: newTenureMisi 
         ? newTenureMisi.split('\n').map(s => s.trim()).filter(Boolean)
-        : [
-            'Memperkuat sinergi dan komunikasi terbuka antar squad delivery.',
-            'Menumbuhkan wellbeing jasmani dan rohani insan IT APD.'
-          ],
+        : [],
       isActive: false
     });
 
@@ -1163,7 +1145,7 @@ export default function AdminPortal({
         fileSize: assetFileSize.trim() || '',
         fileUrl: effectiveFileUrl,
         previewUrl: effectivePreviewUrl,
-        description: assetDesc.trim() || 'Asset resmi CNT IT Application Delivery.'
+        description: assetDesc.trim() || ''
       });
     }
 
@@ -2990,13 +2972,13 @@ export default function AdminPortal({
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {(() => {
+                              const roleObj = findMatchingRole(m, tenureRoles);
+                              const roleName = roleObj?.name || m.role || 'Anggota';
                               const divObj = (divisions || []).find(d => d.id === m.divisionId);
-                              const divName = divObj?.name;
-                              const roleText = m.role || 'Anggota';
-                              const hasDistinctTitle = m.title && m.title.trim().toLowerCase() !== roleText.trim().toLowerCase() && !roleText.toLowerCase().includes(m.title.toLowerCase());
-                              const hasDistinctDiv = divName && !roleText.toLowerCase().includes(divName.toLowerCase());
-                              const extra = hasDistinctDiv ? divName : (hasDistinctTitle ? m.title : null);
-                              return extra ? `${roleText} • ${extra}` : roleText;
+                              if (divObj && !roleName.toLowerCase().includes(divObj.name.toLowerCase())) {
+                                return `${roleName} • ${divObj.name}`;
+                              }
+                              return roleName;
                             })()}
                           </div>
                           {m.updatedAt && (
@@ -5712,11 +5694,14 @@ export default function AdminPortal({
                         );
                       }
                       const lead = getDivisionLead(d, members, tenureRoles);
-                      return (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
-                          {lead.roleName || 'Pimpinan'}: <strong style={{ color: lead.name ? 'var(--text-main)' : 'var(--text-dim)' }}>{lead.name || 'Belum ditentukan'}</strong>
-                        </span>
-                      );
+                      if (lead.name) {
+                        return (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
+                            {lead.roleName || 'Pimpinan'}: <strong style={{ color: 'var(--text-main)' }}>{lead.name}</strong>
+                          </span>
+                        );
+                      }
+                      return null;
                     })()}
                     {d.tenureId && (
                       <span className="badge-gold" style={{ fontSize: '0.68rem', marginLeft: '8px', padding: '2px 8px' }}>
@@ -10905,8 +10890,8 @@ export default function AdminPortal({
                       showToast('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)', 'error');
                       return;
                     }
-                    const catVal = (editingItem.item.kategori || editingItem.item.category || editingItem.item.badge || 'Program Budaya').trim();
-                    const pesertaVal = (editingItem.item.peserta || editingItem.item.kpi || 'Officer IT APD').trim();
+                    const catVal = (editingItem.item.kategori || editingItem.item.category || editingItem.item.badge || '').trim();
+                    const pesertaVal = (editingItem.item.peserta || editingItem.item.kpi || '').trim();
                     onUpdateEvent({
                       ...editingItem.item,
                       kategori: catVal,
@@ -11116,28 +11101,6 @@ export default function AdminPortal({
                     <span>Tambah Role Baru</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const curTenure = selectedOrgTenureId || activeTenure?.id || tenures[0]?.id;
-                      if (window.confirm('Reset daftar role kepengurusan ini ke struktur template standar?')) {
-                        handleResetRolesToDefault(curTenure);
-                      }
-                    }}
-                    style={{
-                      padding: '7px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'transparent',
-                      border: '1px solid var(--border-card)',
-                      color: 'var(--text-muted)',
-                      fontSize: '0.76rem',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                    title="Kembalikan daftar role kepengurusan ini ke standar"
-                  >
-                    ↺ Reset Standar
-                  </button>
                 </div>
               </div>
 
