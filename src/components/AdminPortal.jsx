@@ -798,12 +798,27 @@ export default function AdminPortal({
     } else {
       const newRole = {
         id: `role-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        tenureId: targetTenureId,
         name: roleData.name.trim(),
         level: Number(roleData.level ?? 5),
         max: Number(roleData.max ?? 0),
+        maxQuota: Number(roleData.max ?? 0),
         requiresDivision: Boolean(roleData.requiresDivision)
       };
       updatedRoles = [...currentRoles, newRole];
+      if (onAddTenureRole) onAddTenureRole(newRole);
+    }
+
+    if (roleData.id && onUpdateTenureRole) {
+      onUpdateTenureRole({
+        ...roleData,
+        tenureId: targetTenureId,
+        name: roleData.name.trim(),
+        level: Number(roleData.level ?? 5),
+        max: Number(roleData.max ?? 0),
+        maxQuota: Number(roleData.max ?? 0),
+        requiresDivision: Boolean(roleData.requiresDivision)
+      });
     }
 
     const updatedQuotas = {
@@ -841,6 +856,9 @@ export default function AdminPortal({
         roles: updatedRoles
       }
     };
+    if (onDeleteTenureRole) {
+      onDeleteTenureRole(roleToDelete.id);
+    }
     if (onUpdateRoleQuotas) {
       await onUpdateRoleQuotas(updatedQuotas);
     }
