@@ -2643,20 +2643,28 @@ export default function AdminPortal({
                           Perubahan kuota & jabatan tersimpan di cloud & berlaku untuk kepengurusan ini.
                         </span>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
-                            Maks {quotaFormValues.pembinaName || 'Pembina'}
-                          </label>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <input
-                              type="text"
-                              placeholder="Nama Role (mis: Pembina / Dewan Pembina)"
-                              title="Ubah nama sebutan role Pembina"
-                              value={quotaFormValues.pembinaName || 'Pembina'}
-                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembinaName: e.target.value })}
-                              style={{ flex: 1, padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.74rem' }}
-                            />
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: '10px'
+                      }}>
+                        {/* 1. PEMBINA */}
+                        <div style={{
+                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
+                          border: '1px solid var(--border-card)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                              Maks {quotaFormValues.pembinaName || 'Pembina'}
+                            </label>
+                            <span style={{ fontSize: '0.64rem', color: 'var(--mandiri-gold)', fontWeight: 600 }}>Level 1</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <input
                               type="number"
                               min="1"
@@ -2664,31 +2672,60 @@ export default function AdminPortal({
                               title="Batas maksimal jumlah Pembina"
                               value={quotaFormValues.pembina}
                               onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembina: parseInt(e.target.value) || 1 })}
-                              style={{ width: '48px', padding: '5px 6px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem', textAlign: 'center' }}
+                              style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
                             />
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang</span>
                           </div>
                         </div>
 
-                        <div>
-                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Ketua</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="5"
-                            value={quotaFormValues.ketua}
-                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, ketua: parseInt(e.target.value) || 1 })}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
-                          />
+                        {/* 2. KETUA */}
+                        <div style={{
+                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
+                          border: '1px solid var(--border-card)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                              Maks Ketua
+                            </label>
+                            <span style={{ fontSize: '0.64rem', color: 'var(--mandiri-gold)', fontWeight: 600 }}>Level 2</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <input
+                              type="number"
+                              min="1"
+                              max="5"
+                              value={quotaFormValues.ketua}
+                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, ketua: parseInt(e.target.value) || 1 })}
+                              style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
+                            />
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang</span>
+                          </div>
                         </div>
 
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                            <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Maks Wakil Ketua</label>
+                        {/* 3. WAKIL KETUA */}
+                        <div style={{
+                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
+                          border: '1px solid var(--border-card)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                              Maks Wakil Ketua
+                            </label>
                             {quotaFormValues.disableWakil ? (
                               <button
                                 type="button"
                                 onClick={() => setQuotaFormValues({ ...quotaFormValues, disableWakil: false, wakilKetua: 1 })}
-                                style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', fontSize: '0.65rem', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                                style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.4)', color: 'var(--neon-cyan)', fontSize: '0.65rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}
                               >
                                 + Aktifkan
                               </button>
@@ -2696,7 +2733,7 @@ export default function AdminPortal({
                               <button
                                 type="button"
                                 onClick={() => setQuotaFormValues({ ...quotaFormValues, disableWakil: true, wakilKetua: 0 })}
-                                style={{ background: 'none', border: 'none', color: '#f43f5e', fontSize: '0.65rem', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                                style={{ background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.4)', color: '#f43f5e', fontSize: '0.65rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}
                                 title="Hapus / Nonaktifkan role Wakil Ketua untuk periode ini"
                               >
                                 🗑️ Hapus
@@ -2704,29 +2741,43 @@ export default function AdminPortal({
                             )}
                           </div>
                           {quotaFormValues.disableWakil ? (
-                            <div style={{ padding: '5px 8px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.08)', border: '1px dashed rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.72rem', textAlign: 'center' }}>
-                              Nonaktif (0)
+                            <div style={{ padding: '6px 8px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.08)', border: '1px dashed rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.72rem', textAlign: 'center' }}>
+                              ❌ Dinonaktifkan (0)
                             </div>
                           ) : (
-                            <input
-                              type="number"
-                              min="0"
-                              max="5"
-                              value={quotaFormValues.wakilKetua}
-                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, wakilKetua: parseInt(e.target.value) || 0 })}
-                              style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
-                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <input
+                                type="number"
+                                min="0"
+                                max="5"
+                                value={quotaFormValues.wakilKetua}
+                                onChange={(e) => setQuotaFormValues({ ...quotaFormValues, wakilKetua: parseInt(e.target.value) || 0 })}
+                                style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
+                              />
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang</span>
+                            </div>
                           )}
                         </div>
 
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                            <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Maks Sekretaris Bendahara</label>
+                        {/* 4. SEKRETARIS BENDAHARA */}
+                        <div style={{
+                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
+                          border: '1px solid var(--border-card)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                              Maks {quotaFormValues.sekbenName || 'Sekretaris Bendahara'}
+                            </label>
                             {quotaFormValues.disableSekben ? (
                               <button
                                 type="button"
                                 onClick={() => setQuotaFormValues({ ...quotaFormValues, disableSekben: false, sekben: 2 })}
-                                style={{ background: 'none', border: 'none', color: 'var(--neon-cyan)', fontSize: '0.65rem', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                                style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.4)', color: 'var(--neon-cyan)', fontSize: '0.65rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}
                               >
                                 + Aktifkan
                               </button>
@@ -2734,7 +2785,7 @@ export default function AdminPortal({
                               <button
                                 type="button"
                                 onClick={() => setQuotaFormValues({ ...quotaFormValues, disableSekben: true, sekben: 0 })}
-                                style={{ background: 'none', border: 'none', color: '#f43f5e', fontSize: '0.65rem', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                                style={{ background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.4)', color: '#f43f5e', fontSize: '0.65rem', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}
                                 title="Hapus / Nonaktifkan role Sekretaris Bendahara untuk periode ini"
                               >
                                 🗑️ Hapus Role
@@ -2742,43 +2793,90 @@ export default function AdminPortal({
                             )}
                           </div>
                           {quotaFormValues.disableSekben ? (
-                            <div style={{ padding: '5px 8px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.08)', border: '1px dashed rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.72rem', textAlign: 'center' }}>
-                              ❌ Dihapus / Nonaktif
+                            <div style={{ padding: '6px 8px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.08)', border: '1px dashed rgba(244, 63, 94, 0.3)', color: '#f43f5e', fontSize: '0.72rem', textAlign: 'center' }}>
+                              ❌ Dihapus / Nonaktif (0)
                             </div>
                           ) : (
-                            <div style={{ display: 'flex', gap: '4px' }}>
-                              <input
-                                type="text"
-                                placeholder="Sekretaris Bendahara"
-                                title="Ubah nama sebutan role Sekretaris Bendahara"
-                                value={quotaFormValues.sekbenName || 'Sekretaris Bendahara'}
-                                onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekbenName: e.target.value })}
-                                style={{ flex: 1, padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.74rem' }}
-                              />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <input
                                 type="number"
                                 min="1"
                                 max="10"
-                                title="Batas maksimal jumlah Sekretaris Bendahara"
                                 value={quotaFormValues.sekben}
                                 onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekben: parseInt(e.target.value) || 1 })}
-                                style={{ width: '48px', padding: '5px 6px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem', textAlign: 'center' }}
+                                style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
                               />
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang</span>
                             </div>
                           )}
                         </div>
 
-                        <div>
-                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Pimpro per Divisi</label>
+                        {/* 5. PIMPRO PER DIVISI */}
+                        <div style={{
+                          background: isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff',
+                          border: '1px solid var(--border-card)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                              Maks Pimpro per Divisi
+                            </label>
+                            <span style={{ fontSize: '0.64rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>Tiap Divisi</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <input
+                              type="number"
+                              min="1"
+                              max="5"
+                              value={quotaFormValues.pimproPerDivisi}
+                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pimproPerDivisi: parseInt(e.target.value) || 1 })}
+                              style={{ width: '65px', padding: '6px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.82rem', textAlign: 'center', fontWeight: 700 }}
+                            />
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>orang / divisi</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ganti Sebutan Nama Jabatan */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        flexWrap: 'wrap',
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: isDark ? 'rgba(255, 255, 255, 0.015)' : 'rgba(0, 0, 0, 0.02)',
+                        border: '1px dashed var(--border-card)'
+                      }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                          ✏️ Ubah Sebutan Jabatan (Opsional):
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 180px' }}>
+                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Pembina:</label>
                           <input
-                            type="number"
-                            min="1"
-                            max="5"
-                            value={quotaFormValues.pimproPerDivisi}
-                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pimproPerDivisi: parseInt(e.target.value) || 1 })}
-                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                            type="text"
+                            placeholder="Pembina / Dewan Pembina"
+                            value={quotaFormValues.pembinaName || 'Pembina'}
+                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembinaName: e.target.value })}
+                            style={{ flex: 1, padding: '4px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.74rem' }}
                           />
                         </div>
+                        {!quotaFormValues.disableSekben && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 210px' }}>
+                            <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sekben:</label>
+                            <input
+                              type="text"
+                              placeholder="Sekretaris Bendahara"
+                              value={quotaFormValues.sekbenName || 'Sekretaris Bendahara'}
+                              onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekbenName: e.target.value })}
+                              style={{ flex: 1, padding: '4px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.74rem' }}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Custom Roles Manager */}
