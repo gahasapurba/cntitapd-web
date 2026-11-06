@@ -925,23 +925,25 @@ export async function fetchAllCloudState() {
       const dList = result.divisions || [];
       result.members = result.members.map(m => {
         const roleObj = rList.find(r => r.id === m.roleId) ||
-          rList.find(r => r.name.toLowerCase() === (m.role || '').toLowerCase());
+          rList.find(r => String(r.name || '').toLowerCase() === String(m.role || '').toLowerCase());
         const divObj = dList.find(d => d.id === m.divisionId);
         const level = roleObj ? Number(roleObj.level) : 5;
         const cat = roleObj ? getCategoryFromLevel(level) : (m.category || 'anggota');
 
-        let roleName = m.role;
-        let titleName = m.title;
+        let roleName = m.role || '';
+        let titleName = m.title || '';
 
         if (roleObj) {
-          if (roleObj.requiresDivision && divObj) {
-            roleName = roleObj.name.toLowerCase().includes(divObj.name.toLowerCase())
-              ? roleObj.name
-              : `${roleObj.name} ${divObj.name}`;
-            titleName = divObj.name;
+          const rName = roleObj.name || '';
+          const dName = divObj?.name || '';
+          if (roleObj.requiresDivision && divObj && dName) {
+            roleName = rName.toLowerCase().includes(dName.toLowerCase())
+              ? rName
+              : `${rName} ${dName}`;
+            titleName = dName;
           } else {
-            roleName = roleName || roleObj.name;
-            titleName = titleName || roleObj.name;
+            roleName = roleName || rName;
+            titleName = titleName || rName;
           }
         }
 

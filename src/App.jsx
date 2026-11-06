@@ -230,9 +230,9 @@ export default function App() {
   const [tenureRoles, setTenureRoles] = useState(() => {
     const cached = loadLocalCache('tenureRoles', null);
     if (Array.isArray(cached) && cached.length > 0) return cached;
-    const initialTenures = loadLocalCache('tenures', DEFAULT_TENURES);
+    const initialTenures = loadLocalCache('tenures', []);
     const initial = [];
-    initialTenures.forEach(t => {
+    (initialTenures || []).forEach(t => {
       DEFAULT_TENURE_ROLES.forEach((r, idx) => {
         initial.push({
           ...r,
@@ -244,7 +244,7 @@ export default function App() {
         });
       });
     });
-    return initial;
+    return initial.length > 0 ? initial : DEFAULT_TENURE_ROLES;
   });
   const [members, setMembers] = useState(() => loadLocalCache('members', []));
   const [events, setEvents] = useState(() => loadLocalCache('events', []));
@@ -1332,22 +1332,24 @@ export default function App() {
           </div>
         )}
 
-        {effectiveTab === 'home' && (
-          <HomeSection
-            activeTenure={activeTenure}
-            divisions={divisions}
-            events={events}
-            members={members}
-            setCurrentTab={setCurrentTab}
-            forms={forms}
-            eventRsvps={eventRsvps}
-            kudosList={kudosList}
-            faqs={faqs}
-            onSubmitFaqQuestion={handleSubmitPublicFaq}
-            theme={theme}
-            pageVisibility={pageVisibility}
-          />
-        )}
+        <ErrorBoundary onResetTab={() => setCurrentTab('home')}>
+          {effectiveTab === 'home' && (
+            <HomeSection
+              activeTenure={activeTenure}
+              divisions={divisions}
+              events={events}
+              members={members}
+              setCurrentTab={setCurrentTab}
+              forms={forms}
+              eventRsvps={eventRsvps}
+              kudosList={kudosList}
+              faqs={faqs}
+              onSubmitFaqQuestion={handleSubmitPublicFaq}
+              theme={theme}
+              pageVisibility={pageVisibility}
+            />
+          )}
+        </ErrorBoundary>
 
         <Suspense
           fallback={
