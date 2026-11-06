@@ -350,3 +350,77 @@ export function getMemberRoleType(category = '', role = '', title = '') {
 
   return 'anggota';
 }
+
+/**
+ * Menemukan ketua / PIC / pimpinan divisi secara dinamis dari daftar anggota divisi.
+ * Mendeteksi role Level 4, kata kunci pimpinan ('pimpro', 'kepala', 'ketua', 'lead', 'koordinator'),
+ * serta role terikat divisi dengan tingkatan tertinggi.
+ */
+export function getDivisionLead(division, members = [], tenureRoles = []) {
+  if (!division) return { member: null, name: '', roleName: 'Pimpro' };
+  const divMembers = (members || []).filter(m => m.divisionId === division.id);
+  if (divMembers.length === 0) {
+    return {
+      member: null,
+      name: division.leadName || '',
+      roleName: 'Pimpro'
+    };
+  }
+
+  const enriched = divMembers.map(m => {
+    const roleObj = (tenureRoles || []).find(r => r.id === m.roleId) ||
+      (tenureRoles || []).find(r => r.name && r.name.toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
+    const roleName = String(roleObj?.name || m.role || '').toLowerCase();
+    const level = roleObj ? Number(roleObj.level) : (m.category === 'pimpro' ? 4 : 5);
+    const isExplicitWakil = roleName.includes('wakil') || roleName.includes('vice') || roleName.includes('co-');
+    
+    const isLeadershipWord = roleName.includes('pimpro') ||
+      roleName.includes('kepala') ||
+      roleName.includes('ketua') ||
+      roleName.includes('pimpinan') ||
+      roleName.includes('koordinator') ||
+      roleName.includes('lead');
+
+    let score = 0;
+    if (level === 4 && !isExplicitWakil) score += 100;
+    if (level === 4 && isExplicitWakil) score += 50;
+    if (isLeadershipWord && !isExplicitWakil) score += 85;
+    if (isLeadershipWord && isExplicitWakil) score += 40;
+    if (m.category === 'pimpro' && !isExplicitWakil) score += 70;
+    if (roleObj?.requiresDivision && level <= 4 && !isExplicitWakil) score += 60;
+    if (roleObj?.requiresDivision && !isExplicitWakil) score += (10 - level);
+
+    return {
+      member: m,
+      roleObj,
+      roleTitle: roleObj?.name || m.role || 'Pimpro',
+      score
+    };
+  });
+
+  enriched.sort((a, b) => b.score - a.score);
+
+  const best = enriched.find(e => e.score > 0);
+  if (best) {
+    return {
+      member: best.member,
+      name: best.member.name,
+      roleName: best.roleTitle
+    };
+  }
+
+  const byId = divMembers.find(m => m.id === division.memberId);
+  if (byId) {
+    return {
+      member: byId,
+      name: byId.name,
+      roleName: byId.role || 'Pimpro'
+    };
+  }
+
+  return {
+    member: null,
+    name: division.leadName || '',
+    roleName: 'Pimpro'
+  };
+}

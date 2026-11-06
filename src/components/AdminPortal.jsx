@@ -73,7 +73,8 @@ import {
   validateMemberQuota,
   getTenureQuotaSummary,
   getMemberRoleType,
-  formatLevelOptionLabel
+  formatLevelOptionLabel,
+  getDivisionLead
 } from '../utils/memberQuotaUtils';
 
 function formatWaPhone(raw = '') {
@@ -5688,14 +5689,15 @@ export default function AdminPortal({
                 }}>
                   <div>
                     <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{d.name}</strong>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
-                      Pimpro: {
-                        members.find(m => m.divisionId === d.id && ((m.category || '').toLowerCase() === 'pimpro' || (m.role || '').toLowerCase().startsWith('pimpro') || String(m.roleId || '').includes('pimpro')))?.name ||
-                        members.find(m => m.id === d.memberId)?.name ||
-                        d.leadName ||
-                        'Belum ditentukan'
-                      }
-                    </span>
+                    {(() => {
+                      const lead = getDivisionLead(d, members, tenureRoles);
+                      const label = lead.roleName ? (lead.roleName.toLowerCase().includes('pimpro') ? 'Pimpro' : lead.roleName) : 'Pimpro';
+                      return (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
+                          {label}: <strong style={{ color: lead.name ? 'var(--text-main)' : 'var(--text-dim)' }}>{lead.name || 'Belum ditentukan'}</strong>
+                        </span>
+                      );
+                    })()}
                     {d.tenureId && (
                       <span className="badge-gold" style={{ fontSize: '0.68rem', marginLeft: '8px', padding: '2px 8px' }}>
                         {tenures.find(t => t.id === d.tenureId)?.code || d.tenureId}

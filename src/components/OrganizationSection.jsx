@@ -15,7 +15,7 @@ import {
 import CrewMemberCard from './CrewMemberCard';
 import { soundFx } from '../utils/audio';
 import { exportPresentationToPdf } from '../utils/exportPdf';
-import { getTenureRoles, getMemberLevel, findMatchingRole } from '../utils/memberQuotaUtils';
+import { getTenureRoles, getMemberLevel, findMatchingRole, getDivisionLead } from '../utils/memberQuotaUtils';
 
 function formatWaNumber(raw = '') {
   const digits = String(raw).replace(/\D/g, '');
@@ -114,11 +114,23 @@ export default function OrganizationSection({
     return (aIsWakil ? 1 : 0) - (bIsWakil ? 1 : 0);
   });
 
-  // Level 3: Pengurus Harian / BPH (Sekretaris, Bendahara, Sekben, Sekjen, dll.)
-  const displayLevel3 = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 3);
+  // Level 3: Pengurus Harian / BPH (Sekretaris, Bendahara, Sekben, Sekjen, dll. - non divisi)
+  const displayLevel3 = activeMembers.filter(m => {
+    const isLevel3 = getMemberLevel(m, currentTenureRoles) === 3;
+    const roleObj = findMatchingRole(m, currentTenureRoles);
+    const belongsToDivision = Boolean(m.divisionId || roleObj?.requiresDivision);
+    return isLevel3 && !belongsToDivision;
+  });
 
   // Level 4: Pimpinan Divisi / Pimpro
-  const pimpro = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 4 || m.category === 'pimpro');
+  const pimpro = activeMembers.filter(m => {
+    const level = getMemberLevel(m, currentTenureRoles);
+    const rName = String(m.role || '').toLowerCase();
+    const isLeadershipWord = rName.includes('pimpro') || rName.includes('kepala') || rName.includes('pimpinan') || rName.includes('koordinator') || rName.includes('ketua');
+    const isWakil = rName.includes('wakil') || rName.includes('vice');
+    const requiresDiv = m.divisionId || (findMatchingRole(m, currentTenureRoles)?.requiresDivision);
+    return (level === 4 || m.category === 'pimpro' || (requiresDiv && isLeadershipWord && !isWakil));
+  });
 
   const isFiltering = searchQuery.trim() !== '' || roleFilter !== 'all' || divisionFilter !== 'all';
 
@@ -577,11 +589,12 @@ export default function OrganizationSection({
                 }}
               >
                 {displayDivs.map((div, idx) => {
-                  const lead = activeMembers.find(m => m.divisionId === div.id && (getMemberLevel(m, currentTenureRoles) === 4 || m.category === 'pimpro' || (m.role || '').toLowerCase().startsWith('pimpro') || String(m.roleId || '').includes('pimpro')))
+                  const leadObj = getDivisionLead(div, activeMembers, currentTenureRoles);
+                  const lead = leadObj.member
                     || activeMembers.find(m => div.leadName && m.name === div.leadName)
                     || (pimpro[idx] || null);
                   const lineColor = div.color || (idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800');
-                  const divisionMembers = activeMembers.filter(m => m.id !== lead?.id && m.divisionId === div.id && (m.category === 'anggota' || getMemberLevel(m, currentTenureRoles) === 5));
+                  const divisionMembers = activeMembers.filter(m => m.id !== lead?.id && m.divisionId === div.id);
 
                   return (
                     <div key={div.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -603,7 +616,9 @@ export default function OrganizationSection({
                             alignItems: 'center',
                             gap: '4px'
                           }}>
-                            <span style={{ fontSize: '0.72rem', color: lineColor, fontWeight: 800 }}>Pimpro {div.name}</span>
+                            <span style={{ fontSize: '0.72rem', color: lineColor, fontWeight: 800 }}>
+                              {leadObj.roleName ? (leadObj.roleName.toLowerCase().includes('pimpro') ? 'Pimpro' : leadObj.roleName) : 'Pimpro'} {div.name}
+                            </span>
                             <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Belum Ditentukan</span>
                           </div>
                         )}

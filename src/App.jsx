@@ -32,7 +32,7 @@ import {
   pushRoleQuotas
 } from './lib/supabase';
 import { formatDeadlineWib } from './utils/dateUtils';
-import { getTenureRoles } from './utils/memberQuotaUtils';
+import { getTenureRoles, getDivisionLead } from './utils/memberQuotaUtils';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'assets', 'form'];
 const VALID_TABS = [...PUBLIC_PAGE_IDS, 'program', 'oprec', 'admin'];
@@ -217,17 +217,13 @@ export default function App() {
   const [divisions, setDivisions] = useState(() => {
     const cachedDivs = loadLocalCache('divisions', []);
     const cachedMems = loadLocalCache('members', []);
+    const cachedRoles = loadLocalCache('tenureRoles', []);
     return (cachedDivs || []).map(d => {
-      const pimpro = (cachedMems || []).find(m =>
-        m.divisionId === d.id &&
-        ((m.category || '').toLowerCase() === 'pimpro' ||
-         (m.role || '').toLowerCase().startsWith('pimpro') ||
-         String(m.roleId || '').includes('pimpro'))
-      );
+      const lead = getDivisionLead(d, cachedMems || [], cachedRoles || []);
       return {
         ...d,
-        memberId: pimpro ? pimpro.id : (d.memberId || null),
-        leadName: pimpro ? pimpro.name : (d.leadName || '')
+        memberId: lead.member ? lead.member.id : (d.memberId || null),
+        leadName: lead.name || (d.leadName || '')
       };
     });
   });
@@ -293,17 +289,13 @@ export default function App() {
       const currentMembers = (Array.isArray(cloud.members) && cloud.members.length > 0) ? cloud.members : members;
       if (Array.isArray(cloud.members) && cloud.members.length > 0) setMembers(cloud.members);
       if (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) {
+        const cloudRoles = Array.isArray(cloud.tenureRoles) ? cloud.tenureRoles : tenureRoles;
         const resolvedDivs = cloud.divisions.map(d => {
-          const pimpro = currentMembers.find(m =>
-            m.divisionId === d.id &&
-            ((m.category || '').toLowerCase() === 'pimpro' ||
-             (m.role || '').toLowerCase().startsWith('pimpro') ||
-             String(m.roleId || '').includes('pimpro'))
-          );
+          const lead = getDivisionLead(d, currentMembers, cloudRoles);
           return {
             ...d,
-            memberId: pimpro ? pimpro.id : (d.memberId || null),
-            leadName: pimpro ? pimpro.name : (d.leadName || '')
+            memberId: lead.member ? lead.member.id : (d.memberId || null),
+            leadName: lead.name || (d.leadName || '')
           };
         });
         setDivisions(resolvedDivs);
@@ -1341,6 +1333,7 @@ export default function App() {
               onSubmitFaqQuestion={handleSubmitPublicFaq}
               theme={theme}
               pageVisibility={pageVisibility}
+              tenureRoles={tenureRoles}
             />
           )}
         </ErrorBoundary>

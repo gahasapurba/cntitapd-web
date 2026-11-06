@@ -28,6 +28,7 @@ import {
   X
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
+import { getDivisionLead } from '../utils/memberQuotaUtils';
 import { getDeadlineStatus, formatWibTimestamp, formatDeadlineWib } from '../utils/dateUtils';
 
 export default function HomeSection({ 
@@ -43,7 +44,8 @@ export default function HomeSection({
   faqs = [],
   onSubmitFaqQuestion,
   theme,
-  pageVisibility = {}
+  pageVisibility = {},
+  tenureRoles = []
 }) {
   const isDark = theme === 'dark';
   const [openFaqId, setOpenFaqId] = useState('faq-1');
@@ -894,12 +896,11 @@ export default function HomeSection({
                     {div.name}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700, marginBottom: div.motto ? '6px' : '0' }}>
-                    Lead: {
-                      members?.find(m => m.divisionId === div.id && ((m.category || '').toLowerCase() === 'pimpro' || (m.role || '').toLowerCase().startsWith('pimpro') || String(m.roleId || '').includes('pimpro')))?.name ||
-                      members?.find(m => m.id === div.memberId)?.name ||
-                      div.leadName ||
-                      '-'
-                    }
+                    {(() => {
+                      const leadObj = getDivisionLead(div, members, tenureRoles);
+                      const leadTitle = leadObj.roleName ? (leadObj.roleName.toLowerCase().includes('pimpro') ? 'Lead' : leadObj.roleName) : 'Lead';
+                      return `${leadTitle}: ${leadObj.name || '-'}`;
+                    })()}
                   </div>
                   {div.motto && (
                     <div style={{
