@@ -32,7 +32,7 @@ export default async function handler(request, context) {
     // 1. Handle Gallery Preview for WhatsApp / Social Crawlers
     if (galleryId) {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/galleries?id=eq.${encodeURIComponent(galleryId)}&select=id,title,description,photos,date,division`,
+        `${SUPABASE_URL}/rest/v1/galleries?id=eq.${encodeURIComponent(galleryId)}&select=*`,
         {
           headers: {
             apikey: SUPABASE_ANON_KEY,
@@ -103,7 +103,7 @@ export default async function handler(request, context) {
     // 2. Handle Event Preview for WhatsApp / Social Crawlers
     if (eventId) {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/events?id=eq.${encodeURIComponent(eventId)}&select=id,title,description,image,banner_image,date,location,category`,
+        `${SUPABASE_URL}/rest/v1/events?id=eq.${encodeURIComponent(eventId)}&select=*`,
         {
           headers: {
             apikey: SUPABASE_ANON_KEY,
@@ -174,3 +174,8 @@ export default async function handler(request, context) {
   // Fallback to normal SPA handling
   return context.next();
 }
+
+export const config = {
+  path: "/*"
+};
+
