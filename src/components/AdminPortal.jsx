@@ -269,17 +269,47 @@ export default function AdminPortal({
   const [adminMemSearch, setAdminMemSearch] = useState('');
   const [adminMemCatFilter, setAdminMemCatFilter] = useState('all');
   const [adminMemDivFilter, setAdminMemDivFilter] = useState('all');
+  const [adminMemPage, setAdminMemPage] = useState(1);
+
+  // Search & Filter states for Events in Admin
+  const [eventSearchQuery, setEventSearchQuery] = useState('');
+  const [eventCatFilter, setEventCatFilter] = useState('all');
+  const [eventDivFilter, setEventDivFilter] = useState('all');
+  const [eventStatusFilter, setEventStatusFilter] = useState('all');
+  const [adminEventPage, setAdminEventPage] = useState(1);
+  const [adminRsvpPage, setAdminRsvpPage] = useState(1);
+
+  // Search & Filter states for Gallery in Admin
+  const [gallerySearchQuery, setGallerySearchQuery] = useState('');
+  const [galleryDivFilter, setGalleryDivFilter] = useState('all');
+  const [adminGalleryPage, setAdminGalleryPage] = useState(1);
+
+  // Search & Filter states for Kudos in Admin
+  const [kudosSearchQuery, setKudosSearchQuery] = useState('');
+  const [kudosCatFilter, setKudosCatFilter] = useState('all');
+  const [adminKudosPage, setAdminKudosPage] = useState(1);
+  const [adminAspirasiPage, setAdminAspirasiPage] = useState(1);
+
+  // Search & Filter states for FAQs in Admin
+  const [faqSearchQuery, setFaqSearchQuery] = useState('');
+  const [faqCatFilter, setFaqCatFilter] = useState('all');
+  const [adminFaqPage, setAdminFaqPage] = useState(1);
+
+  // Search, Filter & Pagination states for Brand Assets in Admin
+  const [assetSearchQuery, setAssetSearchQuery] = useState('');
+  const [assetCatFilter, setAssetCatFilter] = useState('all');
+  const [assetPage, setAssetPage] = useState(1);
+
+  // Search, Filter & Pagination states for Forms in Admin
+  const [formSearchQuery, setFormSearchQuery] = useState('');
+  const [formCatFilter, setFormCatFilter] = useState('all');
+  const [formStatusFilter, setFormStatusFilter] = useState('all');
+  const [formPage, setFormPage] = useState(1);
 
   // Search & Filter states for Submissions in Admin
   const [subStatusFilter, setSubStatusFilter] = useState('all');
   const [subSearchQuery, setSubSearchQuery] = useState('');
   const [subCurrentPage, setSubCurrentPage] = useState(1);
-  const [adminEventPage, setAdminEventPage] = useState(1);
-  const [adminRsvpPage, setAdminRsvpPage] = useState(1);
-  const [adminGalleryPage, setAdminGalleryPage] = useState(1);
-  const [adminKudosPage, setAdminKudosPage] = useState(1);
-  const [adminAspirasiPage, setAdminAspirasiPage] = useState(1);
-  const [adminFaqPage, setAdminFaqPage] = useState(1);
 
   // Form states for new Brand Asset
   const [assetTitle, setAssetTitle] = useState('');
@@ -327,6 +357,7 @@ export default function AdminPortal({
   const [newDeptCode, setNewDeptCode] = useState('');
   const [newDeptDesc, setNewDeptDesc] = useState('');
   const [deptSearchQuery, setDeptSearchQuery] = useState('');
+  const [deptRsvpFilter, setDeptRsvpFilter] = useState('all');
   const [deptPage, setDeptPage] = useState(1);
 
   // Form states for new tenure
@@ -2891,6 +2922,7 @@ export default function AdminPortal({
 
           {/* Members List with Search & Filter */}
           {(() => {
+            const ADMIN_MEM_PER_PAGE = 12;
             const filteredAdminMembers = members.filter(m => {
               const q = adminMemSearch.trim().toLowerCase();
               const matchesSearch = !q ||
@@ -2902,6 +2934,13 @@ export default function AdminPortal({
               const matchesDiv = adminMemDivFilter === 'all' || m.divisionId === adminMemDivFilter;
               return matchesSearch && matchesCat && matchesDiv;
             });
+
+            const totalAdminMemPages = Math.ceil(filteredAdminMembers.length / ADMIN_MEM_PER_PAGE) || 1;
+            const safeAdminMemPage = Math.min(Math.max(1, adminMemPage), totalAdminMemPages);
+            const paginatedAdminMembers = filteredAdminMembers.slice(
+              (safeAdminMemPage - 1) * ADMIN_MEM_PER_PAGE,
+              safeAdminMemPage * ADMIN_MEM_PER_PAGE
+            );
 
             return (
               <div>
@@ -2917,7 +2956,10 @@ export default function AdminPortal({
                         type="text"
                         placeholder="Cari nama atau jabatan..."
                         value={adminMemSearch}
-                        onChange={(e) => setAdminMemSearch(e.target.value)}
+                        onChange={(e) => {
+                          setAdminMemSearch(e.target.value);
+                          setAdminMemPage(1);
+                        }}
                         style={{
                           width: '100%',
                           padding: '7px 10px 7px 30px',
@@ -2932,7 +2974,10 @@ export default function AdminPortal({
 
                     <select
                       value={adminMemCatFilter}
-                      onChange={(e) => setAdminMemCatFilter(e.target.value)}
+                      onChange={(e) => {
+                        setAdminMemCatFilter(e.target.value);
+                        setAdminMemPage(1);
+                      }}
                       style={{
                         padding: '7px 10px',
                         borderRadius: 'var(--radius-full)',
@@ -2952,7 +2997,10 @@ export default function AdminPortal({
 
                     <select
                       value={adminMemDivFilter}
-                      onChange={(e) => setAdminMemDivFilter(e.target.value)}
+                      onChange={(e) => {
+                        setAdminMemDivFilter(e.target.value);
+                        setAdminMemPage(1);
+                      }}
                       style={{
                         padding: '7px 10px',
                         borderRadius: 'var(--radius-full)',
@@ -2972,7 +3020,12 @@ export default function AdminPortal({
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
-                  {filteredAdminMembers.map((m) => (
+                  {paginatedAdminMembers.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1', padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                      Tidak ada personel yang sesuai dengan kriteria pencarian/filter.
+                    </div>
+                  ) : (
+                    paginatedAdminMembers.map((m) => (
                     <div key={m.id} style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -3075,8 +3128,97 @@ export default function AdminPortal({
                         </button>
                       </div>
                     </div>
-                  ))}
+                  )))}
                 </div>
+
+                {totalAdminMemPages > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    marginTop: '12px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-card)'
+                  }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Menampilkan <strong>{(safeAdminMemPage - 1) * ADMIN_MEM_PER_PAGE + 1} - {Math.min(safeAdminMemPage * ADMIN_MEM_PER_PAGE, filteredAdminMembers.length)}</strong> dari <strong>{filteredAdminMembers.length}</strong> personel
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        disabled={safeAdminMemPage === 1}
+                        onClick={() => setAdminMemPage(p => Math.max(1, p - 1))}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: safeAdminMemPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: safeAdminMemPage === 1 ? 'not-allowed' : 'pointer',
+                          opacity: safeAdminMemPage === 1 ? 0.45 : 1
+                        }}
+                      >
+                        <ChevronLeft size={14} />
+                        <span>Sebelumnya</span>
+                      </button>
+                      {Array.from({ length: totalAdminMemPages }, (_, i) => i + 1).map((pg) => {
+                        const isActive = pg === safeAdminMemPage;
+                        return (
+                          <button
+                            key={pg}
+                            type="button"
+                            onClick={() => setAdminMemPage(pg)}
+                            style={{
+                              minWidth: '28px',
+                              height: '28px',
+                              padding: '0 6px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                              color: isActive ? '#040914' : 'var(--text-main)',
+                              border: isActive ? 'none' : '1px solid var(--border-card)',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {pg}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        disabled={safeAdminMemPage === totalAdminMemPages}
+                        onClick={() => setAdminMemPage(p => Math.min(totalAdminMemPages, p + 1))}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: safeAdminMemPage === totalAdminMemPages ? 'var(--text-dim)' : 'var(--text-main)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: safeAdminMemPage === totalAdminMemPages ? 'not-allowed' : 'pointer',
+                          opacity: safeAdminMemPage === totalAdminMemPages ? 0.45 : 1
+                        }}
+                      >
+                        <span>Selanjutnya</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -3941,47 +4083,155 @@ export default function AdminPortal({
 
           {/* List Event */}
           <div>
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px' }}>
-              Daftar Event Aktif ({events.length})
-            </h4>
-
             {(() => {
               const ADMIN_EVENTS_PER_PAGE = 8;
-              const totalAdminEventPages = Math.ceil(events.length / ADMIN_EVENTS_PER_PAGE) || 1;
+              const filteredAdminEvents = events.filter(evt => {
+                const q = eventSearchQuery.trim().toLowerCase();
+                const matchesSearch = !q ||
+                  (evt.title || '').toLowerCase().includes(q) ||
+                  (evt.location || '').toLowerCase().includes(q) ||
+                  (evt.description || '').toLowerCase().includes(q) ||
+                  (evt.category || evt.badge || '').toLowerCase().includes(q);
+                const matchesCat = eventCatFilter === 'all' || (evt.category || evt.badge) === eventCatFilter;
+                const matchesDiv = eventDivFilter === 'all' || evt.divisionId === eventDivFilter;
+                const matchesStat = eventStatusFilter === 'all' || evt.status === eventStatusFilter;
+                return matchesSearch && matchesCat && matchesDiv && matchesStat;
+              });
+
+              const totalAdminEventPages = Math.ceil(filteredAdminEvents.length / ADMIN_EVENTS_PER_PAGE) || 1;
               const safeAdminEventPage = Math.min(Math.max(1, adminEventPage), totalAdminEventPages);
-              const paginatedAdminEvents = events.slice(
+              const paginatedAdminEvents = filteredAdminEvents.slice(
                 (safeAdminEventPage - 1) * ADMIN_EVENTS_PER_PAGE,
                 safeAdminEventPage * ADMIN_EVENTS_PER_PAGE
               );
 
-              if (events.length === 0) {
-                return (
-                  <div style={{
-                    padding: '36px 20px',
-                    textAlign: 'center',
-                    color: 'var(--text-dim)',
-                    background: 'rgba(255,255,255,0.02)',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px dashed var(--border-card)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <Calendar size={32} color="var(--text-dim)" />
-                    <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      Belum ada event yang ditambahkan.
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                      Gunakan formulir di atas untuk menambahkan event baru.
+              return (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                      Daftar Event ({filteredAdminEvents.length} dari {events.length}):
+                    </h4>
+
+                    {/* Search & Filter Controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 360px', justifyContent: 'flex-end' }}>
+                      <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: '240px' }}>
+                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                        <input
+                          type="text"
+                          placeholder="Cari nama, lokasi..."
+                          value={eventSearchQuery}
+                          onChange={(e) => {
+                            setEventSearchQuery(e.target.value);
+                            setAdminEventPage(1);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '7px 10px 7px 30px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.78rem'
+                          }}
+                        />
+                      </div>
+
+                      <select
+                        value={eventCatFilter}
+                        onChange={(e) => {
+                          setEventCatFilter(e.target.value);
+                          setAdminEventPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Kategori</option>
+                        <option value="Program Budaya">Program Budaya</option>
+                        <option value="Workshop & Sharing Session">Workshop & Sharing Session</option>
+                        <option value="Social & Engagement">Social & Engagement</option>
+                        <option value="Olahraga & Well-being">Olahraga & Well-being</option>
+                        <option value="Kompetisi & Inovasi">Kompetisi & Inovasi</option>
+                        <option value="Apresiasi & Rekognisi">Apresiasi & Rekognisi</option>
+                        <option value="Townhall & Perayaan">Townhall & Perayaan</option>
+                      </select>
+
+                      <select
+                        value={eventDivFilter}
+                        onChange={(e) => {
+                          setEventDivFilter(e.target.value);
+                          setAdminEventPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Divisi</option>
+                        {divisions.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={eventStatusFilter}
+                        onChange={(e) => {
+                          setEventStatusFilter(e.target.value);
+                          setAdminEventPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Status</option>
+                        <option value="Upcoming">Upcoming</option>
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
+                      </select>
                     </div>
                   </div>
-                );
-              }
 
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+                  {filteredAdminEvents.length === 0 ? (
+                    <div style={{
+                      padding: '36px 20px',
+                      textAlign: 'center',
+                      color: 'var(--text-dim)',
+                      background: 'rgba(255,255,255,0.02)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px dashed var(--border-card)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <Calendar size={32} color="var(--text-dim)" />
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        Tidak ada event yang sesuai dengan pencarian / filter.
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        Coba ubah kata kunci pencarian atau reset filter.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
                     {paginatedAdminEvents.map((evt) => {
                       const divObj = divisions.find(d => d.id === evt.divisionId);
                       return (
@@ -4099,7 +4349,7 @@ export default function AdminPortal({
                       border: '1px solid var(--border-card)'
                     }}>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        Menampilkan <strong>{(safeAdminEventPage - 1) * ADMIN_EVENTS_PER_PAGE + 1} - {Math.min(safeAdminEventPage * ADMIN_EVENTS_PER_PAGE, events.length)}</strong> dari <strong>{events.length}</strong> event
+                        Menampilkan <strong>{(safeAdminEventPage - 1) * ADMIN_EVENTS_PER_PAGE + 1} - {Math.min(safeAdminEventPage * ADMIN_EVENTS_PER_PAGE, filteredAdminEvents.length)}</strong> dari <strong>{filteredAdminEvents.length}</strong> event
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
@@ -4173,6 +4423,8 @@ export default function AdminPortal({
                       </div>
                     </div>
                   )}
+                  </div>
+                )}
                 </div>
               );
             })()}
@@ -4969,29 +5221,85 @@ export default function AdminPortal({
 
           {/* Existing Galleries List */}
           <div>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
-              Arsip Galeri Saat Ini ({galleries.length}):
-            </h4>
             {(() => {
               const ADMIN_GALLERY_PER_PAGE = 8;
-              const totalAdminGalleryPages = Math.ceil(galleries.length / ADMIN_GALLERY_PER_PAGE) || 1;
+              const filteredAdminGalleries = galleries.filter(gal => {
+                const q = gallerySearchQuery.trim().toLowerCase();
+                const matchesSearch = !q ||
+                  (gal.title || '').toLowerCase().includes(q) ||
+                  (gal.description || '').toLowerCase().includes(q);
+                const matchesDiv = galleryDivFilter === 'all' || gal.divisionId === galleryDivFilter || gal.division === galleryDivFilter;
+                return matchesSearch && matchesDiv;
+              });
+
+              const totalAdminGalleryPages = Math.ceil(filteredAdminGalleries.length / ADMIN_GALLERY_PER_PAGE) || 1;
               const safeAdminGalleryPage = Math.min(Math.max(1, adminGalleryPage), totalAdminGalleryPages);
-              const paginatedAdminGalleries = galleries.slice(
+              const paginatedAdminGalleries = filteredAdminGalleries.slice(
                 (safeAdminGalleryPage - 1) * ADMIN_GALLERY_PER_PAGE,
                 safeAdminGalleryPage * ADMIN_GALLERY_PER_PAGE
               );
 
-              if (galleries.length === 0) {
-                return (
-                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
-                    Belum ada arsip dokumentasi galeri.
-                  </div>
-                );
-              }
-
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {paginatedAdminGalleries.map((gal) => (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                      Arsip Galeri ({filteredAdminGalleries.length} dari {galleries.length}):
+                    </h4>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 320px', justifyContent: 'flex-end' }}>
+                      <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: '240px' }}>
+                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                        <input
+                          type="text"
+                          placeholder="Cari dokumentasi..."
+                          value={gallerySearchQuery}
+                          onChange={(e) => {
+                            setGallerySearchQuery(e.target.value);
+                            setAdminGalleryPage(1);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '7px 10px 7px 30px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.78rem'
+                          }}
+                        />
+                      </div>
+
+                      <select
+                        value={galleryDivFilter}
+                        onChange={(e) => {
+                          setGalleryDivFilter(e.target.value);
+                          setAdminGalleryPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Divisi</option>
+                        {divisions.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {filteredAdminGalleries.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                      Tidak ada arsip dokumentasi yang cocok dengan pencarian / filter.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {paginatedAdminGalleries.map((gal) => (
                     <div key={gal.id} style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -5074,7 +5382,7 @@ export default function AdminPortal({
                       border: '1px solid var(--border-card)'
                     }}>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        Menampilkan <strong>{(safeAdminGalleryPage - 1) * ADMIN_GALLERY_PER_PAGE + 1} - {Math.min(safeAdminGalleryPage * ADMIN_GALLERY_PER_PAGE, galleries.length)}</strong> dari <strong>{galleries.length}</strong> galeri
+                        Menampilkan <strong>{(safeAdminGalleryPage - 1) * ADMIN_GALLERY_PER_PAGE + 1} - {Math.min(safeAdminGalleryPage * ADMIN_GALLERY_PER_PAGE, filteredAdminGalleries.length)}</strong> dari <strong>{filteredAdminGalleries.length}</strong> galeri
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
@@ -5148,6 +5456,8 @@ export default function AdminPortal({
                       </div>
                     </div>
                   )}
+                  </div>
+                )}
                 </div>
               );
             })()}
@@ -5158,11 +5468,18 @@ export default function AdminPortal({
       {/* TAB CONTENT: MANAJEMEN DEPARTEMEN IT APD */}
       {activeTab === 'departments' && (() => {
         const DEPTS_PER_PAGE = 10;
-        const filteredDepts = (departments || []).filter(d =>
-          (d.name || '').toLowerCase().includes(deptSearchQuery.toLowerCase()) ||
-          (d.code || '').toLowerCase().includes(deptSearchQuery.toLowerCase()) ||
-          (d.description || '').toLowerCase().includes(deptSearchQuery.toLowerCase())
-        );
+        const filteredDepts = (departments || []).filter(d => {
+          const matchesSearch = (d.name || '').toLowerCase().includes(deptSearchQuery.toLowerCase()) ||
+            (d.code || '').toLowerCase().includes(deptSearchQuery.toLowerCase()) ||
+            (d.description || '').toLowerCase().includes(deptSearchQuery.toLowerCase());
+          const rsvpCount = (eventRsvps || []).filter(
+            r => r.departmentId === d.id || r.department === d.id || (d.name && r.department === d.name)
+          ).length;
+          const matchesRsvp = deptRsvpFilter === 'all' ||
+            (deptRsvpFilter === 'with_rsvp' && rsvpCount > 0) ||
+            (deptRsvpFilter === 'no_rsvp' && rsvpCount === 0);
+          return matchesSearch && matchesRsvp;
+        });
         const totalDeptPages = Math.ceil(filteredDepts.length / DEPTS_PER_PAGE) || 1;
         const safeDeptPage = Math.min(Math.max(1, deptPage), totalDeptPages);
         const paginatedDepts = filteredDepts.slice(
@@ -5289,26 +5606,49 @@ export default function AdminPortal({
               borderTop: '1px solid var(--border-card)',
               paddingTop: '20px'
             }}>
-              <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '380px' }}>
-                <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                <input
-                  type="text"
-                  placeholder="Cari nama atau kode departemen..."
-                  value={deptSearchQuery}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 360px', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '340px' }}>
+                  <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                  <input
+                    type="text"
+                    placeholder="Cari nama atau kode departemen..."
+                    value={deptSearchQuery}
+                    onChange={(e) => {
+                      setDeptSearchQuery(e.target.value);
+                      setDeptPage(1);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px 9px 34px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--input-border)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.84rem'
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={deptRsvpFilter}
                   onChange={(e) => {
-                    setDeptSearchQuery(e.target.value);
+                    setDeptRsvpFilter(e.target.value);
                     setDeptPage(1);
                   }}
                   style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 34px',
+                    padding: '8px 12px',
                     borderRadius: 'var(--radius-full)',
                     background: 'var(--input-bg)',
-                    border: '1px solid var(--input-border)',
+                    border: '1px solid var(--border-card)',
                     color: 'var(--text-main)',
-                    fontSize: '0.84rem'
+                    fontSize: '0.78rem',
+                    fontWeight: 600
                   }}
-                />
+                >
+                  <option value="all">Semua Status RSVP</option>
+                  <option value="with_rsvp">Memiliki RSVP Terkait</option>
+                  <option value="no_rsvp">Belum Ada RSVP (Aman Dihapus)</option>
+                </select>
               </div>
 
               {departments.length > 0 && (
@@ -6361,14 +6701,116 @@ export default function AdminPortal({
             </div>
           </form>
 
-          {/* Existing Forms List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-dim)' }}>
-              Daftar Formulir Terdaftar:
-            </div>
-            {forms.map((f) => {
-              const subCount = submissions.filter(s => s.formId === f.id).length;
+          {/* Existing Forms List with Search, Filter & Pagination */}
+          <div>
+            {(() => {
+              const ADMIN_FORMS_PER_PAGE = 6;
+              const filteredForms = forms.filter(f => {
+                const q = formSearchQuery.trim().toLowerCase();
+                const matchesSearch = !q ||
+                  (f.title || '').toLowerCase().includes(q) ||
+                  (f.subtitle || '').toLowerCase().includes(q) ||
+                  (f.category || '').toLowerCase().includes(q);
+                const matchesCat = formCatFilter === 'all' || f.category === formCatFilter;
+                const matchesStat = formStatusFilter === 'all' ||
+                  (formStatusFilter === 'open' && Boolean(f.isOpen)) ||
+                  (formStatusFilter === 'closed' && !Boolean(f.isOpen));
+                return matchesSearch && matchesCat && matchesStat;
+              });
+
+              const totalAdminFormPages = Math.ceil(filteredForms.length / ADMIN_FORMS_PER_PAGE) || 1;
+              const safeAdminFormPage = Math.min(Math.max(1, formPage), totalAdminFormPages);
+              const paginatedForms = filteredForms.slice(
+                (safeAdminFormPage - 1) * ADMIN_FORMS_PER_PAGE,
+                safeAdminFormPage * ADMIN_FORMS_PER_PAGE
+              );
+
               return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Daftar Formulir ({filteredForms.length} dari {forms.length}):
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 360px', justifyContent: 'flex-end' }}>
+                      <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: '240px' }}>
+                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                        <input
+                          type="text"
+                          placeholder="Cari formulir..."
+                          value={formSearchQuery}
+                          onChange={(e) => {
+                            setFormSearchQuery(e.target.value);
+                            setFormPage(1);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '7px 10px 7px 30px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.78rem'
+                          }}
+                        />
+                      </div>
+
+                      <select
+                        value={formCatFilter}
+                        onChange={(e) => {
+                          setFormCatFilter(e.target.value);
+                          setFormPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Kategori</option>
+                        <option value="Kegiatan & Event">Kegiatan & Event</option>
+                        <option value="Rekrutmen">Rekrutmen & Oprec</option>
+                        <option value="Turnamen & Olahraga">Turnamen & Olahraga</option>
+                        <option value="Survei & Aspirasi">Survei & Aspirasi</option>
+                        <option value="Workshop & Sharing">Workshop & Sharing</option>
+                      </select>
+
+                      <select
+                        value={formStatusFilter}
+                        onChange={(e) => {
+                          setFormStatusFilter(e.target.value);
+                          setFormPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Status</option>
+                        <option value="open">● Dibuka di Web</option>
+                        <option value="closed">○ Ditutup</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {filteredForms.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                      Tidak ada formulir yang cocok dengan pencarian / filter.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {paginatedForms.map((f) => {
+                        const subCount = submissions.filter(s => s.formId === f.id).length;
+                        return (
                 <div key={f.id} style={{
                   padding: '16px 20px',
                   background: 'rgba(255,255,255,0.03)',
@@ -6547,6 +6989,99 @@ export default function AdminPortal({
               );
             })}
           </div>
+        )}
+
+        {totalAdminFormPages > 1 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            padding: '12px 16px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-card)'
+          }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              Menampilkan <strong>{(safeAdminFormPage - 1) * ADMIN_FORMS_PER_PAGE + 1} - {Math.min(safeAdminFormPage * ADMIN_FORMS_PER_PAGE, filteredForms.length)}</strong> dari <strong>{filteredForms.length}</strong> formulir
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                disabled={safeAdminFormPage === 1}
+                onClick={() => setFormPage(p => Math.max(1, p - 1))}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: safeAdminFormPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: safeAdminFormPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: safeAdminFormPage === 1 ? 0.45 : 1
+                }}
+              >
+                <ChevronLeft size={14} />
+                <span>Sebelumnya</span>
+              </button>
+              {Array.from({ length: totalAdminFormPages }, (_, i) => i + 1).map((pg) => {
+                const isActive = pg === safeAdminFormPage;
+                return (
+                  <button
+                    key={pg}
+                    type="button"
+                    onClick={() => setFormPage(pg)}
+                    style={{
+                      minWidth: '28px',
+                      height: '28px',
+                      padding: '0 6px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                      color: isActive ? '#040914' : 'var(--text-main)',
+                      border: isActive ? 'none' : '1px solid var(--border-card)',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {pg}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                disabled={safeAdminFormPage === totalAdminFormPages}
+                onClick={() => setFormPage(p => Math.min(totalAdminFormPages, p + 1))}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: safeAdminFormPage === totalAdminFormPages ? 'var(--text-dim)' : 'var(--text-main)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: safeAdminFormPage === totalAdminFormPages ? 'not-allowed' : 'pointer',
+                  opacity: safeAdminFormPage === totalAdminFormPages ? 0.45 : 1
+                }}
+              >
+                <span>Selanjutnya</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  })()}
+</div>
         </div>
       )}
 
@@ -7153,24 +7688,88 @@ export default function AdminPortal({
 
           {(() => {
             const ADMIN_KUDOS_PER_PAGE = 10;
-            const totalAdminKudosPages = Math.ceil(kudosList.length / ADMIN_KUDOS_PER_PAGE) || 1;
+            const filteredAdminKudos = kudosList.filter(k => {
+              const q = kudosSearchQuery.trim().toLowerCase();
+              const matchesSearch = !q ||
+                (k.sender || '').toLowerCase().includes(q) ||
+                (k.recipient || '').toLowerCase().includes(q) ||
+                (k.message || '').toLowerCase().includes(q);
+              const matchesCat = kudosCatFilter === 'all' || k.category === kudosCatFilter;
+              return matchesSearch && matchesCat;
+            });
+
+            const totalAdminKudosPages = Math.ceil(filteredAdminKudos.length / ADMIN_KUDOS_PER_PAGE) || 1;
             const safeAdminKudosPage = Math.min(Math.max(1, adminKudosPage), totalAdminKudosPages);
-            const paginatedAdminKudos = kudosList.slice(
+            const paginatedAdminKudos = filteredAdminKudos.slice(
               (safeAdminKudosPage - 1) * ADMIN_KUDOS_PER_PAGE,
               safeAdminKudosPage * ADMIN_KUDOS_PER_PAGE
             );
 
-            if (kudosList.length === 0) {
-              return (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
-                  Belum ada kiriman apresiasi di Wall of Kudos.
-                </div>
-              );
-            }
-
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {paginatedAdminKudos.map((kudos) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    Daftar Kiriman Kudos ({filteredAdminKudos.length} dari {kudosList.length}):
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 340px', justifyContent: 'flex-end' }}>
+                    <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: '240px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                      <input
+                        type="text"
+                        placeholder="Cari pengirim, penerima..."
+                        value={kudosSearchQuery}
+                        onChange={(e) => {
+                          setKudosSearchQuery(e.target.value);
+                          setAdminKudosPage(1);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '7px 10px 7px 30px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.78rem'
+                        }}
+                      />
+                    </div>
+
+                    <select
+                      value={kudosCatFilter}
+                      onChange={(e) => {
+                        setKudosCatFilter(e.target.value);
+                        setAdminKudosPage(1);
+                      }}
+                      style={{
+                        padding: '7px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.76rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="all">Semua Kategori Nilai</option>
+                      <option value="Teamwork">Teamwork</option>
+                      <option value="Innovation">Innovation</option>
+                      <option value="Customer Focus">Customer Focus</option>
+                      <option value="Excellence">Excellence</option>
+                      <option value="Integrity">Integrity</option>
+                      <option value="Leadership">Leadership</option>
+                      <option value="Empathy">Empathy</option>
+                    </select>
+                  </div>
+                </div>
+
+                {filteredAdminKudos.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '36px', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)' }}>
+                    Tidak ada kiriman apresiasi yang cocok dengan pencarian / filter.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {paginatedAdminKudos.map((kudos) => (
                   <div key={kudos.id} style={{
                     padding: '16px 20px',
                     background: 'rgba(255,255,255,0.03)',
@@ -7265,7 +7864,7 @@ export default function AdminPortal({
                     border: '1px solid var(--border-card)'
                   }}>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      Menampilkan <strong>{(safeAdminKudosPage - 1) * ADMIN_KUDOS_PER_PAGE + 1} - {Math.min(safeAdminKudosPage * ADMIN_KUDOS_PER_PAGE, kudosList.length)}</strong> dari <strong>{kudosList.length}</strong> apresiasi
+                      Menampilkan <strong>{(safeAdminKudosPage - 1) * ADMIN_KUDOS_PER_PAGE + 1} - {Math.min(safeAdminKudosPage * ADMIN_KUDOS_PER_PAGE, filteredAdminKudos.length)}</strong> dari <strong>{filteredAdminKudos.length}</strong> apresiasi
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <button
@@ -7339,6 +7938,8 @@ export default function AdminPortal({
                     </div>
                   </div>
                 )}
+                </div>
+              )}
               </div>
             );
           })()}
@@ -7947,98 +8548,270 @@ export default function AdminPortal({
             </div>
           </form>
 
-          {/* Existing Brand Assets List */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-            {brandAssets.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid var(--border-card)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: '10px'
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' }}>
-                    <span className="badge-gold" style={{ fontSize: '0.66rem' }}>{item.category || 'Logo & Brand'}</span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-                      {[item.fileType, item.fileSize].filter(Boolean).join(' • ')}
-                    </span>
+          {/* Existing Brand Assets List with Search, Filter & Pagination */}
+          {(() => {
+            const ADMIN_ASSETS_PER_PAGE = 8;
+            const filteredAssets = brandAssets.filter(item => {
+              const q = assetSearchQuery.trim().toLowerCase();
+              const matchesSearch = !q ||
+                (item.title || '').toLowerCase().includes(q) ||
+                (item.description || '').toLowerCase().includes(q) ||
+                (item.badge || '').toLowerCase().includes(q) ||
+                (item.fileType || '').toLowerCase().includes(q);
+              const matchesCat = assetCatFilter === 'all' || item.category === assetCatFilter;
+              return matchesSearch && matchesCat;
+            });
+
+            const totalAssetPages = Math.ceil(filteredAssets.length / ADMIN_ASSETS_PER_PAGE) || 1;
+            const safeAssetPage = Math.min(Math.max(1, assetPage), totalAssetPages);
+            const paginatedAssets = filteredAssets.slice(
+              (safeAssetPage - 1) * ADMIN_ASSETS_PER_PAGE,
+              safeAssetPage * ADMIN_ASSETS_PER_PAGE
+            );
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    Katalog Asset ({filteredAssets.length} dari {brandAssets.length}):
                   </div>
-                  <strong style={{ fontSize: '0.94rem', color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    {item.title}
-                  </strong>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>
-                    {item.description}
-                  </p>
-                  {item.updatedAt && (
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '6px' }}>
-                      {formatLastUpdatedWib(item.updatedAt)}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 340px', justifyContent: 'flex-end' }}>
+                    <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: '240px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                      <input
+                        type="text"
+                        placeholder="Cari asset atau format..."
+                        value={assetSearchQuery}
+                        onChange={(e) => {
+                          setAssetSearchQuery(e.target.value);
+                          setAssetPage(1);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '7px 10px 7px 30px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.78rem'
+                        }}
+                      />
                     </div>
-                  )}
+
+                    <select
+                      value={assetCatFilter}
+                      onChange={(e) => {
+                        setAssetCatFilter(e.target.value);
+                        setAssetPage(1);
+                      }}
+                      style={{
+                        padding: '7px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.76rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="all">Semua Kategori</option>
+                      <option value="Logo & Brand">Logo & Brand</option>
+                      <option value="Template Presentasi">Template Presentasi (PPT)</option>
+                      <option value="Virtual Background">Virtual Background (Teams / Zoom)</option>
+                      <option value="Media & Publikasi">Media & Publikasi</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border-card)' }}>
-                  <a
-                    href={item.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--neon-cyan)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    <ExternalLink size={12} />
-                    <span>Buka File</span>
-                  </a>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setEditingItem({ type: 'brand_asset', item: { ...item } })}
-                      style={{
-                        padding: '5px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(14, 165, 233, 0.12)',
-                        border: '1px solid #0284c7',
-                        color: '#0284c7',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Edit2 size={12} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirm({ type: 'brand_asset', id: item.id, name: item.title })}
-                      style={{
-                        padding: '5px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(244, 63, 94, 0.12)',
-                        border: '1px solid #f43f5e',
-                        color: '#f43f5e',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Trash2 size={12} />
-                      <span>Hapus</span>
-                    </button>
+                {filteredAssets.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                    Tidak ada asset yang cocok dengan pencarian / filter.
                   </div>
-                </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                    {paginatedAssets.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: '14px 16px',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-card)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '10px'
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' }}>
+                            <span className="badge-gold" style={{ fontSize: '0.66rem' }}>{item.category || 'Logo & Brand'}</span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
+                              {[item.fileType, item.fileSize].filter(Boolean).join(' • ')}
+                            </span>
+                          </div>
+                          <strong style={{ fontSize: '0.94rem', color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
+                            {item.title}
+                          </strong>
+                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>
+                            {item.description}
+                          </p>
+                          {item.updatedAt && (
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '6px' }}>
+                              {formatLastUpdatedWib(item.updatedAt)}
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border-card)' }}>
+                          <a
+                            href={item.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--neon-cyan)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <ExternalLink size={12} />
+                            <span>Buka File</span>
+                          </a>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setEditingItem({ type: 'brand_asset', item: { ...item } })}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                background: 'rgba(14, 165, 233, 0.12)',
+                                border: '1px solid #0284c7',
+                                color: '#0284c7',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <Edit2 size={12} />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirm({ type: 'brand_asset', id: item.id, name: item.title })}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                background: 'rgba(244, 63, 94, 0.12)',
+                                border: '1px solid #f43f5e',
+                                color: '#f43f5e',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <Trash2 size={12} />
+                              <span>Hapus</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {totalAssetPages > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-card)'
+                  }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Menampilkan <strong>{(safeAssetPage - 1) * ADMIN_ASSETS_PER_PAGE + 1} - {Math.min(safeAssetPage * ADMIN_ASSETS_PER_PAGE, filteredAssets.length)}</strong> dari <strong>{filteredAssets.length}</strong> asset
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        disabled={safeAssetPage === 1}
+                        onClick={() => setAssetPage(p => Math.max(1, p - 1))}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: safeAssetPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: safeAssetPage === 1 ? 'not-allowed' : 'pointer',
+                          opacity: safeAssetPage === 1 ? 0.45 : 1
+                        }}
+                      >
+                        <ChevronLeft size={14} />
+                        <span>Sebelumnya</span>
+                      </button>
+                      {Array.from({ length: totalAssetPages }, (_, i) => i + 1).map((pg) => {
+                        const isActive = pg === safeAssetPage;
+                        return (
+                          <button
+                            key={pg}
+                            type="button"
+                            onClick={() => setAssetPage(pg)}
+                            style={{
+                              minWidth: '28px',
+                              height: '28px',
+                              padding: '0 6px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                              color: isActive ? '#040914' : 'var(--text-main)',
+                              border: isActive ? 'none' : '1px solid var(--border-card)',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {pg}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        disabled={safeAssetPage === totalAssetPages}
+                        onClick={() => setAssetPage(p => Math.min(totalAssetPages, p + 1))}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: safeAssetPage === totalAssetPages ? 'var(--text-dim)' : 'var(--text-main)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: safeAssetPage === totalAssetPages ? 'not-allowed' : 'pointer',
+                          opacity: safeAssetPage === totalAssetPages ? 0.45 : 1
+                        }}
+                      >
+                        <span>Selanjutnya</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })()}
         </div>
       )}
 
@@ -8169,27 +8942,89 @@ export default function AdminPortal({
             </div>
           </form>
 
-          {/* List of FAQs */}
+          {/* List of FAQs with Search, Filter & Pagination */}
           {(() => {
             const ADMIN_FAQS_PER_PAGE = 10;
-            const totalAdminFaqPages = Math.ceil(faqs.length / ADMIN_FAQS_PER_PAGE) || 1;
+            const filteredAdminFaqs = faqs.filter(f => {
+              const q = faqSearchQuery.trim().toLowerCase();
+              const matchesSearch = !q ||
+                (f.question || '').toLowerCase().includes(q) ||
+                (f.answer || '').toLowerCase().includes(q);
+              const matchesCat = faqCatFilter === 'all' || f.category === faqCatFilter;
+              return matchesSearch && matchesCat;
+            });
+
+            const totalAdminFaqPages = Math.ceil(filteredAdminFaqs.length / ADMIN_FAQS_PER_PAGE) || 1;
             const safeAdminFaqPage = Math.min(Math.max(1, adminFaqPage), totalAdminFaqPages);
-            const paginatedAdminFaqs = faqs.slice(
+            const paginatedAdminFaqs = filteredAdminFaqs.slice(
               (safeAdminFaqPage - 1) * ADMIN_FAQS_PER_PAGE,
               safeAdminFaqPage * ADMIN_FAQS_PER_PAGE
             );
 
-            if (faqs.length === 0) {
-              return (
-                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
-                  Belum ada pertanyaan FAQ yang ditambahkan.
-                </div>
-              );
-            }
-
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {paginatedAdminFaqs.map((f) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    Daftar Pertanyaan FAQ ({filteredAdminFaqs.length} dari {faqs.length}):
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 340px', justifyContent: 'flex-end' }}>
+                    <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: '240px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                      <input
+                        type="text"
+                        placeholder="Cari pertanyaan/jawaban..."
+                        value={faqSearchQuery}
+                        onChange={(e) => {
+                          setFaqSearchQuery(e.target.value);
+                          setAdminFaqPage(1);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '7px 10px 7px 30px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.78rem'
+                        }}
+                      />
+                    </div>
+
+                    <select
+                      value={faqCatFilter}
+                      onChange={(e) => {
+                        setFaqCatFilter(e.target.value);
+                        setAdminFaqPage(1);
+                      }}
+                      style={{
+                        padding: '7px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.76rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="all">Semua Kategori</option>
+                      <option value="Tentang CNT">Tentang CNT</option>
+                      <option value="Kegiatan & Event">Kegiatan & Event</option>
+                      <option value="Operasional & Sekben">Operasional & Sekben</option>
+                      <option value="Aspirasi & Usulan">Aspirasi & Usulan</option>
+                      <option value="Pendaftaran & Oprec">Pendaftaran & Oprec</option>
+                      <option value="Umum">Umum</option>
+                    </select>
+                  </div>
+                </div>
+
+                {filteredAdminFaqs.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                    Tidak ada pertanyaan FAQ yang cocok dengan pencarian / filter.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {paginatedAdminFaqs.map((f) => (
                   <div
                     key={f.id}
                     style={{
@@ -8304,6 +9139,8 @@ export default function AdminPortal({
                     </div>
                   </div>
                 ))}
+                </div>
+                )}
 
                 {totalAdminFaqPages > 1 && (
                   <div style={{
@@ -8319,7 +9156,7 @@ export default function AdminPortal({
                     border: '1px solid var(--border-card)'
                   }}>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      Menampilkan <strong>{(safeAdminFaqPage - 1) * ADMIN_FAQS_PER_PAGE + 1} - {Math.min(safeAdminFaqPage * ADMIN_FAQS_PER_PAGE, faqs.length)}</strong> dari <strong>{faqs.length}</strong> pertanyaan FAQ
+                      Menampilkan <strong>{(safeAdminFaqPage - 1) * ADMIN_FAQS_PER_PAGE + 1} - {Math.min(safeAdminFaqPage * ADMIN_FAQS_PER_PAGE, filteredAdminFaqs.length)}</strong> dari <strong>{filteredAdminFaqs.length}</strong> pertanyaan FAQ
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <button
@@ -10746,10 +11583,29 @@ export default function AdminPortal({
                     showToast('Judul wajib diisi sebelum menyimpan perubahan', 'error');
                     return;
                   }
-                  if (editingItem.type === 'faq' && (!(it.question || '').trim() || !(it.answer || '').trim())) {
-                    setEditModalError('Pertanyaan dan jawaban FAQ wajib diisi');
-                    showToast('Pertanyaan dan jawaban FAQ wajib diisi', 'error');
+                  if (editingItem.type === 'tenure' && !(it.code || '').trim()) {
+                    setEditModalError('Kode tahun periode wajib diisi');
+                    showToast('Kode tahun periode wajib diisi', 'error');
                     return;
+                  }
+                  if (editingItem.type === 'faq') {
+                    if (!(it.category || '').trim()) {
+                      setEditModalError('Kategori topik FAQ wajib dipilih');
+                      showToast('Kategori topik FAQ wajib dipilih', 'error');
+                      return;
+                    }
+                    if (!(it.question || '').trim() || !(it.answer || '').trim()) {
+                      setEditModalError('Pertanyaan dan jawaban FAQ wajib diisi');
+                      showToast('Pertanyaan dan jawaban FAQ wajib diisi', 'error');
+                      return;
+                    }
+                  }
+                  if (editingItem.type === 'form') {
+                    if (!(it.category || '').trim()) {
+                      setEditModalError('Kategori formulir wajib dipilih');
+                      showToast('Kategori formulir wajib dipilih', 'error');
+                      return;
+                    }
                   }
                   if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {
                     setEditModalError('Pengirim, penerima, dan pesan apresiasi wajib diisi');
@@ -10838,7 +11694,7 @@ export default function AdminPortal({
                     const divObj = selectedRole?.requiresDivision ? divisions.find(d => d.id === cleanItem.divisionId) : null;
                     const finalRoleName = selectedRole?.requiresDivision && selectedRole?.name.toLowerCase() === 'pimpro' && divObj
                       ? `Pimpro ${divObj.name}`
-                      : (selectedRole?.name || cleanItem.role || 'Anggota Divisi');
+                      : (selectedRole?.name || cleanItem.role || '');
 
                     onUpdateMember({
                       ...cleanItem,
@@ -10861,6 +11717,16 @@ export default function AdminPortal({
                     onUpdateDivision({ ...cleanItem, leadName: finalLeadName, focusAreas: finalFocus });
                   }
                   if (editingItem.type === 'gallery' && onUpdateGallery) {
+                    if (!editingItem.item.divisionId && !editingItem.item.division) {
+                      setEditModalError('Divisi penyelenggara wajib dipilih untuk galeri');
+                      showToast('Divisi penyelenggara wajib dipilih untuk galeri', 'error');
+                      return;
+                    }
+                    if (!(editingItem.item.description || '').trim()) {
+                      setEditModalError('Deskripsi kegiatan wajib diisi untuk galeri');
+                      showToast('Deskripsi kegiatan wajib diisi untuk galeri', 'error');
+                      return;
+                    }
                     let finalPhotos = Array.isArray(editingItem.item.photos) ? [...editingItem.item.photos] : [];
                     if (editingItem.pendingPhotos && editingItem.pendingPhotos.length > 0) {
                       setIsUploadingMedia(true);
@@ -10935,9 +11801,30 @@ export default function AdminPortal({
                     }
                   }
                   if (editingItem.type === 'event' && onUpdateEvent) {
+                    const catVal = (editingItem.item.kategori || editingItem.item.category || editingItem.item.badge || '').trim();
+                    if (!catVal) {
+                      setEditModalError('Kategori program/kegiatan wajib dipilih');
+                      showToast('Kategori program/kegiatan wajib dipilih', 'error');
+                      return;
+                    }
                     if (!editingItem.item.divisionId) {
                       setEditModalError('Divisi penyelenggara wajib dipilih untuk Event');
                       showToast('Divisi penyelenggara wajib dipilih untuk Event', 'error');
+                      return;
+                    }
+                    if (!editingItem.item.startDate) {
+                      setEditModalError('Tanggal & Jam Mulai event wajib diisi');
+                      showToast('Tanggal & Jam Mulai event wajib diisi', 'error');
+                      return;
+                    }
+                    if (!editingItem.item.endDate) {
+                      setEditModalError('Tanggal & Jam Berakhir event wajib diisi');
+                      showToast('Tanggal & Jam Berakhir event wajib diisi', 'error');
+                      return;
+                    }
+                    if (!(editingItem.item.description || '').trim()) {
+                      setEditModalError('Deskripsi kegiatan event wajib diisi');
+                      showToast('Deskripsi kegiatan event wajib diisi', 'error');
                       return;
                     }
                     if (editingItem.item.totalRab === '' || editingItem.item.totalRab === undefined || editingItem.item.totalRab === null || isNaN(Number(editingItem.item.totalRab)) || Number(editingItem.item.totalRab) < 0) {
@@ -10945,8 +11832,8 @@ export default function AdminPortal({
                       showToast('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)', 'error');
                       return;
                     }
-                    const catVal = (editingItem.item.kategori || editingItem.item.category || editingItem.item.badge || '').trim();
                     const pesertaVal = (editingItem.item.peserta || editingItem.item.kpi || '').trim();
+                    const calculatedDate = formatWibEventRange(editingItem.item.startDate, editingItem.item.endDate);
                     onUpdateEvent({
                       ...editingItem.item,
                       kategori: catVal,
@@ -10955,10 +11842,22 @@ export default function AdminPortal({
                       peserta: pesertaVal,
                       kpi: pesertaVal,
                       totalRab: Number(editingItem.item.totalRab),
-                      date: (editingItem.item.date || '').trim() || editingItem.item.startDate || 'TBD'
+                      date: (editingItem.item.date || '').trim() || calculatedDate || ''
                     });
                   }
                   if (editingItem.type === 'brand_asset' && onUpdateBrandAsset) {
+                    const assetCat = (editingItem.item.category || '').trim();
+                    if (!assetCat) {
+                      setEditModalError('Kategori katalog asset wajib dipilih');
+                      showToast('Kategori katalog asset wajib dipilih', 'error');
+                      return;
+                    }
+                    const assetFType = (editingItem.item.fileType || '').trim();
+                    if (!assetFType) {
+                      setEditModalError('Format file asset wajib diisi');
+                      showToast('Format file asset wajib diisi', 'error');
+                      return;
+                    }
                     let finalFileUrl = editingItem.item.fileUrl || '';
                     let finalPreviewUrl = editingItem.item.previewUrl || '';
                     if (editingItem.pendingFile) {
@@ -10993,6 +11892,11 @@ export default function AdminPortal({
                     }
                     const effectiveFileUrl = finalFileUrl || finalPreviewUrl || '';
                     const effectivePreviewUrl = finalPreviewUrl || finalFileUrl || '';
+                    if (!effectiveFileUrl) {
+                      setEditModalError('File asset wajib diunggah atau memiliki tautan file aktif');
+                      showToast('File asset wajib diunggah', 'error');
+                      return;
+                    }
                     onUpdateBrandAsset({
                       ...editingItem.item,
                       fileUrl: effectiveFileUrl,
