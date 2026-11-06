@@ -3804,7 +3804,7 @@ export default function AdminPortal({
               )}
 
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Opsi B: Masukkan Link Foto Web / Supabase (wajib jika tidak mengunggah file foto dari komputer):
+                Opsi B: Masukkan Link Foto Web (wajib jika tidak mengunggah file foto dari komputer):
               </label>
               <textarea
                 rows={2}
@@ -8197,7 +8197,7 @@ export default function AdminPortal({
                   }}>
                     <label style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <Link2 size={13} color="var(--mandiri-gold)" />
-                      <span>Atau Tambah Foto via Link URL (Web / Supabase):</span>
+                      <span>Atau Tambah Foto via Link URL Web:</span>
                     </label>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                       <textarea
