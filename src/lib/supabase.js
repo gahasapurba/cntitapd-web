@@ -375,7 +375,7 @@ export const rowMappers = {
   tenureRoles: {
     toDb: (item, idx = 0) => ({
       id: String(item.id),
-      tenure_id: item.tenureId || null,
+      tenure_id: item.tenureId || 'tenure-2027',
       name: item.name || '',
       level: Number(item.level ?? 5),
       max_quota: Number(item.maxQuota ?? item.max ?? 0),
