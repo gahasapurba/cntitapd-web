@@ -124,9 +124,15 @@ export default function GallerySection({
   useEffect(() => {
     if (initialGalleryId && galleries.some(g => g.id === initialGalleryId)) {
       setSelectedGalleryId(initialGalleryId);
+      setDivFilter('all');
+      setSearchQuery('');
       const targetGal = galleries.find(g => g.id === initialGalleryId);
       if (targetGal && activeTenure && targetGal.tenureId !== activeTenure.id) {
         setTenureFilter('all');
+      }
+      const targetIdx = galleries.findIndex(g => g.id === initialGalleryId);
+      if (targetIdx !== -1) {
+        setGalleryPage(Math.floor(targetIdx / 6) + 1);
       }
     }
   }, [initialGalleryId, galleries, activeTenure]);
