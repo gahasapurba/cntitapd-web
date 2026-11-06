@@ -615,49 +615,79 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
                                 className="glass-panel-hover"
                                 style={{
                                   display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '8px 10px',
+                                  flexDirection: 'column',
+                                  padding: '10px 12px',
                                   borderRadius: 'var(--radius-sm)',
                                   background: 'var(--bg-card)',
                                   border: '1px solid var(--border-card)',
                                   cursor: 'pointer',
-                                  gap: '8px'
+                                  gap: '6px'
                                 }}
                               >
-                                <div style={{ minWidth: 0 }}>
-                                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {member.name}
-                                  </div>
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {member.role}
-                                  </div>
+                                {/* 1. Atas: Badge Role */}
+                                <div>
+                                  <span style={{
+                                    fontSize: '0.64rem',
+                                    fontFamily: 'monospace',
+                                    textTransform: 'uppercase',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: 800,
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    color: 'var(--text-muted)',
+                                    border: '1px solid var(--border-card)'
+                                  }}>
+                                    {member.role || 'Anggota Divisi'}
+                                  </span>
                                 </div>
 
+                                {/* 2. Dibawahnya: Nama */}
+                                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {member.name}
+                                </div>
+
+                                {/* 3. Dibawahnya: Motto */}
+                                {member.motto && (
+                                  <div style={{
+                                    fontSize: '0.72rem',
+                                    color: 'var(--text-dim)',
+                                    fontStyle: 'italic',
+                                    lineHeight: 1.35,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden'
+                                  }}>
+                                    "{member.motto}"
+                                  </div>
+                                )}
+
+                                {/* 4. Dibawahnya: Tombol WA */}
                                 {member.whatsapp && (
-                                  <a
-                                    href={`https://wa.me/${formatWaNumber(member.whatsapp)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    title="Chat WhatsApp"
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: '28px',
-                                      height: '28px',
-                                      borderRadius: '50%',
-                                      background: 'rgba(37, 211, 102, 0.15)',
-                                      border: '1px solid rgba(37, 211, 102, 0.4)',
-                                      color: '#25d366',
-                                      fontSize: '0.85rem',
-                                      flexShrink: 0,
-                                      textDecoration: 'none'
-                                    }}
-                                  >
-                                    💬
-                                  </a>
+                                  <div style={{ marginTop: '2px' }}>
+                                    <a
+                                      href={`https://wa.me/${formatWaNumber(member.whatsapp)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        background: 'rgba(37, 211, 102, 0.15)',
+                                        border: '1px solid rgba(37, 211, 102, 0.4)',
+                                        color: '#25d366',
+                                        padding: '2px 8px',
+                                        borderRadius: 'var(--radius-full)',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 700,
+                                        textDecoration: 'none'
+                                      }}
+                                    >
+                                      <span>💬</span>
+                                      <span>Hubungi WA</span>
+                                    </a>
+                                  </div>
                                 )}
                               </div>
                             ))}

@@ -11,20 +11,24 @@ function formatWaNumber(raw = '') {
 export default function CrewMemberCard({ member, onClick, compact = false }) {
   const [imageError, setImageError] = useState(false);
 
-  const getBorderColor = (role) => {
-    if (role === 'Pembina') return 'rgba(255, 184, 0, 0.8)';
-    if (role === 'Ketua') return 'rgba(255, 184, 0, 0.6)';
-    if (role === 'Wakil Ketua') return 'rgba(56, 189, 248, 0.6)';
-    if (role.startsWith('Sekben')) return 'rgba(192, 132, 252, 0.6)';
-    return 'rgba(56, 189, 248, 0.4)';
+  const getBorderColor = (role = '') => {
+    const rLower = String(role).toLowerCase();
+    if (rLower === 'pembina') return 'rgba(255, 184, 0, 0.8)';
+    if (rLower === 'ketua') return 'rgba(255, 184, 0, 0.6)';
+    if (rLower.includes('wakil')) return 'rgba(56, 189, 248, 0.6)';
+    if (rLower.includes('sekben') || rLower.includes('sekretaris') || rLower.includes('bendahara')) return 'rgba(192, 132, 252, 0.6)';
+    if (rLower.includes('pimpro')) return 'rgba(56, 189, 248, 0.6)';
+    return member?.color || 'rgba(56, 189, 248, 0.4)';
   };
 
-  const getBadgeStyle = (role) => {
-    if (role === 'Pembina') return { background: 'rgba(255, 184, 0, 0.2)', color: '#fde047', border: '1px solid rgba(255, 184, 0, 0.5)' };
-    if (role === 'Ketua') return { background: 'rgba(255, 184, 0, 0.2)', color: '#fde047', border: '1px solid rgba(255, 184, 0, 0.4)' };
-    if (role === 'Wakil Ketua') return { background: 'rgba(56, 189, 248, 0.2)', color: '#7dd3fc', border: '1px solid rgba(56, 189, 248, 0.4)' };
-    if (role.startsWith('Sekben')) return { background: 'rgba(192, 132, 252, 0.2)', color: '#e9d5ff', border: '1px solid rgba(192, 132, 252, 0.4)' };
-    return { background: 'rgba(56, 189, 248, 0.2)', color: '#7dd3fc', border: '1px solid rgba(56, 189, 248, 0.4)' };
+  const getBadgeStyle = (role = '') => {
+    const rLower = String(role).toLowerCase();
+    if (rLower === 'pembina') return { background: 'rgba(255, 184, 0, 0.2)', color: '#fde047', border: '1px solid rgba(255, 184, 0, 0.5)' };
+    if (rLower === 'ketua') return { background: 'rgba(255, 184, 0, 0.2)', color: '#fde047', border: '1px solid rgba(255, 184, 0, 0.4)' };
+    if (rLower.includes('wakil')) return { background: 'rgba(56, 189, 248, 0.2)', color: '#7dd3fc', border: '1px solid rgba(56, 189, 248, 0.4)' };
+    if (rLower.includes('sekben') || rLower.includes('sekretaris') || rLower.includes('bendahara')) return { background: 'rgba(192, 132, 252, 0.2)', color: '#e9d5ff', border: '1px solid rgba(192, 132, 252, 0.4)' };
+    if (rLower.includes('pimpro')) return { background: 'rgba(56, 189, 248, 0.2)', color: '#7dd3fc', border: '1px solid rgba(56, 189, 248, 0.4)' };
+    return { background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-main)', border: '1px solid var(--border-card)' };
   };
 
   return (
@@ -111,27 +115,30 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
           </div>
 
           <h3 style={{
-            fontSize: compact ? '0.88rem' : '1.05rem',
+            fontSize: compact ? '0.92rem' : '1.05rem',
             fontWeight: 800,
             color: 'var(--text-main)',
             lineHeight: 1.25,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            textOverflow: 'ellipsis',
+            margin: 0
           }}>
             {member.name}
           </h3>
 
-          {!compact && member.motto && (
+          {member.motto && (
             <p style={{
-              fontSize: '0.75rem',
+              fontSize: '0.74rem',
               color: 'var(--text-dim)',
               fontStyle: 'italic',
               marginTop: '4px',
+              marginBottom: 0,
               display: '-webkit-box',
-              WebkitLineClamp: 1,
+              WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              lineHeight: 1.35
             }}>
               "{member.motto}"
             </p>
