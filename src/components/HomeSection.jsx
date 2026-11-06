@@ -616,9 +616,6 @@ export default function HomeSection({
                   <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
                     {person.name}
                   </h4>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                    {person.title}
-                  </div>
                 </div>
               </div>
             ))}
