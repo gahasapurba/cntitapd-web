@@ -85,14 +85,16 @@ export default function GallerySection({
     filteredGalleries[0] ||
     null;
 
+  const eventPhotos = Array.isArray(activeEvent?.photos) ? activeEvent.photos : [];
+
   const nextPhoto = () => {
-    if (!activeEvent?.photos || activeEvent.photos.length <= 1) return;
-    setCurrentPhotoIdx((prev) => (prev + 1) % activeEvent.photos.length);
+    if (eventPhotos.length <= 1) return;
+    setCurrentPhotoIdx((prev) => (prev + 1) % eventPhotos.length);
   };
 
   const prevPhoto = () => {
-    if (!activeEvent?.photos || activeEvent.photos.length <= 1) return;
-    setCurrentPhotoIdx((prev) => (prev - 1 + activeEvent.photos.length) % activeEvent.photos.length);
+    if (eventPhotos.length <= 1) return;
+    setCurrentPhotoIdx((prev) => (prev - 1 + eventPhotos.length) % eventPhotos.length);
   };
 
   useEffect(() => {
@@ -108,10 +110,10 @@ export default function GallerySection({
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isLightboxOpen, activeEvent]);
+  }, [isLightboxOpen, activeEvent, eventPhotos.length]);
 
-  const safePhotoIdx = activeEvent?.photos && currentPhotoIdx < activeEvent.photos.length ? currentPhotoIdx : 0;
-  const currentPhotoUrl = activeEvent?.photos?.[safePhotoIdx] || activeEvent?.photos?.[0] || '';
+  const safePhotoIdx = eventPhotos.length > 0 && currentPhotoIdx < eventPhotos.length ? currentPhotoIdx : 0;
+  const currentPhotoUrl = eventPhotos[safePhotoIdx] || eventPhotos[0] || '/assets/CNT_IT_APD_LOGO_SUITE/01-APD Master Brand Logo.png';
 
   const getDownloadPhotoUrl = (url) => {
     if (!url || typeof url !== 'string') return '';
@@ -386,7 +388,7 @@ export default function GallerySection({
           </div>
 
           {/* Navigation Arrows */}
-          {activeEvent.photos.length > 1 && (
+          {eventPhotos.length > 1 && (
             <>
               <button
                 onClick={prevPhoto}
@@ -455,7 +457,7 @@ export default function GallerySection({
             WebkitBackdropFilter: 'blur(6px)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
           }}>
-            {safePhotoIdx + 1} / {activeEvent.photos.length} Foto
+            {safePhotoIdx + 1} / {eventPhotos.length} Foto
           </div>
         </div>
 
@@ -591,7 +593,7 @@ export default function GallerySection({
         </div>
 
         {/* Thumbnail Selector */}
-        {activeEvent.photos.length > 1 && (
+        {eventPhotos.length > 1 && (
           <div style={{
             display: 'flex',
             gap: '10px',
@@ -599,7 +601,7 @@ export default function GallerySection({
             paddingTop: '8px',
             borderTop: '1px solid var(--border-card)'
           }}>
-            {activeEvent.photos.map((photo, pIdx) => (
+            {eventPhotos.map((photo, pIdx) => (
               <img 
                 key={pIdx}
                 src={photo}
@@ -1037,7 +1039,7 @@ export default function GallerySection({
                 {activeEvent.title}
               </div>
               <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)' }}>
-                Foto {currentPhotoIdx + 1} dari {activeEvent.photos.length} • {formatWibDateTime(activeEvent.date)}
+                Foto {currentPhotoIdx + 1} dari {eventPhotos.length} • {formatWibDateTime(activeEvent.date)}
               </div>
             </div>
 
@@ -1139,7 +1141,7 @@ export default function GallerySection({
               justifyContent: 'center'
             }}
           >
-            {activeEvent.photos.length > 1 && (
+            {eventPhotos.length > 1 && (
               <button
                 type="button"
                 onClick={prevPhoto}
@@ -1177,7 +1179,7 @@ export default function GallerySection({
               }}
             />
 
-            {activeEvent.photos.length > 1 && (
+            {eventPhotos.length > 1 && (
               <button
                 type="button"
                 onClick={nextPhoto}

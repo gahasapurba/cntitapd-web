@@ -162,6 +162,7 @@ export default function AdminPortal({
   onRestoreBackup,
   theme = 'dark'
 }) {
+  const isDark = theme === 'dark';
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
       return sessionStorage.getItem('cnt_admin_auth_session') === 'authenticated_v2';

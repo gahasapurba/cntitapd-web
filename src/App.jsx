@@ -4,6 +4,7 @@ import StarfieldBackground from './components/StarfieldBackground';
 import Navbar from './components/Navbar';
 import HomeSection from './components/HomeSection';
 import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const OrganizationSection = lazy(() => import('./components/OrganizationSection'));
 const ProgramSection = lazy(() => import('./components/ProgramSection'));
@@ -1290,7 +1291,8 @@ export default function App() {
             </div>
           }
         >
-          {effectiveTab === 'organisasi' && (
+          <ErrorBoundary onResetTab={() => setCurrentTab('home')}>
+            {effectiveTab === 'organisasi' && (
             <OrganizationSection
               activeTenure={activeTenure}
               divisions={divisions}
@@ -1430,6 +1432,7 @@ export default function App() {
               theme={theme}
             />
           )}
+          </ErrorBoundary>
         </Suspense>
       </main>
 
