@@ -24,7 +24,16 @@ function formatWaNumber(raw = '') {
   return digits;
 }
 
-export default function OrganizationSection({ activeTenure, divisions, members, events = [], roleQuotas = {}, tenureRoles = [], onNavigateProgram }) {
+export default function OrganizationSection({
+  activeTenure,
+  divisions,
+  members,
+  events = [],
+  roleQuotas = {},
+  tenureRoles = [],
+  isEventPageVisible = true,
+  onNavigateProgram
+}) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -915,18 +924,36 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
               ))}
             </div>
 
-            {/* Related Division Programs in Member Detail Modal */}
+            {/* Related Division Programs in Member Detail Modal (hanya untuk role dengan divisi & saat page event aktif) */}
             {(() => {
-              const relatedEvents = (events || []).filter(e =>
-                e.tenureId === activeTenure?.id &&
-                (selectedMember.divisionId ? e.divisionId === selectedMember.divisionId : true)
-              ).slice(0, 3);
+              if (!isEventPageVisible) return null;
+
+              const memberRoleObj = findMatchingRole(selectedMember, currentTenureRoles);
+              const roleRequiresDivision = memberRoleObj
+                ? Boolean(memberRoleObj.requiresDivision)
+                : (selectedMember.category === 'pimpro' || selectedMember.category === 'anggota');
+
+              // Hanya muncul untuk role yang membutuhkan divisi
+              if (!roleRequiresDivision) return null;
+              if (!selectedMember.divisionId) return null;
+
+              const relatedEvents = (events || []).filter(e => {
+                const matchTenure = !activeTenure?.id || e.tenureId === activeTenure.id;
+                const matchDiv = e.divisionId === selectedMember.divisionId ||
+                  (selectedMember.division && (e.division === selectedMember.division || e.divisionName === selectedMember.division));
+                return matchTenure && matchDiv;
+              }).slice(0, 5);
+
               if (relatedEvents.length === 0) return null;
+
+              const divObj = (divisions || []).find(d => d.id === selectedMember.divisionId);
+              const divName = divObj?.name || selectedMember.division || 'Divisi';
+
               return (
                 <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--border-card)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                     <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', textTransform: 'uppercase', color: 'var(--neon-cyan)', fontWeight: 800 }}>
-                      📅 Event & Agenda Terkait ({relatedEvents.length}):
+                      📅 Event & Agenda {divName} ({relatedEvents.length}):
                     </span>
                     {onNavigateProgram && (
                       <button

@@ -1361,6 +1361,7 @@ export default function App() {
               events={events}
               roleQuotas={roleQuotas}
               tenureRoles={tenureRoles}
+              isEventPageVisible={isPageVisible('event')}
               onNavigateProgram={isPageVisible('event') ? () => setCurrentTab('event') : undefined}
               theme={theme}
             />
