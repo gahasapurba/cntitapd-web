@@ -10,12 +10,12 @@
  */
 
 export const LEVEL_OPTIONS = [
-  { level: 0, label: 'Level 0: Dewan Penasehat (Puncak Tertinggi Bagan)', shortLabel: 'Level 0 (Penasehat)', defaultCategory: 'penasehat' },
-  { level: 1, label: 'Level 1: Pembina / Advisor', shortLabel: 'Level 1 (Pembina)', defaultCategory: 'pembina' },
-  { level: 2, label: 'Level 2: Ketua & Wakil Ketua (Pimpinan Inti)', shortLabel: 'Level 2 (Ketua/Wakil)', defaultCategory: 'inti' },
-  { level: 3, label: 'Level 3: BPH / Pengurus Harian (Sekben, Sekjen, Bendahara, dll.)', shortLabel: 'Level 3 (BPH/Inti)', defaultCategory: 'inti' },
-  { level: 4, label: 'Level 4: Pimpinan Divisi / Pimpro / Koordinator', shortLabel: 'Level 4 (Pimpro)', defaultCategory: 'pimpro' },
-  { level: 5, label: 'Level 5: Anggota Divisi / Staff', shortLabel: 'Level 5 (Anggota)', defaultCategory: 'anggota' }
+  { level: 0, label: 'Level 0 (Tingkat Puncak Bagan)', shortLabel: 'Level 0', defaultCategory: 'penasehat' },
+  { level: 1, label: 'Level 1 (Tingkat Pembina / Advisor)', shortLabel: 'Level 1', defaultCategory: 'pembina' },
+  { level: 2, label: 'Level 2 (Tingkat Pimpinan)', shortLabel: 'Level 2', defaultCategory: 'inti' },
+  { level: 3, label: 'Level 3 (Tingkat BPH / Pengurus Harian)', shortLabel: 'Level 3', defaultCategory: 'inti' },
+  { level: 4, label: 'Level 4 (Tingkat Pimpinan Divisi)', shortLabel: 'Level 4', defaultCategory: 'pimpro' },
+  { level: 5, label: 'Level 5 (Tingkat Anggota Divisi)', shortLabel: 'Level 5', defaultCategory: 'anggota' }
 ];
 
 export const DEFAULT_TENURE_ROLES = [
@@ -42,10 +42,10 @@ export function getCategoryFromLevel(level) {
 
 /**
  * Format label dropdown tingkatan organigram dengan menampilkan role database setelah tanda titik dua (:).
+ * Jika di database belum ada role pada level tersebut, menampilkan "(Belum ada role)" - tanpa teks role bawaan.
  */
 export function formatLevelOptionLabel(lvl, tenureRoles = [], targetTenureId = null, short = false) {
   const levelNum = typeof lvl === 'object' ? lvl.level : Number(lvl);
-  const baseLvlObj = LEVEL_OPTIONS.find(l => l.level === levelNum) || { level: levelNum, label: `Level ${levelNum}`, shortLabel: `Level ${levelNum}` };
 
   const rolesInTenure = targetTenureId
     ? (tenureRoles || []).filter(r => r.tenureId === targetTenureId)
@@ -59,7 +59,10 @@ export function formatLevelOptionLabel(lvl, tenureRoles = [], targetTenureId = n
       : `Level ${levelNum}: ${roleNames.join(', ')}`;
   }
 
-  return short ? baseLvlObj.shortLabel : baseLvlObj.label;
+  // Jika di database belum ada role terdaftar untuk level ini pada periode terpilih:
+  return short 
+    ? `Level ${levelNum}` 
+    : `Level ${levelNum}: (Belum ada role)`;
 }
 
 /**
