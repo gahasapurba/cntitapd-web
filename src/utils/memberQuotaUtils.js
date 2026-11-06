@@ -44,7 +44,45 @@ export function getCategoryFromLevel(level) {
  * Mengambil daftar role resmi untuk tenure tertentu dari konfigurasi cloud/local.
  * Jika belum ada atau masih format lama, otomatis dikonversi/fallback dengan aman.
  */
-export function getTenureRoles(tenureId, roleQuotas = {}) {
+export function getTenureRoles(tenureId, roleQuotas = {}, tenureRoles = []) {
+  // 1. Jika argumen roleQuotas berupa array langsung (daftar tenureRoles)
+  if (Array.isArray(roleQuotas) && roleQuotas.length > 0) {
+    const fromArray = roleQuotas.filter(r => !tenureId || r.tenureId === tenureId);
+    if (fromArray.length > 0) {
+      return fromArray.map((r, idx) => ({
+        id: r.id || `role-${idx}`,
+        tenureId: r.tenureId || tenureId,
+        name: String(r.name || 'Jabatan').trim(),
+        level: Number(r.level ?? 5),
+        max: Number(r.max ?? r.maxQuota ?? 0),
+        maxQuota: Number(r.maxQuota ?? r.max ?? 0),
+        requiresDivision: Boolean(r.requiresDivision),
+        sortOrder: Number(r.sortOrder ?? idx),
+        createdAt: r.createdAt || '',
+        updatedAt: r.updatedAt || r.createdAt || null
+      }));
+    }
+  }
+
+  // 2. Jika argumen ke-3 tenureRoles berupa array
+  if (Array.isArray(tenureRoles) && tenureRoles.length > 0) {
+    const fromArray = tenureRoles.filter(r => !tenureId || r.tenureId === tenureId);
+    if (fromArray.length > 0) {
+      return fromArray.map((r, idx) => ({
+        id: r.id || `role-${idx}`,
+        tenureId: r.tenureId || tenureId,
+        name: String(r.name || 'Jabatan').trim(),
+        level: Number(r.level ?? 5),
+        max: Number(r.max ?? r.maxQuota ?? 0),
+        maxQuota: Number(r.maxQuota ?? r.max ?? 0),
+        requiresDivision: Boolean(r.requiresDivision),
+        sortOrder: Number(r.sortOrder ?? idx),
+        createdAt: r.createdAt || '',
+        updatedAt: r.updatedAt || r.createdAt || null
+      }));
+    }
+  }
+
   const config = (roleQuotas && typeof roleQuotas === 'object' && roleQuotas[tenureId])
     ? roleQuotas[tenureId]
     : ((roleQuotas && typeof roleQuotas === 'object' && roleQuotas.default) || null);
@@ -53,10 +91,15 @@ export function getTenureRoles(tenureId, roleQuotas = {}) {
   if (config && Array.isArray(config.roles) && config.roles.length > 0) {
     return config.roles.map((r, idx) => ({
       id: r.id || `role-${idx}-${Date.now()}`,
+      tenureId: r.tenureId || tenureId,
       name: String(r.name || 'Jabatan').trim(),
       level: Number(r.level ?? 5),
-      max: Number(r.max ?? 0),
-      requiresDivision: Boolean(r.requiresDivision)
+      max: Number(r.max ?? r.maxQuota ?? 0),
+      maxQuota: Number(r.maxQuota ?? r.max ?? 0),
+      requiresDivision: Boolean(r.requiresDivision),
+      sortOrder: Number(r.sortOrder ?? idx),
+      createdAt: r.createdAt || '',
+      updatedAt: r.updatedAt || r.createdAt || null
     }));
   }
 

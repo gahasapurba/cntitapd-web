@@ -47,7 +47,8 @@ const TABLE_MAP = {
   submissions: 'submissions',
   brandAssets: 'brand_assets',
   eventRsvps: 'event_rsvps',
-  faqs: 'faqs'
+  faqs: 'faqs',
+  tenureRoles: 'tenure_roles'
 };
 
 let isGalleryDivisionIdChecked = false;
@@ -112,7 +113,21 @@ export async function checkDepartmentsTable() {
   return isDepartmentsTableSupported;
 }
 
-const supportedUpdatedAtTables = new Set(['brand_assets', 'event_rsvps', 'faqs']);
+let isTenureRolesTableChecked = false;
+let isTenureRolesTableSupported = false;
+
+export async function checkTenureRolesTable() {
+  try {
+    const { error } = await supabase.from('tenure_roles').select('id').limit(1);
+    isTenureRolesTableSupported = !error;
+    isTenureRolesTableChecked = true;
+  } catch (e) {
+    isTenureRolesTableSupported = false;
+  }
+  return isTenureRolesTableSupported;
+}
+
+const supportedUpdatedAtTables = new Set(['brand_assets', 'event_rsvps', 'faqs', 'tenure_roles']);
 
 export async function checkTableUpdatedAtColumn(tableName) {
   if (!tableName) return false;
@@ -338,6 +353,31 @@ export const rowMappers = {
       focusAreas: Array.isArray(row.focus_areas) ? row.focus_areas : [],
       isRecruiting: Boolean(row.is_recruiting),
       createdAt: row.created_at || null,
+      updatedAt: row.updated_at || row.created_at || null
+    })
+  },
+
+  tenureRoles: {
+    toDb: (item, idx = 0) => ({
+      id: String(item.id),
+      tenure_id: item.tenureId || null,
+      name: item.name || '',
+      level: Number(item.level ?? 5),
+      max_quota: Number(item.maxQuota ?? item.max ?? 0),
+      requires_division: Boolean(item.requiresDivision),
+      sort_order: Number(item.sortOrder ?? idx),
+      updated_at: new Date().toISOString()
+    }),
+    fromDb: (row) => ({
+      id: row.id,
+      tenureId: row.tenure_id || '',
+      name: row.name || '',
+      level: Number(row.level ?? 5),
+      max: Number(row.max_quota ?? 0),
+      maxQuota: Number(row.max_quota ?? 0),
+      requiresDivision: Boolean(row.requires_division),
+      sortOrder: row.sort_order ?? 0,
+      createdAt: row.created_at || '',
       updatedAt: row.updated_at || row.created_at || null
     })
   },
@@ -713,7 +753,8 @@ export async function fetchAllCloudState() {
       checkFormsTenureColumn(),
       checkRsvpsDepartmentColumn(),
       checkDivisionsSchema(),
-      checkDepartmentsTable()
+      checkDepartmentsTable(),
+      checkTenureRolesTable()
     ]);
     const [
       tenuresRes,
@@ -729,6 +770,7 @@ export async function fetchAllCloudState() {
       eventRsvpsRes,
       faqsRes,
       departmentsRes,
+      tenureRolesRes,
       settingsRes
     ] = await Promise.all([
       supabase.from('tenures').select('*').order('sort_order', { ascending: true }),
@@ -744,6 +786,7 @@ export async function fetchAllCloudState() {
       supabase.from('event_rsvps').select('*').order('created_at', { ascending: false }),
       supabase.from('faqs').select('*').order('sort_order', { ascending: true }),
       isDepartmentsTableSupported ? supabase.from('departments').select('*').order('sort_order', { ascending: true }) : Promise.resolve({ data: null, error: null }),
+      isTenureRolesTableSupported ? supabase.from('tenure_roles').select('*').order('sort_order', { ascending: true }) : Promise.resolve({ data: null, error: null }),
       supabase.from('page_settings').select('*')
     ]);
 
@@ -800,6 +843,10 @@ export async function fetchAllCloudState() {
     if (departmentsRes && !departmentsRes.error && Array.isArray(departmentsRes.data)) {
       result.departments = departmentsRes.data.map(rowMappers.departments.fromDb);
       saveLocalCache('departments', result.departments);
+    }
+    if (tenureRolesRes && !tenureRolesRes.error && Array.isArray(tenureRolesRes.data) && tenureRolesRes.data.length > 0) {
+      result.tenureRoles = tenureRolesRes.data.map(rowMappers.tenureRoles.fromDb);
+      saveLocalCache('tenureRoles', result.tenureRoles);
     }
     if (!settingsRes.error && Array.isArray(settingsRes.data)) {
       for (const row of settingsRes.data) {
@@ -915,6 +962,20 @@ export async function pushCloudState(key, value) {
     if (key === 'departments') {
       const supported = await checkDepartmentsTable();
       if (!supported) return true;
+    }
+    if (key === 'tenureRoles') {
+      const supported = await checkTenureRolesTable();
+      if (!supported) {
+        // Fallback sync to page_settings.role_quotas
+        const grouped = {};
+        (value || []).forEach(r => {
+          const tId = r.tenureId || 'default';
+          if (!grouped[tId]) grouped[tId] = { roles: [] };
+          grouped[tId].roles.push(r);
+        });
+        await pushRoleQuotas(grouped);
+        return true;
+      }
     }
 
     // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically

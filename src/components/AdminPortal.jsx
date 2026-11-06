@@ -170,6 +170,10 @@ export default function AdminPortal({
   onUpdateAnnouncementBar,
   roleQuotas = {},
   onUpdateRoleQuotas,
+  tenureRoles = [],
+  onAddTenureRole,
+  onUpdateTenureRole,
+  onDeleteTenureRole,
   syncStatus = 'synced',
   onForceSync,
   onResetDefault,
@@ -248,6 +252,17 @@ export default function AdminPortal({
   const [roleDeleteWarning, setRoleDeleteWarning] = useState(null);
 
   // Search & Filter states for Members in Admin
+  // Form & filter states for Role Management
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleTenureId, setNewRoleTenureId] = useState(activeTenure?.id || '');
+  const [newRoleLevel, setNewRoleLevel] = useState(5);
+  const [newRoleMax, setNewRoleMax] = useState(0);
+  const [newRoleRequiresDivision, setNewRoleRequiresDivision] = useState(false);
+  const [roleSearchQuery, setRoleSearchQuery] = useState('');
+  const [roleTenureFilter, setRoleTenureFilter] = useState('all');
+  const [roleLevelFilter, setRoleLevelFilter] = useState('all');
+  const [rolePage, setRolePage] = useState(1);
+
   const [adminMemSearch, setAdminMemSearch] = useState('');
   const [adminMemCatFilter, setAdminMemCatFilter] = useState('all');
   const [adminMemDivFilter, setAdminMemDivFilter] = useState('all');
@@ -651,7 +666,7 @@ export default function AdminPortal({
     if (!memName.trim()) errs.memName = 'Nama Lengkap pengurus/anggota wajib diisi';
 
     const targetTenureId = memTenureId || activeTenure?.id || '';
-    const tenureRoles = getTenureRoles(targetTenureId, roleQuotas);
+    const tenureRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
     const selectedRole = tenureRoles.find(r => r.id === memRoleId) || 
       tenureRoles.find(r => r.name.toLowerCase() === (memRole || '').toLowerCase()) ||
       tenureRoles[0];
@@ -747,7 +762,7 @@ export default function AdminPortal({
       showToast('Nama Jabatan/Role wajib diisi', 'error');
       return;
     }
-    const currentRoles = getTenureRoles(targetTenureId, roleQuotas);
+    const currentRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
     let updatedRoles;
     if (roleData.id) {
       updatedRoles = currentRoles.map(r => r.id === roleData.id ? {
@@ -794,7 +809,7 @@ export default function AdminPortal({
       });
       return;
     }
-    const currentRoles = getTenureRoles(targetTenureId, roleQuotas);
+    const currentRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
     const updatedRoles = currentRoles.filter(r => r.id !== roleToDelete.id);
     const updatedQuotas = {
       ...(roleQuotas || {}),
@@ -853,6 +868,47 @@ export default function AdminPortal({
     setNewDivDesc('');
     setNewDivFocus('');
     showToast(`Divisi "${savedDiv}" berhasil ditambahkan & disinkronkan!`);
+  };
+
+  const handleCreateRole = (e) => {
+    e.preventDefault();
+    if (!newRoleName.trim()) {
+      setFormErrors((prev) => ({ ...prev, newRoleName: 'Nama Jabatan / Role wajib diisi' }));
+      showToast('Mohon isi Nama Jabatan terlebih dahulu', 'error');
+      return;
+    }
+    const targetTenureId = newRoleTenureId || activeTenure?.id || tenures[0]?.id || '';
+    const isDuplicate = (tenureRoles || []).some(
+      (r) => r.tenureId === targetTenureId && r.name.toLowerCase().trim() === newRoleName.toLowerCase().trim()
+    );
+    if (isDuplicate) {
+      setFormErrors((prev) => ({ ...prev, newRoleName: 'Role dengan nama ini sudah terdaftar pada periode tersebut' }));
+      showToast('Role dengan nama ini sudah terdaftar pada periode tersebut', 'error');
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    if (onAddTenureRole) {
+      onAddTenureRole({
+        id: `role-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        tenureId: targetTenureId,
+        name: newRoleName.trim(),
+        level: Number(newRoleLevel ?? 5),
+        max: Number(newRoleMax ?? 0),
+        maxQuota: Number(newRoleMax ?? 0),
+        requiresDivision: Boolean(newRoleRequiresDivision),
+        sortOrder: tenureRoles.length,
+        createdAt: nowIso,
+        updatedAt: nowIso
+      });
+    }
+
+    const savedRole = newRoleName;
+    setNewRoleName('');
+    setNewRoleMax(0);
+    setNewRoleRequiresDivision(false);
+    clearFieldError('newRoleName');
+    showToast(`Role "${savedRole}" berhasil ditambahkan & disinkronkan ke Cloud!`);
   };
 
   const handleCreateDepartment = (e) => {
@@ -1923,6 +1979,7 @@ export default function AdminPortal({
       }}>
         {[
           { id: 'members', label: `Pengurus & Anggota (${members.length})`, icon: Users },
+          { id: 'roles', label: `Role & Jabatan (${tenureRoles.length})`, icon: Shield },
           { id: 'visibility', label: 'Visibilitas Halaman & Navbar', icon: Eye },
           { id: 'events', label: `Event (${events.length})`, icon: CalendarDays },
           { id: 'forms', label: `Kelola Formulir (${forms.length})`, icon: ClipboardList },
@@ -2518,7 +2575,7 @@ export default function AdminPortal({
               </div>
               {(() => {
                 const currentTenureId = memTenureId || activeTenure?.id || '';
-                const tenureRoles = getTenureRoles(currentTenureId, roleQuotas);
+                const tenureRoles = getTenureRoles(currentTenureId, roleQuotas, tenureRoles);
                 const currentRoleObj = tenureRoles.find(r => r.id === memRoleId) || 
                   tenureRoles.find(r => r.name.toLowerCase() === (memRole || '').toLowerCase()) ||
                   null;
@@ -2575,7 +2632,7 @@ export default function AdminPortal({
             {/* DIVISI PENUGASAN: HANYA MUNCUL JIKA ROLE MEMBUTUHKAN DIVISI */}
             {(() => {
               const currentTenureId = memTenureId || activeTenure?.id || '';
-              const tenureRoles = getTenureRoles(currentTenureId, roleQuotas);
+              const tenureRoles = getTenureRoles(currentTenureId, roleQuotas, tenureRoles);
               const currentRoleObj = tenureRoles.find(r => r.id === memRoleId) || 
                 tenureRoles.find(r => r.name.toLowerCase() === (memRole || '').toLowerCase()) ||
                 null;
@@ -2633,7 +2690,7 @@ export default function AdminPortal({
             {/* RINGKASAN STATUS KUOTA PERIODE (COMPACT & RAPI) */}
             {(() => {
               const currentTenureId = memTenureId || activeTenure?.id || '';
-              const tenureRoles = getTenureRoles(currentTenureId, roleQuotas);
+              const tenureRoles = getTenureRoles(currentTenureId, roleQuotas, tenureRoles);
               const tenureObj = tenures.find(t => t.id === currentTenureId);
               const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Ini';
               const targetMembers = members.filter(m => !currentTenureId || m.tenureId === currentTenureId);
@@ -3010,6 +3067,522 @@ export default function AdminPortal({
           })()}
         </div>
       )}
+
+      {/* TAB CONTENT: STRUKTUR ROLE & JABATAN */}
+      {activeTab === 'roles' && (() => {
+        const ROLES_PER_PAGE = 8;
+        const filteredRoles = (tenureRoles || []).filter(r => {
+          const matchQuery = (r.name || '').toLowerCase().includes(roleSearchQuery.toLowerCase());
+          const matchTenure = roleTenureFilter === 'all' || r.tenureId === roleTenureFilter;
+          const matchLevel = roleLevelFilter === 'all' || String(r.level) === String(roleLevelFilter);
+          return matchQuery && matchTenure && matchLevel;
+        });
+
+        const totalRolePages = Math.ceil(filteredRoles.length / ROLES_PER_PAGE) || 1;
+        const safeRolePage = Math.min(Math.max(1, rolePage), totalRolePages);
+        const paginatedRoles = filteredRoles.slice(
+          (safeRolePage - 1) * ROLES_PER_PAGE,
+          safeRolePage * ROLES_PER_PAGE
+        );
+
+        return (
+          <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
+                Manajemen Struktur Role & Batasan Kuota ({tenureRoles.length})
+              </h3>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
+                Kelola jabatan/role organisasi per periode kepengurusan lengkap dengan kuota maksimal, tingkatan organigram (Level 0–5), dan kewajiban penugasan divisi.
+              </p>
+            </div>
+
+            {/* Form Tambah Role Baru */}
+            <form onSubmit={handleCreateRole} noValidate className="admin-form-two-col" style={{
+              background: 'rgba(255,255,255,0.03)',
+              padding: '20px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-card)',
+              gap: '14px'
+            }}>
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Nama Jabatan / Role <span style={{ color: '#f43f5e' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Sekretaris Jenderal, Wakil Pimpro, Dewan Penasehat"
+                  value={newRoleName}
+                  onChange={(e) => {
+                    setNewRoleName(e.target.value);
+                    clearFieldError('newRoleName');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: `1.5px solid ${formErrors.newRoleName ? '#f43f5e' : 'var(--input-border)'}`,
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                />
+                {renderFieldError('newRoleName')}
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Periode Kepengurusan <span style={{ color: '#f43f5e' }}>*</span>
+                </label>
+                <select
+                  value={newRoleTenureId || activeTenure?.id || tenures[0]?.id || ''}
+                  onChange={(e) => setNewRoleTenureId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {tenures.map(t => (
+                    <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Tingkatan di Bagan Organigram <span style={{ color: '#f43f5e' }}>*</span>
+                </label>
+                <select
+                  value={newRoleLevel}
+                  onChange={(e) => setNewRoleLevel(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {LEVEL_OPTIONS.map(lvl => (
+                    <option key={lvl.level} value={lvl.level}>{lvl.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Batas Maksimal Kuota Personel (0 = Tanpa Batas)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0 = Unlimited"
+                    value={newRoleMax}
+                    onChange={(e) => setNewRoleMax(parseInt(e.target.value) || 0)}
+                    style={{
+                      width: '110px',
+                      padding: '9px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--input-border)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {newRoleMax > 0 ? `orang per ${newRoleRequiresDivision ? 'divisi' : 'periode'}` : 'orang (Tanpa Batas / Unlimited)'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{
+                gridColumn: 'span 2',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border-card)'
+              }}>
+                <input
+                  type="checkbox"
+                  id="newRoleRequiresDiv"
+                  checked={newRoleRequiresDivision}
+                  onChange={(e) => setNewRoleRequiresDivision(e.target.checked)}
+                  style={{ width: '17px', height: '17px', cursor: 'pointer' }}
+                />
+                <label htmlFor="newRoleRequiresDiv" style={{ fontSize: '0.82rem', color: 'var(--text-main)', cursor: 'pointer', lineHeight: 1.4 }}>
+                  <strong>Memerlukan Pilihan Divisi Penugasan</strong>
+                  <span style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    Centang opsi ini jika personel dengan jabatan ini wajib ditempatkan di divisi tertentu (contoh: Pimpro, Anggota Divisi).
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--mandiri-gold)',
+                    border: 'none',
+                    color: '#040914',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 14px rgba(255, 184, 0, 0.35)'
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Tambah Role Baru</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Filter & Search Bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--border-card)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 240px' }}>
+                <Search size={16} color="var(--text-muted)" />
+                <input
+                  type="text"
+                  placeholder="Cari nama jabatan / role..."
+                  value={roleSearchQuery}
+                  onChange={(e) => {
+                    setRoleSearchQuery(e.target.value);
+                    setRolePage(1);
+                  }}
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-main)',
+                    fontSize: '0.84rem',
+                    outline: 'none'
+                  }}
+                />
+                {roleSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setRoleSearchQuery(''); setRolePage(1); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Periode:</label>
+                  <select
+                    value={roleTenureFilter}
+                    onChange={(e) => { setRoleTenureFilter(e.target.value); setRolePage(1); }}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.78rem'
+                    }}
+                  >
+                    <option value="all">Semua Periode ({tenureRoles.length})</option>
+                    {tenures.map(t => (
+                      <option key={t.id} value={t.id}>{t.title || t.code}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Tingkat:</label>
+                  <select
+                    value={roleLevelFilter}
+                    onChange={(e) => { setRoleLevelFilter(e.target.value); setRolePage(1); }}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-card)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.78rem'
+                    }}
+                  >
+                    <option value="all">Semua Tingkat</option>
+                    {LEVEL_OPTIONS.map(lvl => (
+                      <option key={lvl.level} value={String(lvl.level)}>{lvl.shortLabel}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Table Daftar Role */}
+            <div style={{ border: '1px solid var(--border-card)', borderRadius: 'var(--radius-md)', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255, 255, 255, 0.04)', borderBottom: '1px solid var(--border-card)' }}>
+                    <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Jabatan / Role</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Kepengurusan</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Tingkat Organigram</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Kuota Maks</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Perlu Divisi?</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Terisi</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>Terakhir Diperbarui</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'right' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedRoles.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        Tidak ada role yang sesuai dengan filter pencarian.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedRoles.map((role) => {
+                      const levelInfo = LEVEL_OPTIONS.find(l => l.level === role.level);
+                      const tObj = tenures.find(t => t.id === role.tenureId);
+                      const targetMembers = members.filter(m => (!role.tenureId || m.tenureId === role.tenureId));
+                      const matched = targetMembers.filter(m => {
+                        if (m.roleId && m.roleId === role.id) return true;
+                        const mRole = String(m.role || '').toLowerCase().trim();
+                        const rName = role.name.toLowerCase().trim();
+                        return mRole === rName || (role.requiresDivision && mRole.startsWith(rName));
+                      });
+                      const count = matched.length;
+                      const maxQ = Number(role.maxQuota ?? role.max ?? 0);
+                      const isFull = maxQ > 0 && count >= maxQ;
+                      const occNames = matched.map(m => m.name).join(', ');
+
+                      return (
+                        <tr key={role.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                          <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--text-main)' }}>
+                            {role.name}
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(255,255,255,0.05)',
+                              color: 'var(--text-main)',
+                              fontSize: '0.74rem',
+                              fontWeight: 600
+                            }}>
+                              {tObj?.code || tObj?.title || 'Global'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '3px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: role.level <= 1 ? 'rgba(255, 184, 0, 0.15)' : (role.level <= 3 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.05)'),
+                              color: role.level <= 1 ? 'var(--mandiri-gold)' : (role.level <= 3 ? 'var(--neon-cyan)' : 'var(--text-muted)'),
+                              fontSize: '0.74rem',
+                              fontWeight: 700
+                            }}>
+                              {levelInfo?.shortLabel || `Level ${role.level}`}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 14px', color: 'var(--text-main)' }}>
+                            {maxQ > 0 ? (
+                              <span style={{ fontWeight: 700 }}>{maxQ} orang</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>Unlimited</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            {role.requiresDivision ? (
+                              <span style={{ color: 'var(--neon-cyan)', fontSize: '0.75rem', fontWeight: 600 }}>
+                                ✓ Ya (Per Divisi)
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                — Tidak (Global)
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <span
+                              title={occNames ? `Terisi oleh: ${occNames}` : (maxQ > 0 ? `Tersedia ${maxQ - count} slot` : 'Tanpa batas')}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-full)',
+                                background: isFull ? 'rgba(255, 184, 0, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                color: isFull ? 'var(--mandiri-gold)' : '#10b981',
+                                fontWeight: 700,
+                                fontSize: '0.72rem'
+                              }}
+                            >
+                              {count}{maxQ > 0 ? `/${maxQ}` : ''} {isFull && '(Penuh)'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: '0.74rem' }}>
+                            {formatLastUpdatedWib(role.updatedAt || role.createdAt)}
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => setEditingItem({ type: 'role', item: { ...role } })}
+                                style={{
+                                  padding: '5px 8px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: 'rgba(56, 189, 248, 0.1)',
+                                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                                  color: 'var(--neon-cyan)',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600
+                                }}
+                                title="Edit Role ini"
+                              >
+                                <Edit2 size={12} />
+                                <span>Edit</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const check = canDeleteRole(role, role.tenureId, members);
+                                  setDeleteConfirm({
+                                    type: 'role',
+                                    id: role.id,
+                                    name: role.name,
+                                    tenureId: role.tenureId,
+                                    isBlocked: !check.canDelete,
+                                    dependentMembers: check.members,
+                                    dependentCount: check.count,
+                                    reason: check.reason
+                                  });
+                                }}
+                                style={{
+                                  padding: '5px 8px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: 'rgba(244, 63, 94, 0.1)',
+                                  border: '1px solid rgba(244, 63, 94, 0.3)',
+                                  color: '#f43f5e',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600
+                                }}
+                                title="Hapus Role ini"
+                              >
+                                <Trash2 size={12} />
+                                <span>Hapus</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalRolePages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Menampilkan {(safeRolePage - 1) * ROLES_PER_PAGE + 1} - {Math.min(safeRolePage * ROLES_PER_PAGE, filteredRoles.length)} dari {filteredRoles.length} role
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    disabled={safeRolePage <= 1}
+                    onClick={() => setRolePage(prev => Math.max(1, prev - 1))}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: safeRolePage <= 1 ? 'var(--text-muted)' : 'var(--text-main)',
+                      fontSize: '0.78rem',
+                      cursor: safeRolePage <= 1 ? 'not-allowed' : 'pointer',
+                      opacity: safeRolePage <= 1 ? 0.5 : 1
+                    }}
+                  >
+                    « Prev
+                  </button>
+
+                  {Array.from({ length: totalRolePages }, (_, i) => i + 1).map((pg) => (
+                    <button
+                      key={pg}
+                      type="button"
+                      onClick={() => setRolePage(pg)}
+                      style={{
+                        padding: '4px 9px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: safeRolePage === pg ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: safeRolePage === pg ? '#040914' : 'var(--text-main)',
+                        fontSize: '0.78rem',
+                        fontWeight: safeRolePage === pg ? 800 : 500,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {pg}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    disabled={safeRolePage >= totalRolePages}
+                    onClick={() => setRolePage(prev => Math.min(totalRolePages, prev + 1))}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: safeRolePage >= totalRolePages ? 'var(--text-muted)' : 'var(--text-main)',
+                      fontSize: '0.78rem',
+                      cursor: safeRolePage >= totalRolePages ? 'not-allowed' : 'pointer',
+                      opacity: safeRolePage >= totalRolePages ? 0.5 : 1
+                    }}
+                  >
+                    Next »
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* TAB CONTENT: EVENT (DENGAN TANGGAL MULAI & BERAKHIR) */}
       {activeTab === 'events' && (
@@ -7865,6 +8438,7 @@ export default function AdminPortal({
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                   Edit {
                     editingItem.type === 'member' ? 'Data Personel' :
+                    editingItem.type === 'role' ? 'Data Role & Struktur' :
                     editingItem.type === 'division' ? 'Data Divisi' :
                     editingItem.type === 'department' ? 'Data Departemen' :
                     editingItem.type === 'gallery' ? 'Dokumentasi Galeri' :
@@ -7959,7 +8533,7 @@ export default function AdminPortal({
                 {/* ROLE & DIVISI SELECTION IN EDIT MODAL */}
                 {(() => {
                   const editMemberTenureId = editingItem.item.tenureId || activeTenure?.id || '';
-                  const tenureRoles = getTenureRoles(editMemberTenureId, roleQuotas);
+                  const tenureRoles = getTenureRoles(editMemberTenureId, roleQuotas, tenureRoles);
                   const selectedRole = tenureRoles.find(r => r.id === editingItem.item.roleId) ||
                     tenureRoles.find(r => r.name.toLowerCase() === (editingItem.item.role || '').toLowerCase()) ||
                     null;
@@ -10039,6 +10613,92 @@ export default function AdminPortal({
               </div>
             )}
 
+            {/* Edit Role Form */}
+            {editingItem.type === 'role' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Nama Jabatan / Role <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItem.item.name || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, name: e.target.value } })}
+                    placeholder="Contoh: Sekretaris Jenderal"
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Periode Kepengurusan
+                  </label>
+                  <select
+                    value={editingItem.item.tenureId || activeTenure?.id || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, tenureId: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  >
+                    {tenures.map(t => (
+                      <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Tingkatan di Bagan Organigram
+                  </label>
+                  <select
+                    value={editingItem.item.level ?? 5}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, level: Number(e.target.value) } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  >
+                    {LEVEL_OPTIONS.map(lvl => (
+                      <option key={lvl.level} value={lvl.level}>{lvl.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Batas Maksimal Kuota Personel (0 = Tanpa Batas / Unlimited)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editingItem.item.max ?? editingItem.item.maxQuota ?? 0}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0;
+                      setEditingItem({ ...editingItem, item: { ...editingItem.item, max: val, maxQuota: val } });
+                    }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                  />
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-card)'
+                }}>
+                  <input
+                    type="checkbox"
+                    id="editRoleRequireDiv"
+                    checked={Boolean(editingItem.item.requiresDivision)}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, requiresDivision: e.target.checked } })}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="editRoleRequireDiv" style={{ fontSize: '0.82rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+                    <strong>Memerlukan Pilihan Divisi</strong> (Personel dengan role ini wajib memilih divisi)
+                  </label>
+                </div>
+              </div>
+            )}
+
             {/* Edit Department Form */}
             {editingItem.type === 'department' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -10119,7 +10779,7 @@ export default function AdminPortal({
                 onClick={async () => {
                   setEditModalError('');
                   const it = editingItem.item || {};
-                  if ((editingItem.type === 'member' || editingItem.type === 'division' || editingItem.type === 'department') && !(it.name || '').trim()) {
+                  if ((editingItem.type === 'member' || editingItem.type === 'division' || editingItem.type === 'department' || editingItem.type === 'role') && !(it.name || '').trim()) {
                     setEditModalError('Nama wajib diisi sebelum menyimpan perubahan');
                     showToast('Nama wajib diisi sebelum menyimpan perubahan', 'error');
                     return;
@@ -10142,7 +10802,7 @@ export default function AdminPortal({
 
                   if (editingItem.type === 'member' && onUpdateMember) {
                     const targetTenureId = editingItem.item.tenureId || activeTenure?.id || '';
-                    const tenureRoles = getTenureRoles(targetTenureId, roleQuotas);
+                    const tenureRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
                     const selectedRole = tenureRoles.find(r => r.id === editingItem.item.roleId) ||
                       tenureRoles.find(r => r.name.toLowerCase() === (editingItem.item.role || '').toLowerCase()) ||
                       tenureRoles[0];
@@ -10354,6 +11014,7 @@ export default function AdminPortal({
                       previewUrl: effectivePreviewUrl
                     });
                   }
+                  if (editingItem.type === 'role' && onUpdateTenureRole) onUpdateTenureRole(editingItem.item);
                   if (editingItem.type === 'department' && onUpdateDepartment) onUpdateDepartment(editingItem.item);
                   if (editingItem.type === 'faq' && onUpdateFaq) onUpdateFaq(editingItem.item);
                   setEditingItem(null);
@@ -10538,7 +11199,7 @@ export default function AdminPortal({
               {/* Roles Table */}
               {(() => {
                 const curTenureId = selectedOrgTenureId || activeTenure?.id || tenures[0]?.id || '';
-                const roles = getTenureRoles(curTenureId, roleQuotas);
+                const roles = getTenureRoles(curTenureId, roleQuotas, tenureRoles);
                 const tenureMembers = members.filter(m => !curTenureId || m.tenureId === curTenureId);
 
                 return (
@@ -11070,7 +11731,9 @@ export default function AdminPortal({
                                 : 'Periode Masih Memiliki Data Terkait'))
                         : (deleteConfirm.type === 'division'
                             ? 'Divisi Masih Memiliki Data Terkait'
-                            : (deleteConfirm.type === 'department'
+                            : (deleteConfirm.type === 'role'
+                                ? 'Role Masih Digunakan Personel'
+                                : (deleteConfirm.type === 'department'
                                 ? 'Departemen Masih Digunakan RSVP'
                                 : (deleteConfirm.type === 'member'
                                     ? 'Pimpro Masih Memimpin Anggota'
@@ -11078,14 +11741,16 @@ export default function AdminPortal({
                                         ? 'Event Memiliki Data RSVP'
                                         : (deleteConfirm.type === 'form'
                                             ? 'Formulir Memiliki Data Pengisian'
-                                            : 'Data Masih Memiliki Ketergantungan'))))))
+                                            : 'Data Masih Memiliki Ketergantungan')))))))
                     : (deleteConfirm.type === 'gallery_photo'
                         ? 'Konfirmasi Hapus Foto'
                         : (deleteConfirm.type === 'tenure'
                             ? 'Konfirmasi Hapus Periode'
                             : (deleteConfirm.type === 'division'
                                 ? 'Konfirmasi Hapus Divisi'
-                                : (deleteConfirm.type === 'department'
+                                : (deleteConfirm.type === 'role'
+                                    ? 'Konfirmasi Hapus Role'
+                                    : (deleteConfirm.type === 'department'
                                     ? 'Konfirmasi Hapus Departemen'
                                     : (deleteConfirm.type === 'member'
                                         ? 'Konfirmasi Hapus Personel'
@@ -11093,7 +11758,7 @@ export default function AdminPortal({
                                             ? 'Konfirmasi Hapus Event'
                                             : (deleteConfirm.type === 'form'
                                                 ? 'Konfirmasi Hapus Formulir'
-                                                : 'Konfirmasi Penghapusan Data'))))))))}
+                                                : 'Konfirmasi Penghapusan Data')))))))))}
             </h3>
 
             {/* TENURE BODY */}
@@ -11588,6 +12253,64 @@ export default function AdminPortal({
               )
             )}
 
+            {/* ROLE BODY */}
+            {deleteConfirm.type === 'role' && (
+              deleteConfirm.isBlocked ? (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Role <strong>"{deleteConfirm.name}"</strong> tidak dapat dihapus karena masih digunakan oleh <strong>{deleteConfirm.dependentCount} personel</strong> pada periode ini.
+                  </p>
+                  <div style={{
+                    maxHeight: '140px',
+                    overflowY: 'auto',
+                    background: 'rgba(244, 63, 94, 0.08)',
+                    border: '1px solid rgba(244, 63, 94, 0.3)',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.78rem',
+                    color: 'var(--text-main)',
+                    textAlign: 'left',
+                    lineHeight: 1.45,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    {(deleteConfirm.dependentMembers || []).map((m, i) => (
+                      <div key={m.id || i}>• <strong>{m.name}</strong> ({m.role})</div>
+                    ))}
+                  </div>
+                  <div style={{
+                    background: 'rgba(255, 184, 0, 0.1)',
+                    border: '1px solid rgba(255, 184, 0, 0.3)',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.76rem',
+                    color: 'var(--mandiri-gold)',
+                    textAlign: 'left'
+                  }}>
+                    💡 <strong>Petunjuk:</strong> Ubah jabatan personel di atas ke role lain pada tab <strong>Pengurus & Anggota</strong> sebelum menghapus role ini.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Apakah Anda yakin ingin menghapus role <strong>"{deleteConfirm.name}"</strong> dari periode kepengurusan ini?
+                  </p>
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    color: '#10b981',
+                    textAlign: 'left'
+                  }}>
+                    🛡️ <strong>Aman:</strong> Tidak ada personel yang sedang menggunakan role ini pada periode yang dipilih.
+                  </div>
+                </>
+              )
+            )}
+
             {/* DEPARTMENT BODY */}
             {deleteConfirm.type === 'department' && (
               deleteConfirm.isBlocked ? (
@@ -11693,6 +12416,7 @@ export default function AdminPortal({
                     onClick={() => {
                       if (deleteConfirm.type === 'member' && onDeleteMember) onDeleteMember(deleteConfirm.id);
                       if (deleteConfirm.type === 'division' && onDeleteDivision) onDeleteDivision(deleteConfirm.id);
+                      if (deleteConfirm.type === 'role' && onDeleteTenureRole) onDeleteTenureRole(deleteConfirm.id);
                       if (deleteConfirm.type === 'department' && onDeleteDepartment) onDeleteDepartment(deleteConfirm.id);
                       if (deleteConfirm.type === 'gallery' && onDeleteGallery) onDeleteGallery(deleteConfirm.id);
                       if (deleteConfirm.type === 'tenure' && onDeleteTenure) onDeleteTenure(deleteConfirm.id);
@@ -11722,13 +12446,15 @@ export default function AdminPortal({
                                 ? `Divisi "${deleteConfirm.name}" berhasil dihapus!`
                                 : (deleteConfirm.type === 'member'
                                     ? `Personel "${deleteConfirm.name}" berhasil dihapus!`
-                                    : (deleteConfirm.type === 'department'
+                                    : (deleteConfirm.type === 'role'
+                                        ? `Role "${deleteConfirm.name}" berhasil dihapus!`
+                                        : (deleteConfirm.type === 'department'
                                         ? `Departemen "${deleteConfirm.name}" berhasil dihapus!`
                                         : (deleteConfirm.type === 'event'
                                             ? `Event "${deleteConfirm.name}" berhasil dihapus!`
                                             : (deleteConfirm.type === 'form'
                                                 ? `Formulir "${deleteConfirm.name}" berhasil dihapus!`
-                                                : 'Data berhasil dihapus & disinkronkan!')))))));
+                                                : 'Data berhasil dihapus & disinkronkan!'))))))));
 
                       setDeleteConfirm(null);
                       showToast(toastMsg);
@@ -11755,13 +12481,15 @@ export default function AdminPortal({
                                   ? 'Ya, Hapus Divisi'
                                   : (deleteConfirm.type === 'member'
                                       ? 'Ya, Hapus Personel'
-                                      : (deleteConfirm.type === 'department'
+                                      : (deleteConfirm.type === 'role'
+                                          ? 'Ya, Hapus Role'
+                                          : (deleteConfirm.type === 'department'
                                           ? 'Ya, Hapus Departemen'
                                           : (deleteConfirm.type === 'event'
                                               ? 'Ya, Hapus Event'
                                               : (deleteConfirm.type === 'form'
                                                   ? 'Ya, Hapus Formulir'
-                                                  : 'Ya, Hapus Data')))))))}
+                                                  : 'Ya, Hapus Data'))))))))}
                   </button>
                 </>
               )}

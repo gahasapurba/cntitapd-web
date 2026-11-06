@@ -32,6 +32,7 @@ import {
   pushRoleQuotas
 } from './lib/supabase';
 import { formatDeadlineWib } from './utils/dateUtils';
+import { DEFAULT_TENURE_ROLES, getTenureRoles } from './utils/memberQuotaUtils';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'assets', 'form'];
 const VALID_TABS = [...PUBLIC_PAGE_IDS, 'program', 'oprec', 'admin'];
@@ -226,6 +227,25 @@ export default function App() {
     });
   });
   const [departments, setDepartments] = useState(() => loadLocalCache('departments', DEFAULT_DEPARTMENTS));
+  const [tenureRoles, setTenureRoles] = useState(() => {
+    const cached = loadLocalCache('tenureRoles', null);
+    if (Array.isArray(cached) && cached.length > 0) return cached;
+    const initialTenures = loadLocalCache('tenures', DEFAULT_TENURES);
+    const initial = [];
+    initialTenures.forEach(t => {
+      DEFAULT_TENURE_ROLES.forEach((r, idx) => {
+        initial.push({
+          ...r,
+          id: `${r.id}-${t.id}`,
+          tenureId: t.id,
+          sortOrder: idx,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      });
+    });
+    return initial;
+  });
   const [members, setMembers] = useState(() => loadLocalCache('members', []));
   const [events, setEvents] = useState(() => loadLocalCache('events', []));
   const [galleries, setGalleries] = useState(() => loadLocalCache('galleries', []));
@@ -327,6 +347,10 @@ export default function App() {
       if (Array.isArray(cloud.brandAssets)) setBrandAssets(cloud.brandAssets);
       if (Array.isArray(cloud.eventRsvps)) setEventRsvps(cloud.eventRsvps);
       if (Array.isArray(cloud.departments) && cloud.departments.length > 0) setDepartments(cloud.departments);
+      if (Array.isArray(cloud.tenureRoles) && cloud.tenureRoles.length > 0) {
+        setTenureRoles(cloud.tenureRoles);
+        saveLocalCache('tenureRoles', cloud.tenureRoles);
+      }
       if (Array.isArray(cloud.faqs)) setFaqs(cloud.faqs);
       if (cloud.announcementBar && typeof cloud.announcementBar === 'object') {
         setAnnouncementBar({ ...DEFAULT_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
@@ -956,6 +980,34 @@ export default function App() {
       return next;
     });
   };
+  // Tenure Roles Handlers
+  const handleAddTenureRole = (newRole) => {
+    setTenureRoles((prev) => {
+      const next = [...prev, newRole];
+      pushCloudState('tenureRoles', next);
+      saveLocalCache('tenureRoles', next);
+      return next;
+    });
+  };
+
+  const handleUpdateTenureRole = (updatedRole) => {
+    setTenureRoles((prev) => {
+      const next = prev.map(r => r.id === updatedRole.id ? { ...r, ...updatedRole, updatedAt: new Date().toISOString() } : r);
+      pushCloudState('tenureRoles', next);
+      saveLocalCache('tenureRoles', next);
+      return next;
+    });
+  };
+
+  const handleDeleteTenureRole = (roleId) => {
+    setTenureRoles((prev) => {
+      const next = prev.filter(r => r.id !== roleId);
+      pushCloudState('tenureRoles', next);
+      saveLocalCache('tenureRoles', next);
+      return next;
+    });
+  };
+
   const handleDeleteDepartment = (deptId) => {
     const isUsed = eventRsvps.some(r => r.departmentId === deptId || r.department === deptId);
     if (isUsed) return false;
@@ -1312,6 +1364,7 @@ export default function App() {
               members={members}
               events={events}
               roleQuotas={roleQuotas}
+              tenureRoles={tenureRoles}
               onNavigateProgram={isPageVisible('event') ? () => setCurrentTab('event') : undefined}
               theme={theme}
             />
@@ -1390,6 +1443,10 @@ export default function App() {
               activeTenure={activeTenure}
               roleQuotas={roleQuotas}
               onUpdateRoleQuotas={handleUpdateRoleQuotas}
+              tenureRoles={tenureRoles}
+              onAddTenureRole={handleAddTenureRole}
+              onUpdateTenureRole={handleUpdateTenureRole}
+              onDeleteTenureRole={handleDeleteTenureRole}
               onSelectTenure={handleSelectTenure}
               onAddTenure={handleAddTenure}
               onUpdateTenure={handleUpdateTenure}

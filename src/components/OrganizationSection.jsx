@@ -24,7 +24,7 @@ function formatWaNumber(raw = '') {
   return digits;
 }
 
-export default function OrganizationSection({ activeTenure, divisions, members, events = [], roleQuotas = {}, onNavigateProgram }) {
+export default function OrganizationSection({ activeTenure, divisions, members, events = [], roleQuotas = {}, tenureRoles = [], onNavigateProgram }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,16 +82,16 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   const activeDivisions = (divisions || []).filter(d => d.tenureId === activeTenure?.id);
   const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
 
-  const tenureRoles = getTenureRoles(activeTenure?.id, roleQuotas);
+  const currentTenureRoles = getTenureRoles(activeTenure?.id, roleQuotas, tenureRoles);
 
   // Dewan Penasehat (Level 0 - Tingkat tertinggi bila ada)
-  const penasehats = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 0);
+  const penasehats = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 0);
 
   // Pembina (Level 1)
-  const pembinas = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 1);
+  const pembinas = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 1);
 
   // Level 2: Ketua & Wakil Ketua
-  const level2Members = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 2);
+  const level2Members = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 2);
   const displayLevel2 = [...level2Members].sort((a, b) => {
     const aIsWakil = (a.role || '').toLowerCase().includes('wakil');
     const bIsWakil = (b.role || '').toLowerCase().includes('wakil');
@@ -99,10 +99,10 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   });
 
   // Level 3: Pengurus Harian / BPH (Sekretaris, Bendahara, Sekben, Sekjen, dll.)
-  const displayLevel3 = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 3);
+  const displayLevel3 = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 3);
 
   // Level 4: Pimpinan Divisi / Pimpro
-  const pimpro = activeMembers.filter(m => getMemberLevel(m, tenureRoles) === 4 || m.category === 'pimpro');
+  const pimpro = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 4 || m.category === 'pimpro');
 
   const isFiltering = searchQuery.trim() !== '' || categoryFilter !== 'all' || divisionFilter !== 'all';
 
