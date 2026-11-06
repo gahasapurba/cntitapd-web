@@ -116,6 +116,21 @@ export async function checkDepartmentsTable() {
 let isTenureRolesTableChecked = false;
 let isTenureRolesTableSupported = false;
 
+let isMembersRoleIdChecked = false;
+let isMembersRoleIdSupported = false;
+
+export async function checkMembersRoleIdColumn() {
+  if (isMembersRoleIdChecked) return isMembersRoleIdSupported;
+  try {
+    const { error } = await supabase.from('members').select('role_id').limit(1);
+    isMembersRoleIdSupported = !error;
+    isMembersRoleIdChecked = true;
+  } catch (e) {
+    isMembersRoleIdSupported = false;
+  }
+  return isMembersRoleIdSupported;
+}
+
 export async function checkTenureRolesTable() {
   try {
     const { error } = await supabase.from('tenure_roles').select('id').limit(1);
@@ -402,25 +417,32 @@ export const rowMappers = {
   },
 
   members: {
-    toDb: (item, idx = 0) => ({
-      id: String(item.id),
-      tenure_id: item.tenureId || null,
-      division_id: item.divisionId || null,
-      category: item.category || 'anggota',
-      name: item.name || '',
-      role: item.role || '',
-      title: item.title || '',
-      image: item.image || '',
-      color: item.color || '#FFB800',
-      whatsapp: item.whatsapp || '',
-      motto: item.motto || '',
-      responsibilities: Array.isArray(item.responsibilities) ? item.responsibilities : [],
-      sort_order: idx
-    }),
+    toDb: (item, idx = 0) => {
+      const row = {
+        id: String(item.id),
+        tenure_id: item.tenureId || null,
+        division_id: item.divisionId || null,
+        category: item.category || 'anggota',
+        name: item.name || '',
+        role: item.role || '',
+        title: item.title || '',
+        image: item.image || '',
+        color: item.color || '#FFB800',
+        whatsapp: item.whatsapp || '',
+        motto: item.motto || '',
+        responsibilities: Array.isArray(item.responsibilities) ? item.responsibilities : [],
+        sort_order: idx
+      };
+      if (isMembersRoleIdSupported) {
+        row.role_id = item.roleId || null;
+      }
+      return row;
+    },
     fromDb: (row) => ({
       id: row.id,
       tenureId: row.tenure_id,
       divisionId: row.division_id || undefined,
+      roleId: row.role_id || '',
       category: row.category,
       name: row.name,
       role: row.role,
@@ -754,7 +776,8 @@ export async function fetchAllCloudState() {
       checkRsvpsDepartmentColumn(),
       checkDivisionsSchema(),
       checkDepartmentsTable(),
-      checkTenureRolesTable()
+      checkTenureRolesTable(),
+      checkMembersRoleIdColumn()
     ]);
     const [
       tenuresRes,
@@ -945,6 +968,9 @@ export async function pushCloudState(key, value) {
 
     if (key === 'divisions') {
       await checkDivisionsSchema();
+    }
+    if (key === 'members') {
+      await checkMembersRoleIdColumn();
     }
     if (key === 'galleries') {
       await checkGalleryDivisionIdColumn();
