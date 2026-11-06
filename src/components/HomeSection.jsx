@@ -907,16 +907,25 @@ export default function HomeSection({
                   <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
                     {div.name}
                   </h3>
-                  <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700, marginBottom: div.motto ? '6px' : '0' }}>
-                    {(() => {
-                      const { leaders } = getDivisionStructure(div, members, tenureRoles);
-                      if (leaders.length > 0) {
-                        return leaders.map(l => `${l.role || 'Lead'}: ${l.name}`).join(' • ');
-                      }
-                      const leadObj = getDivisionLead(div, members, tenureRoles);
-                      return `${leadObj.roleName || 'Pimpinan'}: ${leadObj.name || '-'}`;
-                    })()}
-                  </div>
+                  {(() => {
+                    const { leaders } = getDivisionStructure(div, members, tenureRoles);
+                    if (leaders.length > 0) {
+                      return (
+                        <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700, marginBottom: div.motto ? '6px' : '0' }}>
+                          {leaders.map(l => `${l.role || ''}: ${l.name}`).join(' • ')}
+                        </div>
+                      );
+                    }
+                    const leadObj = getDivisionLead(div, members, tenureRoles);
+                    if (leadObj.name) {
+                      return (
+                        <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700, marginBottom: div.motto ? '6px' : '0' }}>
+                          {leadObj.roleName ? `${leadObj.roleName}: ` : ''}{leadObj.name}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   {div.motto && (
                     <div style={{
                       fontSize: '0.78rem',

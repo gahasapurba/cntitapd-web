@@ -648,9 +648,9 @@ export default function OrganizationSection({
                             gap: '4px'
                           }}>
                             <span style={{ fontSize: '0.72rem', color: lineColor, fontWeight: 800 }}>
-                              {leadObj.roleName || 'Pimpinan'} {div.name}
+                              {div.name}
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Belum Ditentukan</span>
+                            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Belum ada personel</span>
                           </div>
                         )}
                       </div>
