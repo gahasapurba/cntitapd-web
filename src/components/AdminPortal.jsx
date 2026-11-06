@@ -1288,7 +1288,7 @@ export default function AdminPortal({
               Portal Pengurus CNT
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Masuk untuk mengelola galeri kegiatan, divisi, dan pendaftar Oprec.
+              Masuk untuk mengelola galeri, event, divisi, form, dll.
             </p>
           </div>
 
