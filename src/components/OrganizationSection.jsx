@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   Crown, 
@@ -31,6 +31,13 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
   const [roleFilter, setRoleFilter] = useState('all');
   const [divisionFilter, setDivisionFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
+
+  // Reset filters whenever active tenure changes
+  useEffect(() => {
+    setSearchQuery('');
+    setRoleFilter('all');
+    setDivisionFilter('all');
+  }, [activeTenure?.id]);
 
   const handleExportPdf = async () => {
     soundFx.playClick();
@@ -187,109 +194,115 @@ export default function OrganizationSection({ activeTenure, divisions, members, 
           </div>
         )}
 
-        {/* Search & Filter Directory Bar */}
-        <div className="glass-panel" style={{
-          marginTop: '24px',
-          padding: '14px 18px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: '10px',
-          border: '1px solid var(--border-card)'
-        }}>
-          <div style={{ position: 'relative', flex: '1 1 220px' }}>
-            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-            <input
-              type="text"
-              placeholder="Cari nama pengurus, jabatan, atau keahlian..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '9px 12px 9px 34px',
-                borderRadius: 'var(--radius-full)',
-                background: 'var(--input-bg)',
-                border: '1px solid var(--border-card)',
-                color: 'var(--text-main)',
-                fontSize: '0.82rem',
-                outline: 'none'
-              }}
-            />
+        {/* Search & Filter Directory Bar (Hanya tampil jika ada anggota) */}
+        {activeMembers.length > 0 && (
+          <div className="glass-panel" style={{
+            marginTop: '24px',
+            padding: '14px 18px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '10px',
+            border: '1px solid var(--border-card)'
+          }}>
+            <div style={{ position: 'relative', flex: '1 1 220px' }}>
+              <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+              <input
+                type="text"
+                placeholder="Cari nama pengurus, jabatan, atau keahlian..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px 9px 34px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.82rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {currentTenureRoles.length > 0 && (
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flex: '0 1 auto'
+                }}
+              >
+                <option value="all">Semua Posisi / Role ({activeMembers.length})</option>
+                {currentTenureRoles.map(r => {
+                  const count = activeMembers.filter(m => {
+                    const mr = findMatchingRole(m, currentTenureRoles);
+                    return m.roleId === r.id || mr?.id === r.id;
+                  }).length;
+                  return (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+
+            {activeDivisions.length > 0 && (
+              <select
+                value={divisionFilter}
+                onChange={(e) => setDivisionFilter(e.target.value)}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flex: '0 1 auto'
+                }}
+              >
+                <option value="all">Semua Divisi</option>
+                {(activeDivisions || []).map(div => (
+                  <option key={div.id} value={div.id}>{div.name}</option>
+                ))}
+              </select>
+            )}
+
+            {isFiltering && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setRoleFilter('all');
+                  setDivisionFilter('all');
+                }}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'rgba(244, 63, 94, 0.14)',
+                  border: '1px solid rgba(244, 63, 94, 0.4)',
+                  color: '#f43f5e',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Reset Filter
+              </button>
+            )}
           </div>
-
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            style={{
-              padding: '9px 12px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--input-bg)',
-              border: '1px solid var(--border-card)',
-              color: 'var(--text-main)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              flex: '0 1 auto'
-            }}
-          >
-            <option value="all">Semua Posisi / Role ({activeMembers.length})</option>
-            {currentTenureRoles.map(r => {
-              const count = activeMembers.filter(m => {
-                const mr = findMatchingRole(m, currentTenureRoles);
-                return m.roleId === r.id || mr?.id === r.id;
-              }).length;
-              return (
-                <option key={r.id} value={r.id}>
-                  {r.name} ({count})
-                </option>
-              );
-            })}
-          </select>
-
-          <select
-            value={divisionFilter}
-            onChange={(e) => setDivisionFilter(e.target.value)}
-            style={{
-              padding: '9px 12px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--input-bg)',
-              border: '1px solid var(--border-card)',
-              color: 'var(--text-main)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              flex: '0 1 auto'
-            }}
-          >
-            <option value="all">Semua Divisi</option>
-            {(activeDivisions || []).map(div => (
-              <option key={div.id} value={div.id}>{div.name}</option>
-            ))}
-          </select>
-
-          {isFiltering && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setRoleFilter('all');
-                setDivisionFilter('all');
-              }}
-              style={{
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-full)',
-                background: 'rgba(244, 63, 94, 0.14)',
-                border: '1px solid rgba(244, 63, 94, 0.4)',
-                color: '#f43f5e',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              Reset Filter
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Filtered Directory Results when searching/filtering */}
