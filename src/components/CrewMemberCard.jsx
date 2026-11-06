@@ -11,23 +11,18 @@ function formatWaNumber(raw = '') {
 export default function CrewMemberCard({ member, onClick, compact = false }) {
   const [imageError, setImageError] = useState(false);
 
-  const getBorderColor = (role = '') => {
-    const rLower = String(role).toLowerCase();
-    if (rLower === 'pembina') return 'rgba(255, 184, 0, 0.8)';
-    if (rLower === 'ketua') return 'rgba(255, 184, 0, 0.6)';
-    if (rLower.includes('wakil')) return 'rgba(56, 189, 248, 0.6)';
-    if (rLower.includes('sekben') || rLower.includes('sekretaris') || rLower.includes('bendahara')) return 'rgba(192, 132, 252, 0.6)';
-    if (rLower.includes('pimpro')) return 'rgba(56, 189, 248, 0.6)';
+  const getBorderColor = () => {
     return member?.color || 'rgba(56, 189, 248, 0.4)';
   };
 
-  const getBadgeStyle = (role = '') => {
-    const rLower = String(role).toLowerCase();
-    if (rLower === 'pembina') return { background: 'rgba(255, 184, 0, 0.2)', color: '#fde047', border: '1px solid rgba(255, 184, 0, 0.5)' };
-    if (rLower === 'ketua') return { background: 'rgba(255, 184, 0, 0.2)', color: '#fde047', border: '1px solid rgba(255, 184, 0, 0.4)' };
-    if (rLower.includes('wakil')) return { background: 'rgba(56, 189, 248, 0.2)', color: '#7dd3fc', border: '1px solid rgba(56, 189, 248, 0.4)' };
-    if (rLower.includes('sekben') || rLower.includes('sekretaris') || rLower.includes('bendahara')) return { background: 'rgba(192, 132, 252, 0.2)', color: '#e9d5ff', border: '1px solid rgba(192, 132, 252, 0.4)' };
-    if (rLower.includes('pimpro')) return { background: 'rgba(56, 189, 248, 0.2)', color: '#7dd3fc', border: '1px solid rgba(56, 189, 248, 0.4)' };
+  const getBadgeStyle = () => {
+    if (member?.color) {
+      return {
+        background: 'rgba(255, 255, 255, 0.08)',
+        color: member.color,
+        border: `1px solid ${member.color}66`
+      };
+    }
     return { background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-main)', border: '1px solid var(--border-card)' };
   };
 
@@ -40,7 +35,7 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
         cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',
-        border: `1px solid ${getBorderColor(member.role)}`,
+        border: `1px solid ${getBorderColor()}`,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -108,7 +103,7 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
               borderRadius: '4px',
               fontWeight: 800,
               letterSpacing: '0.04em',
-              ...getBadgeStyle(member.role)
+              ...getBadgeStyle()
             }}>
               {member.role}
             </span>

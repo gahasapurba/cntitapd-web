@@ -5714,7 +5714,7 @@ export default function AdminPortal({
                       const lead = getDivisionLead(d, members, tenureRoles);
                       return (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '12px' }}>
-                          Pimpro: <strong style={{ color: lead.name ? 'var(--text-main)' : 'var(--text-dim)' }}>{lead.name || 'Belum ditentukan'}</strong>
+                          {lead.roleName || 'Pimpinan'}: <strong style={{ color: lead.name ? 'var(--text-main)' : 'var(--text-dim)' }}>{lead.name || 'Belum ditentukan'}</strong>
                         </span>
                       );
                     })()}

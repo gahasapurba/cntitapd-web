@@ -352,69 +352,75 @@ export function getMemberRoleType(category = '', role = '', title = '') {
 }
 
 /**
- * Menemukan ketua / PIC / pimpinan divisi secara dinamis dari daftar anggota divisi.
- * Mendeteksi role Level 4, kata kunci pimpinan ('pimpro', 'kepala', 'ketua', 'lead', 'koordinator'),
- * serta role terikat divisi dengan tingkatan tertinggi.
+ * Mengelompokkan anggota divisi menjadi pimpinan (leaders) dan anggota biasa (members)
+ * murni berdasarkan data relasional DB: role_id, level, requires_division, dan sort_order.
+ * Tanpa hardcoded string/kata kunci teks.
  */
-export function getDivisionLead(division, members = [], tenureRoles = []) {
-  if (!division) return { member: null, name: '', roleName: 'Pimpro' };
+export function getDivisionStructure(division, members = [], tenureRoles = []) {
+  if (!division) return { leaders: [], members: [] };
   const divMembers = (members || []).filter(m => m.divisionId === division.id);
-  if (divMembers.length === 0) {
-    return {
-      member: null,
-      name: division.leadName || '',
-      roleName: 'Pimpro'
-    };
-  }
+  if (divMembers.length === 0) return { leaders: [], members: [] };
 
-  const enriched = divMembers.map(m => {
-    const roleObj = (tenureRoles || []).find(r => r.id === m.roleId) ||
-      (tenureRoles || []).find(r => r.name && r.name.toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
-    const roleName = String(roleObj?.name || m.role || '').toLowerCase();
-    const level = roleObj ? Number(roleObj.level) : (m.category === 'pimpro' ? 4 : 5);
-    const isExplicitWakil = roleName.includes('wakil') || roleName.includes('vice') || roleName.includes('co-');
-    
-    const isLeadershipWord = roleName.includes('pimpro') ||
-      roleName.includes('kepala') ||
-      roleName.includes('ketua') ||
-      roleName.includes('pimpinan') ||
-      roleName.includes('koordinator') ||
-      roleName.includes('lead');
-
-    let score = 0;
-    if (level === 4 && !isExplicitWakil) score += 100;
-    if (level === 4 && isExplicitWakil) score += 50;
-    if (isLeadershipWord && !isExplicitWakil) score += 85;
-    if (isLeadershipWord && isExplicitWakil) score += 40;
-    if (m.category === 'pimpro' && !isExplicitWakil) score += 70;
-    if (roleObj?.requiresDivision && level <= 4 && !isExplicitWakil) score += 60;
-    if (roleObj?.requiresDivision && !isExplicitWakil) score += (10 - level);
-
+  // Map setiap member ke role DB-nya
+  const mapped = divMembers.map(m => {
+    const roleObj = findMatchingRole(m, tenureRoles);
+    const level = roleObj ? Number(roleObj.level) : 5;
+    const roleSortOrder = roleObj ? Number(roleObj.sortOrder ?? 0) : 999;
+    const memberSortOrder = Number(m.sortOrder ?? 0);
     return {
       member: m,
       roleObj,
-      roleTitle: roleObj?.name || m.role || 'Pimpro',
-      score
+      roleName: roleObj?.name || m.role || '',
+      level,
+      roleSortOrder,
+      memberSortOrder
     };
   });
 
-  enriched.sort((a, b) => b.score - a.score);
+  // Cari level tertinggi (angka terkecil) di divisi ini dari database
+  const minLevel = Math.min(...mapped.map(item => item.level));
 
-  const best = enriched.find(e => e.score > 0);
-  if (best) {
+  // Semua anggota yang memegang role di tingkatan tertinggi divisi (minLevel) adalah pimpinan (leaders).
+  // Jika sama-sama Level 3 atau sama-sama Level 4, otomatis keduanya setara sebagai pimpinan!
+  const leaderItems = mapped.filter(item => item.level === minLevel);
+  // Anggota divisi dengan tingkatan level di bawahnya (angka level lebih besar) masuk ke members
+  const memberItems = mapped.filter(item => item.level > minLevel);
+
+  // Pengurutan leaders di bagan murni berdasarkan sort_order dari DB (tenure_roles.sort_order lalu members.sort_order)
+  leaderItems.sort((a, b) => (a.roleSortOrder - b.roleSortOrder) || (a.memberSortOrder - b.memberSortOrder));
+  memberItems.sort((a, b) => (a.roleSortOrder - b.roleSortOrder) || (a.memberSortOrder - b.memberSortOrder));
+
+  return {
+    leaders: leaderItems.map(l => l.member),
+    members: memberItems.map(m => m.member)
+  };
+}
+
+/**
+ * Menemukan pimpinan utama divisi secara dinamis dari database.
+ * Diambil dari pimpinan tertinggi (level terkecil) dengan sort_order pertama di DB.
+ * Murni berbasis data DB tanpa pengecekan string manual.
+ */
+export function getDivisionLead(division, members = [], tenureRoles = []) {
+  if (!division) return { member: null, name: '', roleName: 'Pimpro' };
+  const { leaders } = getDivisionStructure(division, members, tenureRoles);
+  if (leaders.length > 0) {
+    const primary = leaders[0];
+    const roleObj = findMatchingRole(primary, tenureRoles);
     return {
-      member: best.member,
-      name: best.member.name,
-      roleName: best.roleTitle
+      member: primary,
+      name: primary.name,
+      roleName: roleObj?.name || primary.role || 'Pimpro'
     };
   }
 
-  const byId = divMembers.find(m => m.id === division.memberId);
+  const byId = (members || []).find(m => m.id === division.memberId);
   if (byId) {
+    const roleObj = findMatchingRole(byId, tenureRoles);
     return {
       member: byId,
       name: byId.name,
-      roleName: byId.role || 'Pimpro'
+      roleName: roleObj?.name || byId.role || 'Pimpro'
     };
   }
 
@@ -422,78 +428,5 @@ export function getDivisionLead(division, members = [], tenureRoles = []) {
     member: null,
     name: division.leadName || '',
     roleName: 'Pimpro'
-  };
-}
-
-/**
- * Mengelompokkan anggota divisi menjadi pimpinan (leaders) dan anggota biasa (members).
- * Jika ada beberapa personel yang memegang tingkatan yang sama di puncak divisi
- * (misal Kepala Divisi & Wakil Kepala Divisi yang sama-sama Level 3 atau Level 4),
- * keduanya ditempatkan setara sebagai pimpinan divisi (leaders).
- */
-export function getDivisionStructure(division, members = [], tenureRoles = []) {
-  if (!division) return { leaders: [], members: [] };
-  const divMembers = (members || []).filter(m => m.divisionId === division.id);
-  if (divMembers.length === 0) return { leaders: [], members: [] };
-
-  const enriched = divMembers.map(m => {
-    const roleObj = (tenureRoles || []).find(r => r.id === m.roleId) ||
-      (tenureRoles || []).find(r => r.name && r.name.toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
-    const roleName = String(roleObj?.name || m.role || '').toLowerCase();
-    const level = roleObj ? Number(roleObj.level) : (m.category === 'pimpro' ? 4 : 5);
-    const isExplicitWakil = roleName.includes('wakil') || roleName.includes('vice') || roleName.includes('co-');
-    
-    const isLeadershipWord = roleName.includes('pimpro') ||
-      roleName.includes('kepala') ||
-      roleName.includes('ketua') ||
-      roleName.includes('pimpinan') ||
-      roleName.includes('koordinator') ||
-      roleName.includes('lead');
-
-    return {
-      member: m,
-      roleObj,
-      roleTitle: roleObj?.name || m.role || 'Pimpro',
-      level,
-      isExplicitWakil,
-      isLeadershipWord
-    };
-  });
-
-  const minLevel = Math.min(...enriched.map(e => e.level));
-  let leaderItems = [];
-  let memberItems = [];
-
-  if (minLevel < 5) {
-    // Semua personel yang berada di tingkat minLevel (misal sama-sama level 3 atau sama-sama level 4)
-    // ATAU personel dengan level <= 4 yang memiliki kata kunci kepemimpinan
-    leaderItems = enriched.filter(e => 
-      e.level === minLevel || 
-      (e.level <= 4 && (e.isLeadershipWord || e.member.category === 'pimpro'))
-    );
-    memberItems = enriched.filter(e => !leaderItems.some(l => l.member.id === e.member.id));
-  } else {
-    const singleLead = getDivisionLead(division, members, tenureRoles);
-    if (singleLead?.member) {
-      leaderItems = enriched.filter(e => e.member.id === singleLead.member.id);
-      memberItems = enriched.filter(e => e.member.id !== singleLead.member.id);
-    } else {
-      leaderItems = [];
-      memberItems = enriched;
-    }
-  }
-
-  // Urutkan leaders: role non-wakil di posisi utama (kiri), wakil di posisi pendamping (kanan)
-  leaderItems.sort((a, b) => {
-    if (a.level !== b.level) return a.level - b.level;
-    if (a.isExplicitWakil !== b.isExplicitWakil) {
-      return (a.isExplicitWakil ? 1 : 0) - (b.isExplicitWakil ? 1 : 0);
-    }
-    return (a.member.sortOrder ?? 0) - (b.member.sortOrder ?? 0);
-  });
-
-  return {
-    leaders: leaderItems.map(l => l.member),
-    members: memberItems.map(m => m.member)
   };
 }

@@ -28,7 +28,7 @@ import {
   X
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
-import { getDivisionLead } from '../utils/memberQuotaUtils';
+import { getDivisionLead, getDivisionStructure } from '../utils/memberQuotaUtils';
 import { getDeadlineStatus, formatWibTimestamp, formatDeadlineWib } from '../utils/dateUtils';
 
 export default function HomeSection({ 
@@ -897,9 +897,12 @@ export default function HomeSection({
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: div.color, fontWeight: 700, marginBottom: div.motto ? '6px' : '0' }}>
                     {(() => {
+                      const { leaders } = getDivisionStructure(div, members, tenureRoles);
+                      if (leaders.length > 0) {
+                        return leaders.map(l => `${l.role || 'Lead'}: ${l.name}`).join(' • ');
+                      }
                       const leadObj = getDivisionLead(div, members, tenureRoles);
-                      const leadTitle = leadObj.roleName ? (leadObj.roleName.toLowerCase().includes('pimpro') ? 'Lead' : leadObj.roleName) : 'Lead';
-                      return `${leadTitle}: ${leadObj.name || '-'}`;
+                      return `${leadObj.roleName || 'Pimpinan'}: ${leadObj.name || '-'}`;
                     })()}
                   </div>
                   {div.motto && (

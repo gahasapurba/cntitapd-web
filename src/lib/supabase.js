@@ -958,20 +958,28 @@ export async function fetchAllCloudState() {
       saveLocalCache('members', result.members);
     }
 
-    // Reconcile divisions with pimpro resolved directly from members
+    // Reconcile divisions with lead resolved directly from DB roles & members
     if (result.divisions && Array.isArray(result.divisions)) {
       const memList = result.members || [];
+      const rList = result.tenureRoles || [];
       result.divisions = result.divisions.map(d => {
-        const pimpro = memList.find(m =>
-          m.divisionId === d.id &&
-          ((m.category || '').toLowerCase() === 'pimpro' ||
-           (m.role || '').toLowerCase().startsWith('pimpro') ||
-           String(m.roleId || '').includes('pimpro'))
-        );
+        const divMems = memList.filter(m => m.divisionId === d.id);
+        let bestLead = null;
+        if (divMems.length > 0) {
+          const mapped = divMems.map(m => {
+            const roleObj = rList.find(r => r.id === m.roleId) ||
+              rList.find(r => String(r.name || '').toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
+            const level = roleObj ? Number(roleObj.level) : 5;
+            const sortOrder = roleObj ? Number(roleObj.sortOrder ?? 0) : 999;
+            return { member: m, level, sortOrder };
+          });
+          mapped.sort((a, b) => (a.level - b.level) || (a.sortOrder - b.sortOrder));
+          bestLead = mapped[0]?.member || null;
+        }
         return {
           ...d,
-          memberId: pimpro ? pimpro.id : (d.memberId || null),
-          leadName: pimpro ? pimpro.name : (d.leadName || '')
+          memberId: bestLead ? bestLead.id : (d.memberId || null),
+          leadName: bestLead ? bestLead.name : (d.leadName || '')
         };
       });
       saveLocalCache('divisions', result.divisions);

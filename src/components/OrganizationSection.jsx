@@ -106,30 +106,30 @@ export default function OrganizationSection({
   // Pembina (Level 1)
   const pembinas = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 1);
 
-  // Level 2: Ketua & Wakil Ketua
+  // Level 2: Pimpinan Tingkat 2 (Ketua / Wakil Ketua) - Diurutkan berdasarkan sort_order DB
   const level2Members = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 2);
   const displayLevel2 = [...level2Members].sort((a, b) => {
-    const aIsWakil = (a.role || '').toLowerCase().includes('wakil');
-    const bIsWakil = (b.role || '').toLowerCase().includes('wakil');
-    return (aIsWakil ? 1 : 0) - (bIsWakil ? 1 : 0);
+    const roleA = findMatchingRole(a, currentTenureRoles);
+    const roleB = findMatchingRole(b, currentTenureRoles);
+    const sortA = roleA ? Number(roleA.sortOrder ?? 0) : 0;
+    const sortB = roleB ? Number(roleB.sortOrder ?? 0) : 0;
+    if (sortA !== sortB) return sortA - sortB;
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
   });
 
-  // Level 3: Pengurus Harian / BPH (Sekretaris, Bendahara, Sekben, Sekjen, dll. - non divisi)
+  // Level 3: Pengurus Harian / BPH (Non-Divisi) - Diurutkan berdasarkan sort_order DB
   const displayLevel3 = activeMembers.filter(m => {
     const isLevel3 = getMemberLevel(m, currentTenureRoles) === 3;
     const roleObj = findMatchingRole(m, currentTenureRoles);
     const belongsToDivision = Boolean(m.divisionId || roleObj?.requiresDivision);
     return isLevel3 && !belongsToDivision;
-  });
-
-  // Level 4: Pimpinan Divisi / Pimpro
-  const pimpro = activeMembers.filter(m => {
-    const level = getMemberLevel(m, currentTenureRoles);
-    const rName = String(m.role || '').toLowerCase();
-    const isLeadershipWord = rName.includes('pimpro') || rName.includes('kepala') || rName.includes('pimpinan') || rName.includes('koordinator') || rName.includes('ketua');
-    const isWakil = rName.includes('wakil') || rName.includes('vice');
-    const requiresDiv = m.divisionId || (findMatchingRole(m, currentTenureRoles)?.requiresDivision);
-    return (level === 4 || m.category === 'pimpro' || (requiresDiv && isLeadershipWord && !isWakil));
+  }).sort((a, b) => {
+    const roleA = findMatchingRole(a, currentTenureRoles);
+    const roleB = findMatchingRole(b, currentTenureRoles);
+    const sortA = roleA ? Number(roleA.sortOrder ?? 0) : 0;
+    const sortB = roleB ? Number(roleB.sortOrder ?? 0) : 0;
+    if (sortA !== sortB) return sortA - sortB;
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
   });
 
   const isFiltering = searchQuery.trim() !== '' || roleFilter !== 'all' || divisionFilter !== 'all';
@@ -553,7 +553,7 @@ export default function OrganizationSection({
           {(() => {
             const displayDivs = activeDivisions.length > 0
               ? activeDivisions
-              : pimpro.map((p, idx) => ({ id: p.divisionId || `div-${idx}`, name: p.role?.replace(/^Pimpro\s+/i, '') || `Divisi ${idx + 1}`, color: p.color }));
+              : divisions.filter(d => activeMembers.some(m => m.divisionId === d.id));
             if (displayDivs.length <= 1) return null;
             const spanFactor = displayDivs.length * 2;
             return (
@@ -572,13 +572,13 @@ export default function OrganizationSection({
           })()}
         </div>
 
-        {/* LEVEL 4: PIMPRO (Ketua Divisi) & ANGGOTA DIVISI - DINAMIS MENYESUAIKAN JUMLAH DIVISI */}
+        {/* BAGAN DIVISI: DINAMIS SESUAI DATA DIVISI & ANGGOTA DI DATABASE */}
         {(() => {
           const displayDivs = activeDivisions.length > 0
             ? activeDivisions
-            : pimpro.map((p, idx) => ({ id: p.divisionId || `div-${idx}`, name: p.role?.replace(/^Pimpro\s+/i, '') || `Divisi ${idx + 1}`, color: p.color }));
+            : divisions.filter(d => activeMembers.some(m => m.divisionId === d.id));
 
-          if (displayDivs.length === 0 && pimpro.length === 0) return null;
+          if (displayDivs.length === 0) return null;
 
           return (
             <div style={{ width: '100%', maxWidth: '1240px', zIndex: 10 }}>
@@ -593,7 +593,7 @@ export default function OrganizationSection({
                   const leadObj = getDivisionLead(div, activeMembers, currentTenureRoles);
                   const effectiveLeaders = divLeaders.length > 0
                     ? divLeaders
-                    : (leadObj.member ? [leadObj.member] : (div.leadName ? activeMembers.filter(m => m.name === div.leadName) : (pimpro[idx] ? [pimpro[idx]] : [])));
+                    : (leadObj.member ? [leadObj.member] : (div.leadName ? activeMembers.filter(m => m.name === div.leadName) : []));
                   const lineColor = div.color || (idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800');
 
                   return (
@@ -648,7 +648,7 @@ export default function OrganizationSection({
                             gap: '4px'
                           }}>
                             <span style={{ fontSize: '0.72rem', color: lineColor, fontWeight: 800 }}>
-                              {leadObj.roleName ? (leadObj.roleName.toLowerCase().includes('pimpro') ? 'Pimpro' : leadObj.roleName) : 'Pimpro'} {div.name}
+                              {leadObj.roleName || 'Pimpinan'} {div.name}
                             </span>
                             <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Belum Ditentukan</span>
                           </div>
