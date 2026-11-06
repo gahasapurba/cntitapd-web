@@ -5,7 +5,7 @@
  * 2. Ketua: Maksimal 1 orang
  * 3. Wakil Ketua: Maksimal 1 orang
  * 4. Pimpro (Ketua Divisi): Maksimal 1 orang per masing-masing divisi
- * 5. Sekretaris & Bendahara (Sekben 1 & Sekben 2): Maksimal 2 orang
+ * 5. Sekretaris & Bendahara (Sekretaris Bendahara 1 & 2 / Sekretaris & Bendahara): Maksimal 2 orang
  * 6. Anggota Divisi: Tidak terbatas (unlimited)
  */
 
@@ -137,7 +137,7 @@ export function validateMemberQuota(
         return {
           isValid: false,
           field: 'memRole',
-          error: `Batas kuota Sekretaris & Bendahara telah terpenuhi (maksimal 2 orang per periode kepengurusan: Sekben 1 & Sekben 2). Saat ini sudah diisi oleh ${names}.`
+          error: `Batas kuota Sekretaris Bendahara telah terpenuhi (maksimal 2 orang per periode kepengurusan). Saat ini sudah diisi oleh ${names}.`
         };
       }
     }

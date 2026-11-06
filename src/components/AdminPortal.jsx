@@ -2408,7 +2408,7 @@ export default function AdminPortal({
               >
                 <option value="anggota">Anggota Divisi (Unlimited)</option>
                 <option value="pimpro">Pimpro / Ketua Divisi (Maks 1 / Divisi)</option>
-                <option value="inti">Pengurus Inti (Ketua: 1, Wakil: 1, Sekben: 2)</option>
+                <option value="inti">Pengurus Inti (Ketua: 1, Wakil: 1, Sekretaris Bendahara: 2)</option>
                 <option value="pembina">Pembina / Advisor (Maks 1)</option>
               </select>
               {renderFieldError('memCategory')}
@@ -2420,7 +2420,7 @@ export default function AdminPortal({
               </label>
               <input
                 type="text"
-                placeholder="Contoh: Ketua / Wakil Ketua / Sekben 1 / Pimpro Experience & Activity"
+                placeholder="Contoh: Ketua / Wakil Ketua / Sekretaris Bendahara 1 / Pimpro Experience & Activity"
                 value={memRole}
                 onChange={(e) => {
                   setMemRole(e.target.value);
@@ -2458,8 +2458,10 @@ export default function AdminPortal({
                   {[
                     { id: 'Ketua', label: 'Ketua (Maks 1)' },
                     { id: 'Wakil Ketua', label: 'Wakil Ketua (Maks 1)' },
-                    { id: 'Sekben 1', label: 'Sekben 1 (Maks 2)' },
-                    { id: 'Sekben 2', label: 'Sekben 2 (Maks 2)' }
+                    { id: 'Sekretaris Bendahara 1', label: 'Sekretaris Bendahara 1' },
+                    { id: 'Sekretaris Bendahara 2', label: 'Sekretaris Bendahara 2' },
+                    { id: 'Sekretaris', label: 'Sekretaris' },
+                    { id: 'Bendahara', label: 'Bendahara' }
                   ].map((preset) => {
                     const isSelected = memRole === preset.id;
                     return (
@@ -2539,7 +2541,7 @@ export default function AdminPortal({
                       <span>🛡️ Batas Kuota Struktur Kepengurusan • {tenureName}</span>
                     </span>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      Maks: Pembina (1), Ketua (1), Wakil (1), Sekben (2), Pimpro (1/divisi)
+                      Maks: Pembina (1), Ketua (1), Wakil (1), Sekretaris Bendahara (2), Pimpro (1/divisi)
                     </span>
                   </div>
 
@@ -2547,7 +2549,7 @@ export default function AdminPortal({
                     {renderBadge('Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
                     {renderBadge('Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
                     {renderBadge('Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
-                    {renderBadge('Sekben', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
+                    {renderBadge('Sekretaris Bendahara', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
                     {Object.values(quota.pimproByDivision).map(pDiv =>
                       renderBadge(`Pimpro ${pDiv.divisionName}`, pDiv.current, pDiv.max, pDiv.members)
                     )}
@@ -7847,7 +7849,7 @@ export default function AdminPortal({
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     >
                       <option value="pembina">Pembina / Advisor (Maks 1)</option>
-                      <option value="inti">Pengurus Inti (Ketua: 1, Wakil: 1, Sekben: 2)</option>
+                      <option value="inti">Pengurus Inti (Ketua: 1, Wakil: 1, Sekretaris Bendahara: 2)</option>
                       <option value="pimpro">Ketua Divisi / Pimpro (Maks 1 / Divisi)</option>
                       <option value="anggota">Anggota Divisi (Unlimited)</option>
                     </select>
@@ -7871,8 +7873,10 @@ export default function AdminPortal({
                       {[
                         { id: 'Ketua', label: 'Ketua' },
                         { id: 'Wakil Ketua', label: 'Wakil Ketua' },
-                        { id: 'Sekben 1', label: 'Sekben 1' },
-                        { id: 'Sekben 2', label: 'Sekben 2' }
+                        { id: 'Sekretaris Bendahara 1', label: 'Sekretaris Bendahara 1' },
+                        { id: 'Sekretaris Bendahara 2', label: 'Sekretaris Bendahara 2' },
+                        { id: 'Sekretaris', label: 'Sekretaris' },
+                        { id: 'Bendahara', label: 'Bendahara' }
                       ].map((preset) => {
                         const isSelected = editingItem.item.role === preset.id;
                         return (
@@ -7903,6 +7907,71 @@ export default function AdminPortal({
                     </div>
                   </div>
                 )}
+
+                {/* LIVE QUOTA INDICATOR PANEL IN EDIT MODAL */}
+                {(() => {
+                  const editTenureId = editingItem.item.tenureId || activeTenure?.id || '';
+                  const quota = getTenureQuotaSummary(editTenureId, members, divisions);
+                  const tenureObj = tenures.find(t => t.id === editTenureId);
+                  const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Aktif';
+
+                  const renderBadge = (label, current, max, occupants = []) => {
+                    const isFull = current >= max;
+                    const occNames = occupants.map(o => o.name).join(', ');
+                    return (
+                      <div
+                        key={label}
+                        title={occNames ? `Terisi oleh: ${occNames}` : 'Slot masih tersedia'}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: isFull ? 'rgba(255, 184, 0, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                          border: `1px solid ${isFull ? 'rgba(255, 184, 0, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: isFull ? 'var(--mandiri-gold)' : '#10b981'
+                        }}
+                      >
+                        <span>{label}: <strong>{current}/{max}</strong></span>
+                        {isFull && <span style={{ fontSize: '0.66rem', opacity: 0.85 }}>(Penuh)</span>}
+                      </div>
+                    );
+                  };
+
+                  return (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      background: isDark ? 'rgba(56, 189, 248, 0.05)' : '#f0f9ff',
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid #bae6fd'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <span>🛡️ Status Kuota Kepengurusan • {tenureName}</span>
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                          Maks: Pembina (1), Ketua (1), Wakil (1), Sekretaris Bendahara (2), Pimpro (1/divisi)
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {renderBadge('Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
+                        {renderBadge('Ketua', quota.ketua.current, quota.ketua.max, quota.ketua.members)}
+                        {renderBadge('Wakil Ketua', quota.wakilKetua.current, quota.wakilKetua.max, quota.wakilKetua.members)}
+                        {renderBadge('Sekretaris Bendahara', quota.sekben.current, quota.sekben.max, quota.sekben.members)}
+                        {Object.values(quota.pimproByDivision).map(pDiv =>
+                          renderBadge(`Pimpro ${pDiv.divisionName}`, pDiv.current, pDiv.max, pDiv.members)
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
