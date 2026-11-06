@@ -28,7 +28,8 @@ import {
   fetchAllCloudState,
   pushCloudState,
   mergeAndPushCloudList,
-  deleteMediaFromCloud
+  deleteMediaFromCloud,
+  pushRoleQuotas
 } from './lib/supabase';
 import { formatDeadlineWib } from './utils/dateUtils';
 
@@ -236,6 +237,9 @@ export default function App() {
   const [eventRsvps, setEventRsvps] = useState(() => loadLocalCache('eventRsvps', []));
   const [faqs, setFaqs] = useState(() => loadLocalCache('faqs', []));
   const [announcementBar, setAnnouncementBar] = useState(() => loadLocalCache('announcementBar', DEFAULT_ANNOUNCEMENT_BAR));
+  const [roleQuotas, setRoleQuotas] = useState(() => loadLocalCache('roleQuotas', {
+    'tenure-2027': { pembina: 1, ketua: 1, wakilKetua: 1, sekben: 2, pimproPerDivisi: 1 }
+  }));
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [syncStatus, setSyncStatus] = useState('synced');
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
@@ -332,9 +336,18 @@ export default function App() {
         setPageVisibilityState(mergedVis);
         try { localStorage.setItem('cnt_page_visibility', JSON.stringify(mergedVis)); } catch (e) {}
       }
+      if (cloud.roleQuotas && typeof cloud.roleQuotas === 'object') {
+        setRoleQuotas(cloud.roleQuotas);
+      }
     }
     setSyncStatus('synced');
   }, []);
+
+  const handleUpdateRoleQuotas = async (updatedQuotas) => {
+    setRoleQuotas(updatedQuotas);
+    saveLocalCache('roleQuotas', updatedQuotas);
+    await pushRoleQuotas(updatedQuotas);
+  };
 
   useEffect(() => {
     syncFromCloud();
@@ -1374,6 +1387,8 @@ export default function App() {
               }}
               tenures={tenures}
               activeTenure={activeTenure}
+              roleQuotas={roleQuotas}
+              onUpdateRoleQuotas={handleUpdateRoleQuotas}
               onSelectTenure={handleSelectTenure}
               onAddTenure={handleAddTenure}
               onUpdateTenure={handleUpdateTenure}

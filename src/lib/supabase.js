@@ -823,12 +823,31 @@ export async function fetchAllCloudState() {
           result.announcementBar = valWithUpdated;
           saveLocalCache('announcementBar', valWithUpdated);
         }
+        if (row.key === 'role_quotas' && row.value) {
+          result.roleQuotas = row.value;
+          saveLocalCache('roleQuotas', row.value);
+        }
       }
     }
 
     return result;
   } catch (e) {
     return null;
+  }
+}
+
+export async function pushRoleQuotas(quotas) {
+  try {
+    saveLocalCache('roleQuotas', quotas);
+    await supabase.from('page_settings').upsert({
+      key: 'role_quotas',
+      value: quotas,
+      updated_at: new Date().toISOString()
+    });
+    return true;
+  } catch (e) {
+    console.error('Failed to push role quotas:', e);
+    return false;
   }
 }
 

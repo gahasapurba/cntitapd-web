@@ -161,6 +161,8 @@ export default function AdminPortal({
     ctaTab: 'home'
   },
   onUpdateAnnouncementBar,
+  roleQuotas = {},
+  onUpdateRoleQuotas,
   syncStatus = 'synced',
   onForceSync,
   onResetDefault,
@@ -226,6 +228,10 @@ export default function AdminPortal({
       sessionStorage.setItem('cnt_admin_active_tab', tabId);
     } catch (e) {}
   };
+
+  // Dynamic Role Quotas Configuration State
+  const [editingQuotaTenureId, setEditingQuotaTenureId] = useState(null);
+  const [quotaFormValues, setQuotaFormValues] = useState({ pembina: 1, ketua: 1, wakilKetua: 1, sekben: 2, pimproPerDivisi: 1 });
 
   // Search & Filter states for Members in Admin
   const [adminMemSearch, setAdminMemSearch] = useState('');
@@ -650,7 +656,8 @@ export default function AdminPortal({
         divisionId: memDivisionId
       },
       members,
-      divisions
+      divisions,
+      roleQuotas
     );
 
     if (!quotaCheck.isValid) {
@@ -2494,7 +2501,7 @@ export default function AdminPortal({
             {/* LIVE QUOTA INDICATOR PANEL */}
             {(() => {
               const currentTenureId = memTenureId || activeTenure?.id || '';
-              const quota = getTenureQuotaSummary(currentTenureId, members, divisions);
+              const quota = getTenureQuotaSummary(currentTenureId, members, divisions, roleQuotas);
               const tenureObj = tenures.find(t => t.id === currentTenureId);
               const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Aktif';
 
@@ -2535,14 +2542,153 @@ export default function AdminPortal({
                   borderRadius: 'var(--radius-sm)',
                   border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid #bae6fd'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                       <span>🛡️ Batas Kuota Struktur Kepengurusan • {tenureName}</span>
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      Maks: Pembina (2), Ketua (1), Wakil (1), Sekretaris Bendahara (2), Pimpro (1/divisi)
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        Maks: Pembina ({quota.quotas.pembina}), Ketua ({quota.quotas.ketua}), Wakil ({quota.quotas.wakilKetua}), Sekben ({quota.quotas.sekben}), Pimpro ({quota.quotas.pimproPerDivisi}/divisi)
+                      </span>
+                      {onUpdateRoleQuotas && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editingQuotaTenureId === currentTenureId) {
+                              setEditingQuotaTenureId(null);
+                            } else {
+                              setEditingQuotaTenureId(currentTenureId);
+                              setQuotaFormValues({
+                                pembina: quota.quotas.pembina,
+                                ketua: quota.quotas.ketua,
+                                wakilKetua: quota.quotas.wakilKetua,
+                                sekben: quota.quotas.sekben,
+                                pimproPerDivisi: quota.quotas.pimproPerDivisi
+                              });
+                            }
+                          }}
+                          style={{
+                            padding: '3px 10px',
+                            borderRadius: 'var(--radius-full)',
+                            background: editingQuotaTenureId === currentTenureId ? 'var(--mandiri-gold)' : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'),
+                            color: editingQuotaTenureId === currentTenureId ? '#040914' : 'var(--text-main)',
+                            border: '1px solid var(--border-card)',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Settings size={12} />
+                          <span>{editingQuotaTenureId === currentTenureId ? 'Tutup Atur Kuota' : '⚙️ Atur Kuota'}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {editingQuotaTenureId === currentTenureId && (
+                    <div style={{
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: isDark ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.8)',
+                      border: '1px dashed var(--border-card)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                          ⚙️ Konfigurasi Batas Kuota Khusus Periode: {tenureName}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                          Perubahan kuota tersimpan di cloud & berlaku untuk kepengurusan ini.
+                        </span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Pembina</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={quotaFormValues.pembina}
+                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pembina: parseInt(e.target.value) || 1 })}
+                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Ketua</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            value={quotaFormValues.ketua}
+                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, ketua: parseInt(e.target.value) || 1 })}
+                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Wakil Ketua</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="5"
+                            value={quotaFormValues.wakilKetua}
+                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, wakilKetua: parseInt(e.target.value) || 0 })}
+                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Sekben</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={quotaFormValues.sekben}
+                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, sekben: parseInt(e.target.value) || 1 })}
+                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Maks Pimpro / Divisi</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            value={quotaFormValues.pimproPerDivisi}
+                            onChange={(e) => setQuotaFormValues({ ...quotaFormValues, pimproPerDivisi: parseInt(e.target.value) || 1 })}
+                            style={{ width: '100%', padding: '5px 8px', borderRadius: '4px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setEditingQuotaTenureId(null)}
+                          style={{ padding: '5px 12px', borderRadius: '4px', background: 'transparent', border: '1px solid var(--border-card)', color: 'var(--text-muted)', fontSize: '0.72rem', cursor: 'pointer' }}
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const updated = {
+                              ...(roleQuotas || {}),
+                              [currentTenureId]: quotaFormValues
+                            };
+                            await onUpdateRoleQuotas(updated);
+                            setEditingQuotaTenureId(null);
+                            showToast(`Batas kuota kepengurusan ${tenureName} berhasil diperbarui!`);
+                          }}
+                          style={{ padding: '5px 14px', borderRadius: '4px', background: 'var(--mandiri-gold)', border: 'none', color: '#040914', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                          Simpan Kuota Periode
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {renderBadge('Pembina', quota.pembina.current, quota.pembina.max, quota.pembina.members)}
@@ -7909,7 +8055,7 @@ export default function AdminPortal({
                 {/* LIVE QUOTA INDICATOR PANEL IN EDIT MODAL */}
                 {(() => {
                   const editTenureId = editingItem.item.tenureId || activeTenure?.id || '';
-                  const quota = getTenureQuotaSummary(editTenureId, members, divisions);
+                  const quota = getTenureQuotaSummary(editTenureId, members, divisions, roleQuotas);
                   const tenureObj = tenures.find(t => t.id === editTenureId);
                   const tenureName = tenureObj?.title || tenureObj?.code || 'Periode Aktif';
 
@@ -7954,7 +8100,7 @@ export default function AdminPortal({
                           <span>🛡️ Status Kuota Kepengurusan • {tenureName}</span>
                         </span>
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                          Maks: Pembina (2), Ketua (1), Wakil (1), Sekretaris Bendahara (2), Pimpro (1/divisi)
+                          Maks: Pembina ({quota.quotas.pembina}), Ketua ({quota.quotas.ketua}), Wakil ({quota.quotas.wakilKetua}), Sekben ({quota.quotas.sekben}), Pimpro ({quota.quotas.pimproPerDivisi}/divisi)
                         </span>
                       </div>
 
@@ -10116,7 +10262,8 @@ export default function AdminPortal({
                         excludeMemberId: editingItem.item.id
                       },
                       members,
-                      divisions
+                      divisions,
+                      roleQuotas
                     );
 
                     if (!quotaCheck.isValid) {
