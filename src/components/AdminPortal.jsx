@@ -429,10 +429,14 @@ export default function AdminPortal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [editingItem, deleteConfirm, showExecutiveReportModal]);
 
-  // Form states for new Gallery Event (Flexible 4 Date Modes)
+  // Form states for new Gallery Event (Flexible 5 Date Modes)
   const [galTitle, setGalTitle] = useState('');
-  const [galDateMode, setGalDateMode] = useState('date'); // 'date' | 'range' | 'month' | 'year'
+  const [galDateMode, setGalDateMode] = useState('date'); // 'date' | 'dates' | 'range' | 'month' | 'year'
   const [galDateVal, setGalDateVal] = useState(new Date().toISOString().split('T')[0]);
+  const [galDates, setGalDates] = useState([
+    new Date().toISOString().split('T')[0],
+    new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]
+  ]);
   const [galStartDate, setGalStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [galEndDate, setGalEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [galMonth, setGalMonth] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
@@ -1155,6 +1159,7 @@ export default function AdminPortal({
 
     const finalGalDate = buildFlexibleDate(galDateMode, {
       date: galDateVal,
+      dates: galDates,
       startDate: galStartDate,
       endDate: galEndDate,
       month: galMonth,
@@ -1178,6 +1183,10 @@ export default function AdminPortal({
     setGalTitle('');
     setGalDateMode('date');
     setGalDateVal(new Date().toISOString().split('T')[0]);
+    setGalDates([
+      new Date().toISOString().split('T')[0],
+      new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0]
+    ]);
     setGalStartDate(new Date().toISOString().split('T')[0]);
     setGalEndDate(new Date().toISOString().split('T')[0]);
     setGalMonth(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
@@ -3573,6 +3582,7 @@ export default function AdminPortal({
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                   {[
                     { id: 'date', label: 'Tanggal Lengkap' },
+                    { id: 'dates', label: 'Pilih Tanggal' },
                     { id: 'range', label: 'Rentang Tanggal' },
                     { id: 'month', label: 'Bulan & Tahun' },
                     { id: 'year', label: 'Tahun Saja' }
@@ -3608,6 +3618,63 @@ export default function AdminPortal({
                   onChange={(e) => setGalDateVal(e.target.value)}
                   style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                 />
+              )}
+
+              {galDateMode === 'dates' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    Pilih dua atau lebih tanggal pelaksanaan kegiatan (otomatis diurutkan secara kronologis):
+                  </div>
+                  {galDates.map((dVal, dIdx) => (
+                    <div key={dIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', minWidth: '65px' }}>
+                        Hari ke-{dIdx + 1}:
+                      </span>
+                      <input
+                        type="date"
+                        value={dVal}
+                        onChange={(e) => {
+                          const next = [...galDates];
+                          next[dIdx] = e.target.value;
+                          setGalDates(next);
+                        }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                      />
+                      {galDates.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setGalDates(galDates.filter((_, i) => i !== dIdx))}
+                          style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '6px' }}
+                          title="Hapus tanggal ini"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '2px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setGalDates([...galDates, new Date().toISOString().split('T')[0]])}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '5px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        background: isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(0, 61, 121, 0.08)',
+                        color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
+                        border: isDark ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(0, 61, 121, 0.25)',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={13} />
+                      <span>Tambah Tanggal Pelaksanaan</span>
+                    </button>
+                  </div>
+                </div>
               )}
 
               {galDateMode === 'range' && (
@@ -3654,11 +3721,19 @@ export default function AdminPortal({
                 />
               )}
 
-              {/* Live Preview Pill */}
-              <div style={{ fontSize: '0.75rem', color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>👁️ Tampilan di Web:</span>
-                <strong style={{ color: '#fff', background: 'rgba(56, 189, 248, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
-                  {formatWibDateTime(buildFlexibleDate(galDateMode, { date: galDateVal, startDate: galStartDate, endDate: galEndDate, month: galMonth, year: galYear }))}
+              {/* Live Preview Pill (Kontras Jelas & Nyaman di Light & Dark Mode) */}
+              <div style={{ fontSize: '0.75rem', color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 700 }}>👁️ Tampilan di Web:</span>
+                <strong style={{
+                  color: isDark ? '#ffffff' : 'var(--mandiri-blue)',
+                  background: isDark ? 'rgba(56, 189, 248, 0.18)' : '#e0f2fe',
+                  border: isDark ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #7dd3fc',
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                  display: 'inline-block'
+                }}>
+                  {formatWibDateTime(buildFlexibleDate(galDateMode, { date: galDateVal, dates: galDates, startDate: galStartDate, endDate: galEndDate, month: galMonth, year: galYear }))}
                 </strong>
               </div>
             </div>
@@ -3897,10 +3972,10 @@ export default function AdminPortal({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    background: 'var(--badge-bg)',
-                    color: 'var(--mandiri-blue)',
-                    border: '1px solid var(--border-card)',
-                    padding: '4px 12px',
+                    background: isDark ? 'rgba(56, 189, 248, 0.18)' : 'rgba(0, 61, 121, 0.08)',
+                    color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
+                    border: isDark ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(0, 61, 121, 0.25)',
+                    padding: '5px 12px',
                     borderRadius: 'var(--radius-full)',
                     fontSize: '0.74rem',
                     fontWeight: 700,
@@ -8001,10 +8076,12 @@ export default function AdminPortal({
                     {(() => {
                       const currentParsed = parseFlexibleDate(editingItem.item.date);
                       const activeMode = editingItem.item._dateMode || currentParsed.mode;
+                      const activeDates = editingItem.item._dates || currentParsed.dates || [currentParsed.date, currentParsed.date];
                       
                       const setMode = (newMode) => {
                         const newDateStr = buildFlexibleDate(newMode, {
                           date: editingItem.item._dateVal !== undefined ? editingItem.item._dateVal : currentParsed.date,
+                          dates: activeDates,
                           startDate: editingItem.item._startDate !== undefined ? editingItem.item._startDate : currentParsed.startDate,
                           endDate: editingItem.item._endDate !== undefined ? editingItem.item._endDate : currentParsed.endDate,
                           month: editingItem.item._month !== undefined ? editingItem.item._month : currentParsed.month,
@@ -8015,14 +8092,17 @@ export default function AdminPortal({
                           item: {
                             ...editingItem.item,
                             _dateMode: newMode,
+                            _dates: activeDates,
                             date: newDateStr
                           }
                         });
                       };
 
                       const updateField = (key, val) => {
+                        const nextDates = key === 'dates' ? val : (editingItem.item._dates || currentParsed.dates || [currentParsed.date]);
                         const stateObj = {
                           date: editingItem.item._dateVal !== undefined ? editingItem.item._dateVal : currentParsed.date,
+                          dates: nextDates,
                           startDate: editingItem.item._startDate !== undefined ? editingItem.item._startDate : currentParsed.startDate,
                           endDate: editingItem.item._endDate !== undefined ? editingItem.item._endDate : currentParsed.endDate,
                           month: editingItem.item._month !== undefined ? editingItem.item._month : currentParsed.month,
@@ -8049,6 +8129,7 @@ export default function AdminPortal({
                             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                               {[
                                 { id: 'date', label: 'Tanggal Lengkap' },
+                                { id: 'dates', label: 'Pilih Tanggal' },
                                 { id: 'range', label: 'Rentang Tanggal' },
                                 { id: 'month', label: 'Bulan & Tahun' },
                                 { id: 'year', label: 'Tahun Saja' }
@@ -8083,6 +8164,69 @@ export default function AdminPortal({
                               onChange={(e) => updateField('date', e.target.value)}
                               style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                             />
+                          )}
+
+                          {activeMode === 'dates' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                                Pilih dua atau lebih tanggal pelaksanaan kegiatan (otomatis diurutkan secara kronologis):
+                              </div>
+                              {activeDates.map((dVal, dIdx) => (
+                                <div key={dIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', minWidth: '65px' }}>
+                                    Hari ke-{dIdx + 1}:
+                                  </span>
+                                  <input
+                                    type="date"
+                                    value={dVal}
+                                    onChange={(e) => {
+                                      const next = [...activeDates];
+                                      next[dIdx] = e.target.value;
+                                      updateField('dates', next);
+                                    }}
+                                    style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                                  />
+                                  {activeDates.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const next = activeDates.filter((_, i) => i !== dIdx);
+                                        updateField('dates', next);
+                                      }}
+                                      style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '6px' }}
+                                      title="Hapus tanggal ini"
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '2px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...activeDates, new Date().toISOString().split('T')[0]];
+                                    updateField('dates', next);
+                                  }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    padding: '5px 12px',
+                                    borderRadius: 'var(--radius-full)',
+                                    background: isDark ? 'rgba(56, 189, 248, 0.16)' : 'rgba(0, 61, 121, 0.08)',
+                                    color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
+                                    border: isDark ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(0, 61, 121, 0.25)',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <Plus size={13} />
+                                  <span>Tambah Tanggal Pelaksanaan</span>
+                                </button>
+                              </div>
+                            </div>
                           )}
 
                           {activeMode === 'range' && (
@@ -8129,9 +8273,17 @@ export default function AdminPortal({
                             />
                           )}
 
-                          <div style={{ fontSize: '0.75rem', color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span>👁️ Tampilan di Web:</span>
-                            <strong style={{ color: '#fff', background: 'rgba(56, 189, 248, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                          <div style={{ fontSize: '0.75rem', color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 700 }}>👁️ Tampilan di Web:</span>
+                            <strong style={{
+                              color: isDark ? '#ffffff' : 'var(--mandiri-blue)',
+                              background: isDark ? 'rgba(56, 189, 248, 0.18)' : '#e0f2fe',
+                              border: isDark ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #7dd3fc',
+                              padding: '3px 10px',
+                              borderRadius: '6px',
+                              fontWeight: 800,
+                              display: 'inline-block'
+                            }}>
                               {formatWibDateTime(editingItem.item.date)}
                             </strong>
                           </div>
@@ -8373,17 +8525,21 @@ export default function AdminPortal({
                         setEditingItem({ ...editingItem, item: { ...editingItem.item, docLinks: nextLinks } });
                       }}
                       style={{
-                        padding: '4px 10px',
+                        padding: '5px 12px',
                         borderRadius: 'var(--radius-full)',
-                        background: 'rgba(16, 185, 129, 0.14)',
-                        border: '1px solid #10b981',
-                        color: '#10b981',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        cursor: 'pointer'
+                        background: isDark ? 'rgba(56, 189, 248, 0.18)' : 'rgba(0, 61, 121, 0.08)',
+                        border: isDark ? '1px solid rgba(56, 189, 248, 0.45)' : '1px solid rgba(0, 61, 121, 0.25)',
+                        color: isDark ? 'var(--neon-cyan)' : 'var(--mandiri-blue)',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}
                     >
-                      + Tambah Link
+                      <Plus size={13} />
+                      <span>Tambah Link Lain</span>
                     </button>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

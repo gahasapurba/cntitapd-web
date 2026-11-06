@@ -386,16 +386,25 @@ export function toDateInputValue(str) {
 
 /**
  * Format flexible date string into Indonesian text with WIB timezone.
- * Supports 4 modes:
+ * Supports 5 modes:
  * 1. Tahun Saja: "2026" -> "2026"
  * 2. Bulan & Tahun: "2026-05" -> "Mei 2026"
  * 3. Rentang Tanggal: "2026-08-18/2026-08-20" -> "18 - 20 Agustus 2026"
  * 4. Tanggal Lengkap: "2026-03-10" -> "10 Maret 2026"
+ * 5. Pilih Tanggal (Multiple): "2026-11-23, 2026-11-25" -> "23, 25 November 2026"
  * Also supports ISO datetime / timestamptz with hours (e.g. "2026-03-10T14:30" -> "10 Maret 2026 • 14:30 WIB")
  */
 export function formatWibDateTime(str, options = {}) {
   if (!str) return '';
   const trimmed = String(str).trim();
+
+  // 0. Multiple Dates (dipisahkan koma, contoh: "2026-11-23, 2026-11-25" atau "2026-10-25, 2026-11-25")
+  if (trimmed.includes(',')) {
+    const rawParts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+    if (rawParts.length > 1 && rawParts.every(p => /^\d{4}-\d{2}-\d{2}/.test(p))) {
+      return formatMultipleDates(rawParts);
+    }
+  }
 
   // 1. Tahun saja (YYYY)
   if (/^\d{4}$/.test(trimmed)) {
@@ -480,6 +489,25 @@ export function parseFlexibleDate(str) {
 
   const trimmed = String(str).trim();
 
+  // Mode 5: Pilih Tanggal / Multiple Dates (dipisahkan koma, contoh: "2026-11-23, 2026-11-25")
+  if (trimmed.includes(',')) {
+    const rawParts = trimmed.split(',').map(s => s.trim().split('T')[0]).filter(Boolean);
+    if (rawParts.length > 1 && rawParts.every(p => /^\d{4}-\d{2}-\d{2}/.test(p))) {
+      const sorted = Array.from(new Set(rawParts)).sort();
+      const first = sorted[0] || today;
+      const last = sorted[sorted.length - 1] || first;
+      return {
+        mode: 'dates',
+        dates: sorted,
+        date: first,
+        startDate: first,
+        endDate: last,
+        month: first.slice(0, 7) || `${curYear}-${curMonth}`,
+        year: first.slice(0, 4) || String(curYear)
+      };
+    }
+  }
+
   // Mode 4: Year only (e.g. "2026")
   if (/^\d{4}$/.test(trimmed)) {
     return {
@@ -488,7 +516,8 @@ export function parseFlexibleDate(str) {
       date: `${trimmed}-01-01`,
       startDate: `${trimmed}-01-01`,
       endDate: `${trimmed}-12-31`,
-      month: `${trimmed}-01`
+      month: `${trimmed}-01`,
+      dates: [`${trimmed}-01-01`]
     };
   }
 
@@ -501,7 +530,8 @@ export function parseFlexibleDate(str) {
       year: y,
       date: `${trimmed}-01`,
       startDate: `${trimmed}-01`,
-      endDate: `${trimmed}-28`
+      endDate: `${trimmed}-28`,
+      dates: [`${trimmed}-01`]
     };
   }
 
@@ -516,7 +546,8 @@ export function parseFlexibleDate(str) {
       endDate: eDate,
       date: sDate,
       month: sDate.slice(0, 7) || `${curYear}-${curMonth}`,
-      year: sDate.slice(0, 4) || String(curYear)
+      year: sDate.slice(0, 4) || String(curYear),
+      dates: [sDate, eDate]
     };
   }
 
@@ -529,7 +560,8 @@ export function parseFlexibleDate(str) {
       startDate: dVal,
       endDate: dVal,
       month: dVal.slice(0, 7) || `${curYear}-${curMonth}`,
-      year: dVal.slice(0, 4) || String(curYear)
+      year: dVal.slice(0, 4) || String(curYear),
+      dates: [dVal]
     };
   }
 
@@ -542,7 +574,8 @@ export function parseFlexibleDate(str) {
       startDate: isoMatch,
       endDate: isoMatch,
       month: isoMatch.slice(0, 7),
-      year: isoMatch.slice(0, 4)
+      year: isoMatch.slice(0, 4),
+      dates: [isoMatch]
     };
   }
 
@@ -552,8 +585,58 @@ export function parseFlexibleDate(str) {
     startDate: today,
     endDate: today,
     month: `${curYear}-${curMonth}`,
-    year: String(curYear)
+    year: String(curYear),
+    dates: [today]
   };
+}
+
+/**
+ * Format multiple arbitrary ISO dates into human Indonesian text.
+ * Examples:
+ * - 23 & 25 Nov 2026 -> "23, 25 November 2026"
+ * - 25 Okt & 25 Nov 2026 -> "25 Oktober, 25 November 2026"
+ * - 21 Mar 2025 & 25 Agu 2027 -> "21 Maret 2025, 25 Agustus 2027"
+ */
+export function formatMultipleDates(dates = []) {
+  const validDates = dates
+    .map(d => String(d || '').trim().split('T')[0])
+    .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+
+  if (validDates.length === 0) return '';
+  if (validDates.length === 1) {
+    const [y, m, d] = validDates[0].split('-').map(Number);
+    return `${d} ${INDONESIAN_MONTHS[m - 1]} ${y}`;
+  }
+
+  // Sort dates chronologically ascending and remove duplicates
+  const sorted = Array.from(new Set(validDates)).sort();
+
+  // Group by Year -> Month -> Days
+  const yearMap = new Map();
+  for (const dateStr of sorted) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    if (!yearMap.has(y)) {
+      yearMap.set(y, new Map());
+    }
+    const monthMap = yearMap.get(y);
+    if (!monthMap.has(m)) {
+      monthMap.set(m, []);
+    }
+    monthMap.get(m).push(d);
+  }
+
+  const yearParts = [];
+  for (const [year, monthMap] of yearMap.entries()) {
+    const monthParts = [];
+    for (const [monthNum, days] of monthMap.entries()) {
+      const monthName = INDONESIAN_MONTHS[monthNum - 1];
+      const daysText = days.join(', ');
+      monthParts.push(`${daysText} ${monthName}`);
+    }
+    yearParts.push(`${monthParts.join(', ')} ${year}`);
+  }
+
+  return yearParts.join(', ');
 }
 
 /**
@@ -563,6 +646,17 @@ export function buildFlexibleDate(mode, fields = {}) {
   const curYear = new Date().getFullYear();
   const curMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const today = new Date().toISOString().split('T')[0];
+
+  if (mode === 'dates') {
+    const list = Array.isArray(fields.dates) ? fields.dates : [];
+    const valid = list
+      .map(d => String(d || '').trim().split('T')[0])
+      .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    if (valid.length > 0) {
+      return Array.from(new Set(valid)).sort().join(', ');
+    }
+    return String(fields.date || today).trim();
+  }
 
   if (mode === 'year') {
     return String(fields.year || curYear).trim();
