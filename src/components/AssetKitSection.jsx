@@ -7,8 +7,10 @@ import {
   Search,
   FolderOpen,
   ExternalLink,
-  FileText
+  FileText,
+  Clock
 } from 'lucide-react';
+import { formatLastUpdatedWib } from '../utils/dateUtils';
 
 export default function AssetKitSection({ theme, brandAssets = [] }) {
   const isDark = theme === 'dark';
@@ -377,9 +379,15 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
                     <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0', lineHeight: 1.35 }}>
                       {item.title}
                     </h4>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 8px 0', lineHeight: 1.55 }}>
                       {item.description}
                     </p>
+                    {item.updatedAt && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Clock size={11} color="var(--mandiri-gold)" />
+                        <span>{formatLastUpdatedWib(item.updatedAt)}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', paddingTop: '10px', borderTop: '1px solid var(--border-card)' }}>

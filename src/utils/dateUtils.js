@@ -631,4 +631,66 @@ export function formatWibEventRange(startDateStr, endDateStr, fallback = '') {
   return `${sD} ${sMonth} ${sY} - ${eD} ${eMonth} ${eY}`;
 }
 
+/**
+ * Format updated_at timestamp into human-readable relative + WIB date-time.
+ * Pattern: "Terakhir diubah : 2 hari yang lalu (04 November 2026 - 13.30 WIB)"
+ */
+export function formatLastUpdatedWib(timestamp) {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return '';
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+
+  let relativeText = 'Baru saja';
+  if (diffMs > 0) {
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+
+    if (diffSecs < 60) {
+      relativeText = 'Baru saja';
+    } else if (diffMins < 60) {
+      relativeText = `${diffMins} menit yang lalu`;
+    } else if (diffHours < 24) {
+      relativeText = `${diffHours} jam yang lalu`;
+    } else if (diffDays < 30) {
+      relativeText = `${diffDays} hari yang lalu`;
+    } else if (diffMonths < 12) {
+      relativeText = `${diffMonths} bulan yang lalu`;
+    } else {
+      relativeText = `${diffYears} tahun yang lalu`;
+    }
+  }
+
+  const formatter = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: 'long',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  const parts = formatter.formatToParts(d);
+  const m = {};
+  parts.forEach(p => { m[p.type] = p.value; });
+
+  const day = m.day || '01';
+  const month = m.month || '';
+  const year = m.year || '';
+  const hour = m.hour || '00';
+  const minute = m.minute || '00';
+
+  const wibTime = `${day} ${month} ${year} - ${hour}.${minute} WIB`;
+
+  return `Terakhir diubah : ${relativeText} (${wibTime})`;
+}
+
+
 

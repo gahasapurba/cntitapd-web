@@ -57,7 +57,8 @@ import {
   toDatetimeLocalValue,
   toDateInputValue,
   parseFlexibleDate,
-  buildFlexibleDate
+  buildFlexibleDate,
+  formatLastUpdatedWib
 } from '../utils/dateUtils';
 
 function formatWaPhone(raw = '') {
@@ -2607,6 +2608,11 @@ export default function AdminPortal({
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {m.role} {m.title ? `• ${m.title}` : ''}
                           </div>
+                          {m.updatedAt && (
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                              {formatLastUpdatedWib(m.updatedAt)}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
@@ -3098,6 +3104,11 @@ export default function AdminPortal({
                                 💰 Rp {Number(evt.totalRab || 0).toLocaleString('id-ID')}
                               </span>
                             </div>
+                            {evt.updatedAt && (
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                                {formatLastUpdatedWib(evt.updatedAt)}
+                              </div>
+                            )}
                           </div>
 
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-card)', paddingTop: '8px' }}>
@@ -4008,6 +4019,11 @@ export default function AdminPortal({
                             return `${formatWibDateTime(gal.date)} • ${displayDiv} • ${gal.photos?.length || 0} Foto`;
                           })()}
                         </div>
+                        {gal.updatedAt && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                            {formatLastUpdatedWib(gal.updatedAt)}
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>Aktif di Web</span>
@@ -4764,6 +4780,11 @@ export default function AdminPortal({
                         {tenures.find(t => t.id === d.tenureId)?.code || d.tenureId}
                       </span>
                     )}
+                    {d.updatedAt && (
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                        {formatLastUpdatedWib(d.updatedAt)}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button
@@ -5048,6 +5069,11 @@ export default function AdminPortal({
                 <div>
                   <strong style={{ color: 'var(--text-main)' }}>{t.title}</strong>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>"{t.themeTagline}"</div>
+                  {t.updatedAt && (
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                      {formatLastUpdatedWib(t.updatedAt)}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <span className={activeTenure?.id === t.id ? "badge-gold" : "badge-cyan"}>
@@ -5419,6 +5445,11 @@ export default function AdminPortal({
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       Deadline: {f.deadline ? formatDeadlineWib(f.deadline) : 'Tanpa batas waktu'} • {f.fields?.length || 0} Pertanyaan • <strong>{subCount} Data Pengisian</strong>
                     </div>
+                    {f.updatedAt && (
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                        {formatLastUpdatedWib(f.updatedAt)}
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -6171,6 +6202,11 @@ export default function AdminPortal({
                         <span>•</span>
                         <span>❤️ {kudos.likes || 1} Apresiasi</span>
                       </div>
+                      {kudos.updatedAt && (
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                          {formatLastUpdatedWib(kudos.updatedAt)}
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -6435,6 +6471,11 @@ export default function AdminPortal({
                             {asp.description && asp.description !== asp.title && (
                               <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                                 {asp.description}
+                              </div>
+                            )}
+                            {asp.updatedAt && (
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                                {formatLastUpdatedWib(asp.updatedAt)}
                               </div>
                             )}
                           </div>
@@ -6929,6 +6970,11 @@ export default function AdminPortal({
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>
                     {item.description}
                   </p>
+                  {item.updatedAt && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '6px' }}>
+                      {formatLastUpdatedWib(item.updatedAt)}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border-card)' }}>
@@ -7179,6 +7225,11 @@ export default function AdminPortal({
                         <p style={{ fontSize: '0.83rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
                           {f.answer}
                         </p>
+                        {f.updatedAt && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '6px' }}>
+                            {formatLastUpdatedWib(f.updatedAt)}
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>

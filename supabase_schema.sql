@@ -32,7 +32,8 @@ CREATE TABLE public.tenures (
     start_date TEXT,
     end_date TEXT,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 2. Tabel Divisi Organisasi (divisions)
@@ -48,7 +49,8 @@ CREATE TABLE public.divisions (
     focus_areas JSONB DEFAULT '[]'::jsonb,
     is_recruiting BOOLEAN DEFAULT true,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 3. Tabel Struktur Pengurus & Anggota (members)
@@ -66,7 +68,8 @@ CREATE TABLE public.members (
     motto TEXT,
     responsibilities JSONB DEFAULT '[]'::jsonb,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 4. Tabel Program Kerja & Kalender Budaya (events)
@@ -86,7 +89,8 @@ CREATE TABLE public.events (
     total_rab NUMERIC DEFAULT 0,
     status TEXT DEFAULT 'Upcoming',
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 5. Tabel Galeri Dokumentasi Kegiatan (galleries)
@@ -100,7 +104,8 @@ CREATE TABLE public.galleries (
     photos JSONB DEFAULT '[]'::jsonb,
     doc_links JSONB DEFAULT '[]'::jsonb,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 6. Tabel Wall of Kudos / Apresiasi (kudos)
@@ -114,7 +119,8 @@ CREATE TABLE public.kudos (
     date TEXT,
     exact_timestamp TEXT,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 7. Tabel Kotak Ide & Aspirasi Budaya (aspirasi)
@@ -129,7 +135,8 @@ CREATE TABLE public.aspirasi (
     admin_reply TEXT DEFAULT '',
     is_public BOOLEAN DEFAULT true,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 8. Tabel Formulir Pendaftaran Dinamis (forms)
@@ -143,7 +150,8 @@ CREATE TABLE public.forms (
     description TEXT,
     fields JSONB DEFAULT '[]'::jsonb,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 9. Tabel Berkas Pendaftaran Masuk (submissions)
@@ -156,7 +164,8 @@ CREATE TABLE public.submissions (
     admin_notes TEXT DEFAULT '',
     data JSONB DEFAULT '{}'::jsonb,
     files JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 10. Tabel Pengaturan Visibilitas Halaman & Konfigurasi Global (page_settings)
@@ -250,3 +259,28 @@ CREATE POLICY "Public Access cnt-media" ON storage.objects FOR ALL TO anon, auth
 
 -- Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';
+
+-- ==============================================================================
+-- MIGRATION SCRIPT: Tambahkan updated_at ke semua tabel yang sudah ada
+-- Jalankan blok di bawah ini di SQL Editor Supabase untuk tabel yang sudah live
+-- ==============================================================================
+ALTER TABLE public.tenures ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.divisions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.galleries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.kudos ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.aspirasi ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.brand_assets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.event_rsvps ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.faqs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'departments') THEN
+        ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+    END IF;
+END $$;
+NOTIFY pgrst, 'reload schema';
+

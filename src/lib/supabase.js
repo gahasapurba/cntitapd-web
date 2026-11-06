@@ -112,6 +112,23 @@ export async function checkDepartmentsTable() {
   return isDepartmentsTableSupported;
 }
 
+const supportedUpdatedAtTables = new Set(['brand_assets', 'event_rsvps', 'faqs']);
+
+export async function checkTableUpdatedAtColumn(tableName) {
+  if (!tableName) return false;
+  if (supportedUpdatedAtTables.has(tableName)) return true;
+  try {
+    const { error } = await supabase.from(tableName).select('updated_at').limit(1);
+    if (!error) {
+      supportedUpdatedAtTables.add(tableName);
+      return true;
+    }
+  } catch (e) {
+    // Ignore and fallback
+  }
+  return false;
+}
+
 let isRsvpsDepartmentColChecked = true;
 let isRsvpsDepartmentColSupported = true;
 let isRsvpsDepartmentIdColChecked = false;
@@ -278,7 +295,9 @@ export const rowMappers = {
       heroHighlight: row.hero_highlight,
       visi: row.visi,
       misi: Array.isArray(row.misi) && row.misi.length > 0 ? row.misi : undefined,
-      isActive: Boolean(row.is_active)
+      isActive: Boolean(row.is_active),
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || row.created_at || null
     })
   },
 
@@ -317,7 +336,9 @@ export const rowMappers = {
       motto: row.motto,
       description: row.description,
       focusAreas: Array.isArray(row.focus_areas) ? row.focus_areas : [],
-      isRecruiting: Boolean(row.is_recruiting)
+      isRecruiting: Boolean(row.is_recruiting),
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || row.created_at || null
     })
   },
 
@@ -335,7 +356,8 @@ export const rowMappers = {
       code: row.code || '',
       description: row.description || '',
       sortOrder: row.sort_order ?? 0,
-      createdAt: row.created_at || ''
+      createdAt: row.created_at || '',
+      updatedAt: row.updated_at || row.created_at || null
     })
   },
 
@@ -367,7 +389,9 @@ export const rowMappers = {
       color: row.color || '#FFB800',
       whatsapp: row.whatsapp || '',
       motto: row.motto || '',
-      responsibilities: Array.isArray(row.responsibilities) ? row.responsibilities : []
+      responsibilities: Array.isArray(row.responsibilities) ? row.responsibilities : [],
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || row.created_at || null
     })
   },
 
@@ -416,7 +440,8 @@ export const rowMappers = {
       description: row.description,
       totalRab: Number(row.total_rab || 0),
       status: row.status || 'Upcoming',
-      createdAt: row.created_at
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || row.created_at || null
     })
   },
 
@@ -446,7 +471,8 @@ export const rowMappers = {
       divisionId: row.division_id || undefined,
       title: row.title,
       date: row.date,
-      createdAt: row.created_at,
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || row.created_at || null,
       division: row.division || undefined,
       divisionName: row.division || undefined,
       description: row.description,
@@ -473,7 +499,8 @@ export const rowMappers = {
       category: row.category || 'Kolaboratif',
       message: row.message,
       likes: Number(row.likes ?? 1),
-      createdAt: row.created_at || new Date().toISOString()
+      createdAt: row.created_at || new Date().toISOString(),
+      updatedAt: row.updated_at || row.created_at || null
     })
   },
 
@@ -498,6 +525,7 @@ export const rowMappers = {
       description: row.description || row.title || '',
       submittedAt: row.created_at || row.submitted_at || '',
       createdAt: row.created_at || '',
+      updatedAt: row.updated_at || row.created_at || null,
       status: row.status || 'Menunggu Review',
       adminReply: row.admin_reply || '',
       isPublic: row.is_public !== false
@@ -554,7 +582,9 @@ export const rowMappers = {
         isOpen: row.is_open !== false,
         requiresTracking: isTracking,
         tenureId: tenureIdVal,
-        fields: rawFields
+        fields: rawFields,
+        createdAt: row.created_at || null,
+        updatedAt: row.updated_at || row.created_at || null
       };
     }
   },
@@ -574,6 +604,7 @@ export const rowMappers = {
       formTitle: row.form_title || '',
       submittedAt: row.created_at || row.submitted_at || '',
       createdAt: row.created_at || '',
+      updatedAt: row.updated_at || row.created_at || null,
       status: row.status || 'Submitted',
       adminNotes: row.admin_notes || '',
       data: row.data || {},
@@ -604,7 +635,9 @@ export const rowMappers = {
       previewUrl: row.preview_url || row.file_url || '',
       fileType: row.file_type || 'PNG / ZIP',
       fileSize: row.file_size || '',
-      badge: row.badge || 'Official Asset'
+      badge: row.badge || 'Official Asset',
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || row.created_at || null
     })
   },
 
@@ -638,7 +671,8 @@ export const rowMappers = {
       attendanceMode: row.attendance_mode || 'Hadir Onsite',
       notes: row.notes || '',
       submittedAt: row.created_at || row.submitted_at || '',
-      createdAt: row.created_at || ''
+      createdAt: row.created_at || '',
+      updatedAt: row.updated_at || row.created_at || null
     })
   },
 
@@ -661,6 +695,7 @@ export const rowMappers = {
       askedBy: row.asked_by || 'Admin CNT',
       submittedAt: row.created_at || row.submitted_at || '',
       createdAt: row.created_at || '',
+      updatedAt: row.updated_at || row.created_at || null,
       isPublished: row.is_published !== false
     })
   }
@@ -862,7 +897,14 @@ export async function pushCloudState(key, value) {
       });
     }
 
-    const dbRows = preparedValue.map((item, idx) => mapper.toDb(item, idx));
+    const hasUpdatedAt = await checkTableUpdatedAtColumn(tableName);
+    const dbRows = preparedValue.map((item, idx) => {
+      const row = mapper.toDb(item, idx);
+      if (hasUpdatedAt && row.updated_at === undefined) {
+        row.updated_at = new Date().toISOString();
+      }
+      return row;
+    });
     const currentIds = dbRows.map((r) => r.id);
 
     // Fetch existing IDs in table to remove deleted rows
@@ -915,7 +957,11 @@ export async function mergeAndPushCloudList(key, newItem, currentLocalList = [])
   }
 
   try {
+    const hasUpdatedAt = await checkTableUpdatedAtColumn(tableName);
     const dbRow = mapper.toDb(newItem, 0);
+    if (hasUpdatedAt && dbRow.updated_at === undefined) {
+      dbRow.updated_at = new Date().toISOString();
+    }
     const { error: upsertErr } = await supabase.from(tableName).upsert(dbRow, { onConflict: 'id' });
     if (upsertErr) {
       console.error(`[mergeAndPushCloudList] Error upserting ${key}:`, upsertErr);
