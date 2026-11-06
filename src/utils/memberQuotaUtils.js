@@ -41,6 +41,29 @@ export function getCategoryFromLevel(level) {
 }
 
 /**
+ * Format label dropdown tingkatan organigram dengan menampilkan role database setelah tanda titik dua (:).
+ */
+export function formatLevelOptionLabel(lvl, tenureRoles = [], targetTenureId = null, short = false) {
+  const levelNum = typeof lvl === 'object' ? lvl.level : Number(lvl);
+  const baseLvlObj = LEVEL_OPTIONS.find(l => l.level === levelNum) || { level: levelNum, label: `Level ${levelNum}`, shortLabel: `Level ${levelNum}` };
+
+  const rolesInTenure = (tenureRoles || []).filter(r => !targetTenureId || r.tenureId === targetTenureId);
+  let matched = rolesInTenure.filter(r => Number(r.level) === levelNum);
+  if (matched.length === 0 && (tenureRoles || []).length > 0) {
+    matched = (tenureRoles || []).filter(r => Number(r.level) === levelNum);
+  }
+  const roleNames = Array.from(new Set(matched.map(r => String(r.name || '').trim()).filter(Boolean)));
+
+  if (roleNames.length > 0) {
+    return short 
+      ? `Level ${levelNum} (${roleNames.join(', ')})`
+      : `Level ${levelNum}: ${roleNames.join(', ')}`;
+  }
+
+  return short ? baseLvlObj.shortLabel : baseLvlObj.label;
+}
+
+/**
  * Mengambil daftar role resmi untuk tenure tertentu dari konfigurasi cloud/local.
  * Jika belum ada atau masih format lama, otomatis dikonversi/fallback dengan aman.
  */

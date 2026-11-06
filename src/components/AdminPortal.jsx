@@ -72,7 +72,8 @@ import {
   getMemberLevel,
   validateMemberQuota,
   getTenureQuotaSummary,
-  getMemberRoleType
+  getMemberRoleType,
+  formatLevelOptionLabel
 } from '../utils/memberQuotaUtils';
 
 function formatWaPhone(raw = '') {
@@ -3122,7 +3123,9 @@ export default function AdminPortal({
                   }}
                 >
                   {LEVEL_OPTIONS.map(lvl => (
-                    <option key={lvl.level} value={lvl.level}>{lvl.label}</option>
+                    <option key={lvl.level} value={lvl.level}>
+                      {formatLevelOptionLabel(lvl, tenureRoles, newRoleTenureId || activeTenure?.id || tenures[0]?.id)}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -3286,7 +3289,9 @@ export default function AdminPortal({
                   >
                     <option value="all">Semua Tingkat</option>
                     {LEVEL_OPTIONS.map(lvl => (
-                      <option key={lvl.level} value={String(lvl.level)}>{lvl.shortLabel}</option>
+                      <option key={lvl.level} value={String(lvl.level)}>
+                        {formatLevelOptionLabel(lvl, tenureRoles, roleTenureFilter === 'all' ? null : roleTenureFilter, true)}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -10588,7 +10593,9 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   >
                     {LEVEL_OPTIONS.map(lvl => (
-                      <option key={lvl.level} value={lvl.level}>{lvl.label}</option>
+                      <option key={lvl.level} value={lvl.level}>
+                        {formatLevelOptionLabel(lvl, tenureRoles, editingItem.item.tenureId || activeTenure?.id || tenures[0]?.id)}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -11393,7 +11400,7 @@ export default function AdminPortal({
               >
                 {LEVEL_OPTIONS.map((lvl) => (
                   <option key={lvl.level} value={lvl.level}>
-                    {lvl.label}
+                    {formatLevelOptionLabel(lvl, tenureRoles, roleModal.tenureId || selectedOrgTenureId || activeTenure?.id || tenures[0]?.id)}
                   </option>
                 ))}
               </select>
