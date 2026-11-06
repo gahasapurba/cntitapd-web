@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Users,
+  Shield,
   Heart,
   Building2,
   FileText,
