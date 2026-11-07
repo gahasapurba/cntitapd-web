@@ -1025,9 +1025,16 @@ export default function AdminPortal({
 
   const handleCreateTenure = (e) => {
     e.preventDefault();
+    const errors = {};
     if (!newTenureCode.trim()) {
-      setFormErrors((prev) => ({ ...prev, newTenureCode: 'Kode Tahun Kepengurusan wajib diisi' }));
-      showToast('Mohon isi Kode Tahun Kepengurusan', 'error');
+      errors.newTenureCode = 'Kode Tahun Kepengurusan wajib diisi';
+    }
+    if (!newTenureTitle.trim()) {
+      errors.newTenureTitle = 'Nama Periode Kepengurusan wajib diisi';
+    }
+    if (Object.keys(errors).length > 0) {
+      setFormErrors((prev) => ({ ...prev, ...errors }));
+      showToast('Mohon lengkapi field wajib (Kode Tahun & Nama Periode)', 'error');
       return;
     }
 
@@ -6212,23 +6219,27 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                Nama Periode *
+                Nama Periode <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
                 type="text"
                 placeholder="misal: Kepengurusan CNT IT APD 2027"
                 value={newTenureTitle}
-                onChange={(e) => setNewTenureTitle(e.target.value)}
+                onChange={(e) => {
+                  setNewTenureTitle(e.target.value);
+                  clearFieldError('newTenureTitle');
+                }}
                 style={{
                   width: '100%',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
+                  border: `1.5px solid ${formErrors.newTenureTitle ? '#f43f5e' : 'var(--input-border)'}`,
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
               />
+              {renderFieldError('newTenureTitle')}
             </div>
 
             <div style={{ gridColumn: 'span 2' }}>
@@ -10298,7 +10309,7 @@ export default function AdminPortal({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Judul Kepengurusan</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Kepengurusan <span style={{ color: '#f43f5e' }}>*</span></label>
                     <input
                       type="text"
                       value={editingItem.item.title || ''}
@@ -12680,8 +12691,8 @@ export default function AdminPortal({
                   </p>
 
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    border: '1px solid rgba(244, 63, 94, 0.35)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
                     borderRadius: '10px',
                     padding: '12px',
                     display: 'grid',
@@ -12690,8 +12701,8 @@ export default function AdminPortal({
                     textAlign: 'left'
                   }}>
                     <div style={{
-                      background: deleteConfirm.divCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                      border: deleteConfirm.divCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: deleteConfirm.divCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'var(--bg-card)',
+                      border: deleteConfirm.divCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid var(--border-card)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       display: 'flex',
@@ -12708,8 +12719,8 @@ export default function AdminPortal({
                     </div>
 
                     <div style={{
-                      background: deleteConfirm.memCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                      border: deleteConfirm.memCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: deleteConfirm.memCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'var(--bg-card)',
+                      border: deleteConfirm.memCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid var(--border-card)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       display: 'flex',
@@ -12726,8 +12737,8 @@ export default function AdminPortal({
                     </div>
 
                     <div style={{
-                      background: deleteConfirm.evtCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                      border: deleteConfirm.evtCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: deleteConfirm.evtCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'var(--bg-card)',
+                      border: deleteConfirm.evtCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid var(--border-card)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       display: 'flex',
@@ -12744,8 +12755,8 @@ export default function AdminPortal({
                     </div>
 
                     <div style={{
-                      background: deleteConfirm.galCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                      border: deleteConfirm.galCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: deleteConfirm.galCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'var(--bg-card)',
+                      border: deleteConfirm.galCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid var(--border-card)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       display: 'flex',
@@ -12762,8 +12773,8 @@ export default function AdminPortal({
                     </div>
 
                     <div style={{
-                      background: deleteConfirm.formCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                      border: deleteConfirm.formCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: deleteConfirm.formCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'var(--bg-card)',
+                      border: deleteConfirm.formCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid var(--border-card)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       display: 'flex',
@@ -12823,8 +12834,8 @@ export default function AdminPortal({
                   </p>
 
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    border: '1px solid rgba(244, 63, 94, 0.35)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
                     borderRadius: '10px',
                     padding: '12px',
                     display: 'grid',
@@ -12833,8 +12844,8 @@ export default function AdminPortal({
                     textAlign: 'left'
                   }}>
                     <div style={{
-                      background: deleteConfirm.memCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                      border: deleteConfirm.memCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: deleteConfirm.memCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'var(--bg-card)',
+                      border: deleteConfirm.memCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid var(--border-card)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       display: 'flex',
@@ -12851,8 +12862,8 @@ export default function AdminPortal({
                     </div>
 
                     <div style={{
-                      background: deleteConfirm.evtCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                      border: deleteConfirm.evtCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: deleteConfirm.evtCount > 0 ? 'rgba(244, 63, 94, 0.12)' : 'var(--bg-card)',
+                      border: deleteConfirm.evtCount > 0 ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid var(--border-card)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       display: 'flex',
@@ -12932,8 +12943,8 @@ export default function AdminPortal({
                   </p>
 
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    border: '1px solid rgba(244, 63, 94, 0.35)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
                     borderRadius: '10px',
                     padding: '12px',
                     textAlign: 'left'
@@ -13000,8 +13011,8 @@ export default function AdminPortal({
                   </p>
 
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    border: '1px solid rgba(244, 63, 94, 0.35)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
                     borderRadius: '10px',
                     padding: '12px',
                     textAlign: 'left'
@@ -13068,8 +13079,8 @@ export default function AdminPortal({
                   </p>
 
                   <div style={{
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    border: '1px solid rgba(244, 63, 94, 0.35)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
                     borderRadius: '10px',
                     padding: '12px',
                     textAlign: 'left'
