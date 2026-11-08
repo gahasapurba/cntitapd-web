@@ -351,6 +351,10 @@ export default function AdminPortal({
   const [newDivDesc, setNewDivDesc] = useState('');
   const [newDivFocus, setNewDivFocus] = useState('');
   const [newDivTenureId, setNewDivTenureId] = useState(activeTenure?.id || '');
+  const [divSearchQuery, setDivSearchQuery] = useState('');
+  const [divTenureFilter, setDivTenureFilter] = useState('all');
+  const [divRecruitFilter, setDivRecruitFilter] = useState('all');
+  const [divPage, setDivPage] = useState(1);
 
   // Form states for new department
   const [newDeptName, setNewDeptName] = useState('');
@@ -368,6 +372,9 @@ export default function AdminPortal({
   const [newTenureHighlight, setNewTenureHighlight] = useState('');
   const [newTenureVisi, setNewTenureVisi] = useState('');
   const [newTenureMisi, setNewTenureMisi] = useState('');
+  const [tenureSearchQuery, setTenureSearchQuery] = useState('');
+  const [tenureStatusFilter, setTenureStatusFilter] = useState('all');
+  const [tenurePage, setTenurePage] = useState(1);
 
   // Recruitment controls
   const [isRecruitOpen, setIsRecruitOpen] = useState(recruitmentInfo?.isOpen ?? true);
@@ -5912,7 +5919,31 @@ export default function AdminPortal({
       })()}
 
       {/* TAB CONTENT 1: DIVISI */}
-      {activeTab === 'divisions' && (
+      {activeTab === 'divisions' && (() => {
+        const DIVS_PER_PAGE = 8;
+        const filteredDivs = (divisions || []).filter((d) => {
+          const q = divSearchQuery.toLowerCase().trim();
+          const lead = getDivisionLead(d, members, tenureRoles);
+          const matchesSearch = !q ||
+            (d.name || '').toLowerCase().includes(q) ||
+            (d.description || '').toLowerCase().includes(q) ||
+            (lead.name || '').toLowerCase().includes(q) ||
+            (Array.isArray(d.focusAreas) && d.focusAreas.some(fa => (fa || '').toLowerCase().includes(q)));
+          const matchesTenure = divTenureFilter === 'all' || d.tenureId === divTenureFilter;
+          const isRecruiting = Boolean(d.isRecruiting);
+          const matchesRecruit = divRecruitFilter === 'all' ||
+            (divRecruitFilter === 'open' && isRecruiting) ||
+            (divRecruitFilter === 'closed' && !isRecruiting);
+          return matchesSearch && matchesTenure && matchesRecruit;
+        });
+        const totalDivPages = Math.ceil(filteredDivs.length / DIVS_PER_PAGE) || 1;
+        const safeDivPage = Math.min(Math.max(1, divPage), totalDivPages);
+        const paginatedDivs = filteredDivs.slice(
+          (safeDivPage - 1) * DIVS_PER_PAGE,
+          safeDivPage * DIVS_PER_PAGE
+        );
+
+        return (
         <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
@@ -6042,12 +6073,143 @@ export default function AdminPortal({
             </div>
           </form>
 
+          {/* Filter & Search Bar Divisi */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            padding: '14px 18px',
+            background: 'var(--input-bg)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-card)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 300px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '320px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <input
+                  type="text"
+                  placeholder="Cari nama divisi, pimpinan, fokus..."
+                  value={divSearchQuery}
+                  onChange={(e) => {
+                    setDivSearchQuery(e.target.value);
+                    setDivPage(1);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 34px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.82rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <select
+                value={divTenureFilter}
+                onChange={(e) => {
+                  setDivTenureFilter(e.target.value);
+                  setDivPage(1);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600
+                }}
+              >
+                <option value="all">Semua Periode ({divisions.length})</option>
+                {tenures.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    Periode {t.code || t.title}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={divRecruitFilter}
+                onChange={(e) => {
+                  setDivRecruitFilter(e.target.value);
+                  setDivPage(1);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600
+                }}
+              >
+                <option value="all">Semua Status Rekrutmen</option>
+                <option value="open">● Rekrutmen Buka</option>
+                <option value="closed">○ Rekrutmen Tutup</option>
+              </select>
+            </div>
+
+            {divisions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                  const header = ['ID Divisi', 'Nama Divisi', 'Periode', 'Pimpinan', 'Fokus Area', 'Status Rekrutmen', 'Warna'].map(escapeCsv).join(',');
+                  const rows = divisions.map(d => {
+                    const tObj = tenures.find(t => t.id === d.tenureId);
+                    const lead = getDivisionLead(d, members, tenureRoles);
+                    const fa = Array.isArray(d.focusAreas) ? d.focusAreas.join('; ') : (d.focusAreas || '');
+                    return [d.id, d.name, tObj ? tObj.code || tObj.title : d.tenureId, lead.name || '-', fa, Boolean(d.isRecruiting) ? 'Buka' : 'Tutup', d.color || ''].map(escapeCsv).join(',');
+                  });
+                  const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `daftar_divisi_cnt_it_apd_${Date.now()}.csv`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  showToast('Berhasil mengunduh data divisi ke CSV!');
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid #10b981',
+                  color: '#10b981',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <Download size={14} />
+                <span>Export CSV Divisi</span>
+              </button>
+            )}
+          </div>
+
           <div>
             <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
-              Daftar Divisi Aktif ({divisions.length}):
+              Daftar Divisi ({filteredDivs.length} dari {divisions.length}):
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {divisions.map((d) => (
+              {paginatedDivs.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                  Tidak ada divisi yang cocok dengan pencarian "{divSearchQuery}".
+                </div>
+              ) : (
+                paginatedDivs.map((d) => (
                 <div key={d.id} style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -6167,14 +6329,123 @@ export default function AdminPortal({
                     </button>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
+
+          {/* Pagination Controls Divisi */}
+          {totalDivPages > 1 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              paddingTop: '16px',
+              borderTop: '1px solid var(--border-card)'
+            }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Menampilkan <strong>{(safeDivPage - 1) * DIVS_PER_PAGE + 1} - {Math.min(safeDivPage * DIVS_PER_PAGE, filteredDivs.length)}</strong> dari <strong>{filteredDivs.length}</strong> divisi
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  disabled={safeDivPage === 1}
+                  onClick={() => setDivPage(p => Math.max(1, p - 1))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: safeDivPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: safeDivPage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: safeDivPage === 1 ? 0.45 : 1
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                  <span>Prev</span>
+                </button>
+                {Array.from({ length: totalDivPages }, (_, idx) => idx + 1).map((pg) => {
+                  const isActive = pg === safeDivPage;
+                  return (
+                    <button
+                      key={pg}
+                      type="button"
+                      onClick={() => setDivPage(pg)}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                        color: isActive ? '#040914' : 'var(--text-main)',
+                        border: isActive ? 'none' : '1px solid var(--border-card)',
+                        fontWeight: isActive ? 800 : 600,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {pg}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  disabled={safeDivPage === totalDivPages}
+                  onClick={() => setDivPage(p => Math.min(totalDivPages, p + 1))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: safeDivPage === totalDivPages ? 'var(--text-dim)' : 'var(--text-main)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: safeDivPage === totalDivPages ? 'not-allowed' : 'pointer',
+                    opacity: safeDivPage === totalDivPages ? 0.45 : 1
+                  }}
+                >
+                  <span>Next</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      );
+    })()}
 
       {/* TAB CONTENT 2: TENURE */}
-      {activeTab === 'tenure' && (
+      {activeTab === 'tenure' && (() => {
+        const TENURES_PER_PAGE = 6;
+        const filteredTenures = (tenures || []).filter((t) => {
+          const q = tenureSearchQuery.toLowerCase().trim();
+          const matchesSearch = !q ||
+            (t.code || '').toLowerCase().includes(q) ||
+            (t.title || '').toLowerCase().includes(q) ||
+            (t.themeTagline || '').toLowerCase().includes(q) ||
+            (t.heroHeadline || '').toLowerCase().includes(q);
+          const isActive = activeTenure?.id === t.id || Boolean(t.isActive);
+          const matchesStatus = tenureStatusFilter === 'all' ||
+            (tenureStatusFilter === 'active' && isActive) ||
+            (tenureStatusFilter === 'archived' && !isActive);
+          return matchesSearch && matchesStatus;
+        });
+        const totalTenurePages = Math.ceil(filteredTenures.length / TENURES_PER_PAGE) || 1;
+        const safeTenurePage = Math.min(Math.max(1, tenurePage), totalTenurePages);
+        const paginatedTenures = filteredTenures.slice(
+          (safeTenurePage - 1) * TENURES_PER_PAGE,
+          safeTenurePage * TENURES_PER_PAGE
+        );
+
+        return (
         <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>
@@ -6366,103 +6637,301 @@ export default function AdminPortal({
             </div>
           </form>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {tenures.map((t) => (
-              <div key={t.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 18px',
-                background: 'rgba(255,255,255,0.03)',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border-card)'
-              }}>
-                <div>
-                  <strong style={{ color: 'var(--text-main)' }}>{t.title}</strong>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>"{t.themeTagline}"</div>
-                  {t.updatedAt && (
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '2px' }}>
-                      {formatLastUpdatedWib(t.updatedAt)}
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span className={activeTenure?.id === t.id ? "badge-gold" : "badge-cyan"}>
-                    {activeTenure?.id === t.id ? 'Periode Aktif' : 'Arsip'}
-                  </span>
+          {/* Filter & Search Bar Tenure */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            padding: '14px 18px',
+            background: 'var(--input-bg)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-card)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 300px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '340px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <input
+                  type="text"
+                  placeholder="Cari kode tahun, nama kabinet, atau tagline..."
+                  value={tenureSearchQuery}
+                  onChange={(e) => {
+                    setTenureSearchQuery(e.target.value);
+                    setTenurePage(1);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 34px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.82rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
 
-                  {activeTenure?.id !== t.id && (
+              <select
+                value={tenureStatusFilter}
+                onChange={(e) => {
+                  setTenureStatusFilter(e.target.value);
+                  setTenurePage(1);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600
+                }}
+              >
+                <option value="all">Semua Status Periode ({tenures.length})</option>
+                <option value="active">Periode Aktif Utama</option>
+                <option value="archived">Periode Arsip / Non-Aktif</option>
+              </select>
+            </div>
+
+            {tenures.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                  const header = ['ID Periode', 'Kode Tahun', 'Nama Kabinet / Periode', 'Tagline', 'Headline Hero', 'Status Aktif'].map(escapeCsv).join(',');
+                  const rows = tenures.map(t => {
+                    const isAct = activeTenure?.id === t.id || Boolean(t.isActive);
+                    return [t.id, t.code || '', t.title || '', t.themeTagline || '', t.heroHeadline || '', isAct ? 'Aktif' : 'Arsip'].map(escapeCsv).join(',');
+                  });
+                  const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `daftar_periode_cnt_it_apd_${Date.now()}.csv`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  showToast('Berhasil mengunduh data periode ke CSV!');
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid #10b981',
+                  color: '#10b981',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <Download size={14} />
+                <span>Export CSV Periode</span>
+              </button>
+            )}
+          </div>
+
+          <div>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px' }}>
+              Daftar Periode Kepengurusan ({filteredTenures.length} dari {tenures.length}):
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {paginatedTenures.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                  Tidak ada periode kepengurusan yang cocok dengan pencarian "{tenureSearchQuery}".
+                </div>
+              ) : (
+                paginatedTenures.map((t) => (
+                  <div key={t.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 18px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-card)'
+                  }}>
+                    <div>
+                      <strong style={{ color: 'var(--text-main)' }}>{t.title}</strong>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>"{t.themeTagline}"</div>
+                      {t.updatedAt && (
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                          {formatLastUpdatedWib(t.updatedAt)}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span className={activeTenure?.id === t.id ? "badge-gold" : "badge-cyan"}>
+                        {activeTenure?.id === t.id ? 'Periode Aktif' : 'Arsip'}
+                      </span>
+
+                      {activeTenure?.id !== t.id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onSelectTenure) onSelectTenure(t);
+                            if (onUpdateTenure) onUpdateTenure({ ...t, isActive: true });
+                            showToast(`Periode "${t.title}" dijadikan periode aktif!`);
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'rgba(16, 185, 129, 0.14)',
+                            border: '1px solid #10b981',
+                            color: '#10b981',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Jadikan Aktif
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem({
+                          type: 'tenure',
+                          item: {
+                            ...t,
+                            rawMisi: Array.isArray(t.misi) ? t.misi.join('\n') : (t.misi || '')
+                          }
+                        })}
+                        title="Edit Periode Kepengurusan"
+                        style={{
+                          padding: '6px',
+                          background: 'rgba(14, 165, 233, 0.1)',
+                          border: '1px solid #0284c7',
+                          color: '#0284c7',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Edit2 size={13} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTenureClick(t)}
+                        title="Hapus Periode"
+                        style={{
+                          padding: '6px',
+                          background: 'rgba(244, 63, 94, 0.1)',
+                          border: '1px solid #f43f5e',
+                          color: '#f43f5e',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Pagination Controls Tenure */}
+          {totalTenurePages > 1 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              paddingTop: '16px',
+              borderTop: '1px solid var(--border-card)'
+            }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Menampilkan <strong>{(safeTenurePage - 1) * TENURES_PER_PAGE + 1} - {Math.min(safeTenurePage * TENURES_PER_PAGE, filteredTenures.length)}</strong> dari <strong>{filteredTenures.length}</strong> periode
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  disabled={safeTenurePage === 1}
+                  onClick={() => setTenurePage(p => Math.max(1, p - 1))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: safeTenurePage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: safeTenurePage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: safeTenurePage === 1 ? 0.45 : 1
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                  <span>Prev</span>
+                </button>
+                {Array.from({ length: totalTenurePages }, (_, idx) => idx + 1).map((pg) => {
+                  const isActive = pg === safeTenurePage;
+                  return (
                     <button
+                      key={pg}
                       type="button"
-                      onClick={() => {
-                        if (onSelectTenure) onSelectTenure(t);
-                        if (onUpdateTenure) onUpdateTenure({ ...t, isActive: true });
-                        showToast(`Periode "${t.title}" dijadikan periode aktif!`);
-                      }}
+                      onClick={() => setTenurePage(pg)}
                       style={{
-                        padding: '5px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'rgba(16, 185, 129, 0.14)',
-                        border: '1px solid #10b981',
-                        color: '#10b981',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                        color: isActive ? '#040914' : 'var(--text-main)',
+                        border: isActive ? 'none' : '1px solid var(--border-card)',
+                        fontWeight: isActive ? 800 : 600,
+                        fontSize: '0.78rem',
                         cursor: 'pointer'
                       }}
                     >
-                      Jadikan Aktif
+                      {pg}
                     </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setEditingItem({
-                      type: 'tenure',
-                      item: {
-                        ...t,
-                        rawMisi: Array.isArray(t.misi) ? t.misi.join('\n') : (t.misi || '')
-                      }
-                    })}
-                    title="Edit Periode Kepengurusan"
-                    style={{
-                      padding: '6px',
-                      background: 'rgba(14, 165, 233, 0.1)',
-                      border: '1px solid #0284c7',
-                      color: '#0284c7',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Edit2 size={13} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteTenureClick(t)}
-                    title="Hapus Periode"
-                    style={{
-                      padding: '6px',
-                      background: 'rgba(244, 63, 94, 0.1)',
-                      border: '1px solid #f43f5e',
-                      color: '#f43f5e',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  disabled={safeTenurePage === totalTenurePages}
+                  onClick={() => setTenurePage(p => Math.min(totalTenurePages, p + 1))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: safeTenurePage === totalTenurePages ? 'var(--text-dim)' : 'var(--text-main)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: safeTenurePage === totalTenurePages ? 'not-allowed' : 'pointer',
+                    opacity: safeTenurePage === totalTenurePages ? 0.45 : 1
+                  }}
+                >
+                  <span>Next</span>
+                  <ChevronRight size={14} />
+                </button>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
-      )}
+      );
+    })()}
 
       {/* TAB CONTENT: DYNAMIC FORM ENGINE */}
       {activeTab === 'forms' && (
