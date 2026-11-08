@@ -1332,6 +1332,7 @@ export default function App() {
             {effectiveTab === 'organisasi' && (
             <OrganizationSection
               activeTenure={activeTenure}
+              tenures={tenures}
               divisions={divisions}
               members={members}
               events={events}

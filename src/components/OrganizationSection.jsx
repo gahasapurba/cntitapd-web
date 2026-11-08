@@ -26,14 +26,16 @@ function formatWaNumber(raw = '') {
 
 export default function OrganizationSection({
   activeTenure,
-  divisions,
-  members,
+  tenures = [],
+  divisions = [],
+  members = [],
   events = [],
   roleQuotas = {},
   tenureRoles = [],
   isEventPageVisible = true,
   onNavigateProgram
 }) {
+  const [selectedTenureId, setSelectedTenureId] = useState(activeTenure?.id || tenures[0]?.id || '');
   const [selectedMember, setSelectedMember] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,18 +43,28 @@ export default function OrganizationSection({
   const [divisionFilter, setDivisionFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  // Reset filters whenever active tenure changes
+  // Sync selectedTenureId if activeTenure changes and not set yet
+  useEffect(() => {
+    if (activeTenure?.id && !selectedTenureId) {
+      setSelectedTenureId(activeTenure.id);
+    }
+  }, [activeTenure?.id]);
+
+  // Reset search and filters whenever selected tenure changes
   useEffect(() => {
     setSearchQuery('');
     setRoleFilter('all');
     setDivisionFilter('all');
-  }, [activeTenure?.id]);
+  }, [selectedTenureId]);
+
+  const currentTenure = tenures.find(t => t.id === selectedTenureId) || activeTenure || tenures[0] || null;
+  const currentTenureId = currentTenure?.id || activeTenure?.id || '';
 
   const handleExportPdf = async () => {
     soundFx.playClick();
     setIsExporting(true);
     try {
-      await exportPresentationToPdf('org-tree-export-container', null, activeTenure);
+      await exportPresentationToPdf('org-tree-export-container', null, currentTenure || activeTenure);
     } catch (e) {
       console.error(e);
     } finally {
@@ -95,10 +107,10 @@ export default function OrganizationSection({
     } catch (e) {}
   };
 
-  const activeDivisions = (divisions || []).filter(d => d.tenureId === activeTenure?.id);
-  const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
+  const activeDivisions = (divisions || []).filter(d => !currentTenureId || d.tenureId === currentTenureId);
+  const activeMembers = (members || []).filter(m => !currentTenureId || m.tenureId === currentTenureId);
 
-  const currentTenureRoles = getTenureRoles(activeTenure?.id, roleQuotas, tenureRoles);
+  const currentTenureRoles = getTenureRoles(currentTenureId, roleQuotas, tenureRoles);
 
   // Dewan Penasehat (Level 0 - Tingkat tertinggi bila ada)
   const penasehats = activeMembers.filter(m => getMemberLevel(m, currentTenureRoles) === 0);
@@ -169,7 +181,7 @@ export default function OrganizationSection({
       <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto', padding: '0 8px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: 'var(--radius-full)', background: 'rgba(52, 211, 153, 0.15)', border: '1px solid rgba(52, 211, 153, 0.4)', color: 'var(--neon-emerald)', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', marginBottom: '16px' }}>
           <Sparkles size={14} />
-          <span>Struktur Hirarki Organigram {activeTenure?.title || activeTenure?.code ? `• ${activeTenure.title || activeTenure.code}` : ''}</span>
+          <span>Struktur Hirarki Organigram {currentTenure?.title || currentTenure?.code ? `• ${currentTenure.title || currentTenure.code}` : ''}</span>
         </div>
         <h1 style={{ fontSize: 'clamp(2.4rem, 4.5vw, 3.8rem)', fontWeight: 900, color: 'var(--text-main)', marginBottom: '14px', letterSpacing: '-0.02em' }}>
           ORGANIGRAM <span style={{
@@ -215,8 +227,8 @@ export default function OrganizationSection({
           </div>
         )}
 
-        {/* Search & Filter Directory Bar (Hanya tampil jika ada anggota) */}
-        {activeMembers.length > 0 && (
+        {/* Search & Filter Directory Bar */}
+        {(activeMembers.length > 0 || tenures.length > 0) && (
           <div className="glass-panel" style={{
             marginTop: '24px',
             padding: '14px 18px',
@@ -226,6 +238,31 @@ export default function OrganizationSection({
             gap: '10px',
             border: '1px solid var(--border-card)'
           }}>
+            {/* Filter Periode / Tenure */}
+            {tenures.length > 0 && (
+              <select
+                value={selectedTenureId}
+                onChange={(e) => setSelectedTenureId(e.target.value)}
+                style={{
+                  padding: '9px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1.5px solid var(--mandiri-gold)',
+                  color: 'var(--mandiri-gold)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  flex: '0 1 auto'
+                }}
+              >
+                {tenures.map(t => (
+                  <option key={t.id} value={t.id}>
+                    📅 Periode {t.code || t.title}{t.isActive ? ' (Aktif)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+
             <div style={{ position: 'relative', flex: '1 1 220px' }}>
               <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
@@ -369,7 +406,7 @@ export default function OrganizationSection({
             Belum Ada Struktur Organigram
           </h3>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0 }}>
-            Belum ada anggota atau pengurus yang terdaftar pada periode kepengurusan ini ({activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}). Silakan tambahkan anggota baru melalui Admin Portal.
+            Belum ada anggota atau pengurus yang terdaftar pada periode kepengurusan ini ({currentTenure?.title || currentTenure?.code || 'Tenure Terpilih'}). Silakan tambahkan anggota baru melalui Admin Portal.
           </p>
         </div>
       ) : (
@@ -868,9 +905,11 @@ export default function OrganizationSection({
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>
                   {selectedMember.name}
                 </h3>
-                <div style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
-                  {selectedMember.title}
-                </div>
+                {selectedMember.title && selectedMember.title !== selectedMember.role && (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
+                    {selectedMember.title}
+                  </div>
+                )}
 
                 {/* Direct WhatsApp, vCard & Copy Actions in Modal */}
                 <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>

@@ -267,6 +267,7 @@ export default function AdminPortal({
   const [rolePage, setRolePage] = useState(1);
 
   const [adminMemSearch, setAdminMemSearch] = useState('');
+  const [adminMemTenureFilter, setAdminMemTenureFilter] = useState('all');
   const [adminMemCatFilter, setAdminMemCatFilter] = useState('all');
   const [adminMemDivFilter, setAdminMemDivFilter] = useState('all');
   const [adminMemPage, setAdminMemPage] = useState(1);
@@ -2068,8 +2069,8 @@ export default function AdminPortal({
           { id: 'assets', label: `Asset & Template (${brandAssets.length})`, icon: Download },
           { id: 'faqs', label: `Panduan & FAQ (${faqs.length})`, icon: MessageSquare },
           { id: 'departments', label: `Kelola Departemen (${departments.length})`, icon: Building2 },
-          { id: 'divisions', label: 'Kelola Divisi', icon: Layers },
-          { id: 'tenure', label: 'Periode Kepengurusan', icon: Calendar },
+          { id: 'divisions', label: `Kelola Divisi (${divisions.length})`, icon: Layers },
+          { id: 'tenure', label: `Periode Kepengurusan (${tenures.length})`, icon: Calendar },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -2944,9 +2945,10 @@ export default function AdminPortal({
                 (m.role || '').toLowerCase().includes(q) ||
                 (m.title || '').toLowerCase().includes(q) ||
                 (m.whatsapp || '').toLowerCase().includes(q);
+              const matchesTenure = adminMemTenureFilter === 'all' || m.tenureId === adminMemTenureFilter;
               const matchesCat = adminMemCatFilter === 'all' || m.category === adminMemCatFilter;
               const matchesDiv = adminMemDivFilter === 'all' || m.divisionId === adminMemDivFilter;
-              return matchesSearch && matchesCat && matchesDiv;
+              return matchesSearch && matchesTenure && matchesCat && matchesDiv;
             });
 
             const totalAdminMemPages = Math.ceil(filteredAdminMembers.length / ADMIN_MEM_PER_PAGE) || 1;
@@ -2985,6 +2987,31 @@ export default function AdminPortal({
                         }}
                       />
                     </div>
+
+                    <select
+                      value={adminMemTenureFilter}
+                      onChange={(e) => {
+                        setAdminMemTenureFilter(e.target.value);
+                        setAdminMemDivFilter('all');
+                        setAdminMemPage(1);
+                      }}
+                      style={{
+                        padding: '7px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.76rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="all">Semua Periode ({members.length})</option>
+                      {tenures.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          Periode {t.code || t.title}
+                        </option>
+                      ))}
+                    </select>
 
                     <select
                       value={adminMemCatFilter}
@@ -3026,7 +3053,10 @@ export default function AdminPortal({
                       }}
                     >
                       <option value="all">Semua Divisi</option>
-                      {divisions.map(d => (
+                      {(adminMemTenureFilter === 'all'
+                        ? divisions
+                        : divisions.filter(d => d.tenureId === adminMemTenureFilter)
+                      ).map(d => (
                         <option key={d.id} value={d.id}>{d.name}</option>
                       ))}
                     </select>
@@ -9840,7 +9870,7 @@ export default function AdminPortal({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Lengkap</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nama Lengkap <span style={{ color: '#f43f5e' }}>*</span></label>
                     <input
                       type="text"
                       value={editingItem.item.name || ''}
@@ -9849,13 +9879,28 @@ export default function AdminPortal({
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
-                    <div style={{ padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-card)', color: 'var(--mandiri-gold)', fontSize: '0.86rem', fontWeight: 700 }}>
-                      {(() => {
-                        const tObj = tenures.find(t => t.id === (editingItem.item.tenureId || activeTenure?.id));
-                        return tObj ? `${tObj.title || tObj.code} (${tObj.code})` : 'Periode Aktif';
-                      })()}
-                    </div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan <span style={{ color: '#f43f5e' }}>*</span></label>
+                    <select
+                      value={editingItem.item.tenureId || activeTenure?.id || ''}
+                      onChange={(e) => {
+                        const newTenure = e.target.value;
+                        const validDivs = divisions.filter(d => d.tenureId === newTenure);
+                        const keepDiv = validDivs.some(d => d.id === editingItem.item.divisionId);
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            tenureId: newTenure,
+                            divisionId: keepDiv ? editingItem.item.divisionId : undefined
+                          }
+                        });
+                      }}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                    >
+                      {tenures.map(t => (
+                        <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -9955,60 +10000,27 @@ export default function AdminPortal({
                     </div>
                   );
                 })()}
+
                 <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Title / Sub-Jabatan</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nomor WhatsApp (Opsional)</label>
                     <input
                       type="text"
-                      value={editingItem.item.title || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, title: e.target.value } })}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Nomor WhatsApp</label>
-                    <input
-                      type="text"
+                      placeholder="Contoh: 08123456789 atau 628123456789"
                       value={editingItem.item.whatsapp || ''}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, whatsapp: e.target.value } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />
                   </div>
-                </div>
-
-                <div className="mobile-two-col" style={{ gap: '10px' }}>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Motto</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Motto / Pesan Semangat (Opsional)</label>
                     <input
                       type="text"
+                      placeholder="Contoh: Siap berkontribusi aktif memajukan budaya kolaborasi IT APD"
                       value={editingItem.item.motto || ''}
                       onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, motto: e.target.value } })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                     />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Periode Kepengurusan</label>
-                    <select
-                      value={editingItem.item.tenureId || activeTenure?.id || ''}
-                      onChange={(e) => {
-                        const newTenure = e.target.value;
-                        const validDivs = divisions.filter(d => d.tenureId === newTenure);
-                        const keepDiv = validDivs.some(d => d.id === editingItem.item.divisionId);
-                        setEditingItem({
-                          ...editingItem,
-                          item: {
-                            ...editingItem.item,
-                            tenureId: newTenure,
-                            divisionId: keepDiv ? editingItem.item.divisionId : undefined
-                          }
-                        });
-                      }}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                    >
-                      {tenures.map(t => (
-                        <option key={t.id} value={t.id}>{t.title || t.code} ({t.code})</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
 
