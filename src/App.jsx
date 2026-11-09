@@ -425,7 +425,8 @@ export default function App() {
       const pimpro = members.find(m => m.id === newDiv.memberId);
       if (pimpro) leadName = pimpro.name;
     }
-    const finalDiv = { ...newDiv, leadName };
+    const now = new Date().toISOString();
+    const finalDiv = { ...newDiv, leadName, createdAt: newDiv.createdAt || now, updatedAt: newDiv.updatedAt || now };
 
     setDivisions((prev) => {
       const next = [...prev, finalDiv];
@@ -449,7 +450,7 @@ export default function App() {
       const pimpro = members.find(m => m.id === updatedDiv.memberId);
       if (pimpro) leadName = pimpro.name;
     }
-    const finalDiv = { ...updatedDiv, leadName };
+    const finalDiv = { ...updatedDiv, leadName, updatedAt: new Date().toISOString() };
 
     setDivisions((prev) => {
       const next = prev.map(d => d.id === finalDiv.id ? finalDiv : d);
@@ -529,24 +530,27 @@ export default function App() {
   };
 
   const handleAddTenure = (newTenure) => {
+    const now = new Date().toISOString();
+    const stampedTenure = { ...newTenure, createdAt: newTenure.createdAt || now, updatedAt: newTenure.updatedAt || now };
     setTenures((prev) => {
-      const isActivating = Boolean(newTenure.isActive);
+      const isActivating = Boolean(stampedTenure.isActive);
       const sanitizedPrev = isActivating ? prev.map(t => ({ ...t, isActive: false })) : prev;
-      const next = sortTenuresDesc([...sanitizedPrev, newTenure]);
+      const next = sortTenuresDesc([...sanitizedPrev, stampedTenure]);
       pushCloudState('tenures', next);
       if (isActivating) {
-        setActiveTenure(newTenure);
-        pushCloudState('activeTenureId', newTenure.id);
+        setActiveTenure(stampedTenure);
+        pushCloudState('activeTenureId', stampedTenure.id);
       }
       return next;
     });
   };
   const handleUpdateTenure = (updatedTenure) => {
+    const stampedTenure = { ...updatedTenure, updatedAt: new Date().toISOString() };
     setTenures((prev) => {
-      const isActivating = Boolean(updatedTenure.isActive);
+      const isActivating = Boolean(stampedTenure.isActive);
       const next = sortTenuresDesc(prev.map(t => {
-        if (t.id === updatedTenure.id) {
-          return updatedTenure;
+        if (t.id === stampedTenure.id) {
+          return stampedTenure;
         }
         // Strict exclusivity: when a tenure becomes active, all other tenures must become inactive
         if (isActivating) {
@@ -557,9 +561,9 @@ export default function App() {
       pushCloudState('tenures', next);
       return next;
     });
-    if (updatedTenure.isActive || activeTenure?.id === updatedTenure.id) {
-      setActiveTenure(updatedTenure);
-      pushCloudState('activeTenureId', updatedTenure.id);
+    if (stampedTenure.isActive || activeTenure?.id === stampedTenure.id) {
+      setActiveTenure(stampedTenure);
+      pushCloudState('activeTenureId', stampedTenure.id);
     }
   };
   const handleDeleteTenure = (tenureId) => {
@@ -580,8 +584,10 @@ export default function App() {
   };
 
   const handleAddGallery = (newGal) => {
+    const now = new Date().toISOString();
+    const stampedGal = { ...newGal, createdAt: newGal.createdAt || now, updatedAt: newGal.updatedAt || now };
     setGalleries((prev) => {
-      const next = [newGal, ...prev];
+      const next = [stampedGal, ...prev];
       pushCloudState('galleries', next);
       return next;
     });
@@ -593,8 +599,9 @@ export default function App() {
       const removedPhotos = oldGal.photos.filter(p => !currentPhotos.includes(p));
       removedPhotos.forEach(p => deleteMediaFromCloud(p));
     }
+    const stampedGal = { ...updatedGal, updatedAt: new Date().toISOString() };
     setGalleries((prev) => {
-      const next = prev.map(g => g.id === updatedGal.id ? updatedGal : g);
+      const next = prev.map(g => g.id === stampedGal.id ? stampedGal : g);
       pushCloudState('galleries', next);
       return next;
     });
@@ -612,15 +619,17 @@ export default function App() {
   };
 
   const handleAddMember = (newMem) => {
+    const now = new Date().toISOString();
+    const stampedMem = { ...newMem, createdAt: newMem.createdAt || now, updatedAt: newMem.updatedAt || now };
     setMembers((prev) => {
-      const next = [...prev, newMem];
+      const next = [...prev, stampedMem];
       pushCloudState('members', next);
       return next;
     });
     // Auto-sync Division memberId when adding a Pimpro
-    if (newMem.category === 'pimpro' && newMem.divisionId) {
+    if (stampedMem.category === 'pimpro' && stampedMem.divisionId) {
       setDivisions((prev) => {
-        const next = prev.map(d => d.id === newMem.divisionId ? { ...d, memberId: newMem.id, leadName: newMem.name || d.leadName } : d);
+        const next = prev.map(d => d.id === stampedMem.divisionId ? { ...d, memberId: stampedMem.id, leadName: stampedMem.name || d.leadName } : d);
         pushCloudState('divisions', next);
         return next;
       });
@@ -631,15 +640,16 @@ export default function App() {
     if (oldMem?.image && oldMem.image !== updatedMem.image) {
       deleteMediaFromCloud(oldMem.image);
     }
+    const stampedMem = { ...updatedMem, updatedAt: new Date().toISOString() };
     setMembers((prev) => {
-      const next = prev.map(m => m.id === updatedMem.id ? updatedMem : m);
+      const next = prev.map(m => m.id === stampedMem.id ? stampedMem : m);
       pushCloudState('members', next);
       return next;
     });
     // Auto-sync Division memberId when updating a Pimpro
-    if (updatedMem.category === 'pimpro' && updatedMem.divisionId) {
+    if (stampedMem.category === 'pimpro' && stampedMem.divisionId) {
       setDivisions((prev) => {
-        const next = prev.map(d => d.id === updatedMem.divisionId ? { ...d, memberId: updatedMem.id, leadName: updatedMem.name || d.leadName } : d);
+        const next = prev.map(d => d.id === stampedMem.divisionId ? { ...d, memberId: stampedMem.id, leadName: stampedMem.name || d.leadName } : d);
         pushCloudState('divisions', next);
         return next;
       });
@@ -670,15 +680,18 @@ export default function App() {
   };
 
   const handleAddEvent = (newEvt) => {
+    const now = new Date().toISOString();
+    const stampedEvt = { ...newEvt, createdAt: newEvt.createdAt || now, updatedAt: newEvt.updatedAt || now };
     setEvents((prev) => {
-      const next = [...prev, newEvt];
+      const next = [...prev, stampedEvt];
       pushCloudState('events', next);
       return next;
     });
   };
   const handleUpdateEvent = (updatedEvt) => {
+    const stampedEvt = { ...updatedEvt, updatedAt: new Date().toISOString() };
     setEvents((prev) => {
-      const next = prev.map(e => e.id === updatedEvt.id ? updatedEvt : e);
+      const next = prev.map(e => e.id === stampedEvt.id ? stampedEvt : e);
       pushCloudState('events', next);
       return next;
     });
@@ -697,15 +710,18 @@ export default function App() {
 
   // Dynamic Forms Lifecycle Handlers
   const handleAddForm = (newForm) => {
+    const now = new Date().toISOString();
+    const stampedForm = { ...newForm, createdAt: newForm.createdAt || now, updatedAt: newForm.updatedAt || now };
     setForms((prev) => {
-      const next = [newForm, ...prev];
+      const next = [stampedForm, ...prev];
       pushCloudState('forms', next);
       return next;
     });
   };
   const handleUpdateForm = (updatedForm) => {
+    const stampedForm = { ...updatedForm, updatedAt: new Date().toISOString() };
     setForms((prev) => {
-      const next = prev.map(f => f.id === updatedForm.id ? updatedForm : f);
+      const next = prev.map(f => f.id === stampedForm.id ? stampedForm : f);
       pushCloudState('forms', next);
       return next;
     });
@@ -758,8 +774,9 @@ export default function App() {
         }
       });
     }
+    const stampedSub = { ...updatedSub, updatedAt: new Date().toISOString() };
     setSubmissions((prev) => {
-      const next = prev.map(s => s.id === updatedSub.id ? updatedSub : s);
+      const next = prev.map(s => s.id === stampedSub.id ? stampedSub : s);
       pushCloudState('submissions', next);
       return next;
     });
@@ -781,8 +798,10 @@ export default function App() {
 
   // Brand Assets Lifecycle Handlers
   const handleAddBrandAsset = (newAsset) => {
+    const now = new Date().toISOString();
+    const stampedAsset = { ...newAsset, createdAt: newAsset.createdAt || now, updatedAt: newAsset.updatedAt || now };
     setBrandAssets((prev) => {
-      const next = [...prev, newAsset];
+      const next = [...prev, stampedAsset];
       pushCloudState('brandAssets', next);
       return next;
     });
@@ -804,8 +823,9 @@ export default function App() {
         deleteMediaFromCloud(oldAsset.previewUrl);
       }
     }
+    const stampedAsset = { ...updatedAsset, updatedAt: new Date().toISOString() };
     setBrandAssets((prev) => {
-      const next = prev.map(a => a.id === updatedAsset.id ? updatedAsset : a);
+      const next = prev.map(a => a.id === stampedAsset.id ? stampedAsset : a);
       pushCloudState('brandAssets', next);
       return next;
     });
@@ -826,17 +846,20 @@ export default function App() {
   };
 
   const handleAddKudos = async (newKudos) => {
+    const now = new Date().toISOString();
+    const stampedKudos = { ...newKudos, createdAt: newKudos.createdAt || now, updatedAt: newKudos.updatedAt || now };
     setKudosList((prev) => {
-      const next = [newKudos, ...prev];
+      const next = [stampedKudos, ...prev];
       saveLocalCache('kudosList', next);
       return next;
     });
-    const merged = await mergeAndPushCloudList('kudosList', newKudos, kudosList);
+    const merged = await mergeAndPushCloudList('kudosList', stampedKudos, kudosList);
     if (Array.isArray(merged)) setKudosList(merged);
   };
   const handleUpdateKudos = (updatedKudos) => {
+    const stampedKudos = { ...updatedKudos, updatedAt: new Date().toISOString() };
     setKudosList((prev) => {
-      const next = prev.map(k => k.id === updatedKudos.id ? updatedKudos : k);
+      const next = prev.map(k => k.id === stampedKudos.id ? stampedKudos : k);
       pushCloudState('kudosList', next);
       return next;
     });
@@ -851,17 +874,20 @@ export default function App() {
 
   // Aspirasi Lifecycle Handlers
   const handleAddAspirasi = async (newAsp) => {
+    const now = new Date().toISOString();
+    const stampedAsp = { ...newAsp, createdAt: newAsp.createdAt || now, updatedAt: newAsp.updatedAt || now };
     setAspirasiList((prev) => {
-      const next = [newAsp, ...prev];
+      const next = [stampedAsp, ...prev];
       saveLocalCache('aspirasiList', next);
       return next;
     });
-    const merged = await mergeAndPushCloudList('aspirasiList', newAsp, aspirasiList);
+    const merged = await mergeAndPushCloudList('aspirasiList', stampedAsp, aspirasiList);
     if (Array.isArray(merged)) setAspirasiList(merged);
   };
   const handleUpdateAspirasi = (updatedAsp) => {
+    const stampedAsp = { ...updatedAsp, updatedAt: new Date().toISOString() };
     setAspirasiList((prev) => {
-      const next = prev.map(a => a.id === updatedAsp.id ? updatedAsp : a);
+      const next = prev.map(a => a.id === stampedAsp.id ? stampedAsp : a);
       pushCloudState('aspirasiList', next);
       return next;
     });
@@ -904,24 +930,29 @@ export default function App() {
 
   // FAQs Lifecycle Handlers
   const handleAddFaq = (newFaq) => {
+    const now = new Date().toISOString();
+    const stampedFaq = { ...newFaq, createdAt: newFaq.createdAt || now, updatedAt: newFaq.updatedAt || now };
     setFaqs((prev) => {
-      const next = [...prev, newFaq];
+      const next = [...prev, stampedFaq];
       pushCloudState('faqs', next);
       return next;
     });
   };
   const handleSubmitPublicFaq = async (newFaq) => {
+    const now = new Date().toISOString();
+    const stampedFaq = { ...newFaq, createdAt: newFaq.createdAt || now, updatedAt: newFaq.updatedAt || now };
     setFaqs((prev) => {
-      const next = [newFaq, ...prev];
+      const next = [stampedFaq, ...prev];
       saveLocalCache('faqs', next);
       return next;
     });
-    const merged = await mergeAndPushCloudList('faqs', newFaq, faqs);
+    const merged = await mergeAndPushCloudList('faqs', stampedFaq, faqs);
     if (Array.isArray(merged)) setFaqs(merged);
   };
   const handleUpdateFaq = (updatedFaq) => {
+    const stampedFaq = { ...updatedFaq, updatedAt: new Date().toISOString() };
     setFaqs((prev) => {
-      const next = prev.map(f => f.id === updatedFaq.id ? updatedFaq : f);
+      const next = prev.map(f => f.id === stampedFaq.id ? stampedFaq : f);
       pushCloudState('faqs', next);
       return next;
     });
@@ -936,23 +967,28 @@ export default function App() {
 
   // Departments Lifecycle Handlers
   const handleAddDepartment = (newDept) => {
+    const now = new Date().toISOString();
+    const stampedDept = { ...newDept, createdAt: newDept.createdAt || now, updatedAt: newDept.updatedAt || now };
     setDepartments((prev) => {
-      const next = [...prev, newDept];
+      const next = [...prev, stampedDept];
       pushCloudState('departments', next);
       return next;
     });
   };
   const handleUpdateDepartment = (updatedDept) => {
+    const stampedDept = { ...updatedDept, updatedAt: new Date().toISOString() };
     setDepartments((prev) => {
-      const next = prev.map(d => d.id === updatedDept.id ? updatedDept : d);
+      const next = prev.map(d => d.id === stampedDept.id ? stampedDept : d);
       pushCloudState('departments', next);
       return next;
     });
   };
   // Tenure Roles Handlers
   const handleAddTenureRole = (newRole) => {
+    const now = new Date().toISOString();
+    const stampedRole = { ...newRole, createdAt: newRole.createdAt || now, updatedAt: newRole.updatedAt || now };
     setTenureRoles((prev) => {
-      const next = [...prev, newRole];
+      const next = [...prev, stampedRole];
       pushCloudState('tenureRoles', next);
       saveLocalCache('tenureRoles', next);
       return next;

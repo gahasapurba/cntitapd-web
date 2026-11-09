@@ -63,14 +63,31 @@ export function formatDeadlineWib(deadlineStr) {
     return 'Tanpa batas waktu';
   }
 
-  let d;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    const [y, m, dNum] = trimmed.split('-').map(Number);
-    d = new Date(y, m - 1, dNum, 23, 59, 59);
-  } else {
-    d = new Date(trimmed);
+  // Direct local ISO match: YYYY-MM-DD or YYYY-MM-DDTHH:mm(:ss)
+  const dtMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (dtMatch && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    const y = parseInt(dtMatch[1], 10);
+    const mo = parseInt(dtMatch[2], 10);
+    const dNum = parseInt(dtMatch[3], 10);
+    const h = dtMatch[4] !== undefined ? dtMatch[4] : '23';
+    const mi = dtMatch[5] !== undefined ? dtMatch[5] : '59';
+    const s = dtMatch[6] !== undefined ? dtMatch[6] : '59';
+
+    const localDayObj = new Date(y, mo - 1, dNum);
+    const INDO_DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const weekday = INDO_DAYS[localDayObj.getDay()] || '';
+    const day = String(dNum).padStart(2, '0');
+    const month = INDONESIAN_MONTHS[mo - 1] || '';
+    const year = String(y);
+
+    const timeStr = (s && s !== '00' && s !== '59') 
+      ? `${h}.${mi}.${s} WIB`
+      : `${h}.${mi} WIB`;
+
+    return `${weekday}, ${day} ${month} ${year} - ${timeStr}`;
   }
 
+  const d = new Date(trimmed);
   if (isNaN(d.getTime())) {
     return trimmed;
   }
@@ -113,11 +130,10 @@ export function formatDeadlineWib(deadlineStr) {
 export function toDatetimeLocalSecondsValue(str) {
   if (!str) return '';
   const trimmed = String(str).trim();
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
-    return trimmed;
-  }
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) {
-    return `${trimmed}:00`;
+  const directMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2}))?/);
+  if (directMatch && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    const sec = directMatch[3] !== undefined ? directMatch[3] : '00';
+    return `${directMatch[1]}T${directMatch[2]}:${sec}`;
   }
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     return `${trimmed}T23:59:59`;
@@ -341,9 +357,9 @@ export function formatWibTimestamp(isoStr) {
 export function toDatetimeLocalValue(str) {
   if (!str) return '';
   const trimmed = String(str).trim();
-  // Plain local YYYY-MM-DDTHH:mm (no Z or offset)
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed)) {
-    return trimmed;
+  const directMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+  if (directMatch && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    return `${directMatch[1]}T${directMatch[2]}`;
   }
   // Plain YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {

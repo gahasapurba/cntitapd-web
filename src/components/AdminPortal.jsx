@@ -274,6 +274,7 @@ export default function AdminPortal({
 
   // Search & Filter states for Events in Admin
   const [eventSearchQuery, setEventSearchQuery] = useState('');
+  const [eventTenureFilter, setEventTenureFilter] = useState('all');
   const [eventCatFilter, setEventCatFilter] = useState('all');
   const [eventDivFilter, setEventDivFilter] = useState('all');
   const [eventStatusFilter, setEventStatusFilter] = useState('all');
@@ -282,8 +283,13 @@ export default function AdminPortal({
 
   // Search & Filter states for Gallery in Admin
   const [gallerySearchQuery, setGallerySearchQuery] = useState('');
+  const [galleryTenureFilter, setGalleryTenureFilter] = useState('all');
   const [galleryDivFilter, setGalleryDivFilter] = useState('all');
   const [adminGalleryPage, setAdminGalleryPage] = useState(1);
+
+  // Search & Filter states for Submissions & Reports in Admin
+  const [subTenureFilter, setSubTenureFilter] = useState('all');
+  const [reportTenureId, setReportTenureId] = useState('');
 
   // Search & Filter states for Kudos in Admin
   const [kudosSearchQuery, setKudosSearchQuery] = useState('');
@@ -1166,6 +1172,18 @@ export default function AdminPortal({
     if (!pendingAssetFile && !pendingPreviewFile && !assetFileUrl.trim() && !assetPreviewUrl.trim()) {
       errs.assetFileUrl = 'File atau URL Download wajib dipilih / diisi';
     }
+    if (assetFileUrl.trim() && !pendingAssetFile) {
+      const isValidUrl = /^https?:\/\/.+/i.test(assetFileUrl.trim()) || assetFileUrl.trim().startsWith('/');
+      if (!isValidUrl) {
+        errs.assetFileUrl = 'URL file harus berupa tautan web yang valid (diawali http:// atau https://)';
+      }
+    }
+    if (assetPreviewUrl.trim() && !pendingPreviewFile) {
+      const isValidUrl = /^https?:\/\/.+/i.test(assetPreviewUrl.trim()) || assetPreviewUrl.trim().startsWith('/');
+      if (!isValidUrl) {
+        errs.assetPreviewUrl = 'URL preview harus berupa tautan web yang valid (diawali http:// atau https://)';
+      }
+    }
     if (Object.keys(errs).length > 0) {
       setFormErrors(prev => ({ ...prev, ...errs }));
       showToast('Mohon lengkapi seluruh kolom wajib pada form Asset', 'error');
@@ -1196,8 +1214,9 @@ export default function AdminPortal({
     }
     setIsUploadingMedia(false);
 
-    const effectiveFileUrl = finalFileUrl || finalPreviewUrl || '';
-    const effectivePreviewUrl = finalPreviewUrl || finalFileUrl || '';
+    const isImageFile = (url) => /\.(png|jpe?g|svg|webp|gif|avif)($|\?)/i.test(url) || (url || '').startsWith('data:image/');
+    const effectiveFileUrl = finalFileUrl || (isImageFile(finalPreviewUrl) ? finalPreviewUrl : '');
+    const effectivePreviewUrl = finalPreviewUrl || (isImageFile(finalFileUrl) ? finalFileUrl : '');
 
     if (!effectiveFileUrl) {
       showToast('Gagal: File asset atau URL download tidak boleh kosong. Silakan pilih berkas kembali.', 'error');
@@ -1967,11 +1986,24 @@ export default function AdminPortal({
 
       {/* Executive Summary Analytics Bar */}
       {(() => {
-        const completedEvents = events.filter(e => e.status === 'Completed').length;
-        const eventPercent = events.length > 0 ? Math.round((completedEvents / events.length) * 100) : 0;
-        const totalRab = events.reduce((acc, e) => acc + Number(e.totalRab || 0), 0);
-        const acceptedSubs = submissions.filter(s => s.status === 'Accepted').length;
-        const pendingSubs = submissions.filter(s => !s.status || s.status === 'Submitted').length;
+        const activeTenureId = activeTenure?.id || '';
+        const scopedMembers = activeTenureId ? members.filter(m => m.tenureId === activeTenureId) : members;
+        const scopedEvents = activeTenureId
+          ? events.filter(e => e.tenureId === activeTenureId || (!e.tenureId && divisions.find(d => d.id === e.divisionId)?.tenureId === activeTenureId))
+          : events;
+        const completedEvents = scopedEvents.filter(e => e.status === 'Completed').length;
+        const eventPercent = scopedEvents.length > 0 ? Math.round((completedEvents / scopedEvents.length) * 100) : 0;
+        const totalRab = scopedEvents.reduce((acc, e) => acc + Number(e.totalRab || 0), 0);
+
+        const scopedForms = activeTenureId ? forms.filter(f => f.tenureId === activeTenureId) : forms;
+        const scopedFormIds = new Set(scopedForms.map(f => f.id));
+        const scopedSubs = activeTenureId
+          ? submissions.filter(s => s.tenureId === activeTenureId || scopedFormIds.has(s.formId))
+          : submissions;
+        const acceptedSubs = scopedSubs.filter(s => s.status === 'Accepted').length;
+        const pendingSubs = scopedSubs.filter(s => !s.status || s.status === 'Submitted').length;
+
+        const tenureLabel = activeTenure?.code || activeTenure?.title || 'Aktif';
 
         // Top recipient of kudos
         const recipientCounts = {};
@@ -1989,46 +2021,46 @@ export default function AdminPortal({
           }}>
             <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid var(--mandiri-gold)' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                Personel Aktif
+                Personel ({tenureLabel})
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
-                {members.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Orang</span>
+                {scopedMembers.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Orang</span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {members.filter(m => m.category === 'pembina').length} Pembina • {members.filter(m => m.category === 'inti').length} BPH • {members.filter(m => m.category === 'pimpro').length} Pimpro • {members.filter(m => m.category === 'anggota').length} Squad
+                {scopedMembers.filter(m => m.category === 'pembina').length} Pembina • {scopedMembers.filter(m => m.category === 'inti').length} BPH • {scopedMembers.filter(m => m.category === 'pimpro').length} Pimpro • {scopedMembers.filter(m => m.category === 'anggota').length} Squad
               </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #10b981' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                Realisasi Event
+                Realisasi Event ({tenureLabel})
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
-                {completedEvents}/{events.length} <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10b981' }}>({eventPercent}%)</span>
+                {completedEvents}/{scopedEvents.length} <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10b981' }}>({eventPercent}%)</span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {events.length - completedEvents} Agenda Upcoming / Berjalan
+                {scopedEvents.length - completedEvents} Agenda Upcoming / Berjalan
               </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid var(--neon-cyan)' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                Total Anggaran RAB
+                Total RAB ({tenureLabel})
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
                 Rp {(totalRab / 1000000).toFixed(1)} Jt
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Akumulasi {events.length} Event
+                Akumulasi {scopedEvents.length} Event Periode {tenureLabel}
               </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #a855f7' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-                Data Pengisian Form
+                Data Respon ({tenureLabel})
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
-                {submissions.length + applications.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Respon</span>
+                {scopedSubs.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Respon</span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                 <strong style={{ color: '#10b981' }}>{acceptedSubs} Diterima</strong> • {pendingSubs} Perlu Review
@@ -3974,7 +4006,7 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Target Peserta / KPI
+                Peserta
               </label>
               <input
                 type="text"
@@ -4136,10 +4168,12 @@ export default function AdminPortal({
                   (evt.location || '').toLowerCase().includes(q) ||
                   (evt.description || '').toLowerCase().includes(q) ||
                   (evt.category || evt.badge || '').toLowerCase().includes(q);
+                const evtTenure = evt.tenureId || divisions.find(d => d.id === evt.divisionId)?.tenureId;
+                const matchesTenure = eventTenureFilter === 'all' || evtTenure === eventTenureFilter;
                 const matchesCat = eventCatFilter === 'all' || (evt.category || evt.badge) === eventCatFilter;
                 const matchesDiv = eventDivFilter === 'all' || evt.divisionId === eventDivFilter;
                 const matchesStat = eventStatusFilter === 'all' || evt.status === eventStatusFilter;
-                return matchesSearch && matchesCat && matchesDiv && matchesStat;
+                return matchesSearch && matchesTenure && matchesCat && matchesDiv && matchesStat;
               });
 
               const totalAdminEventPages = Math.ceil(filteredAdminEvents.length / ADMIN_EVENTS_PER_PAGE) || 1;
@@ -4179,6 +4213,31 @@ export default function AdminPortal({
                           }}
                         />
                       </div>
+
+                      <select
+                        value={eventTenureFilter}
+                        onChange={(e) => {
+                          setEventTenureFilter(e.target.value);
+                          setEventDivFilter('all');
+                          setAdminEventPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Periode ({events.length})</option>
+                        {tenures.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            Periode {t.code || t.title}
+                          </option>
+                        ))}
+                      </select>
 
                       <select
                         value={eventCatFilter}
@@ -4223,9 +4282,16 @@ export default function AdminPortal({
                         }}
                       >
                         <option value="all">Semua Divisi</option>
-                        {divisions.map(d => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
+                        {(eventTenureFilter === 'all'
+                          ? divisions
+                          : divisions.filter(d => d.tenureId === eventTenureFilter)
+                        ).map(d => {
+                          const tObj = tenures.find(t => t.id === d.tenureId);
+                          const yearLabel = tObj ? ` (${tObj.code || tObj.title})` : '';
+                          return (
+                            <option key={d.id} value={d.id}>{d.name}{yearLabel}</option>
+                          );
+                        })}
                       </select>
 
                       <select
@@ -5272,8 +5338,10 @@ export default function AdminPortal({
                 const matchesSearch = !q ||
                   (gal.title || '').toLowerCase().includes(q) ||
                   (gal.description || '').toLowerCase().includes(q);
+                const galTenure = gal.tenureId || divisions.find(d => d.id === gal.divisionId || d.name === gal.division)?.tenureId;
+                const matchesTenure = galleryTenureFilter === 'all' || galTenure === galleryTenureFilter;
                 const matchesDiv = galleryDivFilter === 'all' || gal.divisionId === galleryDivFilter || gal.division === galleryDivFilter;
-                return matchesSearch && matchesDiv;
+                return matchesSearch && matchesTenure && matchesDiv;
               });
 
               const totalAdminGalleryPages = Math.ceil(filteredAdminGalleries.length / ADMIN_GALLERY_PER_PAGE) || 1;
@@ -5314,6 +5382,31 @@ export default function AdminPortal({
                       </div>
 
                       <select
+                        value={galleryTenureFilter}
+                        onChange={(e) => {
+                          setGalleryTenureFilter(e.target.value);
+                          setGalleryDivFilter('all');
+                          setAdminGalleryPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Periode ({galleries.length})</option>
+                        {tenures.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            Periode {t.code || t.title}
+                          </option>
+                        ))}
+                      </select>
+
+                      <select
                         value={galleryDivFilter}
                         onChange={(e) => {
                           setGalleryDivFilter(e.target.value);
@@ -5330,9 +5423,16 @@ export default function AdminPortal({
                         }}
                       >
                         <option value="all">Semua Divisi</option>
-                        {divisions.map(d => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
+                        {(galleryTenureFilter === 'all'
+                          ? divisions
+                          : divisions.filter(d => d.tenureId === galleryTenureFilter)
+                        ).map(d => {
+                          const tObj = tenures.find(t => t.id === d.tenureId);
+                          const yearLabel = tObj ? ` (${tObj.code || tObj.title})` : '';
+                          return (
+                            <option key={d.id} value={d.id}>{d.name}{yearLabel}</option>
+                          );
+                        })}
                       </select>
                     </div>
                   </div>
@@ -6988,6 +7088,7 @@ export default function AdminPortal({
               const errs = {};
               if (!newFormTitle.trim()) errs.newFormTitle = 'Judul Formulir wajib diisi';
               if (!newFormCategory.trim()) errs.newFormCategory = 'Kategori Formulir wajib dipilih';
+              if (!newFormDeadline.trim()) errs.newFormDeadline = 'Batas Akhir / Deadline Pendaftaran wajib ditentukan';
               if (Object.keys(errs).length > 0) {
                 setFormErrors((prev) => ({ ...prev, ...errs }));
                 showToast('Mohon lengkapi kolom wajib pada form Formulir', 'error');
@@ -7100,7 +7201,7 @@ export default function AdminPortal({
 
             <div>
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                📅 Batas Akhir / Deadline Pendaftaran (WIB)
+                📅 Batas Akhir / Deadline Pendaftaran (WIB) <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
@@ -7110,13 +7211,14 @@ export default function AdminPortal({
                     value={toDatetimeLocalSecondsValue(newFormDeadline)}
                     onChange={(e) => {
                       setNewFormDeadline(e.target.value);
+                      setFormErrors(prev => ({ ...prev, newFormDeadline: undefined }));
                     }}
                     style={{
                       width: '100%',
                       padding: '9px 12px 9px 36px',
                       borderRadius: 'var(--radius-sm)',
                       background: 'var(--input-bg)',
-                      border: '1px solid var(--input-border)',
+                      border: formErrors.newFormDeadline ? '1.5px solid #f43f5e' : '1px solid var(--input-border)',
                       color: 'var(--text-main)',
                       fontSize: '0.85rem',
                       cursor: 'pointer'
@@ -7154,9 +7256,15 @@ export default function AdminPortal({
                   </button>
                 )}
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--mandiri-gold)', marginTop: '4px', fontWeight: 600 }}>
-                {newFormDeadline ? `Tampilan di Web: ${formatDeadlineWib(newFormDeadline)}` : 'Pilih tanggal & waktu deadline'}
-              </div>
+              {formErrors.newFormDeadline ? (
+                <div style={{ fontSize: '0.72rem', color: '#f43f5e', marginTop: '4px', fontWeight: 600 }}>
+                  ⚠️ {formErrors.newFormDeadline}
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.72rem', color: 'var(--mandiri-gold)', marginTop: '4px', fontWeight: 600 }}>
+                  {newFormDeadline ? `Tampilan di Web: ${formatDeadlineWib(newFormDeadline)}` : 'Pilih tanggal & waktu deadline (wajib)'}
+                </div>
+              )}
             </div>
 
             <div>
@@ -7611,7 +7719,14 @@ export default function AdminPortal({
           return matched?.title || sub.formTitle || 'Formulir';
         };
 
+        const resolveFormTenure = (sub) => {
+          if (sub?.tenureId) return sub.tenureId;
+          const matched = forms.find(f => f.id === sub?.formId);
+          return matched?.tenureId || '';
+        };
+
         const filteredSubmissions = submissions.filter(s => {
+          const matchesTenure = subTenureFilter === 'all' || resolveFormTenure(s) === subTenureFilter;
           const matchesForm = selectedSubFilter === 'all' || s.formId === selectedSubFilter;
           const currentStat = s.status || 'Submitted';
           const matchesStatus = subStatusFilter === 'all' || currentStat === subStatusFilter;
@@ -7622,7 +7737,7 @@ export default function AdminPortal({
             dataString.includes(q) ||
             formTitleStr.includes(q) ||
             (s.adminNotes || '').toLowerCase().includes(q);
-          return matchesForm && matchesStatus && matchesSearch;
+          return matchesTenure && matchesForm && matchesStatus && matchesSearch;
         });
 
         const SUBS_PER_PAGE = 3;
@@ -7684,6 +7799,31 @@ export default function AdminPortal({
                 </div>
 
                 <select
+                  value={subTenureFilter}
+                  onChange={(e) => {
+                    setSubTenureFilter(e.target.value);
+                    setSelectedSubFilter('all');
+                    setSubCurrentPage(1);
+                  }}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="all">Semua Periode ({submissions.length + applications.length})</option>
+                  {tenures.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      Periode {t.code || t.title}
+                    </option>
+                  ))}
+                </select>
+
+                <select
                   value={selectedSubFilter}
                   onChange={(e) => {
                     setSelectedSubFilter(e.target.value);
@@ -7699,8 +7839,11 @@ export default function AdminPortal({
                     fontWeight: 600
                   }}
                 >
-                  <option value="all">Semua Formulir ({submissions.length + applications.length})</option>
-                  {forms.map(f => (
+                  <option value="all">Semua Formulir</option>
+                  {(subTenureFilter === 'all'
+                    ? forms
+                    : forms.filter(f => f.tenureId === subTenureFilter)
+                  ).map(f => (
                     <option key={f.id} value={f.id}>{f.title}</option>
                   ))}
                 </select>
@@ -8262,13 +8405,11 @@ export default function AdminPortal({
                       }}
                     >
                       <option value="all">Semua Kategori Nilai</option>
-                      <option value="Teamwork">Teamwork</option>
-                      <option value="Innovation">Innovation</option>
-                      <option value="Customer Focus">Customer Focus</option>
-                      <option value="Excellence">Excellence</option>
-                      <option value="Integrity">Integrity</option>
-                      <option value="Leadership">Leadership</option>
-                      <option value="Empathy">Empathy</option>
+                      <option value="Kolaboratif">Kolaboratif</option>
+                      <option value="Inovatif">Inovatif</option>
+                      <option value="Harmonis">Harmonis</option>
+                      <option value="Integritas">Integritas</option>
+                      <option value="Dedikasi">Dedikasi</option>
                     </select>
                   </div>
                 </div>
@@ -11614,7 +11755,7 @@ export default function AdminPortal({
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Target Peserta</label>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Peserta</label>
                     <input
                       type="text"
                       placeholder="Contoh: 150+ Peserta Officer IT APD"
@@ -12098,6 +12239,11 @@ export default function AdminPortal({
                       showToast('Kategori formulir wajib dipilih', 'error');
                       return;
                     }
+                    if (!(it.deadline || '').trim()) {
+                      setEditModalError('Batas Akhir / Deadline Pendaftaran wajib ditentukan');
+                      showToast('Batas Akhir / Deadline Pendaftaran wajib ditentukan', 'error');
+                      return;
+                    }
                   }
                   if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {
                     setEditModalError('Pengirim, penerima, dan pesan apresiasi wajib diisi');
@@ -12382,8 +12528,20 @@ export default function AdminPortal({
                       }
                       setIsUploadingMedia(false);
                     }
-                    const effectiveFileUrl = finalFileUrl || finalPreviewUrl || '';
-                    const effectivePreviewUrl = finalPreviewUrl || finalFileUrl || '';
+                    const isValidUrl = (url) => /^https?:\/\/.+/i.test(url.trim()) || url.trim().startsWith('/');
+                    if (finalFileUrl && !editingItem.pendingFile && !isValidUrl(finalFileUrl)) {
+                      setEditModalError('URL file harus berupa tautan web yang valid (diawali http:// atau https://)');
+                      showToast('URL file harus berupa tautan web yang valid', 'error');
+                      return;
+                    }
+                    if (finalPreviewUrl && !editingItem.pendingPreviewFile && !isValidUrl(finalPreviewUrl)) {
+                      setEditModalError('URL preview harus berupa tautan web yang valid (diawali http:// atau https://)');
+                      showToast('URL preview harus berupa tautan web yang valid', 'error');
+                      return;
+                    }
+                    const isImageFile = (url) => /\.(png|jpe?g|svg|webp|gif|avif)($|\?)/i.test(url) || (url || '').startsWith('data:image/');
+                    const effectiveFileUrl = finalFileUrl || (isImageFile(finalPreviewUrl) ? finalPreviewUrl : '');
+                    const effectivePreviewUrl = finalPreviewUrl || (isImageFile(finalFileUrl) ? finalFileUrl : '');
                     if (!effectiveFileUrl) {
                       setEditModalError('File asset wajib diunggah atau memiliki tautan file aktif');
                       showToast('File asset wajib diunggah', 'error');
@@ -13866,10 +14024,17 @@ export default function AdminPortal({
 
       {/* PRINT-READY EXECUTIVE REPORT & LPJ MODAL */}
       {showExecutiveReportModal && (() => {
-        const completedEvents = events.filter(e => e.status === 'Completed').length;
-        const eventPercent = events.length > 0 ? Math.round((completedEvents / events.length) * 100) : 0;
-        const totalRab = events.reduce((acc, e) => acc + Number(e.totalRab || 0), 0);
-        const coreLeaders = members.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro');
+        const selectedReportTenureId = reportTenureId || activeTenure?.id || tenures[0]?.id || '';
+        const selectedReportTenure = tenures.find(t => t.id === selectedReportTenureId) || activeTenure || tenures[0];
+
+        const reportEvents = events.filter(e => e.tenureId === selectedReportTenureId || (!e.tenureId && divisions.find(d => d.id === e.divisionId)?.tenureId === selectedReportTenureId));
+        const reportMembers = members.filter(m => m.tenureId === selectedReportTenureId);
+        const reportGalleries = galleries.filter(g => g.tenureId === selectedReportTenureId || (!g.tenureId && divisions.find(d => d.id === g.divisionId || d.name === g.division)?.tenureId === selectedReportTenureId));
+
+        const completedEvents = reportEvents.filter(e => e.status === 'Completed').length;
+        const eventPercent = reportEvents.length > 0 ? Math.round((completedEvents / reportEvents.length) * 100) : 0;
+        const totalRab = reportEvents.reduce((acc, e) => acc + Number(e.totalRab || 0), 0);
+        const coreLeaders = reportMembers.filter(m => m.category === 'pembina' || m.category === 'inti' || m.category === 'pimpro');
         const realizedAspirasi = aspirasiList.filter(a => a.status === 'Sudah Direalisasikan').length;
 
         return (
@@ -13909,11 +14074,32 @@ export default function AdminPortal({
                     Laporan Pertanggungjawaban & Progres CNT IT APD
                   </h2>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Periode: <strong>{activeTenure?.title || activeTenure?.code || 'Kepengurusan Aktif'}</strong>{activeTenure?.themeTagline ? ` • Tema: "${activeTenure.themeTagline}"` : ''}
+                    Periode: <strong>{selectedReportTenure?.title || selectedReportTenure?.code || 'Kepengurusan'}</strong>{selectedReportTenure?.themeTagline ? ` • Tema: "${selectedReportTenure.themeTagline}"` : ''}
                   </div>
                 </div>
 
-                <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <select
+                    value={selectedReportTenureId}
+                    onChange={(e) => setReportTenureId(e.target.value)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--input-bg)',
+                      border: '1.5px solid var(--mandiri-gold)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {tenures.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        Periode {t.code || t.title}
+                      </option>
+                    ))}
+                  </select>
+
                   <button
                     type="button"
                     onClick={() => window.print()}
@@ -13959,13 +14145,13 @@ export default function AdminPortal({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(135px, 42vw, 170px), 1fr))', gap: '10px' }}>
                 <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>TOTAL PERSONEL</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px' }}>{members.length} Orang</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{members.filter(m => m.category === 'pembina').length} Pembina • 4 Divisi & BPH Inti</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px' }}>{reportMembers.length} Orang</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{reportMembers.filter(m => m.category === 'pembina').length} Pembina • 4 Divisi & BPH Inti</div>
                 </div>
                 <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>REALISASI KEGIATAN</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>{completedEvents}/{events.length} ({eventPercent}%)</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{galleries.length} Dokumentasi Galeri</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981', marginTop: '4px' }}>{completedEvents}/{reportEvents.length} ({eventPercent}%)</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{reportGalleries.length} Dokumentasi Galeri</div>
                 </div>
                 <div style={{ padding: '14px', borderRadius: 'var(--radius-md)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700 }}>TOTAL ANGGARAN (RAB)</div>
@@ -13991,20 +14177,20 @@ export default function AdminPortal({
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Nama Kegiatan</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Divisi</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Jadwal</th>
-                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Target Peserta</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Peserta</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)' }}>Status</th>
                         <th style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-card)', textAlign: 'right' }}>Total RAB</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {events.length === 0 ? (
+                      {reportEvents.length === 0 ? (
                         <tr>
                           <td colSpan="6" style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             Belum ada kegiatan yang terdaftar di database untuk periode ini.
                           </td>
                         </tr>
                       ) : (
-                        events.map((evt) => (
+                        reportEvents.map((evt) => (
                           <tr key={evt.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
                             <td style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--text-main)' }}>{evt.title}</td>
                             <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>{evt.divisionName}</td>
@@ -14036,13 +14222,19 @@ export default function AdminPortal({
                   II. Susunan Dewan Pembina, Pengurus Inti & Ketua Divisi (Pimpro)
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(170px, 45vw, 220px), 1fr))', gap: '10px' }}>
-                  {coreLeaders.map((ldr) => (
-                    <div key={ldr.id} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--mandiri-gold)', textTransform: 'uppercase' }}>{ldr.role}</div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>{ldr.name}</div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{ldr.title}</div>
+                  {coreLeaders.length === 0 ? (
+                    <div style={{ padding: '16px', color: 'var(--text-muted)', fontStyle: 'italic', gridColumn: '1 / -1' }}>
+                      Belum ada susunan pengurus/pimpinan yang terdaftar pada periode ini.
                     </div>
-                  ))}
+                  ) : (
+                    coreLeaders.map((ldr) => (
+                      <div key={ldr.id} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)' }}>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--mandiri-gold)', textTransform: 'uppercase' }}>{ldr.role}</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>{ldr.name}</div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{ldr.title}</div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

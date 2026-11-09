@@ -397,7 +397,7 @@ export const rowMappers = {
       max_quota: Number(item.maxQuota ?? item.max ?? 0),
       requires_division: Boolean(item.requiresDivision),
       sort_order: Number(item.sortOrder ?? idx),
-      updated_at: new Date().toISOString()
+      updated_at: item.updatedAt || item.createdAt || new Date().toISOString()
     }),
     fromDb: (row) => ({
       id: row.id,
@@ -698,13 +698,13 @@ export const rowMappers = {
       title: item.title || '',
       category: item.category || 'Logo & Brand',
       description: item.description || '',
-      file_url: item.fileUrl || item.previewUrl || '',
-      preview_url: item.previewUrl || item.fileUrl || '',
+      file_url: item.fileUrl || '',
+      preview_url: item.previewUrl || '',
       file_type: item.fileType || 'PNG / ZIP',
       file_size: item.fileSize || '',
       badge: item.badge || 'Official Asset',
       sort_order: idx,
-      updated_at: new Date().toISOString()
+      updated_at: item.updatedAt || item.createdAt || new Date().toISOString()
     }),
     fromDb: (row) => ({
       id: row.id,
@@ -712,7 +712,7 @@ export const rowMappers = {
       category: row.category || 'Logo & Brand',
       description: row.description || '',
       fileUrl: row.file_url || '',
-      previewUrl: row.preview_url || row.file_url || '',
+      previewUrl: row.preview_url || '',
       fileType: row.file_type || 'PNG / ZIP',
       fileSize: row.file_size || '',
       badge: row.badge || 'Official Asset',
@@ -1105,7 +1105,7 @@ export async function pushCloudState(key, value) {
     const dbRows = preparedValue.map((item, idx) => {
       const row = mapper.toDb(item, idx);
       if (hasUpdatedAt && row.updated_at === undefined) {
-        row.updated_at = new Date().toISOString();
+        row.updated_at = item.updatedAt || item.createdAt || new Date().toISOString();
       }
       return row;
     });

@@ -319,8 +319,18 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
             gap: '20px'
           }}>
             {filteredAssets.map((item) => {
-              const isImagePreview = /\.(png|jpg|jpeg|svg|webp|gif)$/i.test(item.previewUrl || item.fileUrl || '') ||
-                (item.previewUrl || '').startsWith('data:image/');
+              const hasExplicitImagePreview = Boolean(item.previewUrl) && (
+                /\.(png|jpe?g|svg|webp|gif|avif)($|\?)/i.test(item.previewUrl) ||
+                (item.previewUrl || '').startsWith('data:image/') ||
+                (!item.previewUrl.startsWith('http') && item.previewUrl.includes('/assets/'))
+              );
+              const hasFileImagePreview = !item.previewUrl && Boolean(item.fileUrl) && (
+                /\.(png|jpe?g|svg|webp|gif|avif)($|\?)/i.test(item.fileUrl) ||
+                (item.fileUrl || '').startsWith('data:image/') ||
+                (!item.fileUrl.startsWith('http') && item.fileUrl.includes('/assets/'))
+              );
+              const isImagePreview = hasExplicitImagePreview || hasFileImagePreview;
+              const displayImgSrc = hasExplicitImagePreview ? item.previewUrl : (hasFileImagePreview ? item.fileUrl : '');
               const isDarkPreviewAsset = (item.title || '').toLowerCase().includes('white') || (item.badge || '').toLowerCase().includes('dark');
 
               return (
@@ -350,7 +360,7 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
                   }}>
                     {isImagePreview ? (
                       <img
-                        src={item.previewUrl || item.fileUrl}
+                        src={displayImgSrc}
                         alt={item.title}
                         style={{ maxHeight: '86px', maxWidth: '220px', objectFit: 'contain' }}
                         onError={(e) => {
