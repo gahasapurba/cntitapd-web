@@ -34,12 +34,22 @@ export default function DynamicFormSection({
   theme,
   initialFormId = null,
   onSelectFormUrl,
-  activeTenure = null
+  activeTenure = null,
+  tenures = []
 }) {
   const isDark = theme === 'dark';
 
+  const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
+
   // Active form selection scoped to activeTenure
-  const activeForms = forms.filter(f => f.isOpen !== false && (!activeTenure?.id || f.tenureId === activeTenure.id));
+  const activeForms = forms.filter(f => {
+    if (f.isOpen === false) return false;
+    if (tenureFilter === 'active' && activeTenure?.id) {
+      const fTenure = f.tenureId || f.tenure_id || (f.fields?.[0]?._tenureId) || '';
+      return !fTenure || fTenure === activeTenure.id;
+    }
+    return true;
+  });
   const trackingActiveForms = activeForms.filter(f => f.requiresTracking !== false);
   const [selectedFormId, setSelectedFormId] = useState(() => {
     if (initialFormId && activeForms.some(f => f.id === initialFormId)) {
@@ -57,7 +67,7 @@ export default function DynamicFormSection({
     } else if (activeForms.length > 0 && !activeForms.some(f => f.id === selectedFormId)) {
       setSelectedFormId(activeForms[0].id);
     }
-  }, [initialFormId, forms]);
+  }, [initialFormId, forms, tenureFilter]);
 
   // Current active form object
   const currentForm = activeForms.find(f => f.id === selectedFormId) || activeForms[0] || null;
@@ -363,6 +373,56 @@ export default function DynamicFormSection({
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>
           Pilih dan lengkapi formulir pendaftaran kepengurusan, survei, atau pendaftaran kegiatan CNT IT APD yang ingin Anda ikuti.
         </p>
+
+        {/* Tenure Filter Buttons */}
+        {activeTenure && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: 'var(--input-bg)',
+              padding: '3px',
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid var(--border-card)'
+            }}>
+              <button
+                type="button"
+                onClick={() => setTenureFilter('active')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: tenureFilter === 'active' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
+                  color: tenureFilter === 'active' ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Periode {activeTenure?.code || activeTenure?.title || ''}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTenureFilter('all')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: tenureFilter === 'all' ? 'rgba(255, 184, 0, 0.2)' : 'transparent',
+                  color: tenureFilter === 'all' ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Lintas Tahun ({forms.filter(f => f.isOpen !== false).length})
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* CASE 1: No active forms available */}

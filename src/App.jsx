@@ -1438,6 +1438,7 @@ export default function App() {
               initialFormId={activeFormIdFromUrl}
               onSelectFormUrl={(fId) => setCurrentTab('form', fId)}
               activeTenure={activeTenure}
+              tenures={tenures}
             />
           )}
 

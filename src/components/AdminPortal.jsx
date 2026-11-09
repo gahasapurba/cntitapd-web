@@ -309,6 +309,7 @@ export default function AdminPortal({
 
   // Search, Filter & Pagination states for Forms in Admin
   const [formSearchQuery, setFormSearchQuery] = useState('');
+  const [formTenureFilter, setFormTenureFilter] = useState('all');
   const [formCatFilter, setFormCatFilter] = useState('all');
   const [formStatusFilter, setFormStatusFilter] = useState('all');
   const [formPage, setFormPage] = useState(1);
@@ -7329,11 +7330,13 @@ export default function AdminPortal({
                   (f.title || '').toLowerCase().includes(q) ||
                   (f.subtitle || '').toLowerCase().includes(q) ||
                   (f.category || '').toLowerCase().includes(q);
+                const fTenure = f.tenureId || f.tenure_id || (f.fields?.[0]?._tenureId) || '';
+                const matchesTenure = formTenureFilter === 'all' || fTenure === formTenureFilter;
                 const matchesCat = formCatFilter === 'all' || f.category === formCatFilter;
                 const matchesStat = formStatusFilter === 'all' ||
                   (formStatusFilter === 'open' && Boolean(f.isOpen)) ||
                   (formStatusFilter === 'closed' && !Boolean(f.isOpen));
-                return matchesSearch && matchesCat && matchesStat;
+                return matchesSearch && matchesTenure && matchesCat && matchesStat;
               });
 
               const totalAdminFormPages = Math.ceil(filteredForms.length / ADMIN_FORMS_PER_PAGE) || 1;
@@ -7372,6 +7375,30 @@ export default function AdminPortal({
                           }}
                         />
                       </div>
+
+                      <select
+                        value={formTenureFilter}
+                        onChange={(e) => {
+                          setFormTenureFilter(e.target.value);
+                          setFormPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Periode</option>
+                        {tenures.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            Periode {t.code || t.title}{t.isActive ? ' (Aktif)' : ''}
+                          </option>
+                        ))}
+                      </select>
 
                       <select
                         value={formCatFilter}
