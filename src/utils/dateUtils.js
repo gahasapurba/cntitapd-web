@@ -64,8 +64,10 @@ export function formatDeadlineWib(deadlineStr) {
   }
 
   // Direct local ISO match: YYYY-MM-DD or YYYY-MM-DDTHH:mm(:ss)
+  // Extracts the clock digits directly so NO timezone shift (+7) occurs,
+  // regardless of whether the string ends with Z, +00:00, +07:00, or has no offset.
   const dtMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
-  if (dtMatch && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+  if (dtMatch) {
     const y = parseInt(dtMatch[1], 10);
     const mo = parseInt(dtMatch[2], 10);
     const dNum = parseInt(dtMatch[3], 10);
@@ -130,8 +132,10 @@ export function formatDeadlineWib(deadlineStr) {
 export function toDatetimeLocalSecondsValue(str) {
   if (!str) return '';
   const trimmed = String(str).trim();
+  // Directly extracts calendar date and clock time from the ISO prefix.
+  // Preserves user-entered WIB clock digits without +7 shift even if string has Z or +00:00 offset.
   const directMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2}))?/);
-  if (directMatch && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+  if (directMatch) {
     const sec = directMatch[3] !== undefined ? directMatch[3] : '00';
     return `${directMatch[1]}T${directMatch[2]}:${sec}`;
   }
@@ -194,7 +198,16 @@ export function getDeadlineStatus(deadlineStr) {
   }
 
   let deadlineDate = null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+  const dtMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (dtMatch) {
+    const y = parseInt(dtMatch[1], 10);
+    const mo = parseInt(dtMatch[2], 10);
+    const dNum = parseInt(dtMatch[3], 10);
+    const h = dtMatch[4] !== undefined ? parseInt(dtMatch[4], 10) : 23;
+    const mi = dtMatch[5] !== undefined ? parseInt(dtMatch[5], 10) : 59;
+    const s = dtMatch[6] !== undefined ? parseInt(dtMatch[6], 10) : 59;
+    deadlineDate = new Date(y, mo - 1, dNum, h, mi, s);
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     const [y, m, dNum] = trimmed.split('-').map(Number);
     deadlineDate = new Date(y, m - 1, dNum, 23, 59, 59, 999);
   } else {
@@ -357,8 +370,10 @@ export function formatWibTimestamp(isoStr) {
 export function toDatetimeLocalValue(str) {
   if (!str) return '';
   const trimmed = String(str).trim();
+  // Directly extracts calendar date and clock time (HH:mm) from the ISO prefix.
+  // Preserves user-entered WIB clock digits without +7 shift even if string has Z or +00:00 offset.
   const directMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
-  if (directMatch && !trimmed.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+  if (directMatch) {
     return `${directMatch[1]}T${directMatch[2]}`;
   }
   // Plain YYYY-MM-DD
@@ -453,6 +468,30 @@ export function formatWibDateTime(str, options = {}) {
   const isMidnightUtc = /T00:00(:00)?(\.0+)?(Z|\+00:?00)?$/i.test(trimmed);
   const isPlainDate = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
   const hasTime = !isMidnightUtc && !isPlainDate && (trimmed.includes('T') || /:\d{2}/.test(trimmed));
+
+  // If it has date and time in ISO format: extract directly to prevent +7 hours jumping
+  const dtMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (dtMatch && hasTime && dtMatch[4] !== undefined) {
+    const y = parseInt(dtMatch[1], 10);
+    const mo = parseInt(dtMatch[2], 10);
+    const dNum = parseInt(dtMatch[3], 10);
+    const h = dtMatch[4];
+    const mi = dtMatch[5] || '00';
+
+    const localDayObj = new Date(y, mo - 1, dNum);
+    const INDO_DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const weekday = INDO_DAYS[localDayObj.getDay()] || '';
+    const day = String(dNum);
+    const month = INDONESIAN_MONTHS[mo - 1] || '';
+    const year = String(y);
+
+    let res = `${day} ${month} ${year}`;
+    if (options.includeWeekday && weekday) {
+      res = `${weekday}, ${res}`;
+    }
+    res = `${res} • ${h}:${mi} WIB`;
+    return res;
+  }
 
   const d = new Date(trimmed);
   if (!isNaN(d.getTime())) {
@@ -699,8 +738,8 @@ export function formatWibEventRange(startDateStr, endDateStr, fallback = '') {
   const e = String(endDateStr || s).trim();
   if (!s && !e) return fallback;
 
-  const sHasTime = s.includes('T');
-  const eHasTime = e.includes('T');
+  const sHasTime = s.includes('T') || /\d{2}:\d{2}/.test(s);
+  const eHasTime = e.includes('T') || /\d{2}:\d{2}/.test(e);
 
   const sDt = toDatetimeLocalValue(s);
   const eDt = toDatetimeLocalValue(e);

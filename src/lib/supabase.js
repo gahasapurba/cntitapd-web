@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { formatWibEventRange } from '../utils/dateUtils.js';
+import { formatWibEventRange, toDatetimeLocalSecondsValue, toDatetimeLocalValue } from '../utils/dateUtils.js';
 import { getCategoryFromLevel } from '../utils/memberQuotaUtils.js';
 
 const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || 'https://xarcxbfgeoetyhpqsick.supabase.co';
@@ -484,8 +484,8 @@ export const rowMappers = {
         tenure_id: item.tenureId || null,
         division_id: item.divisionId || null,
         title: item.title || '',
-        start_date: item.startDate || '',
-        end_date: item.endDate || '',
+        start_date: item.startDate ? toDatetimeLocalValue(item.startDate) : '',
+        end_date: item.endDate ? toDatetimeLocalValue(item.endDate) : '',
         location: item.location || '',
         description: item.description || '',
         total_rab: Number(item.totalRab || 0),
@@ -509,8 +509,8 @@ export const rowMappers = {
       divisionName: row.division_name,
       title: row.title,
       date: row.date || formatWibEventRange(row.start_date, row.end_date),
-      startDate: row.start_date,
-      endDate: row.end_date,
+      startDate: row.start_date ? toDatetimeLocalValue(row.start_date) : '',
+      endDate: row.end_date ? toDatetimeLocalValue(row.end_date) : '',
       kategori: row.kategori || row.category || row.badge || '',
       category: row.kategori || row.category || row.badge || '',
       badge: row.kategori || row.category || row.badge || '',
@@ -629,7 +629,7 @@ export const rowMappers = {
         title: item.title || '',
         subtitle: item.subtitle || '',
         category: item.category || 'Kegiatan & Event',
-        deadline: item.deadline || '',
+        deadline: item.deadline ? toDatetimeLocalSecondsValue(item.deadline) : '',
         is_open: item.isOpen !== false,
         fields: rawFields,
         sort_order: idx
@@ -658,7 +658,7 @@ export const rowMappers = {
         title: row.title,
         subtitle: row.subtitle || row.description || '',
         category: row.category,
-        deadline: row.deadline,
+        deadline: row.deadline ? toDatetimeLocalSecondsValue(row.deadline) : '',
         isOpen: row.is_open !== false,
         requiresTracking: isTracking,
         tenureId: tenureIdVal,

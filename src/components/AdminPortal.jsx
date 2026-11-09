@@ -610,8 +610,8 @@ export default function AdminPortal({
 
     const divObj = divisions.find(d => d.id === eventDivId);
 
-    const sDate = eventStartDate || new Date().toISOString().split('T')[0];
-    const eDate = eventEndDate || sDate;
+    const sDate = toDatetimeLocalValue(eventStartDate) || new Date().toISOString().split('T')[0];
+    const eDate = toDatetimeLocalValue(eventEndDate) || sDate;
     const dateLabel = formatWibEventRange(sDate, eDate);
 
     const finalCategory = eventCategory.trim();
@@ -7101,7 +7101,7 @@ export default function AdminPortal({
                 title: newFormTitle.trim(),
                 subtitle: newFormSubtitle.trim() || '',
                 category: newFormCategory.trim(),
-                deadline: newFormDeadline.trim() || '',
+                deadline: toDatetimeLocalSecondsValue(newFormDeadline.trim()) || '',
                 isOpen: true,
                 requiresTracking: newFormRequiresTracking,
                 tenureId: targetTenureId,
@@ -12435,7 +12435,8 @@ export default function AdminPortal({
                     const fields = editingItem.item.fields || [];
                     if (onUpdateForm) {
                       const cleanFields = fields.map(({ rawOptions, ...rest }) => rest);
-                      onUpdateForm({ ...editingItem.item, fields: cleanFields });
+                      const cleanDeadline = editingItem.item.deadline ? toDatetimeLocalSecondsValue(editingItem.item.deadline) : '';
+                      onUpdateForm({ ...editingItem.item, deadline: cleanDeadline, fields: cleanFields });
                     }
                   }
                   if (editingItem.type === 'event' && onUpdateEvent) {
@@ -12480,7 +12481,7 @@ export default function AdminPortal({
                       peserta: pesertaVal,
                       kpi: pesertaVal,
                       totalRab: Number(editingItem.item.totalRab),
-                      date: (editingItem.item.date || '').trim() || calculatedDate || ''
+                      date: calculatedDate || (editingItem.item.date || '').trim() || ''
                     });
                   }
                   if (editingItem.type === 'brand_asset' && onUpdateBrandAsset) {
