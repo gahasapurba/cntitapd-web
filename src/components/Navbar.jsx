@@ -30,7 +30,15 @@ export default function Navbar({
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const isDark = theme === 'dark';
-  const activeFormsCount = forms.filter(f => f.isOpen !== false && !getDeadlineStatus(f.deadline).isExpired).length;
+  const activeFormsCount = forms.filter(f => {
+    if (f.isOpen === false) return false;
+    if (getDeadlineStatus(f.deadline).isExpired) return false;
+    if (activeTenure?.id) {
+      const fTenure = f.tenureId || f.tenure_id || (f.fields?.[0]?._tenureId) || '';
+      return !fTenure || fTenure === activeTenure.id;
+    }
+    return true;
+  }).length;
 
   const allNavItems = [
     { id: 'home', label: 'Beranda', icon: Building2 },
