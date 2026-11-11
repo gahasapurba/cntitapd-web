@@ -63,6 +63,8 @@ export default function KudosSection({
   const [ideaErrors, setIdeaErrors] = useState({});
   const [isSubmittingAspirasi, setIsSubmittingAspirasi] = useState(false);
   const [confirmAspirasiOpen, setConfirmAspirasiOpen] = useState(false);
+  const [aspirasiSearchQuery, setAspirasiSearchQuery] = useState('');
+  const [aspirasiCategoryFilter, setAspirasiCategoryFilter] = useState('all');
   const [aspirasiStatusFilter, setAspirasiStatusFilter] = useState('all');
 
   const handleToggleLike = (kudosItem) => {
@@ -741,7 +743,7 @@ export default function KudosSection({
               </div>
 
               {(() => {
-                const KUDOS_PER_PAGE = 8;
+                const KUDOS_PER_PAGE = 3;
                 const totalKudosPages = Math.ceil(filteredKudos.length / KUDOS_PER_PAGE) || 1;
                 const safeKudosPage = Math.min(Math.max(1, kudosPage), totalKudosPages);
                 const paginatedKudos = filteredKudos.slice(
@@ -1106,8 +1108,16 @@ export default function KudosSection({
         };
 
         const filteredAspirasi = publicAspirasi.filter(a => {
-          if (aspirasiStatusFilter === 'all') return true;
-          return normalizeAspirasiStatus(a.status) === aspirasiStatusFilter;
+          const q = aspirasiSearchQuery.trim().toLowerCase();
+          const matchesSearch = !q ||
+            (a.title || '').toLowerCase().includes(q) ||
+            (a.description || '').toLowerCase().includes(q) ||
+            (a.sender || '').toLowerCase().includes(q) ||
+            (a.category || '').toLowerCase().includes(q) ||
+            (a.adminReply || '').toLowerCase().includes(q);
+          const matchesCat = aspirasiCategoryFilter === 'all' || (a.category || 'Usulan Budaya') === aspirasiCategoryFilter;
+          const matchesStatus = aspirasiStatusFilter === 'all' || normalizeAspirasiStatus(a.status) === aspirasiStatusFilter;
+          return matchesSearch && matchesCat && matchesStatus;
         });
 
         const getAspirasiBadge = (status) => {
@@ -1269,37 +1279,92 @@ export default function KudosSection({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    📌 Papan Transparansi & Tindak Lanjut Aspirasi ({publicAspirasi.length})
+                    📌 Papan Transparansi & Tindak Lanjut Aspirasi ({filteredAspirasi.length} dari {publicAspirasi.length})
                   </h3>
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
                     Pantau status realisasi ide dan tanggapan resmi dari pengurus CNT IT APD
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  {['all', 'Menunggu Review', 'Masuk Rencana Event', 'Sudah Direalisasikan'].map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => {
-                        setAspirasiStatusFilter(st);
+                {/* Search & Category Filter Bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 320px', justifyContent: 'flex-end' }}>
+                  <div style={{ position: 'relative', flex: '1 1 180px', maxWidth: '240px' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                    <input
+                      type="text"
+                      placeholder="Cari judul, ide, pengusul..."
+                      value={aspirasiSearchQuery}
+                      onChange={(e) => {
+                        setAspirasiSearchQuery(e.target.value);
                         setAspirasiPage(1);
                       }}
                       style={{
-                        padding: '6px 12px',
+                        width: '100%',
+                        padding: '7px 10px 7px 30px',
                         borderRadius: 'var(--radius-full)',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        border: aspirasiStatusFilter === st ? '1px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
-                        background: aspirasiStatusFilter === st ? 'rgba(255, 184, 0, 0.16)' : 'var(--input-bg)',
-                        color: aspirasiStatusFilter === st ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.78rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Filter size={14} color="var(--text-dim)" />
+                    <select
+                      value={aspirasiCategoryFilter}
+                      onChange={(e) => {
+                        setAspirasiCategoryFilter(e.target.value);
+                        setAspirasiPage(1);
+                      }}
+                      style={{
+                        padding: '7px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        outline: 'none',
                         cursor: 'pointer'
                       }}
                     >
-                      {st === 'all' ? 'Semua Status' : st}
-                    </button>
-                  ))}
+                      <option value="all">Semua Kategori</option>
+                      <option value="Kegiatan & Event">Kegiatan & Event Budaya</option>
+                      <option value="Olahraga & Wellness">Olahraga, E-Sports & Wellness</option>
+                      <option value="Fasilitas & Ruang Kerja">Fasilitas & Kenyamanan Kerja</option>
+                      <option value="Sharing & Pengembangan">Tech Sharing & Pengembangan Diri</option>
+                      <option value="Sosial & Kerohanian">Sosial, CSR & Kerohanian</option>
+                    </select>
+                  </div>
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                {['all', 'Menunggu Review', 'Masuk Rencana Event', 'Sudah Direalisasikan'].map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => {
+                      setAspirasiStatusFilter(st);
+                      setAspirasiPage(1);
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      border: aspirasiStatusFilter === st ? '1px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                      background: aspirasiStatusFilter === st ? 'rgba(255, 184, 0, 0.16)' : 'var(--input-bg)',
+                      color: aspirasiStatusFilter === st ? 'var(--mandiri-gold)' : 'var(--text-muted)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {st === 'all' ? 'Semua Status' : st}
+                  </button>
+                ))}
               </div>
 
               {(() => {
@@ -1314,7 +1379,7 @@ export default function KudosSection({
                 if (filteredAspirasi.length === 0) {
                   return (
                     <div className="glass-panel" style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                      Belum ada aspirasi publik pada filter status ini. Jadilah yang pertama mengusulkan ide positif!
+                      Belum ada aspirasi publik yang cocok dengan pencarian atau filter. Jadilah yang pertama mengusulkan ide positif!
                     </div>
                   );
                 }

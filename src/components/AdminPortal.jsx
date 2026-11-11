@@ -291,10 +291,13 @@ export default function AdminPortal({
   const [subTenureFilter, setSubTenureFilter] = useState('all');
   const [reportTenureId, setReportTenureId] = useState('');
 
-  // Search & Filter states for Kudos in Admin
+  // Search & Filter states for Kudos & Aspirasi in Admin
   const [kudosSearchQuery, setKudosSearchQuery] = useState('');
   const [kudosCatFilter, setKudosCatFilter] = useState('all');
   const [adminKudosPage, setAdminKudosPage] = useState(1);
+  const [aspirasiSearchQuery, setAspirasiSearchQuery] = useState('');
+  const [aspirasiAdminCatFilter, setAspirasiAdminCatFilter] = useState('all');
+  const [aspirasiAdminStatusFilter, setAspirasiAdminStatusFilter] = useState('all');
   const [adminAspirasiPage, setAdminAspirasiPage] = useState(1);
 
   // Search & Filter states for FAQs in Admin
@@ -586,9 +589,17 @@ export default function AdminPortal({
     e.preventDefault();
     const errs = {};
     if (!eventTitle.trim()) errs.eventTitle = 'Nama Event wajib diisi';
-    if (!eventCategory.trim()) errs.eventCategory = 'Kategori Kegiatan wajib dipilih / diisi';
-    if (!eventStartDate) errs.eventStartDate = 'Tanggal Mulai wajib dipilih';
-    if (!eventEndDate) errs.eventEndDate = 'Tanggal Berakhir wajib dipilih';
+    if (!eventCategory.trim()) errs.eventCategory = 'Kategori Kegiatan wajib dipilih';
+    if (!eventStartDate) errs.eventStartDate = 'Tanggal & Jam Mulai wajib dipilih';
+    if (!eventEndDate) errs.eventEndDate = 'Tanggal & Jam Berakhir wajib dipilih';
+    if (eventStartDate && eventEndDate) {
+      const normStart = toDatetimeLocalValue(eventStartDate);
+      const normEnd = toDatetimeLocalValue(eventEndDate);
+      if (normStart && normEnd && normStart > normEnd) {
+        errs.eventStartDate = 'Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir';
+        errs.eventEndDate = 'Tanggal & Jam Berakhir tidak boleh kurang dari Tanggal & Jam Mulai';
+      }
+    }
     if (!eventDesc.trim()) errs.eventDesc = 'Deskripsi Event wajib diisi';
     if (eventRab === '' || eventRab === undefined || eventRab === null || isNaN(Number(eventRab)) || Number(eventRab) < 0) {
       errs.eventRab = 'Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)';
@@ -605,7 +616,8 @@ export default function AdminPortal({
 
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
-      showToast('Mohon lengkapi kolom wajib pada form Event', 'error');
+      const firstErrMsg = errs.eventStartDate || errs.eventEndDate || 'Mohon lengkapi kolom wajib pada form Event';
+      showToast(firstErrMsg, 'error');
       return;
     }
 
@@ -2971,6 +2983,11 @@ export default function AdminPortal({
           {/* Members List with Search & Filter */}
           {(() => {
             const ADMIN_MEM_PER_PAGE = 12;
+            const memberFilterRoles = (adminMemTenureFilter === 'all'
+              ? tenures.flatMap(t => getTenureRoles(t.id, roleQuotas, tenureRoles))
+              : getTenureRoles(adminMemTenureFilter, roleQuotas, tenureRoles)
+            ).sort((a, b) => a.level - b.level || a.sortOrder - b.sortOrder);
+
             const filteredAdminMembers = members.filter(m => {
               const q = adminMemSearch.trim().toLowerCase();
               const matchesSearch = !q ||
@@ -2979,7 +2996,16 @@ export default function AdminPortal({
                 (m.title || '').toLowerCase().includes(q) ||
                 (m.whatsapp || '').toLowerCase().includes(q);
               const matchesTenure = adminMemTenureFilter === 'all' || m.tenureId === adminMemTenureFilter;
-              const matchesCat = adminMemCatFilter === 'all' || m.category === adminMemCatFilter;
+              const matchesCat = adminMemCatFilter === 'all' || (() => {
+                const targetRole = memberFilterRoles.find(r => r.id === adminMemCatFilter);
+                if (!targetRole) return m.roleId === adminMemCatFilter || m.category === adminMemCatFilter;
+                if (m.tenureId && targetRole.tenureId && m.tenureId !== targetRole.tenureId) return false;
+                if (m.roleId && m.roleId === targetRole.id) return true;
+                const matched = findMatchingRole(m, getTenureRoles(m.tenureId, roleQuotas, tenureRoles));
+                return matched
+                  ? matched.id === targetRole.id
+                  : (m.role || '').toLowerCase().trim() === targetRole.name.toLowerCase().trim();
+              })();
               const matchesDiv = adminMemDivFilter === 'all' || m.divisionId === adminMemDivFilter;
               return matchesSearch && matchesTenure && matchesCat && matchesDiv;
             });
@@ -3025,6 +3051,7 @@ export default function AdminPortal({
                       value={adminMemTenureFilter}
                       onChange={(e) => {
                         setAdminMemTenureFilter(e.target.value);
+                        setAdminMemCatFilter('all');
                         setAdminMemDivFilter('all');
                         setAdminMemPage(1);
                       }}
@@ -3062,11 +3089,16 @@ export default function AdminPortal({
                         fontWeight: 600
                       }}
                     >
-                      <option value="all">Semua Posisi</option>
-                      <option value="pembina">Pembina</option>
-                      <option value="inti">Pengurus Inti</option>
-                      <option value="pimpro">Ketua Divisi (Pimpro)</option>
-                      <option value="anggota">Anggota Divisi</option>
+                      <option value="all">Semua Role / Jabatan</option>
+                      {memberFilterRoles.map((r) => {
+                        const tObj = tenures.find(t => t.id === r.tenureId);
+                        const yearLabel = adminMemTenureFilter === 'all' && tObj ? ` (${tObj.code || tObj.title})` : '';
+                        return (
+                          <option key={r.id} value={r.id}>
+                            {r.name}{yearLabel}
+                          </option>
+                        );
+                      })}
                     </select>
 
                     <select
@@ -3089,9 +3121,13 @@ export default function AdminPortal({
                       {(adminMemTenureFilter === 'all'
                         ? divisions
                         : divisions.filter(d => d.tenureId === adminMemTenureFilter)
-                      ).map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
+                      ).map(d => {
+                        const tObj = tenures.find(t => t.id === d.tenureId);
+                        const yearLabel = adminMemTenureFilter === 'all' && tObj ? ` (${tObj.code || tObj.title})` : '';
+                        return (
+                          <option key={d.id} value={d.id}>{d.name}{yearLabel}</option>
+                        );
+                      })}
                     </select>
                   </div>
                 </div>
@@ -3943,9 +3979,21 @@ export default function AdminPortal({
               <input
                 type="datetime-local"
                 value={toDatetimeLocalValue(eventStartDate)}
+                max={eventEndDate ? toDatetimeLocalValue(eventEndDate) : undefined}
                 onChange={(e) => {
-                  setEventStartDate(e.target.value);
-                  clearFieldError('eventStartDate');
+                  const val = e.target.value;
+                  setEventStartDate(val);
+                  const normStart = toDatetimeLocalValue(val);
+                  const normEnd = toDatetimeLocalValue(eventEndDate);
+                  if (normStart && normEnd && normStart > normEnd) {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      eventStartDate: 'Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir'
+                    }));
+                  } else {
+                    clearFieldError('eventStartDate');
+                    clearFieldError('eventEndDate');
+                  }
                 }}
                 style={{
                   width: '100%',
@@ -3967,9 +4015,21 @@ export default function AdminPortal({
               <input
                 type="datetime-local"
                 value={toDatetimeLocalValue(eventEndDate)}
+                min={eventStartDate ? toDatetimeLocalValue(eventStartDate) : undefined}
                 onChange={(e) => {
-                  setEventEndDate(e.target.value);
-                  clearFieldError('eventEndDate');
+                  const val = e.target.value;
+                  setEventEndDate(val);
+                  const normStart = toDatetimeLocalValue(eventStartDate);
+                  const normEnd = toDatetimeLocalValue(val);
+                  if (normStart && normEnd && normEnd < normStart) {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      eventEndDate: 'Tanggal & Jam Berakhir tidak boleh kurang dari Tanggal & Jam Mulai'
+                    }));
+                  } else {
+                    clearFieldError('eventEndDate');
+                    clearFieldError('eventStartDate');
+                  }
                 }}
                 style={{
                   width: '100%',
@@ -4055,10 +4115,7 @@ export default function AdminPortal({
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 🏷️ Kategori Kegiatan <span style={{ color: '#f43f5e' }}>*</span>
               </label>
-              <input
-                type="text"
-                list="event-category-list"
-                placeholder="Pilih atau ketik kategori..."
+              <select
                 value={eventCategory}
                 onChange={(e) => {
                   setEventCategory(e.target.value);
@@ -4073,16 +4130,16 @@ export default function AdminPortal({
                   color: 'var(--text-main)',
                   fontSize: '0.85rem'
                 }}
-              />
-              <datalist id="event-category-list">
-                <option value="Program Budaya" />
-                <option value="Workshop & Sharing Session" />
-                <option value="Social & Engagement" />
-                <option value="Olahraga & Well-being" />
-                <option value="Kompetisi & Inovasi" />
-                <option value="Apresiasi & Rekognisi" />
-                <option value="Townhall & Perayaan" />
-              </datalist>
+              >
+                <option value="">-- Pilih Kategori Kegiatan * --</option>
+                <option value="Program Budaya">Program Budaya</option>
+                <option value="Workshop & Sharing Session">Workshop & Sharing Session</option>
+                <option value="Social & Engagement">Social & Engagement</option>
+                <option value="Olahraga & Well-being">Olahraga & Well-being</option>
+                <option value="Kompetisi & Inovasi">Kompetisi & Inovasi</option>
+                <option value="Apresiasi & Rekognisi">Apresiasi & Rekognisi</option>
+                <option value="Townhall & Perayaan">Townhall & Perayaan</option>
+              </select>
               {renderFieldError('eventCategory')}
             </div>
 
@@ -4221,6 +4278,7 @@ export default function AdminPortal({
                           setEventTenureFilter(e.target.value);
                           setEventDivFilter('all');
                           setAdminEventPage(1);
+                          setAdminRsvpPage(1);
                         }}
                         style={{
                           padding: '7px 10px',
@@ -4542,87 +4600,99 @@ export default function AdminPortal({
           </div>
 
           {/* Daftar Hadir & Konfirmasi RSVP Kegiatan (public.event_rsvps) */}
-          <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                  📋 Daftar Hadir & Konfirmasi RSVP Kegiatan ({eventRsvps.length})
-                </h4>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                  Data kehadiran pegawai yang mengisi form RSVP Cepat pada kartu Event.
-                </p>
-              </div>
+          {(() => {
+            const selectedRsvpTenureObj = eventTenureFilter !== 'all' ? tenures.find(t => t.id === eventTenureFilter) : null;
+            const filteredAdminRsvps = eventRsvps.filter((rsvp) => {
+              if (eventTenureFilter === 'all') return true;
+              const evt = events.find(e => e.id === rsvp.eventId);
+              if (!evt) return false;
+              const evtTenure = evt.tenureId || divisions.find(d => d.id === evt.divisionId)?.tenureId || '';
+              return evtTenure === eventTenureFilter;
+            });
+            const ADMIN_RSVPS_PER_PAGE = 10;
+            const totalAdminRsvpPages = Math.ceil(filteredAdminRsvps.length / ADMIN_RSVPS_PER_PAGE) || 1;
+            const safeAdminRsvpPage = Math.min(Math.max(1, adminRsvpPage), totalAdminRsvpPages);
+            const paginatedAdminRsvps = filteredAdminRsvps.slice(
+              (safeAdminRsvpPage - 1) * ADMIN_RSVPS_PER_PAGE,
+              safeAdminRsvpPage * ADMIN_RSVPS_PER_PAGE
+            );
 
-              {eventRsvps.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-                    const header = ['ID RSVP', 'ID Event', 'Nama Kegiatan', 'Nama Peserta', 'Departemen', 'Mode Kehadiran', 'Catatan', 'Waktu Konfirmasi'].map(escapeCsv).join(',');
-                    const rows = eventRsvps.map(r => {
-                      const deptObj = departments.find(d => d.id === r.departmentId || d.id === r.department || (d.name && d.name === r.department));
-                      const deptName = deptObj ? deptObj.name : (r.department || r.squadUnit || '-');
-                      return [
-                        r.id,
-                        r.eventId,
-                        events.find(e => e.id === r.eventId)?.title || r.eventTitle || 'Kegiatan',
-                        r.attendeeName,
-                        deptName,
-                        r.attendanceMode,
-                        r.notes || '',
-                        formatWibTimestamp(r.createdAt || r.submittedAt).exact || r.submittedAt || r.createdAt || ''
-                      ].map(escapeCsv).join(',');
-                    });
-                    const csvString = '\uFEFF' + [header, ...rows].join('\n');
-                    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `daftar_hadir_rsvp_cnt_it_apd_${Date.now()}.csv`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    showToast(`Berhasil mengunduh ${eventRsvps.length} data RSVP ke CSV!`);
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid #10b981',
-                    color: '#10b981',
-                    fontSize: '0.78rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Download size={14} />
-                  <span>Export CSV Daftar Hadir RSVP</span>
-                </button>
-              )}
-            </div>
-
-            {(() => {
-              const ADMIN_RSVPS_PER_PAGE = 10;
-              const totalAdminRsvpPages = Math.ceil(eventRsvps.length / ADMIN_RSVPS_PER_PAGE) || 1;
-              const safeAdminRsvpPage = Math.min(Math.max(1, adminRsvpPage), totalAdminRsvpPages);
-              const paginatedAdminRsvps = eventRsvps.slice(
-                (safeAdminRsvpPage - 1) * ADMIN_RSVPS_PER_PAGE,
-                safeAdminRsvpPage * ADMIN_RSVPS_PER_PAGE
-              );
-
-              if (eventRsvps.length === 0) {
-                return (
-                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
-                    Belum ada konfirmasi kehadiran RSVP pada event.
+            return (
+              <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span>📋 Daftar Hadir & Konfirmasi RSVP Kegiatan ({filteredAdminRsvps.length}{eventTenureFilter !== 'all' ? ` dari ${eventRsvps.length}` : ''})</span>
+                      {selectedRsvpTenureObj && (
+                        <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                          Periode {selectedRsvpTenureObj.code || selectedRsvpTenureObj.title}
+                        </span>
+                      )}
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                      Data kehadiran pegawai yang mengisi form RSVP Cepat pada kartu Event{selectedRsvpTenureObj ? ` (Periode ${selectedRsvpTenureObj.code || selectedRsvpTenureObj.title})` : ''}.
+                    </p>
                   </div>
-                );
-              }
 
-              return (
+                  {filteredAdminRsvps.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                        const header = ['ID RSVP', 'ID Event', 'Nama Kegiatan', 'Nama Peserta', 'Departemen', 'Mode Kehadiran', 'Catatan', 'Waktu Konfirmasi'].map(escapeCsv).join(',');
+                        const rows = filteredAdminRsvps.map(r => {
+                          const deptObj = departments.find(d => d.id === r.departmentId || d.id === r.department || (d.name && d.name === r.department));
+                          const deptName = deptObj ? deptObj.name : (r.department || r.squadUnit || '-');
+                          return [
+                            r.id,
+                            r.eventId,
+                            events.find(e => e.id === r.eventId)?.title || r.eventTitle || 'Kegiatan',
+                            r.attendeeName,
+                            deptName,
+                            r.attendanceMode,
+                            r.notes || '',
+                            formatWibTimestamp(r.createdAt || r.submittedAt).exact || r.submittedAt || r.createdAt || ''
+                          ].map(escapeCsv).join(',');
+                        });
+                        const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `daftar_hadir_rsvp_cnt_it_apd_${Date.now()}.csv`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        showToast(`Berhasil mengunduh ${filteredAdminRsvps.length} data RSVP ke CSV!`);
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid #10b981',
+                        color: '#10b981',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Download size={14} />
+                      <span>Export CSV Daftar Hadir RSVP</span>
+                    </button>
+                  )}
+                </div>
+
+                {filteredAdminRsvps.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-dim)', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem' }}>
+                    {eventTenureFilter !== 'all'
+                      ? `Belum ada konfirmasi kehadiran RSVP pada event di periode ${selectedRsvpTenureObj?.code || selectedRsvpTenureObj?.title || 'terpilih'}.`
+                      : 'Belum ada konfirmasi kehadiran RSVP pada event.'}
+                  </div>
+                ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
                     {paginatedAdminRsvps.map((rsvp) => {
@@ -4697,7 +4767,7 @@ export default function AdminPortal({
                       border: '1px solid var(--border-card)'
                     }}>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        Menampilkan <strong>{(safeAdminRsvpPage - 1) * ADMIN_RSVPS_PER_PAGE + 1} - {Math.min(safeAdminRsvpPage * ADMIN_RSVPS_PER_PAGE, eventRsvps.length)}</strong> dari <strong>{eventRsvps.length}</strong> data RSVP
+                        Menampilkan <strong>{(safeAdminRsvpPage - 1) * ADMIN_RSVPS_PER_PAGE + 1} - {Math.min(safeAdminRsvpPage * ADMIN_RSVPS_PER_PAGE, filteredAdminRsvps.length)}</strong> dari <strong>{filteredAdminRsvps.length}</strong> data RSVP
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
@@ -4772,9 +4842,10 @@ export default function AdminPortal({
                     </div>
                   )}
                 </div>
-              );
-            })()}
-          </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -8624,87 +8695,171 @@ export default function AdminPortal({
 
           {/* Kotak Ide & Aspirasi Masuk */}
           <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MessageSquare size={18} color="var(--neon-cyan)" />
-                <div>
-                  <h4 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    Kotak Ide, Tindak Lanjut & Balasan Aspirasi ({aspirasiList.length})
-                  </h4>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-                    Ubah status realisasi dan berikan tanggapan resmi pengurus yang akan tampil di Papan Transparansi Aspirasi publik.
-                  </p>
-                </div>
-              </div>
-
-              {aspirasiList.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-                    const header = ['ID', 'Pengusul', 'Kategori', 'Judul Usulan', 'Deskripsi', 'Status Tindak Lanjut', 'Tanggapan Pengurus', 'Publik', 'Waktu Kirim'].map(escapeCsv).join(',');
-                    const rows = aspirasiList.map(a => [
-                      a.id,
-                      a.sender || 'Anonim',
-                      a.category || 'Usulan Budaya',
-                      a.title || a.text || '',
-                      a.description || a.text || '',
-                      a.status || 'Menunggu Review',
-                      a.adminReply || '',
-                      a.isPublic !== false ? 'Ya' : 'Tidak',
-                      formatWibTimestamp(a.createdAt || a.submittedAt).exact || a.submittedAt || a.createdAt || ''
-                    ].map(escapeCsv).join(','));
-                    const csvString = '\uFEFF' + [header, ...rows].join('\n');
-                    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `laporan_aspirasi_cnt_it_apd_${Date.now()}.csv`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    showToast(`Berhasil mengunduh ${aspirasiList.length} data Aspirasi ke CSV!`);
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'rgba(16, 185, 129, 0.14)',
-                    border: '1px solid #10b981',
-                    color: '#10b981',
-                    padding: '7px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Download size={13} />
-                  <span>Export CSV Aspirasi</span>
-                </button>
-              )}
-            </div>
-
             {(() => {
+              const normalizeAdminAspStatus = (st) => st === 'Masuk Rencana Proker' ? 'Masuk Rencana Event' : (st || 'Menunggu Review');
+              const filteredAdminAspirasi = aspirasiList.filter(a => {
+                const q = aspirasiSearchQuery.trim().toLowerCase();
+                const matchesSearch = !q ||
+                  (a.title || '').toLowerCase().includes(q) ||
+                  (a.description || '').toLowerCase().includes(q) ||
+                  (a.sender || '').toLowerCase().includes(q) ||
+                  (a.category || '').toLowerCase().includes(q) ||
+                  (a.adminReply || '').toLowerCase().includes(q);
+                const matchesCat = aspirasiAdminCatFilter === 'all' || (a.category || 'Usulan Budaya') === aspirasiAdminCatFilter;
+                const matchesStatus = aspirasiAdminStatusFilter === 'all' || normalizeAdminAspStatus(a.status) === aspirasiAdminStatusFilter;
+                return matchesSearch && matchesCat && matchesStatus;
+              });
+
               const ADMIN_ASPIRASI_PER_PAGE = 10;
-              const totalAdminAspirasiPages = Math.ceil(aspirasiList.length / ADMIN_ASPIRASI_PER_PAGE) || 1;
+              const totalAdminAspirasiPages = Math.ceil(filteredAdminAspirasi.length / ADMIN_ASPIRASI_PER_PAGE) || 1;
               const safeAdminAspirasiPage = Math.min(Math.max(1, adminAspirasiPage), totalAdminAspirasiPages);
-              const paginatedAdminAspirasi = aspirasiList.slice(
+              const paginatedAdminAspirasi = filteredAdminAspirasi.slice(
                 (safeAdminAspirasiPage - 1) * ADMIN_ASPIRASI_PER_PAGE,
                 safeAdminAspirasiPage * ADMIN_ASPIRASI_PER_PAGE
               );
 
-              if (aspirasiList.length === 0) {
-                return (
-                  <div style={{ fontSize: '0.84rem', color: 'var(--text-dim)', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)' }}>
-                    Belum ada kiriman ide atau aspirasi program budaya dari pengunjung.
-                  </div>
-                );
-              }
-
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MessageSquare size={18} color="var(--neon-cyan)" />
+                      <div>
+                        <h4 style={{ fontSize: '1.08rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                          Kotak Ide, Tindak Lanjut & Balasan Aspirasi ({filteredAdminAspirasi.length} dari {aspirasiList.length})
+                        </h4>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                          Ubah status realisasi dan berikan tanggapan resmi pengurus yang akan tampil di Papan Transparansi Aspirasi publik.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '180px', maxWidth: '240px' }}>
+                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                        <input
+                          type="text"
+                          placeholder="Cari judul, isi, atau pengusul..."
+                          value={aspirasiSearchQuery}
+                          onChange={(e) => {
+                            setAspirasiSearchQuery(e.target.value);
+                            setAdminAspirasiPage(1);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '7px 10px 7px 30px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.78rem'
+                          }}
+                        />
+                      </div>
+
+                      <select
+                        value={aspirasiAdminCatFilter}
+                        onChange={(e) => {
+                          setAspirasiAdminCatFilter(e.target.value);
+                          setAdminAspirasiPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Kategori</option>
+                        <option value="Kegiatan & Event">Kegiatan & Event Budaya</option>
+                        <option value="Olahraga & Wellness">Olahraga, E-Sports & Wellness</option>
+                        <option value="Fasilitas & Ruang Kerja">Fasilitas & Kenyamanan Kerja</option>
+                        <option value="Sharing & Pengembangan">Tech Sharing & Pengembangan Diri</option>
+                        <option value="Sosial & Kerohanian">Sosial, CSR & Kerohanian</option>
+                      </select>
+
+                      <select
+                        value={aspirasiAdminStatusFilter}
+                        onChange={(e) => {
+                          setAspirasiAdminStatusFilter(e.target.value);
+                          setAdminAspirasiPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Status</option>
+                        <option value="Menunggu Review">⏳ Menunggu Review</option>
+                        <option value="Masuk Rencana Event">🚀 Masuk Rencana Event</option>
+                        <option value="Sudah Direalisasikan">✓ Sudah Direalisasikan</option>
+                      </select>
+
+                      {filteredAdminAspirasi.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                            const header = ['ID', 'Pengusul', 'Kategori', 'Judul Usulan', 'Deskripsi', 'Status Tindak Lanjut', 'Tanggapan Pengurus', 'Publik', 'Waktu Kirim'].map(escapeCsv).join(',');
+                            const rows = filteredAdminAspirasi.map(a => [
+                              a.id,
+                              a.sender || 'Anonim',
+                              a.category || 'Usulan Budaya',
+                              a.title || a.text || '',
+                              a.description || a.text || '',
+                              a.status || 'Menunggu Review',
+                              a.adminReply || '',
+                              a.isPublic !== false ? 'Ya' : 'Tidak',
+                              formatWibTimestamp(a.createdAt || a.submittedAt).exact || a.submittedAt || a.createdAt || ''
+                            ].map(escapeCsv).join(','));
+                            const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `laporan_aspirasi_cnt_it_apd_${Date.now()}.csv`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                            showToast(`Berhasil mengunduh ${filteredAdminAspirasi.length} data Aspirasi ke CSV!`);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(16, 185, 129, 0.14)',
+                            border: '1px solid #10b981',
+                            color: '#10b981',
+                            padding: '7px 14px',
+                            borderRadius: 'var(--radius-md)',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Download size={13} />
+                          <span>Export CSV Aspirasi</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {filteredAdminAspirasi.length === 0 ? (
+                    <div style={{ fontSize: '0.84rem', color: 'var(--text-dim)', padding: '20px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)' }}>
+                      {aspirasiList.length === 0
+                        ? 'Belum ada kiriman ide atau aspirasi program budaya dari pengunjung.'
+                        : 'Tidak ada aspirasi yang cocok dengan kriteria pencarian atau filter.'}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {paginatedAdminAspirasi.map((asp) => {
                     const curStatus = asp.status || 'Menunggu Review';
                     const isPub = asp.isPublic !== false;
@@ -8878,7 +9033,7 @@ export default function AdminPortal({
                       border: '1px solid var(--border-card)'
                     }}>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        Menampilkan <strong>{(safeAdminAspirasiPage - 1) * ADMIN_ASPIRASI_PER_PAGE + 1} - {Math.min(safeAdminAspirasiPage * ADMIN_ASPIRASI_PER_PAGE, aspirasiList.length)}</strong> dari <strong>{aspirasiList.length}</strong> aspirasi
+                        Menampilkan <strong>{(safeAdminAspirasiPage - 1) * ADMIN_ASPIRASI_PER_PAGE + 1} - {Math.min(safeAdminAspirasiPage * ADMIN_ASPIRASI_PER_PAGE, filteredAdminAspirasi.length)}</strong> dari <strong>{filteredAdminAspirasi.length}</strong> aspirasi
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
@@ -8953,6 +9108,8 @@ export default function AdminPortal({
                     </div>
                   )}
                 </div>
+                )}
+                </>
               );
             })()}
           </div>
@@ -9228,7 +9385,7 @@ export default function AdminPortal({
 
           {/* Existing Brand Assets List with Search, Filter & Pagination */}
           {(() => {
-            const ADMIN_ASSETS_PER_PAGE = 8;
+            const ADMIN_ASSETS_PER_PAGE = 9;
             const filteredAssets = brandAssets.filter(item => {
               const q = assetSearchQuery.trim().toLowerCase();
               const matchesSearch = !q ||
@@ -11627,10 +11784,18 @@ export default function AdminPortal({
                     <input
                       type="datetime-local"
                       value={toDatetimeLocalValue(editingItem.item.startDate)}
+                      max={editingItem.item.endDate ? toDatetimeLocalValue(editingItem.item.endDate) : undefined}
                       onChange={(e) => {
                         const val = e.target.value;
                         const sVal = val;
                         const eVal = editingItem.item.endDate || val;
+                        const normStart = toDatetimeLocalValue(sVal);
+                        const normEnd = toDatetimeLocalValue(editingItem.item.endDate);
+                        if (normStart && normEnd && normStart > normEnd) {
+                          setEditModalError('Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir');
+                        } else {
+                          setEditModalError('');
+                        }
                         setEditingItem({
                           ...editingItem,
                           item: {
@@ -11640,8 +11805,21 @@ export default function AdminPortal({
                           }
                         });
                       }}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: `1px solid ${(editingItem.item.startDate && editingItem.item.endDate && toDatetimeLocalValue(editingItem.item.startDate) > toDatetimeLocalValue(editingItem.item.endDate)) ? '#f43f5e' : 'var(--input-border)'}`,
+                        color: 'var(--text-main)',
+                        fontSize: '0.86rem'
+                      }}
                     />
+                    {editingItem.item.startDate && editingItem.item.endDate && toDatetimeLocalValue(editingItem.item.startDate) > toDatetimeLocalValue(editingItem.item.endDate) && (
+                      <div style={{ fontSize: '0.72rem', color: '#f43f5e', marginTop: '4px', fontWeight: 600 }}>
+                        ⚠️ Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
@@ -11650,10 +11828,18 @@ export default function AdminPortal({
                     <input
                       type="datetime-local"
                       value={toDatetimeLocalValue(editingItem.item.endDate)}
+                      min={editingItem.item.startDate ? toDatetimeLocalValue(editingItem.item.startDate) : undefined}
                       onChange={(e) => {
                         const val = e.target.value;
                         const sVal = editingItem.item.startDate || val;
                         const eVal = val;
+                        const normStart = toDatetimeLocalValue(editingItem.item.startDate);
+                        const normEnd = toDatetimeLocalValue(eVal);
+                        if (normStart && normEnd && normEnd < normStart) {
+                          setEditModalError('Tanggal & Jam Berakhir tidak boleh kurang dari Tanggal & Jam Mulai');
+                        } else {
+                          setEditModalError('');
+                        }
                         setEditingItem({
                           ...editingItem,
                           item: {
@@ -11663,8 +11849,21 @@ export default function AdminPortal({
                           }
                         });
                       }}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: `1px solid ${(editingItem.item.startDate && editingItem.item.endDate && toDatetimeLocalValue(editingItem.item.endDate) < toDatetimeLocalValue(editingItem.item.startDate)) ? '#f43f5e' : 'var(--input-border)'}`,
+                        color: 'var(--text-main)',
+                        fontSize: '0.86rem'
+                      }}
                     />
+                    {editingItem.item.startDate && editingItem.item.endDate && toDatetimeLocalValue(editingItem.item.endDate) < toDatetimeLocalValue(editingItem.item.startDate) && (
+                      <div style={{ fontSize: '0.72rem', color: '#f43f5e', marginTop: '4px', fontWeight: 600 }}>
+                        ⚠️ Tanggal & Jam Berakhir tidak boleh kurang dari Tanggal & Jam Mulai
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -11804,35 +12003,47 @@ export default function AdminPortal({
                 </div>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    🏷️ Kategori Program / Kegiatan
+                    🏷️ Kategori Program / Kegiatan <span style={{ color: '#f43f5e' }}>*</span>
                   </label>
-                  <input
-                    type="text"
-                    list="edit-event-category-list"
-                    placeholder="Pilih atau ketik kategori..."
-                    value={editingItem.item.category || editingItem.item.badge || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setEditingItem({
-                        ...editingItem,
-                        item: {
-                          ...editingItem.item,
-                          category: val,
-                          badge: val
-                        }
-                      });
-                    }}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
-                  />
-                  <datalist id="edit-event-category-list">
-                    <option value="Program Budaya" />
-                    <option value="Workshop & Sharing Session" />
-                    <option value="Social & Engagement" />
-                    <option value="Olahraga & Well-being" />
-                    <option value="Kompetisi & Inovasi" />
-                    <option value="Apresiasi & Rekognisi" />
-                    <option value="Townhall & Perayaan" />
-                  </datalist>
+                  {(() => {
+                    const currentCat = editingItem.item.kategori || editingItem.item.category || editingItem.item.badge || '';
+                    const standardCats = [
+                      'Program Budaya',
+                      'Workshop & Sharing Session',
+                      'Social & Engagement',
+                      'Olahraga & Well-being',
+                      'Kompetisi & Inovasi',
+                      'Apresiasi & Rekognisi',
+                      'Townhall & Perayaan'
+                    ];
+                    const hasCustomCat = currentCat && !standardCats.includes(currentCat);
+                    return (
+                      <select
+                        value={currentCat}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingItem({
+                            ...editingItem,
+                            item: {
+                              ...editingItem.item,
+                              kategori: val,
+                              category: val,
+                              badge: val
+                            }
+                          });
+                        }}
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                      >
+                        <option value="">-- Pilih Kategori Kegiatan * --</option>
+                        {standardCats.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                        {hasCustomCat && (
+                          <option value={currentCat}>{currentCat}</option>
+                        )}
+                      </select>
+                    );
+                  })()}
                 </div>
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Deskripsi Kegiatan</label>
@@ -12486,6 +12697,11 @@ export default function AdminPortal({
                     if (!editingItem.item.endDate) {
                       setEditModalError('Tanggal & Jam Berakhir event wajib diisi');
                       showToast('Tanggal & Jam Berakhir event wajib diisi', 'error');
+                      return;
+                    }
+                    if (toDatetimeLocalValue(editingItem.item.startDate) > toDatetimeLocalValue(editingItem.item.endDate)) {
+                      setEditModalError('Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir');
+                      showToast('Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir', 'error');
                       return;
                     }
                     if (!(editingItem.item.description || '').trim()) {
