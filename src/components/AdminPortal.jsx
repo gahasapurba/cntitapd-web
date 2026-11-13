@@ -397,6 +397,7 @@ export default function AdminPortal({
   const [newFormDeadline, setNewFormDeadline] = useState('');
   const [newFormSubtitle, setNewFormSubtitle] = useState('');
   const [newFormRequiresTracking, setNewFormRequiresTracking] = useState(true);
+  const [newFormShowAnnouncement, setNewFormShowAnnouncement] = useState(false);
   const [newFormTenureId, setNewFormTenureId] = useState(activeTenure?.id || '');
   const [selectedSubFilter, setSelectedSubFilter] = useState('all');
   const [draggedFieldIndex, setDraggedFieldIndex] = useState(null);
@@ -7176,6 +7177,7 @@ export default function AdminPortal({
                 deadline: toDatetimeLocalSecondsValue(newFormDeadline.trim()) || '',
                 isOpen: true,
                 requiresTracking: newFormRequiresTracking,
+                showAnnouncement: newFormShowAnnouncement,
                 tenureId: targetTenureId,
                 fields: newFormRequiresTracking ? [
                   { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
@@ -7198,6 +7200,7 @@ export default function AdminPortal({
               setNewFormDeadline('');
               setNewFormCategory('');
               setNewFormRequiresTracking(true);
+              setNewFormShowAnnouncement(false);
               showToast(`Formulir "${newForm.title}" berhasil dibuat & dipublikasikan!`);
             }}
             className="admin-form-two-col"
@@ -7365,6 +7368,23 @@ export default function AdminPortal({
                 {newFormRequiresTracking
                   ? 'Aktif: Responden akan diberikan ID Pendaftaran & dapat memantau status di website melalui Indeks Pencarian atau ID Pendaftaran.'
                   : 'Nonaktif: Formulir reguler (kuesioner, absensi, survei) tanpa pelacakan status. Himbauan tracking & card pencarian tidak akan dimunculkan.'}
+              </span>
+            </div>
+
+            {/* Option: Show Announcement */}
+            <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '4px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: newFormShowAnnouncement ? '#10b981' : 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={newFormShowAnnouncement}
+                  onChange={(e) => setNewFormShowAnnouncement(e.target.checked)}
+                />
+                <span>🎉 Tampilkan Papan Pengumuman Peserta Terpilih (Hall of Welcome) di Halaman Web</span>
+              </label>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px' }}>
+                {newFormShowAnnouncement
+                  ? 'Aktif: Daftar peserta yang berstatus "Accepted / Diterima" akan dipublikasikan secara terbuka pada section Hall of Welcome di halaman formulir.'
+                  : 'Nonaktif: Hasil seleksi tidak dipublikasikan ke publik di halaman formulir (hanya dapat dicek secara mandiri oleh responden jika tracking aktif).'}
               </span>
             </div>
 
@@ -7558,6 +7578,15 @@ export default function AdminPortal({
                       ) : (
                         <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)', padding: '2px 7px', borderRadius: '4px' }}>📋 Form Reguler</span>
                       )}
+                      {f.showAnnouncement ? (
+                        <span style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
+                          🎉 Pengumuman Aktif
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.65rem', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-dim)', border: '1px solid var(--border-card)', padding: '2px 7px', borderRadius: '4px' }}>
+                          🔒 Pengumuman Tertutup
+                        </span>
+                      )}
                       {(() => {
                         const dl = getDeadlineStatus(f.deadline);
                         if (dl.isExpired) {
@@ -7655,6 +7684,31 @@ export default function AdminPortal({
                       }}
                     >
                       {f.isOpen ? '● Dibuka di Web' : '○ Ditutup'}
+                    </button>
+
+                    {/* Toggle Pengumuman Terpilih */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onUpdateForm) {
+                          const nextShow = !f.showAnnouncement;
+                          onUpdateForm({ ...f, showAnnouncement: nextShow });
+                          showToast(nextShow ? `Papan pengumuman terpilih untuk "${f.title}" diaktifkan!` : `Papan pengumuman terpilih untuk "${f.title}" disembunyikan.`);
+                        }
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: f.showAnnouncement ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                        color: f.showAnnouncement ? '#10b981' : 'var(--text-muted)'
+                      }}
+                      title="Klik untuk mengubah visibilitas papan pengumuman peserta terpilih di web"
+                    >
+                      {f.showAnnouncement ? '🎉 Pengumuman: Tampil' : '🔒 Pengumuman: Tertutup'}
                     </button>
 
                     {/* Edit Form */}
@@ -11377,6 +11431,32 @@ export default function AdminPortal({
                     {editingItem.item.requiresTracking !== false
                       ? 'Aktif: Responden dapat melacak progres via ID Pendaftaran atau field Indeks Pencarian. Card pencarian di web akan muncul jika form ini aktif.'
                       : 'Nonaktif: Formulir reguler tanpa fitur pelacakan status. Responden tidak diminta tracking dan indeks pencarian dinonaktifkan.'}
+                  </span>
+                </div>
+
+                {/* Option: Show Announcement */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: editingItem.item.showAnnouncement ? '#10b981' : 'var(--text-muted)' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!editingItem.item.showAnnouncement}
+                      onChange={(e) => {
+                        const isShow = e.target.checked;
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            showAnnouncement: isShow
+                          }
+                        });
+                      }}
+                    />
+                    <span>🎉 Tampilkan Papan Pengumuman Peserta Terpilih (Hall of Welcome) di Halaman Web</span>
+                  </label>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px' }}>
+                    {editingItem.item.showAnnouncement
+                      ? 'Aktif: Daftar peserta yang berstatus "Accepted / Diterima" akan dipublikasikan secara terbuka pada section Hall of Welcome di halaman formulir.'
+                      : 'Nonaktif: Hasil seleksi tidak dipublikasikan ke publik di halaman formulir (hanya dapat dicek secara mandiri oleh responden jika tracking aktif).'}
                   </span>
                 </div>
 

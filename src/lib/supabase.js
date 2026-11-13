@@ -100,6 +100,21 @@ export async function checkFormsTenureColumn() {
   return isFormsTenureColSupported;
 }
 
+let isFormsAnnouncementColChecked = false;
+let isFormsAnnouncementColSupported = false;
+
+export async function checkFormsAnnouncementColumn() {
+  if (isFormsAnnouncementColChecked) return isFormsAnnouncementColSupported;
+  try {
+    const { error } = await supabase.from('forms').select('show_announcement').limit(1);
+    isFormsAnnouncementColSupported = !error;
+    isFormsAnnouncementColChecked = true;
+  } catch (e) {
+    isFormsAnnouncementColSupported = false;
+  }
+  return isFormsAnnouncementColSupported;
+}
+
 let isDepartmentsTableChecked = false;
 let isDepartmentsTableSupported = false;
 
@@ -615,12 +630,14 @@ export const rowMappers = {
   forms: {
     toDb: (item, idx = 0) => {
       const rawFields = Array.isArray(item.fields) ? [...item.fields] : [];
-      // Persist requiresTracking & tenureId inside fields[0] as resilient fallback if database column does not exist yet
+      const showAnnouncementVal = item.showAnnouncement === true;
+      // Persist requiresTracking, tenureId & showAnnouncement inside fields[0] as resilient fallback if database column does not exist yet
       if (rawFields.length > 0) {
         rawFields[0] = {
           ...rawFields[0],
           _requiresTracking: item.requiresTracking !== false,
-          _tenureId: item.tenureId || item.tenure_id || ''
+          _tenureId: item.tenureId || item.tenure_id || '',
+          _showAnnouncement: showAnnouncementVal
         };
       }
 
@@ -640,6 +657,9 @@ export const rowMappers = {
       if (isFormsTenureColSupported) {
         row.tenure_id = item.tenureId || item.tenure_id || null;
       }
+      if (isFormsAnnouncementColSupported) {
+        row.show_announcement = showAnnouncementVal;
+      }
       return row;
     },
     fromDb: (row) => {
@@ -649,6 +669,13 @@ export const rowMappers = {
         isTracking = row.requires_tracking !== false;
       } else if (rawFields.length > 0 && rawFields[0]?._requiresTracking !== undefined) {
         isTracking = rawFields[0]._requiresTracking !== false;
+      }
+
+      let showAnnouncement = false;
+      if (row.show_announcement !== undefined && row.show_announcement !== null) {
+        showAnnouncement = row.show_announcement === true;
+      } else if (rawFields.length > 0 && rawFields[0]?._showAnnouncement !== undefined) {
+        showAnnouncement = rawFields[0]._showAnnouncement === true;
       }
 
       const tenureIdVal = row.tenure_id || (rawFields.length > 0 && rawFields[0]?._tenureId) || '';
@@ -661,6 +688,7 @@ export const rowMappers = {
         deadline: row.deadline ? toDatetimeLocalSecondsValue(row.deadline) : '',
         isOpen: row.is_open !== false,
         requiresTracking: isTracking,
+        showAnnouncement: showAnnouncement,
         tenureId: tenureIdVal,
         fields: rawFields,
         createdAt: row.created_at || null,
@@ -791,6 +819,7 @@ export async function fetchAllCloudState() {
       detectEventsSchema(),
       checkFormsTrackingColumn(),
       checkFormsTenureColumn(),
+      checkFormsAnnouncementColumn(),
       checkRsvpsDepartmentColumn(),
       checkDivisionsSchema(),
       checkDepartmentsTable(),
@@ -1067,6 +1096,7 @@ export async function pushCloudState(key, value) {
     if (key === 'forms') {
       await checkFormsTrackingColumn();
       await checkFormsTenureColumn();
+      await checkFormsAnnouncementColumn();
     }
     if (key === 'eventRsvps') {
       await checkRsvpsDepartmentColumn();
@@ -1158,6 +1188,7 @@ export async function mergeAndPushCloudList(key, newItem, currentLocalList = [])
   if (key === 'forms') {
     await checkFormsTrackingColumn();
     await checkFormsTenureColumn();
+    await checkFormsAnnouncementColumn();
   }
 
   try {

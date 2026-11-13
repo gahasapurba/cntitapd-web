@@ -1466,6 +1466,7 @@ export default function DynamicFormSection({
 
       {/* 5. PENGUMUMAN PESERTA / CREW TERPILIH (HALL OF WELCOME & ONBOARDING BOARD) */}
       {(() => {
+        if (!currentForm?.showAnnouncement) return null;
         const acceptedList = (submissions || []).filter(
           (s) => s.status === 'Accepted' || s.status === 'Diterima'
         );
