@@ -101,18 +101,28 @@ export async function checkFormsTenureColumn() {
 }
 
 let isFormsAnnouncementColChecked = false;
-let isFormsAnnouncementColSupported = false;
+let formsAnnouncementColName = null; // 'is_show_accepted' | 'show_announcement' | null
 
 export async function checkFormsAnnouncementColumn() {
-  if (isFormsAnnouncementColChecked) return isFormsAnnouncementColSupported;
+  if (isFormsAnnouncementColChecked) return formsAnnouncementColName;
   try {
-    const { error } = await supabase.from('forms').select('show_announcement').limit(1);
-    isFormsAnnouncementColSupported = !error;
-    isFormsAnnouncementColChecked = true;
+    const { error: err1 } = await supabase.from('forms').select('is_show_accepted').limit(1);
+    if (!err1) {
+      formsAnnouncementColName = 'is_show_accepted';
+      isFormsAnnouncementColChecked = true;
+      return formsAnnouncementColName;
+    }
+    const { error: err2 } = await supabase.from('forms').select('show_announcement').limit(1);
+    if (!err2) {
+      formsAnnouncementColName = 'show_announcement';
+      isFormsAnnouncementColChecked = true;
+      return formsAnnouncementColName;
+    }
   } catch (e) {
-    isFormsAnnouncementColSupported = false;
+    formsAnnouncementColName = null;
   }
-  return isFormsAnnouncementColSupported;
+  isFormsAnnouncementColChecked = true;
+  return formsAnnouncementColName;
 }
 
 let isDepartmentsTableChecked = false;
@@ -636,7 +646,8 @@ export const rowMappers = {
           ...rawFields[0],
           _requiresTracking: item.requiresTracking !== false,
           _tenureId: item.tenureId || item.tenure_id || '',
-          _showAnnouncement: showAnnouncementVal
+          _showAnnouncement: showAnnouncementVal,
+          _isShowAccepted: showAnnouncementVal
         };
       }
 
@@ -656,8 +667,8 @@ export const rowMappers = {
       if (isFormsTenureColSupported) {
         row.tenure_id = item.tenureId || item.tenure_id || null;
       }
-      if (isFormsAnnouncementColSupported) {
-        row.show_announcement = showAnnouncementVal;
+      if (formsAnnouncementColName) {
+        row[formsAnnouncementColName] = showAnnouncementVal;
       }
       return row;
     },
@@ -671,10 +682,12 @@ export const rowMappers = {
       }
 
       let showAnnouncement = false;
-      if (row.show_announcement !== undefined && row.show_announcement !== null) {
+      if (row.is_show_accepted !== undefined && row.is_show_accepted !== null) {
+        showAnnouncement = row.is_show_accepted === true;
+      } else if (row.show_announcement !== undefined && row.show_announcement !== null) {
         showAnnouncement = row.show_announcement === true;
-      } else if (rawFields.length > 0 && rawFields[0]?._showAnnouncement !== undefined) {
-        showAnnouncement = rawFields[0]._showAnnouncement === true;
+      } else if (rawFields.length > 0 && (rawFields[0]?._showAnnouncement !== undefined || rawFields[0]?._isShowAccepted !== undefined)) {
+        showAnnouncement = (rawFields[0]._showAnnouncement === true || rawFields[0]._isShowAccepted === true);
       }
 
       const tenureIdVal = row.tenure_id || (rawFields.length > 0 && rawFields[0]?._tenureId) || '';
