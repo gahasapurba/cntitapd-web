@@ -411,8 +411,7 @@ export const rowMappers = {
       level: Number(item.level ?? 5),
       max_quota: Number(item.maxQuota ?? item.max ?? 0),
       requires_division: Boolean(item.requiresDivision),
-      sort_order: Number(item.sortOrder ?? idx),
-      updated_at: item.updatedAt || item.createdAt || new Date().toISOString()
+      sort_order: Number(item.sortOrder ?? idx)
     }),
     fromDb: (row) => ({
       id: row.id,
@@ -731,8 +730,7 @@ export const rowMappers = {
       file_type: item.fileType || 'PNG / ZIP',
       file_size: item.fileSize || '',
       badge: item.badge || 'Official Asset',
-      sort_order: idx,
-      updated_at: item.updatedAt || item.createdAt || new Date().toISOString()
+      sort_order: idx
     }),
     fromDb: (row) => ({
       id: row.id,
@@ -758,8 +756,7 @@ export const rowMappers = {
         attendee_name: item.attendeeName || '',
         attendance_mode: item.attendanceMode || 'Hadir Onsite',
         notes: item.notes || '',
-        sort_order: idx,
-        updated_at: new Date().toISOString()
+        sort_order: idx
       };
       if (isRsvpsDepartmentIdColSupported) {
         row.department_id = deptVal || null;
@@ -792,8 +789,7 @@ export const rowMappers = {
       category: item.category || 'Umum',
       asked_by: item.askedBy || 'Admin CNT',
       is_published: item.isPublished !== false,
-      sort_order: idx,
-      updated_at: new Date().toISOString()
+      sort_order: idx
     }),
     fromDb: (row) => ({
       id: row.id,
@@ -1135,7 +1131,12 @@ export async function pushCloudState(key, value) {
     const dbRows = preparedValue.map((item, idx) => {
       const row = mapper.toDb(item, idx);
       if (hasUpdatedAt && row.updated_at === undefined) {
-        row.updated_at = item.updatedAt || item.createdAt || new Date().toISOString();
+        // Strictly preserve each individual item's updatedAt timestamp.
+        // NEVER fallback to new Date() here to prevent untouched items from having their last-update timestamp changed during batch synchronization.
+        const existingTimestamp = item.updatedAt || item.createdAt;
+        if (existingTimestamp) {
+          row.updated_at = existingTimestamp;
+        }
       }
       return row;
     });
