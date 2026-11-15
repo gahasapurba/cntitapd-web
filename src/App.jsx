@@ -31,7 +31,7 @@ import {
   deleteMediaFromCloud,
   pushRoleQuotas
 } from './lib/supabase';
-import { formatDeadlineWib } from './utils/dateUtils';
+import { formatDeadlineWib, isEventPassed } from './utils/dateUtils';
 import { getTenureRoles, getDivisionLead } from './utils/memberQuotaUtils';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'assets', 'form'];
@@ -285,15 +285,25 @@ export default function App() {
       }
       if (Array.isArray(cloud.events)) {
         const currentDivs = (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) ? cloud.divisions : divisions;
+        let hasStatusChange = false;
         const reconciledEvts = cloud.events.map(e => {
           const divObj = currentDivs.find(d => d.id === e.divisionId) || currentDivs.find(d => d.name === e.divisionName);
+          let status = e.status || 'Upcoming';
+          if (status !== 'Completed' && isEventPassed(e.startDate, e.endDate)) {
+            status = 'Completed';
+            hasStatusChange = true;
+          }
           return {
             ...e,
             divisionId: e.divisionId || divObj?.id,
-            divisionName: divObj?.name || e.divisionName || 'CNT IT APD'
+            divisionName: divObj?.name || e.divisionName || 'CNT IT APD',
+            status
           };
         });
         setEvents(reconciledEvts);
+        if (hasStatusChange) {
+          pushCloudState('events', reconciledEvts);
+        }
       }
       if (Array.isArray(cloud.galleries)) {
         const currentDivs = (Array.isArray(cloud.divisions) && cloud.divisions.length > 0) ? cloud.divisions : divisions;
@@ -417,6 +427,24 @@ export default function App() {
   const handleSelectTenure = (tenureObj) => {
     setActiveTenure(tenureObj);
   };
+
+  // Auto-complete past events if current time has passed event end date
+  useEffect(() => {
+    if (!events || events.length === 0) return;
+    const pastPending = events.filter(e => e.status !== 'Completed' && isEventPassed(e.startDate, e.endDate));
+    if (pastPending.length > 0) {
+      setEvents((prev) => {
+        const next = prev.map(e => {
+          if (e.status !== 'Completed' && isEventPassed(e.startDate, e.endDate)) {
+            return { ...e, status: 'Completed' };
+          }
+          return e;
+        });
+        pushCloudState('events', next);
+        return next;
+      });
+    }
+  }, [events]);
 
   // Dynamic Add, Edit & Delete Handlers (Persisted to LocalStorage + Supabase Cloud)
   const handleAddDivision = (newDiv) => {
@@ -1377,6 +1405,7 @@ export default function App() {
               isEventPageVisible={isPageVisible('event')}
               onNavigateProgram={isPageVisible('event') ? () => setCurrentTab('event') : undefined}
               theme={theme}
+              onSelectTenure={handleSelectTenure}
             />
           )}
 

@@ -276,7 +276,9 @@ let eventsSchemaMeta = {
   hasDate: true,
   categoryCol: 'badge', // 'kategori' | 'category' | 'badge'
   pesertaCol: 'kpi',    // 'peserta' | 'kpi'
-  hasDivisionName: false
+  hasDivisionName: false,
+  hasIsLimited: false,
+  hasMaxQuota: false
 };
 
 export async function detectEventsSchema() {
@@ -288,6 +290,8 @@ export async function detectEventsSchema() {
       if (cols.length > 0) {
         eventsSchemaMeta.hasDate = cols.includes('date');
         eventsSchemaMeta.hasDivisionName = cols.includes('division_name');
+        eventsSchemaMeta.hasIsLimited = cols.includes('is_limited');
+        eventsSchemaMeta.hasMaxQuota = cols.includes('max_quota');
         if (cols.includes('kategori')) {
           eventsSchemaMeta.categoryCol = 'kategori';
         } else if (cols.includes('category')) {
@@ -309,15 +313,19 @@ export async function detectEventsSchema() {
   }
 
   try {
-    const [dateRes, divNameRes, katRes, catRes, pesRes] = await Promise.all([
+    const [dateRes, divNameRes, katRes, catRes, pesRes, limRes, quoRes] = await Promise.all([
       supabase.from('events').select('date').limit(1),
       supabase.from('events').select('division_name').limit(1),
       supabase.from('events').select('kategori').limit(1),
       supabase.from('events').select('category').limit(1),
-      supabase.from('events').select('peserta').limit(1)
+      supabase.from('events').select('peserta').limit(1),
+      supabase.from('events').select('is_limited').limit(1),
+      supabase.from('events').select('max_quota').limit(1)
     ]);
     eventsSchemaMeta.hasDate = !dateRes.error;
     eventsSchemaMeta.hasDivisionName = !divNameRes.error;
+    eventsSchemaMeta.hasIsLimited = !limRes.error;
+    eventsSchemaMeta.hasMaxQuota = !quoRes.error;
     if (!katRes.error) {
       eventsSchemaMeta.categoryCol = 'kategori';
     } else if (!catRes.error) {
@@ -522,6 +530,12 @@ export const rowMappers = {
       if (eventsSchemaMeta.hasDivisionName && item.divisionName) {
         row.division_name = item.divisionName;
       }
+      if (eventsSchemaMeta.hasIsLimited) {
+        row.is_limited = Boolean(item.isLimited);
+      }
+      if (eventsSchemaMeta.hasMaxQuota) {
+        row.max_quota = Number(item.maxQuota || item.quota || 0);
+      }
       row[eventsSchemaMeta.categoryCol] = catVal;
       row[eventsSchemaMeta.pesertaCol] = pesertaVal;
       return row;
@@ -535,6 +549,8 @@ export const rowMappers = {
       date: row.date || formatWibEventRange(row.start_date, row.end_date),
       startDate: row.start_date ? toDatetimeLocalValue(row.start_date) : '',
       endDate: row.end_date ? toDatetimeLocalValue(row.end_date) : '',
+      isLimited: Boolean(row.is_limited),
+      maxQuota: Number(row.max_quota || row.quota || 0),
       kategori: row.kategori || row.category || row.badge || '',
       category: row.kategori || row.category || row.badge || '',
       badge: row.kategori || row.category || row.badge || '',

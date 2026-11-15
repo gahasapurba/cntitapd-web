@@ -21,9 +21,11 @@ import {
   Share2,
   Link2,
   HelpCircle,
-  Tag
+  Tag,
+  Lock,
+  CalendarX
 } from 'lucide-react';
-import { formatWibEventRange } from '../utils/dateUtils';
+import { formatWibEventRange, isEventPassed } from '../utils/dateUtils';
 
 export default function ProgramSection({
   events = [],
@@ -73,6 +75,32 @@ export default function ProgramSection({
   });
   const [hoveredDate, setHoveredDate] = useState(null);
 
+  // Auto-sync calendar view to active tenure's event dates when tenure changes
+  useEffect(() => {
+    if (!activeTenure?.id) return;
+    const tenureEvents = events.filter(e => e.tenureId === activeTenure.id && e.startDate);
+    if (tenureEvents.length > 0) {
+      // Find earliest upcoming event, or first event of the tenure
+      const targetEvt = tenureEvents.find(e => e.status !== 'Completed') || tenureEvents[0];
+      if (targetEvt?.startDate) {
+        const parts = targetEvt.startDate.slice(0, 10).split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        if (!isNaN(y)) setCurrentYear(y);
+        if (!isNaN(m) && m >= 0 && m <= 11) setCurrentMonth(m);
+        return;
+      }
+    }
+    // Fallback: extract year from activeTenure code (e.g. "2026/2027" -> 2026)
+    if (activeTenure.code) {
+      const match = activeTenure.code.match(/\d{4}/);
+      if (match) {
+        const y = parseInt(match[0], 10);
+        if (!isNaN(y)) setCurrentYear(y);
+      }
+    }
+  }, [activeTenure?.id]);
+
   const lastHandledInitialId = useRef(null);
 
   const handleCloseEventModal = useCallback(() => {
@@ -114,7 +142,19 @@ export default function ProgramSection({
 
   const handleOpenEventModal = (evt, dayEventsList = []) => {
     setRsvpModalEvent(evt);
-    setSameDayModalEvents(dayEventsList.length > 1 ? dayEventsList : []);
+    if (dayEventsList.length > 1) {
+      setSameDayModalEvents(dayEventsList);
+    } else if (evt?.startDate) {
+      const dateKey = evt.startDate.slice(0, 10);
+      const matches = events.filter(e => {
+        const s = (e.startDate || '').slice(0, 10);
+        const end = (e.endDate || e.startDate || '').slice(0, 10);
+        return dateKey >= s && dateKey <= end;
+      });
+      setSameDayModalEvents(matches.length > 1 ? matches : []);
+    } else {
+      setSameDayModalEvents([]);
+    }
     lastHandledInitialId.current = evt?.id || null;
     if (onSelectEventUrl && evt?.id) {
       onSelectEventUrl(evt.id);
@@ -215,6 +255,11 @@ export default function ProgramSection({
     const matchesDiv = filterDiv === 'all' || evt.divisionId === filterDiv;
     const matchesTab = activeTab === 'all' || (activeTab === 'upcoming' && evt.status !== 'Completed');
     return matchesDiv && matchesTab;
+  });
+
+  // Calendar View always displays all scheduled events of the month (including Completed) matching the selected division filter
+  const calendarEvents = scopedEvents.filter((evt) => {
+    return filterDiv === 'all' || evt.divisionId === filterDiv;
   });
 
   // Quarter breakdown for Calendar View (Dynamic based on activeTenure)
@@ -540,7 +585,7 @@ export default function ProgramSection({
               }}>
                 {paginatedEvents.map((evt) => {
               const divInfo = divisions.find(d => d.id === evt.divisionId);
-              const isCompleted = evt.status === 'Completed';
+              const isCompleted = evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate);
 
               return (
                 <div
@@ -604,6 +649,18 @@ export default function ProgramSection({
                     </div>
                     {(() => {
                       const count = eventRsvps.filter(r => r.eventId === evt.id).length;
+                      const isLimited = Boolean(evt.isLimited);
+                      const maxQ = Number(evt.maxQuota || 0);
+                      const isFull = isLimited && maxQ > 0 && count >= maxQ;
+
+                      if (isLimited && maxQ > 0) {
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isFull ? '#f43f5e' : 'var(--mandiri-gold)', fontWeight: 800 }}>
+                            <Users size={15} color={isFull ? '#f43f5e' : 'var(--mandiri-gold)'} />
+                            <span>Kuota: {count}/{maxQ} {isFull ? '• (Penuh)' : `• (Sisa ${Math.max(0, maxQ - count)})`}</span>
+                          </div>
+                        );
+                      }
                       return count > 0 ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--neon-cyan)', fontWeight: 700 }}>
                           <Users size={15} color="var(--neon-cyan)" />
@@ -613,44 +670,47 @@ export default function ProgramSection({
                     })()}
                   </div>
 
-                  {!isCompleted && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                      <button
-                        className="btn-rsvp-action"
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          background: 'rgba(14, 165, 233, 0.12)',
-                          color: 'var(--neon-cyan)',
-                          border: '1.5px solid var(--neon-cyan)',
-                          padding: '11px 14px',
-                          borderRadius: 'var(--radius-md)',
-                          fontWeight: 800,
-                          fontSize: '0.84rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.25s ease',
-                          boxShadow: '0 4px 15px rgba(14, 165, 233, 0.15)'
-                        }}
-                        onClick={() => handleOpenEventModal(evt)}
-                        onMouseEnter={(e) => {
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <button
+                      className="btn-rsvp-action"
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        background: isCompleted ? 'rgba(255, 255, 255, 0.05)' : 'rgba(14, 165, 233, 0.12)',
+                        color: isCompleted ? 'var(--text-muted)' : 'var(--neon-cyan)',
+                        border: isCompleted ? '1.5px solid var(--border-card)' : '1.5px solid var(--neon-cyan)',
+                        padding: '11px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        fontWeight: 800,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.25s ease',
+                        boxShadow: isCompleted ? 'none' : '0 4px 15px rgba(14, 165, 233, 0.15)'
+                      }}
+                      onClick={() => handleOpenEventModal(evt)}
+                      onMouseEnter={(e) => {
+                        if (!isCompleted) {
                           e.currentTarget.style.background = 'var(--neon-cyan)';
                           e.currentTarget.style.color = '#040914';
                           e.currentTarget.style.boxShadow = '0 6px 20px rgba(14, 165, 233, 0.4)';
                           e.currentTarget.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isCompleted) {
                           e.currentTarget.style.background = 'rgba(14, 165, 233, 0.12)';
                           e.currentTarget.style.color = 'var(--neon-cyan)';
                           e.currentTarget.style.boxShadow = '0 4px 15px rgba(14, 165, 233, 0.15)';
                           e.currentTarget.style.transform = 'translateY(0)';
-                        }}
-                      >
-                        <span>RSVP / Info Detail</span>
-                        <ChevronRight size={16} />
-                      </button>
+                        }
+                      }}
+                    >
+                      <span>{isCompleted ? 'Lihat Info & Daftar Hadir' : 'RSVP / Info Detail'}</span>
+                      <ChevronRight size={16} />
+                    </button>
 
                       <button
                         type="button"
@@ -671,10 +731,9 @@ export default function ProgramSection({
                         {copiedEventId === evt.id ? <CheckCircle2 size={15} /> : <Share2 size={15} />}
                       </button>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
           </div>
 
           {totalEventPages > 1 && (
@@ -786,13 +845,13 @@ export default function ProgramSection({
         const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
         const firstDayOfWeek = (year, month) => new Date(year, month, 1).getDay();
 
-        // Calculate active month events
-        const currentMonthEvents = filteredEvents.filter(evt => {
+        // Calculate active month events (includes all scheduled events for the calendar month)
+        const currentMonthEvents = calendarEvents.filter(evt => {
           if (!evt.startDate) return false;
           const s = new Date(evt.startDate);
           const e = evt.endDate ? new Date(evt.endDate) : s;
-          const targetStart = new Date(currentYear, currentMonth, 1);
-          const targetEnd = new Date(currentYear, currentMonth + 1, 0);
+          const targetStart = new Date(currentYear, currentMonth, 1, 0, 0, 0);
+          const targetEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
           return (s <= targetEnd && e >= targetStart);
         });
 
@@ -970,11 +1029,11 @@ export default function ProgramSection({
                     const fullDateStr = `${currentYear}-${monthStr}-${dayStr}`;
 
                     // Check which events cover this specific date (from startDate to endDate)
-                    const dayEvents = filteredEvents.filter(evt => {
+                    const dayEvents = calendarEvents.filter(evt => {
                       if (!evt.startDate) return false;
-                      const s = evt.startDate;
-                      const e = evt.endDate || s;
-                      return fullDateStr >= s && fullDateStr <= e;
+                      const sDate = evt.startDate.slice(0, 10);
+                      const eDate = (evt.endDate || evt.startDate).slice(0, 10);
+                      return fullDateStr >= sDate && fullDateStr <= eDate;
                     });
 
                     const hasEvents = dayEvents.length > 0;
@@ -1043,36 +1102,48 @@ export default function ProgramSection({
                           )}
                         </div>
 
-                        {/* Single-line Truncated Event Label (e.g. "APD E-Sports Cha...") */}
+                        {/* Interactive Event Label Chips in Day Cell */}
                         {hasEvents ? (
-                          <div style={{ marginTop: 'auto', width: '100%' }}>
-                            {(() => {
-                              const ev = dayEvents[0];
+                          <div style={{ marginTop: 'auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {dayEvents.slice(0, 2).map((ev, evIdx) => {
                               const divObj = divisions.find(d => d.id === ev.divisionId);
                               const col = divObj?.color || tagColor;
+                              const isEvtComp = ev.status === 'Completed' || isEventPassed(ev.startDate, ev.endDate);
 
                               return (
                                 <div
+                                  key={ev.id || evIdx}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenEventModal(ev, dayEvents);
+                                  }}
                                   style={{
-                                    fontSize: '0.66rem',
+                                    fontSize: '0.63rem',
                                     fontWeight: 700,
-                                    background: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)',
-                                    color: col,
+                                    background: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.92)',
+                                    color: isEvtComp ? 'var(--text-muted)' : col,
                                     padding: '2px 5px',
                                     borderRadius: '4px',
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
-                                    borderLeft: `2.5px solid ${col}`,
+                                    borderLeft: `2.5px solid ${isEvtComp ? '#64748b' : col}`,
                                     lineHeight: 1.25,
-                                    width: '100%'
+                                    width: '100%',
+                                    cursor: 'pointer',
+                                    opacity: isEvtComp ? 0.75 : 1
                                   }}
-                                  title={ev.title}
+                                  title={`${ev.title}${isEvtComp ? ' (Selesai)' : ''}`}
                                 >
-                                  {ev.title}
+                                  {isEvtComp ? `✓ ${ev.title}` : ev.title}
                                 </div>
                               );
-                            })()}
+                            })}
+                            {dayEvents.length > 2 && (
+                              <div style={{ fontSize: '0.58rem', color: 'var(--mandiri-gold)', fontWeight: 800, paddingLeft: '2px' }}>
+                                +{dayEvents.length - 2} lagi...
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div style={{ height: '14px' }} />
@@ -1164,19 +1235,30 @@ export default function ProgramSection({
                           gap: '8px'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
                           <span style={{ fontSize: '0.72rem', fontWeight: 800, color: divInfo?.color || 'var(--mandiri-gold)', textTransform: 'uppercase' }}>
                             {evt.divisionName || divInfo?.name}
                           </span>
-                          <span className="badge-gold" style={{ fontSize: '0.68rem' }}>
-                            {evt.status}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {evt.isLimited && Number(evt.maxQuota) > 0 && (() => {
+                              const qCount = eventRsvps.filter(r => r.eventId === evt.id).length;
+                              const isFull = qCount >= Number(evt.maxQuota);
+                              return (
+                                <span className={isFull ? "badge-red" : "badge-gold"} style={{ fontSize: '0.64rem' }}>
+                                  Kuota: {qCount}/{evt.maxQuota} {isFull ? '(Penuh)' : ''}
+                                </span>
+                              );
+                            })()}
+                            <span className={evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate) ? "badge-cyan" : "badge-gold"} style={{ fontSize: '0.68rem' }}>
+                              {evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate) ? 'Completed' : evt.status}
+                            </span>
+                          </div>
                         </div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, lineHeight: 1.3 }}>
                           {evt.title}
                         </h4>
                         <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 700 }}>
-                          📅 {evt.startDate} s/d {evt.endDate}
+                          📅 {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
                         </div>
                         <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <MapPin size={13} color="var(--mandiri-blue)" />
@@ -1383,6 +1465,19 @@ export default function ProgramSection({
                   <Users size={14} color="var(--mandiri-gold)" />
                   <strong>Peserta:</strong> <span>{rsvpModalEvent.peserta || rsvpModalEvent.kpi}</span>
                 </div>
+                {rsvpModalEvent.isLimited && Number(rsvpModalEvent.maxQuota) > 0 && (() => {
+                  const maxQ = Number(rsvpModalEvent.maxQuota);
+                  const isFull = currentEventRsvps.length >= maxQ;
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Lock size={14} color={isFull ? '#f43f5e' : 'var(--mandiri-gold)'} />
+                      <strong>Batas Kuota:</strong>
+                      <span style={{ fontWeight: 800, color: isFull ? '#f43f5e' : 'var(--mandiri-gold)' }}>
+                        {currentEventRsvps.length} / {maxQ} Terisi {isFull ? '(Kuota Penuh)' : `(Sisa ${Math.max(0, maxQ - currentEventRsvps.length)})`}
+                      </span>
+                    </div>
+                  );
+                })()}
                 {(rsvpModalEvent.kategori || rsvpModalEvent.category || rsvpModalEvent.badge) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Tag size={14} color="var(--neon-cyan)" />
@@ -1405,155 +1500,210 @@ export default function ProgramSection({
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                    ✋ Konfirmasi Kehadiran Instan (RSVP)
-                  </div>
-                  <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                    {currentEventRsvps.length} Terdaftar Hadir
-                  </span>
-                </div>
+                {(() => {
+                  const isPassed = isEventPassed(rsvpModalEvent.startDate, rsvpModalEvent.endDate) || rsvpModalEvent.status === 'Completed';
+                  const isLimited = Boolean(rsvpModalEvent.isLimited);
+                  const maxQ = Number(rsvpModalEvent.maxQuota || 0);
+                  const isQuotaFull = isLimited && maxQ > 0 && currentEventRsvps.length >= maxQ;
 
-                {rsvpSuccess && (
-                  <div style={{
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid #10b981',
-                    color: '#10b981',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <CheckCircle2 size={15} />
-                    <span>Konfirmasi kehadiran Anda berhasil tercatat di daftar hadir kegiatan!</span>
-                  </div>
-                )}
+                  if (isPassed) {
+                    return (
+                      <div style={{
+                        padding: '14px 16px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f43f5e', fontWeight: 800, fontSize: '0.88rem' }}>
+                          <CalendarX size={17} />
+                          <span>Pendaftaran RSVP Telah Ditutup (Event Selesai)</span>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                          Agenda kegiatan ini telah selesai diselenggarakan pada {formatWibEventRange(rsvpModalEvent.startDate, rsvpModalEvent.endDate, rsvpModalEvent.date)}. Form pendaftaran RSVP tidak lagi menerima respons.
+                        </p>
+                      </div>
+                    );
+                  }
 
-                <form onSubmit={handleOpenConfirmRsvp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Nama Lengkap Anda *"
-                        value={rsvpName}
-                        onChange={(e) => {
-                          setRsvpName(e.target.value);
-                          if (rsvpErrors.rsvpName) setRsvpErrors(prev => ({ ...prev, rsvpName: null }));
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '9px 12px',
+                  if (isQuotaFull) {
+                    return (
+                      <div style={{
+                        padding: '14px 16px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(255, 184, 0, 0.08)',
+                        border: '1px solid rgba(255, 184, 0, 0.35)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--mandiri-gold)', fontWeight: 800, fontSize: '0.88rem' }}>
+                          <Lock size={17} />
+                          <span>Pendaftaran RSVP Telah Ditutup (Kuota Penuh)</span>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                          Mohon maaf, kuota pendaftaran untuk kegiatan ini telah mencapai batas maksimal ({currentEventRsvps.length}/{maxQ} peserta). Pendaftaran RSVP baru telah resmi ditutup.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                          ✋ Konfirmasi Kehadiran Instan (RSVP)
+                        </div>
+                        <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                          {currentEventRsvps.length}{isLimited && maxQ > 0 ? ` / ${maxQ}` : ''} Terdaftar Hadir
+                        </span>
+                      </div>
+
+                      {rsvpSuccess && (
+                        <div style={{
+                          padding: '10px 12px',
                           borderRadius: 'var(--radius-sm)',
-                          background: 'var(--bg-card)',
-                          border: `1.5px solid ${rsvpErrors.rsvpName ? '#f43f5e' : 'var(--border-card)'}`,
-                          color: 'var(--text-main)',
-                          fontSize: '0.82rem',
-                          outline: 'none'
-                        }}
-                      />
-                      {rsvpErrors.rsvpName && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
-                          <AlertCircle size={11} />
-                          <span>{rsvpErrors.rsvpName}</span>
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          border: '1px solid #10b981',
+                          color: '#10b981',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <CheckCircle2 size={15} />
+                          <span>Konfirmasi kehadiran Anda berhasil tercatat di daftar hadir kegiatan!</span>
                         </div>
                       )}
-                    </div>
-                    <div>
-                      <select
-                        value={rsvpDepartmentId}
-                        onChange={(e) => {
-                          setRsvpDepartmentId(e.target.value);
-                          if (rsvpErrors.rsvpDepartmentId) setRsvpErrors(prev => ({ ...prev, rsvpDepartmentId: null }));
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '9px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: 'var(--bg-card)',
-                          border: `1.5px solid ${rsvpErrors.rsvpDepartmentId ? '#f43f5e' : 'var(--border-card)'}`,
-                          color: rsvpDepartmentId ? 'var(--text-main)' : 'var(--text-dim)',
-                          fontSize: '0.82rem',
-                          outline: 'none',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="">-- Pilih Departemen Asal Kamu * --</option>
-                        {departments.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name} {d.code ? `(${d.code})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      {rsvpErrors.rsvpDepartmentId && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
-                          <AlertCircle size={11} />
-                          <span>{rsvpErrors.rsvpDepartmentId}</span>
+
+                      <form onSubmit={handleOpenConfirmRsvp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Nama Lengkap Anda *"
+                              value={rsvpName}
+                              onChange={(e) => {
+                                setRsvpName(e.target.value);
+                                if (rsvpErrors.rsvpName) setRsvpErrors(prev => ({ ...prev, rsvpName: null }));
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '9px 12px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: 'var(--bg-card)',
+                                border: `1.5px solid ${rsvpErrors.rsvpName ? '#f43f5e' : 'var(--border-card)'}`,
+                                color: 'var(--text-main)',
+                                fontSize: '0.82rem',
+                                outline: 'none'
+                              }}
+                            />
+                            {rsvpErrors.rsvpName && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
+                                <AlertCircle size={11} />
+                                <span>{rsvpErrors.rsvpName}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <select
+                              value={rsvpDepartmentId}
+                              onChange={(e) => {
+                                setRsvpDepartmentId(e.target.value);
+                                if (rsvpErrors.rsvpDepartmentId) setRsvpErrors(prev => ({ ...prev, rsvpDepartmentId: null }));
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '9px 12px',
+                                borderRadius: 'var(--radius-sm)',
+                                background: 'var(--bg-card)',
+                                border: `1.5px solid ${rsvpErrors.rsvpDepartmentId ? '#f43f5e' : 'var(--border-card)'}`,
+                                color: rsvpDepartmentId ? 'var(--text-main)' : 'var(--text-dim)',
+                                fontSize: '0.82rem',
+                                outline: 'none',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <option value="">-- Pilih Departemen Asal Kamu * --</option>
+                              {departments.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name} {d.code ? `(${d.code})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                            {rsvpErrors.rsvpDepartmentId && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
+                                <AlertCircle size={11} />
+                                <span>{rsvpErrors.rsvpDepartmentId}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '10px' }}>
-                    <select
-                      value={rsvpMode}
-                      onChange={(e) => setRsvpMode(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border-card)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.82rem',
-                        outline: 'none'
-                      }}
-                    >
-                      <option value="Hadir Onsite">📍 Hadir Onsite</option>
-                      <option value="Hadir Online">💻 Hadir Online / Teams</option>
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Catatan singkat (opsional)..."
-                      value={rsvpNotes}
-                      onChange={(e) => setRsvpNotes(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--bg-card)',
-                        border: '1px solid var(--border-card)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.82rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
+                        <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '10px' }}>
+                          <select
+                            value={rsvpMode}
+                            onChange={(e) => setRsvpMode(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '9px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--bg-card)',
+                              border: '1px solid var(--border-card)',
+                              color: 'var(--text-main)',
+                              fontSize: '0.82rem',
+                              outline: 'none'
+                            }}
+                          >
+                            <option value="Hadir Onsite">📍 Hadir Onsite</option>
+                            <option value="Hadir Online">💻 Hadir Online / Teams</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Catatan singkat (opsional)..."
+                            value={rsvpNotes}
+                            onChange={(e) => setRsvpNotes(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '9px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--bg-card)',
+                              border: '1px solid var(--border-card)',
+                              color: 'var(--text-main)',
+                              fontSize: '0.82rem',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
 
-                  <button
-                    type="submit"
-                    disabled={isSubmittingRsvp}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      padding: '10px 16px',
-                      borderRadius: 'var(--radius-full)',
-                      background: isSubmittingRsvp ? 'var(--input-bg)' : 'var(--mandiri-gold)',
-                      color: '#040914',
-                      border: 'none',
-                      fontWeight: 800,
-                      fontSize: '0.82rem',
-                      cursor: isSubmittingRsvp ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    <Send size={14} />
-                    <span>{isSubmittingRsvp ? 'Menyimpan RSVP...' : 'Konfirmasi Kehadiran Saya'}</span>
-                  </button>
-                </form>
+                        <button
+                          type="submit"
+                          disabled={isSubmittingRsvp}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            padding: '10px 16px',
+                            borderRadius: 'var(--radius-full)',
+                            background: isSubmittingRsvp ? 'var(--input-bg)' : 'var(--mandiri-gold)',
+                            color: '#040914',
+                            border: 'none',
+                            fontWeight: 800,
+                            fontSize: '0.82rem',
+                            cursor: isSubmittingRsvp ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <Send size={14} />
+                          <span>{isSubmittingRsvp ? 'Menyimpan RSVP...' : 'Konfirmasi Kehadiran Saya'}</span>
+                        </button>
+                      </form>
+                    </>
+                  );
+                })()}
 
                 {currentEventRsvps.length > 0 && (
                   <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>

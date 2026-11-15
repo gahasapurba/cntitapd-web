@@ -280,6 +280,9 @@ export default function AdminPortal({
   const [eventStatusFilter, setEventStatusFilter] = useState('all');
   const [adminEventPage, setAdminEventPage] = useState(1);
   const [adminRsvpPage, setAdminRsvpPage] = useState(1);
+  const [rsvpSearchQuery, setRsvpSearchQuery] = useState('');
+  const [rsvpEventFilter, setRsvpEventFilter] = useState('all');
+  const [rsvpModeFilter, setRsvpModeFilter] = useState('all');
 
   // Search & Filter states for Gallery in Admin
   const [gallerySearchQuery, setGallerySearchQuery] = useState('');
@@ -552,6 +555,8 @@ export default function AdminPortal({
   const [eventDesc, setEventDesc] = useState('');
   const [eventRab, setEventRab] = useState('');
   const [eventStatus, setEventStatus] = useState('Upcoming');
+  const [eventIsLimited, setEventIsLimited] = useState(false);
+  const [eventMaxQuota, setEventMaxQuota] = useState('');
 
   // Form State: New FAQ
   const [faqCategory, setFaqCategory] = useState('');
@@ -605,6 +610,11 @@ export default function AdminPortal({
     if (eventRab === '' || eventRab === undefined || eventRab === null || isNaN(Number(eventRab)) || Number(eventRab) < 0) {
       errs.eventRab = 'Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)';
     }
+    if (eventIsLimited) {
+      if (!eventMaxQuota || isNaN(Number(eventMaxQuota)) || Number(eventMaxQuota) <= 0) {
+        errs.eventMaxQuota = 'Batas maksimal kuota wajib diisi angka lebih dari 0';
+      }
+    }
 
     const targetEventTenureId = eventTenureId || activeTenure?.id || '';
     const availableDivsForEvent = divisions.filter(d => d.tenureId === targetEventTenureId);
@@ -648,6 +658,8 @@ export default function AdminPortal({
         kpi: eventKpi.trim() || '',
         description: eventDesc.trim(),
         status: eventStatus,
+        isLimited: eventIsLimited,
+        maxQuota: eventIsLimited ? Number(eventMaxQuota || 0) : 0,
         totalRab: Number(eventRab)
       });
     }
@@ -661,6 +673,8 @@ export default function AdminPortal({
     setEventKpi('');
     setEventDesc('');
     setEventRab('');
+    setEventIsLimited(false);
+    setEventMaxQuota('');
     showToast(`Event "${savedTitle}" berhasil ditambahkan & disinkronkan!`);
   };
 
@@ -4167,6 +4181,60 @@ export default function AdminPortal({
               </select>
             </div>
 
+            <div style={{
+              gridColumn: 'span 2',
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(255, 184, 0, 0.06)',
+              border: '1px solid rgba(255, 184, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={eventIsLimited}
+                  onChange={(e) => setEventIsLimited(e.target.checked)}
+                  style={{ accentColor: 'var(--mandiri-gold)', width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  🔒 Batasi Kuota Pendaftaran RSVP untuk Event Ini?
+                </span>
+              </label>
+
+              {eventIsLimited && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '24px' }}>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Batas Maksimal Kuota Peserta (Orang) <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Contoh: 100"
+                    value={eventMaxQuota}
+                    onChange={(e) => {
+                      setEventMaxQuota(e.target.value);
+                      clearFieldError('eventMaxQuota');
+                    }}
+                    style={{
+                      maxWidth: '220px',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--input-bg)',
+                      border: `1.5px solid ${formErrors.eventMaxQuota ? '#f43f5e' : 'var(--border-card)'}`,
+                      color: 'var(--text-main)',
+                      fontSize: '0.84rem'
+                    }}
+                  />
+                  {renderFieldError('eventMaxQuota')}
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                    RSVP akan ditutup otomatis ketika jumlah peserta yang mendaftar telah mencapai angka ini.
+                  </span>
+                </div>
+              )}
+            </div>
+
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Deskripsi Event <span style={{ color: '#f43f5e' }}>*</span>
@@ -4404,6 +4472,8 @@ export default function AdminPortal({
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
                     {paginatedAdminEvents.map((evt) => {
                       const divObj = divisions.find(d => d.id === evt.divisionId);
+                      const relatedRsvps = (eventRsvps || []).filter(r => r.eventId === evt.id);
+
                       return (
                         <div
                           key={evt.id}
@@ -4446,6 +4516,33 @@ export default function AdminPortal({
                               <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>
                                 💰 Rp {Number(evt.totalRab || 0).toLocaleString('id-ID')}
                               </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                              <span style={{
+                                color: (evt.isLimited && relatedRsvps.length >= Number(evt.maxQuota || 0)) ? '#f43f5e' : 'var(--neon-cyan)',
+                                fontWeight: 700
+                              }}>
+                                👥 RSVP: {relatedRsvps.length}{evt.isLimited && Number(evt.maxQuota) > 0 ? ` / ${evt.maxQuota} ${relatedRsvps.length >= Number(evt.maxQuota) ? '(Penuh)' : '(Terbatas)'}` : ' (Bebas)'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRsvpEventFilter(evt.id);
+                                  setAdminRsvpPage(1);
+                                  showToast(`Filter RSVP disetel ke "${evt.title}"`);
+                                }}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: 'var(--mandiri-gold)',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  textDecoration: 'underline'
+                                }}
+                              >
+                                Filter RSVP ➔
+                              </button>
                             </div>
                             {evt.updatedAt && (
                               <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '4px' }}>
@@ -4603,13 +4700,41 @@ export default function AdminPortal({
           {/* Daftar Hadir & Konfirmasi RSVP Kegiatan (public.event_rsvps) */}
           {(() => {
             const selectedRsvpTenureObj = eventTenureFilter !== 'all' ? tenures.find(t => t.id === eventTenureFilter) : null;
-            const filteredAdminRsvps = eventRsvps.filter((rsvp) => {
+            const rsvpAvailableEvents = events.filter(e => {
               if (eventTenureFilter === 'all') return true;
-              const evt = events.find(e => e.id === rsvp.eventId);
-              if (!evt) return false;
-              const evtTenure = evt.tenureId || divisions.find(d => d.id === evt.divisionId)?.tenureId || '';
+              const evtTenure = e.tenureId || divisions.find(d => d.id === e.divisionId)?.tenureId || '';
               return evtTenure === eventTenureFilter;
             });
+
+            const filteredAdminRsvps = eventRsvps.filter((rsvp) => {
+              const evt = events.find(e => e.id === rsvp.eventId);
+              if (eventTenureFilter !== 'all') {
+                if (!evt) return false;
+                const evtTenure = evt.tenureId || divisions.find(d => d.id === evt.divisionId)?.tenureId || '';
+                if (evtTenure !== eventTenureFilter) return false;
+              }
+              if (rsvpEventFilter !== 'all' && rsvp.eventId !== rsvpEventFilter) {
+                return false;
+              }
+              if (rsvpModeFilter !== 'all') {
+                const mode = String(rsvp.attendanceMode || '').toLowerCase();
+                if (rsvpModeFilter === 'onsite' && !mode.includes('onsite')) return false;
+                if (rsvpModeFilter === 'online' && !mode.includes('online')) return false;
+              }
+              if (rsvpSearchQuery.trim()) {
+                const q = rsvpSearchQuery.toLowerCase();
+                const name = String(rsvp.attendeeName || '').toLowerCase();
+                const notes = String(rsvp.notes || '').toLowerCase();
+                const eventTitle = String(evt?.title || rsvp.eventTitle || '').toLowerCase();
+                const deptObj = departments.find(d => d.id === rsvp.departmentId || d.id === rsvp.department || (d.name && d.name === rsvp.department));
+                const deptName = String(deptObj ? deptObj.name : (rsvp.department || rsvp.squadUnit || '')).toLowerCase();
+                if (!name.includes(q) && !notes.includes(q) && !eventTitle.includes(q) && !deptName.includes(q)) {
+                  return false;
+                }
+              }
+              return true;
+            });
+
             const ADMIN_RSVPS_PER_PAGE = 10;
             const totalAdminRsvpPages = Math.ceil(filteredAdminRsvps.length / ADMIN_RSVPS_PER_PAGE) || 1;
             const safeAdminRsvpPage = Math.min(Math.max(1, adminRsvpPage), totalAdminRsvpPages);
@@ -4623,7 +4748,7 @@ export default function AdminPortal({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
                     <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span>📋 Daftar Hadir & Konfirmasi RSVP Kegiatan ({filteredAdminRsvps.length}{eventTenureFilter !== 'all' ? ` dari ${eventRsvps.length}` : ''})</span>
+                      <span>📋 Daftar Hadir & Konfirmasi RSVP Kegiatan ({filteredAdminRsvps.length}{eventTenureFilter !== 'all' || rsvpEventFilter !== 'all' || rsvpSearchQuery || rsvpModeFilter !== 'all' ? ` dari ${eventRsvps.length}` : ''})</span>
                       {selectedRsvpTenureObj && (
                         <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
                           Periode {selectedRsvpTenureObj.code || selectedRsvpTenureObj.title}
@@ -4682,7 +4807,137 @@ export default function AdminPortal({
                       }}
                     >
                       <Download size={14} />
-                      <span>Export CSV Daftar Hadir RSVP</span>
+                      <span>Export CSV Daftar Hadir RSVP ({filteredAdminRsvps.length})</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* RSVP Search & Dynamic Event & Attendance Mode Filters */}
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: '10px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-card)'
+                }}>
+                  {/* Search Query */}
+                  <div style={{ flex: '1 1 200px', minWidth: '180px', position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Cari nama peserta, catatan, dept..."
+                      value={rsvpSearchQuery}
+                      onChange={(e) => {
+                        setRsvpSearchQuery(e.target.value);
+                        setAdminRsvpPage(1);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        paddingLeft: '32px',
+                        paddingRight: rsvpSearchQuery ? '28px' : '12px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.8rem',
+                        outline: 'none'
+                      }}
+                    />
+                    <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                    {rsvpSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => { setRsvpSearchQuery(''); setAdminRsvpPage(1); }}
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '2px'
+                        }}
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter by Event (Dinamis sesuai event periode yang dipilih) */}
+                  <select
+                    value={rsvpEventFilter}
+                    onChange={(e) => {
+                      setRsvpEventFilter(e.target.value);
+                      setAdminRsvpPage(1);
+                    }}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--input-bg)',
+                      border: rsvpEventFilter !== 'all' ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
+                      color: rsvpEventFilter !== 'all' ? 'var(--mandiri-gold)' : 'var(--text-main)',
+                      fontSize: '0.8rem',
+                      fontWeight: rsvpEventFilter !== 'all' ? 700 : 500,
+                      cursor: 'pointer',
+                      maxWidth: '280px'
+                    }}
+                  >
+                    <option value="all">🎯 Semua Kegiatan ({rsvpAvailableEvents.length} Event)</option>
+                    {rsvpAvailableEvents.map(ev => (
+                      <option key={ev.id} value={ev.id}>{ev.title}</option>
+                    ))}
+                  </select>
+
+                  {/* Filter by Mode Kehadiran */}
+                  <select
+                    value={rsvpModeFilter}
+                    onChange={(e) => {
+                      setRsvpModeFilter(e.target.value);
+                      setAdminRsvpPage(1);
+                    }}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--input-bg)',
+                      border: rsvpModeFilter !== 'all' ? '1.5px solid var(--neon-cyan)' : '1px solid var(--border-card)',
+                      color: rsvpModeFilter !== 'all' ? 'var(--neon-cyan)' : 'var(--text-main)',
+                      fontSize: '0.8rem',
+                      fontWeight: rsvpModeFilter !== 'all' ? 700 : 500,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">👥 Semua Mode Kehadiran</option>
+                    <option value="onsite">📍 Hadir Onsite</option>
+                    <option value="online">💻 Hadir Online</option>
+                  </select>
+
+                  {/* Reset Filter Button */}
+                  {(rsvpSearchQuery || rsvpEventFilter !== 'all' || rsvpModeFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRsvpSearchQuery('');
+                        setRsvpEventFilter('all');
+                        setRsvpModeFilter('all');
+                        setAdminRsvpPage(1);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(244, 63, 94, 0.1)',
+                        border: '1px solid #f43f5e',
+                        color: '#f43f5e',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Reset Filter
                     </button>
                   )}
                 </div>
@@ -12134,6 +12389,70 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
                   />
                 </div>
+
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255, 184, 0, 0.06)',
+                  border: '1px solid rgba(255, 184, 0, 0.25)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editingItem.item.isLimited)}
+                      onChange={(e) => setEditingItem({
+                        ...editingItem,
+                        item: {
+                          ...editingItem.item,
+                          isLimited: e.target.checked
+                        }
+                      })}
+                      style={{ accentColor: 'var(--mandiri-gold)', width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      🔒 Batasi Kuota Pendaftaran RSVP untuk Event Ini?
+                    </span>
+                  </label>
+
+                  {editingItem.item.isLimited && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '24px' }}>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Batas Maksimal Kuota Peserta (Orang) <span style={{ color: '#f43f5e' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Contoh: 100"
+                        value={editingItem.item.maxQuota !== undefined && editingItem.item.maxQuota !== null ? editingItem.item.maxQuota : ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setEditingItem({
+                            ...editingItem,
+                            item: {
+                              ...editingItem.item,
+                              maxQuota: v === '' ? '' : Number(v)
+                            }
+                          });
+                        }}
+                        style={{
+                          maxWidth: '220px',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--input-border)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.84rem'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                        RSVP akan ditutup otomatis ketika jumlah peserta yang mendaftar telah mencapai angka ini.
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -12789,6 +13108,14 @@ export default function AdminPortal({
                       showToast('Deskripsi kegiatan event wajib diisi', 'error');
                       return;
                     }
+                    if (editingItem.item.isLimited) {
+                      const mq = Number(editingItem.item.maxQuota || 0);
+                      if (!mq || mq <= 0) {
+                        setEditModalError('Batas maksimal kuota wajib diisi angka lebih dari 0');
+                        showToast('Batas maksimal kuota wajib diisi angka lebih dari 0', 'error');
+                        return;
+                      }
+                    }
                     if (editingItem.item.totalRab === '' || editingItem.item.totalRab === undefined || editingItem.item.totalRab === null || isNaN(Number(editingItem.item.totalRab)) || Number(editingItem.item.totalRab) < 0) {
                       setEditModalError('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)');
                       showToast('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)', 'error');
@@ -12804,6 +13131,8 @@ export default function AdminPortal({
                       peserta: pesertaVal,
                       kpi: pesertaVal,
                       totalRab: Number(editingItem.item.totalRab),
+                      isLimited: Boolean(editingItem.item.isLimited),
+                      maxQuota: editingItem.item.isLimited ? Number(editingItem.item.maxQuota || 0) : 0,
                       date: calculatedDate || (editingItem.item.date || '').trim() || ''
                     });
                   }

@@ -841,5 +841,35 @@ export function formatLastUpdatedWib(timestamp) {
   return `Terakhir diubah : ${relativeText} (${wibTime})`;
 }
 
+/**
+ * Check if an event has already ended / passed the current time in WIB.
+ * If endDate has time (e.g. 2026-11-11T13:00), compares against exact timestamp.
+ * If date only (e.g. 2026-11-11), considers passed after 23:59:59 WIB of that date.
+ */
+export function isEventPassed(startDateStr, endDateStr) {
+  if (!startDateStr && !endDateStr) return false;
+  const targetStr = String(endDateStr || startDateStr || '').trim();
+  if (!targetStr) return false;
+
+  const now = new Date();
+  if (targetStr.includes('T')) {
+    const d = new Date(targetStr);
+    if (!isNaN(d.getTime())) {
+      return now.getTime() > d.getTime();
+    }
+  }
+
+  const dateOnly = targetStr.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+    const endOfDay = new Date(`${dateOnly}T23:59:59`);
+    if (!isNaN(endOfDay.getTime())) {
+      return now.getTime() > endOfDay.getTime();
+    }
+  }
+
+  return false;
+}
+
+
 
 

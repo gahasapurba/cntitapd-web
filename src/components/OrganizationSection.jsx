@@ -33,7 +33,8 @@ export default function OrganizationSection({
   roleQuotas = {},
   tenureRoles = [],
   isEventPageVisible = true,
-  onNavigateProgram
+  onNavigateProgram,
+  onSelectTenure
 }) {
   const [selectedTenureId, setSelectedTenureId] = useState(activeTenure?.id || tenures[0]?.id || '');
   const [selectedMember, setSelectedMember] = useState(null);
@@ -43,9 +44,9 @@ export default function OrganizationSection({
   const [divisionFilter, setDivisionFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  // Sync selectedTenureId if activeTenure changes and not set yet
+  // Sync selectedTenureId whenever activeTenure from navbar/parent changes
   useEffect(() => {
-    if (activeTenure?.id && !selectedTenureId) {
+    if (activeTenure?.id) {
       setSelectedTenureId(activeTenure.id);
     }
   }, [activeTenure?.id]);
@@ -242,7 +243,14 @@ export default function OrganizationSection({
             {tenures.length > 0 && (
               <select
                 value={selectedTenureId}
-                onChange={(e) => setSelectedTenureId(e.target.value)}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setSelectedTenureId(newId);
+                  const found = tenures.find(t => t.id === newId);
+                  if (found && onSelectTenure) {
+                    onSelectTenure(found);
+                  }
+                }}
                 style={{
                   padding: '9px 14px',
                   borderRadius: 'var(--radius-full)',
