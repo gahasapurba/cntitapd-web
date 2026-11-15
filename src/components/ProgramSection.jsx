@@ -1178,9 +1178,10 @@ export default function ProgramSection({
                           <div style={{ height: '14px' }} />
                         )}
 
-                        {/* Interactive Floating Hover Popover (Dengan Smart Auto-Flip & Horizontal Boundary Guard) */}
+                        {/* Interactive Floating Hover Popover (Dengan Smart Auto-Flip, Full Agenda Scroll, & Direct Click) */}
                         {hoveredDate === fullDateStr && hasEvents && (
                           <div
+                            onClick={(e) => e.stopPropagation()}
                             style={{
                               position: 'absolute',
                               top: isTopHalf ? 'calc(100% + 8px)' : 'auto',
@@ -1189,46 +1190,134 @@ export default function ProgramSection({
                               right: isRightCol ? '0' : 'auto',
                               transform: (isLeftCol || isRightCol) ? 'none' : 'translateX(-50%)',
                               zIndex: 999,
-                              minWidth: '240px',
-                              maxWidth: '300px',
-                              maxHeight: '260px',
+                              minWidth: '260px',
+                              maxWidth: '320px',
+                              maxHeight: 'min(440px, 75vh)',
                               overflowY: 'auto',
                               background: isDark ? '#0b1329' : '#ffffff',
                               border: `1.5px solid ${tagColor}`,
                               borderRadius: 'var(--radius-md)',
-                              boxShadow: '0 16px 36px rgba(0,0,0,0.5)',
+                              boxShadow: '0 18px 40px rgba(0,0,0,0.55)',
                               padding: '12px 14px',
                               display: 'flex',
                               flexDirection: 'column',
                               gap: '6px',
-                              pointerEvents: 'none'
+                              pointerEvents: 'auto'
                             }}
                           >
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700, borderBottom: '1px solid var(--border-card)', paddingBottom: '4px', position: 'sticky', top: 0, background: isDark ? '#0b1329' : '#ffffff', zIndex: 1 }}>
-                              📅 {dayNum} {monthNames[currentMonth]} {currentYear} • {dayEvents.length} Agenda
+                            {/* Hover Bridge to keep popover open seamlessly when mouse enters */}
+                            <div style={{
+                              position: 'absolute',
+                              top: isTopHalf ? '-12px' : 'auto',
+                              bottom: isTopHalf ? 'auto' : '-12px',
+                              left: 0,
+                              right: 0,
+                              height: '14px',
+                              background: 'transparent'
+                            }} />
+
+                            <div style={{
+                              fontSize: '0.74rem',
+                              color: 'var(--text-dim)',
+                              fontWeight: 800,
+                              borderBottom: '1px solid var(--border-card)',
+                              paddingBottom: '6px',
+                              position: 'sticky',
+                              top: 0,
+                              background: isDark ? '#0b1329' : '#ffffff',
+                              zIndex: 2,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}>
+                              <span>📅 {dayNum} {monthNames[currentMonth]} {currentYear}</span>
+                              <span style={{
+                                background: tagColor,
+                                color: '#040914',
+                                padding: '1px 6px',
+                                borderRadius: '10px',
+                                fontSize: '0.66rem',
+                                fontWeight: 800
+                              }}>
+                                {dayEvents.length} Agenda
+                              </span>
                             </div>
-                            {dayEvents.map((ev, evIdx) => {
-                              const divObj = divisions.find(d => d.id === ev.divisionId);
-                              return (
-                                <div key={ev.id || evIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{
-                                      width: '6px',
-                                      height: '6px',
-                                      borderRadius: '50%',
-                                      background: divObj?.color || tagColor,
-                                      flexShrink: 0
-                                    }} />
-                                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>
-                                      {ev.title}
-                                    </span>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', paddingTop: '2px' }}>
+                              {dayEvents.map((ev, evIdx) => {
+                                const divObj = divisions.find(d => d.id === ev.divisionId);
+                                const col = divObj?.color || tagColor;
+                                const isEvtComp = ev.status === 'Completed' || isEventPassed(ev.startDate, ev.endDate);
+
+                                return (
+                                  <div
+                                    key={ev.id || evIdx}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenEventModal(ev, dayEvents);
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '2px',
+                                      padding: '6px 8px',
+                                      borderRadius: 'var(--radius-sm)',
+                                      background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                                      border: '1px solid var(--border-card)',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = isDark ? 'rgba(255,184,0,0.12)' : 'rgba(255,184,0,0.15)';
+                                      e.currentTarget.style.borderColor = 'var(--mandiri-gold)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
+                                      e.currentTarget.style.borderColor = 'var(--border-card)';
+                                    }}
+                                    title="Klik untuk membuka rincian agenda ini"
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <span style={{
+                                        width: '7px',
+                                        height: '7px',
+                                        borderRadius: '50%',
+                                        background: isEvtComp ? '#64748b' : col,
+                                        flexShrink: 0
+                                      }} />
+                                      <span style={{
+                                        fontSize: '0.78rem',
+                                        fontWeight: 800,
+                                        color: isEvtComp ? 'var(--text-muted)' : 'var(--text-main)',
+                                        lineHeight: 1.25,
+                                        flex: 1
+                                      }}>
+                                        {isEvtComp ? `✓ ${ev.title}` : ev.title}
+                                      </span>
+                                    </div>
+                                    <div style={{ fontSize: '0.67rem', color: 'var(--text-muted)', paddingLeft: '13px' }}>
+                                      {ev.divisionName || divObj?.name} • 📍 {ev.location}
+                                    </div>
                                   </div>
-                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', paddingLeft: '12px' }}>
-                                    {ev.divisionName || divObj?.name} • 📍 {ev.location}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
+
+                            <div style={{
+                              fontSize: '0.66rem',
+                              color: 'var(--mandiri-gold)',
+                              fontWeight: 700,
+                              textAlign: 'center',
+                              paddingTop: '6px',
+                              borderTop: '1px solid var(--border-card)',
+                              marginTop: '2px',
+                              position: 'sticky',
+                              bottom: 0,
+                              background: isDark ? '#0b1329' : '#ffffff',
+                              zIndex: 2
+                            }}>
+                              💡 Klik salah satu agenda untuk melihat detail & RSVP
+                            </div>
                           </div>
                         )}
                       </div>
