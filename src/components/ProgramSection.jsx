@@ -1649,47 +1649,6 @@ export default function ProgramSection({
                 </div>
               </div>
 
-              {/* Multi-Agenda Switcher if multiple events occur on the clicked calendar date */}
-              {sameDayModalEvents.length > 1 && (
-                <div style={{
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(255, 184, 0, 0.08)',
-                  border: '1px solid rgba(255, 184, 0, 0.35)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px'
-                }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
-                    📅 Terdapat {sameDayModalEvents.length} Agenda pada Tanggal Ini (Pilih untuk Melihat):
-                  </span>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {sameDayModalEvents.map((evItem) => {
-                      const isCurrent = evItem.id === rsvpModalEvent.id;
-                      return (
-                        <button
-                          key={evItem.id}
-                          type="button"
-                          onClick={() => setRsvpModalEvent(evItem)}
-                          style={{
-                            padding: '5px 11px',
-                            borderRadius: 'var(--radius-full)',
-                            border: isCurrent ? '1.5px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
-                            background: isCurrent ? 'var(--mandiri-gold)' : 'var(--bg-card)',
-                            color: isCurrent ? '#040914' : 'var(--text-main)',
-                            fontSize: '0.73rem',
-                            fontWeight: 800,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {evItem.title}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {/* Share Event Link & WhatsApp Invitation Bar */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <button
