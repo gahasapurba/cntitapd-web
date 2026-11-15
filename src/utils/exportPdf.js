@@ -16,7 +16,7 @@ export async function exportPresentationToPdf(elementId, filename = null, active
 
   // Adapt background to active theme
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const bgColor = isDark ? '#040914' : '#f8fafc';
+  const bgColor = isDark ? '#070d1e' : '#f8fafc';
 
   try {
     const canvas = await html2canvas(targetElement, {
@@ -25,8 +25,35 @@ export async function exportPresentationToPdf(elementId, filename = null, active
       allowTaint: true,
       backgroundColor: bgColor,
       scrollX: 0,
-      scrollY: -window.scrollY,
+      scrollY: 0,
       logging: false,
+      onclone: (clonedDoc, clonedElement) => {
+        // Guarantee cloned iframe document inherits the exact data-theme
+        clonedDoc.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+
+        if (isDark) {
+          clonedDoc.documentElement.style.backgroundColor = '#070d1e';
+          clonedElement.style.backgroundColor = '#070d1e';
+          // Ensure all cards and text have solid, high-contrast colors in canvas
+          clonedElement.querySelectorAll('.glass-panel, .crew-member-card, .org-anggota-box').forEach(el => {
+            el.style.backgroundColor = '#0e1937';
+            el.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+          });
+          clonedElement.querySelectorAll('h1, h2, h3, h4').forEach(el => {
+            el.style.color = '#f8fafc';
+          });
+        } else {
+          clonedDoc.documentElement.style.backgroundColor = '#f8fafc';
+          clonedElement.style.backgroundColor = '#f8fafc';
+          clonedElement.querySelectorAll('.glass-panel, .crew-member-card, .org-anggota-box').forEach(el => {
+            el.style.backgroundColor = '#ffffff';
+            el.style.borderColor = '#e2e8f0';
+          });
+          clonedElement.querySelectorAll('h1, h2, h3, h4').forEach(el => {
+            el.style.color = '#0a1128';
+          });
+        }
+      }
     });
 
     // Create 1-page Landscape A4 PDF (297 mm x 210 mm)

@@ -12,7 +12,7 @@ import {
   Copy,
   Calendar
 } from 'lucide-react';
-import CrewMemberCard from './CrewMemberCard';
+import CrewMemberCard, { getAdaptiveRoleColor } from './CrewMemberCard';
 import { soundFx } from '../utils/audio';
 import { exportPresentationToPdf } from '../utils/exportPdf';
 import { getTenureRoles, getMemberLevel, findMatchingRole, getDivisionLead, getDivisionStructure } from '../utils/memberQuotaUtils';
@@ -34,8 +34,10 @@ export default function OrganizationSection({
   tenureRoles = [],
   isEventPageVisible = true,
   onNavigateProgram,
+  theme,
   onSelectTenure
 }) {
+  const isDark = theme ? theme === 'dark' : (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') !== 'light' : true);
   const [selectedTenureId, setSelectedTenureId] = useState(activeTenure?.id || tenures[0]?.id || '');
   const [selectedMember, setSelectedMember] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
@@ -391,7 +393,7 @@ export default function OrganizationSection({
               gap: '20px'
             }}>
               {filteredDirectoryMembers.map(person => (
-                <CrewMemberCard key={person.id} member={person} onClick={() => handleMemberClick(person)} />
+                <CrewMemberCard key={person.id} member={person} onClick={() => handleMemberClick(person)} theme={theme} />
               ))}
             </div>
           )}
@@ -418,8 +420,52 @@ export default function OrganizationSection({
           </p>
         </div>
       ) : (
-        <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1240px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div id="org-tree-export-container" className="org-tree-wrapper" style={{ position: 'relative', maxWidth: '1240px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 12px' }}>
         
+        {/* Official Export Header Banner */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '26px',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '4px 14px',
+            borderRadius: 'var(--radius-full)',
+            background: isDark ? 'rgba(56, 189, 248, 0.15)' : 'rgba(0, 61, 121, 0.08)',
+            border: isDark ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(0, 61, 121, 0.2)',
+            color: isDark ? '#38bdf8' : '#003d79',
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase'
+          }}>
+            🏛️ BANK MANDIRI • DIREKTORAT IT • GROUP IT APD
+          </div>
+          <h2 style={{
+            fontSize: '1.4rem',
+            fontWeight: 900,
+            color: isDark ? '#f8fafc' : '#0a1128',
+            margin: 0,
+            letterSpacing: '-0.02em'
+          }}>
+            STRUKTUR ORGANISASI CULTURE NETWORK TEAM (CNT)
+          </h2>
+          <div style={{
+            fontSize: '0.84rem',
+            fontWeight: 700,
+            color: isDark ? 'var(--mandiri-gold)' : '#b45309'
+          }}>
+            Periode: {currentTenure?.title || currentTenure?.code || 'Aktif'}
+          </div>
+        </div>
+
         {/* LEVEL 0: DEWAN PENASEHAT (Puncak Tertinggi bila ada) */}
         {penasehats.length > 0 && (
           <>
@@ -435,7 +481,7 @@ export default function OrganizationSection({
             }}>
               {penasehats.map(p => (
                 <div key={p.id} style={{ flex: penasehats.length > 1 ? '1 1 360px' : '1 1 auto', maxWidth: '440px', width: '100%' }}>
-                  <CrewMemberCard member={p} onClick={() => handleMemberClick(p)} />
+                  <CrewMemberCard member={p} onClick={() => handleMemberClick(p)} theme={theme} />
                 </div>
               ))}
             </div>
@@ -465,7 +511,7 @@ export default function OrganizationSection({
           }}>
             {pembinas.map(p => (
               <div key={p.id} style={{ flex: pembinas.length > 1 ? '1 1 360px' : '1 1 auto', maxWidth: '440px', width: '100%' }}>
-                <CrewMemberCard member={p} onClick={() => handleMemberClick(p)} />
+                <CrewMemberCard member={p} onClick={() => handleMemberClick(p)} theme={theme} />
               </div>
             ))}
           </div>
@@ -528,7 +574,7 @@ export default function OrganizationSection({
                 <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div className="org-tree-line" style={{ width: '5px', height: '16px', background: '#34d399', boxShadow: '0 0 10px #34d399' }} />
                   <div style={{ width: '100%' }}>
-                    <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
+                    <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} theme={theme} />
                   </div>
                 </div>
               ))}
@@ -576,7 +622,7 @@ export default function OrganizationSection({
                 <div key={person.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div className="org-tree-line" style={{ width: '5px', height: '16px', background: '#c084fc', boxShadow: '0 0 10px #c084fc' }} />
                   <div style={{ width: '100%' }}>
-                    <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} />
+                    <CrewMemberCard member={person} onClick={() => handleMemberClick(person)} theme={theme} />
                   </div>
                 </div>
               ))}
@@ -639,7 +685,8 @@ export default function OrganizationSection({
                   const effectiveLeaders = divLeaders.length > 0
                     ? divLeaders
                     : (leadObj.member ? [leadObj.member] : (div.leadName ? activeMembers.filter(m => m.name === div.leadName) : []));
-                  const lineColor = div.color || (idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800');
+                  const rawLineColor = div.color || (idx === 0 ? '#38bdf8' : idx === 1 ? '#f87171' : idx === 2 ? '#c084fc' : '#FFB800');
+                  const lineColor = getAdaptiveRoleColor(rawLineColor, isDark);
 
                   return (
                     <div key={div.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -674,7 +721,7 @@ export default function OrganizationSection({
                                     <div className="org-tree-line" style={{ width: '3px', height: '14px', background: lineColor, opacity: 0.8 }} />
                                   )}
                                   <div style={{ width: '100%' }}>
-                                    <CrewMemberCard member={ldr} onClick={() => handleMemberClick(ldr)} compact={true} />
+                                    <CrewMemberCard member={ldr} onClick={() => handleMemberClick(ldr)} compact={true} theme={theme} />
                                   </div>
                                 </div>
                               ))}
@@ -686,7 +733,7 @@ export default function OrganizationSection({
                             textAlign: 'center',
                             borderRadius: 'var(--radius-md)',
                             border: `1px dashed ${lineColor}`,
-                            background: 'rgba(255, 255, 255, 0.02)',
+                            background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
@@ -695,7 +742,7 @@ export default function OrganizationSection({
                             <span style={{ fontSize: '0.72rem', color: lineColor, fontWeight: 800 }}>
                               {div.name}
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Belum ada personel</span>
+                            <span style={{ fontSize: '0.74rem', color: isDark ? '#cbd5e1' : '#64748b' }}>Belum ada personel</span>
                           </div>
                         )}
                       </div>
@@ -708,8 +755,8 @@ export default function OrganizationSection({
                           {/* Anggota Divisi Box */}
                           <div className="org-anggota-box" style={{
                             width: '100%',
-                            background: 'rgba(255, 255, 255, 0.02)',
-                            border: '1px dashed var(--border-card)',
+                            background: isDark ? 'rgba(14, 25, 55, 0.7)' : 'rgba(255, 255, 255, 0.02)',
+                            border: isDark ? '1px dashed rgba(56, 189, 248, 0.35)' : '1px dashed var(--border-card)',
                             borderRadius: 'var(--radius-md)',
                             padding: '14px',
                             display: 'flex',
@@ -721,102 +768,112 @@ export default function OrganizationSection({
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               paddingBottom: '4px',
-                              borderBottom: '1px solid var(--border-card)'
+                              borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid var(--border-card)'
                             }}>
                               <span style={{
                                 fontSize: '0.68rem',
                                 fontWeight: 800,
                                 textTransform: 'uppercase',
-                                color: 'var(--text-muted)',
+                                color: isDark ? '#cbd5e1' : '#475569',
                                 letterSpacing: '0.04em'
                               }}>
                                 Anggota Divisi ({divisionMembers.length})
                               </span>
                             </div>
 
-                            {divisionMembers.map((member) => (
-                              <div
-                                key={member.id}
-                                onClick={() => handleMemberClick(member)}
-                                className="glass-panel-hover"
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  padding: '10px 12px',
-                                  borderRadius: 'var(--radius-sm)',
-                                  background: 'var(--bg-card)',
-                                  border: '1px solid var(--border-card)',
-                                  cursor: 'pointer',
-                                  gap: '6px'
-                                }}
-                              >
-                                {/* 1. Atas: Badge Role */}
-                                <div>
-                                  <span style={{
-                                    fontSize: '0.64rem',
-                                    fontFamily: 'monospace',
-                                    textTransform: 'uppercase',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontWeight: 800,
-                                    background: 'rgba(255, 255, 255, 0.08)',
-                                    color: 'var(--text-muted)',
-                                    border: '1px solid var(--border-card)'
-                                  }}>
-                                    {member.role || ''}
-                                  </span>
-                                </div>
+                            {divisionMembers.map((member) => {
+                              const roleCol = getAdaptiveRoleColor(member.color || div.color, isDark);
+                              return (
+                                <div
+                                  key={member.id}
+                                  onClick={() => handleMemberClick(member)}
+                                  className="glass-panel-hover"
+                                  style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    padding: '10px 12px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    background: isDark ? 'rgba(14, 25, 55, 0.92)' : '#ffffff',
+                                    border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid #e2e8f0',
+                                    cursor: 'pointer',
+                                    gap: '6px'
+                                  }}
+                                >
+                                  {/* 1. Atas: Badge Role */}
+                                  <div>
+                                    <span style={{
+                                      fontSize: '0.64rem',
+                                      fontFamily: 'monospace',
+                                      textTransform: 'uppercase',
+                                      padding: '2px 7px',
+                                      borderRadius: '4px',
+                                      fontWeight: 800,
+                                      background: isDark ? `${roleCol}22` : `${roleCol}15`,
+                                      color: roleCol,
+                                      border: `1px solid ${roleCol}55`
+                                    }}>
+                                      {member.role || 'ANGGOTA'}
+                                    </span>
+                                  </div>
 
-                                {/* 2. Dibawahnya: Nama */}
-                                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {member.name}
-                                </div>
-
-                                {/* 3. Dibawahnya: Motto */}
-                                {member.motto && (
+                                  {/* 2. Dibawahnya: Nama */}
                                   <div style={{
-                                    fontSize: '0.72rem',
-                                    color: 'var(--text-dim)',
-                                    fontStyle: 'italic',
-                                    lineHeight: 1.35,
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden'
+                                    fontSize: '0.88rem',
+                                    fontWeight: 800,
+                                    color: isDark ? '#f8fafc' : '#0a1128',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
                                   }}>
-                                    "{member.motto}"
+                                    {member.name}
                                   </div>
-                                )}
 
-                                {/* 4. Dibawahnya: Tombol WA */}
-                                {member.whatsapp && (
-                                  <div style={{ marginTop: '2px' }}>
-                                    <a
-                                      href={`https://wa.me/${formatWaNumber(member.whatsapp)}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      onClick={(e) => e.stopPropagation()}
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        background: 'rgba(37, 211, 102, 0.15)',
-                                        border: '1px solid rgba(37, 211, 102, 0.4)',
-                                        color: '#25d366',
-                                        padding: '2px 8px',
-                                        borderRadius: 'var(--radius-full)',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 700,
-                                        textDecoration: 'none'
-                                      }}
-                                    >
-                                      <span>💬</span>
-                                      <span>Hubungi WA</span>
-                                    </a>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                                  {/* 3. Dibawahnya: Motto */}
+                                  {member.motto && (
+                                    <div style={{
+                                      fontSize: '0.72rem',
+                                      color: isDark ? '#cbd5e1' : '#475569',
+                                      fontStyle: 'italic',
+                                      lineHeight: 1.35,
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden'
+                                    }}>
+                                      "{member.motto}"
+                                    </div>
+                                  )}
+
+                                  {/* 4. Dibawahnya: Tombol WA */}
+                                  {member.whatsapp && (
+                                    <div style={{ marginTop: '2px' }}>
+                                      <a
+                                        href={`https://wa.me/${formatWaNumber(member.whatsapp)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          background: isDark ? 'rgba(37, 211, 102, 0.15)' : 'rgba(37, 211, 102, 0.12)',
+                                          border: isDark ? '1px solid rgba(37, 211, 102, 0.4)' : '1px solid rgba(37, 211, 102, 0.5)',
+                                          color: isDark ? '#25d366' : '#16a34a',
+                                          padding: '3px 8px',
+                                          borderRadius: 'var(--radius-full)',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 700,
+                                          textDecoration: 'none'
+                                        }}
+                                      >
+                                        <span style={{ fontSize: '0.74rem' }}>💬</span>
+                                        <span>Hubungi WA</span>
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}

@@ -8,22 +8,46 @@ function formatWaNumber(raw = '') {
   return digits;
 }
 
-export default function CrewMemberCard({ member, onClick, compact = false }) {
+// Helper to ensure role/division colors are vibrant and clearly visible on dark backgrounds
+export function getAdaptiveRoleColor(color, isDark = true) {
+  if (!color) return isDark ? '#38bdf8' : '#0284c7';
+  if (!isDark) return color;
+  
+  // In dark theme, check if color is too dark (like #00529B, #003d79, or deep navy)
+  const hex = color.startsWith('#') ? color.replace('#', '') : '';
+  if (hex && (hex.length === 3 || hex.length === 6)) {
+    const fullHex = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex;
+    const r = parseInt(fullHex.substring(0, 2), 16) || 0;
+    const g = parseInt(fullHex.substring(2, 4), 16) || 0;
+    const b = parseInt(fullHex.substring(4, 6), 16) || 0;
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    // If color is dark (YIQ < 130), brighten it for dark theme
+    if (yiq < 130) {
+      if (b >= r) return '#38bdf8'; // Sky cyan for blue tones
+      if (r > b && r > g) return '#fb7185'; // Rose for red tones
+      if (g > r) return '#34d399'; // Emerald for green tones
+      return '#38bdf8';
+    }
+  }
+  return color;
+}
+
+export default function CrewMemberCard({ member, onClick, compact = false, theme }) {
   const [imageError, setImageError] = useState(false);
+  const isDark = theme ? theme === 'dark' : (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') !== 'light' : true);
+
+  const roleColor = getAdaptiveRoleColor(member?.color, isDark);
 
   const getBorderColor = () => {
-    return member?.color || 'rgba(56, 189, 248, 0.4)';
+    return isDark ? `${roleColor}80` : (member?.color || 'rgba(56, 189, 248, 0.4)');
   };
 
   const getBadgeStyle = () => {
-    if (member?.color) {
-      return {
-        background: 'rgba(255, 255, 255, 0.08)',
-        color: member.color,
-        border: `1px solid ${member.color}66`
-      };
-    }
-    return { background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-main)', border: '1px solid var(--border-card)' };
+    return {
+      background: isDark ? `${roleColor}22` : `${roleColor}14`,
+      color: roleColor,
+      border: `1px solid ${roleColor}55`
+    };
   };
 
   return (
@@ -112,7 +136,7 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
           <h3 style={{
             fontSize: compact ? '0.92rem' : '1.05rem',
             fontWeight: 800,
-            color: 'var(--text-main)',
+            color: isDark ? '#f8fafc' : '#0a1128',
             lineHeight: 1.25,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -125,7 +149,7 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
           {member.motto && (
             <p style={{
               fontSize: '0.74rem',
-              color: 'var(--text-dim)',
+              color: isDark ? '#cbd5e1' : '#475569',
               fontStyle: 'italic',
               marginTop: '4px',
               marginBottom: 0,
@@ -151,9 +175,9 @@ export default function CrewMemberCard({ member, onClick, compact = false }) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
-                  background: 'rgba(37, 211, 102, 0.15)',
-                  border: '1px solid rgba(37, 211, 102, 0.4)',
-                  color: '#25d366',
+                  background: isDark ? 'rgba(37, 211, 102, 0.15)' : 'rgba(37, 211, 102, 0.12)',
+                  border: isDark ? '1px solid rgba(37, 211, 102, 0.4)' : '1px solid rgba(37, 211, 102, 0.5)',
+                  color: isDark ? '#25d366' : '#16a34a',
                   padding: '3px 9px',
                   borderRadius: 'var(--radius-full)',
                   fontSize: '0.72rem',
