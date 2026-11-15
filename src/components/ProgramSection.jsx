@@ -1248,8 +1248,6 @@ export default function ProgramSection({
                               zIndex: 999,
                               minWidth: '260px',
                               maxWidth: 'min(320px, calc(100vw - 32px))',
-                              maxHeight: 'min(440px, 75vh)',
-                              overflowY: 'auto',
                               background: isDark ? '#0b1329' : '#ffffff',
                               border: isDark ? `1.5px solid ${tagColor}` : '1.5px solid #cbd5e1',
                               borderRadius: 'var(--radius-md)',
@@ -1300,7 +1298,17 @@ export default function ProgramSection({
                               </span>
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', paddingTop: '2px' }}>
+                            <div style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '5px',
+                              paddingTop: '2px',
+                              maxHeight: '172px',
+                              overflowY: dayEvents.length > 3 ? 'auto' : 'visible',
+                              paddingRight: dayEvents.length > 3 ? '4px' : '0px',
+                              scrollbarWidth: 'thin',
+                              scrollbarColor: isDark ? 'rgba(255,255,255,0.2) transparent' : 'rgba(0,0,0,0.2) transparent'
+                            }}>
                               {dayEvents.map((ev, evIdx) => {
                                 const divObj = divisions.find(d => d.id === ev.divisionId);
                                 const col = divObj?.color || tagColor;
@@ -1373,7 +1381,11 @@ export default function ProgramSection({
                               background: isDark ? '#0b1329' : '#ffffff',
                               zIndex: 2
                             }}>
-                              💡 Klik salah satu agenda untuk melihat detail & RSVP
+                              {dayEvents.length > 3 ? (
+                                <span>📜 Scroll untuk agenda lainnya • Klik untuk detail</span>
+                              ) : (
+                                <span>💡 Klik salah satu agenda untuk melihat detail &amp; RSVP</span>
+                              )}
                             </div>
                           </div>
                         )}
