@@ -1040,6 +1040,14 @@ export default function ProgramSection({
                     const primaryDiv = divisions.find(d => d.id === dayEvents[0]?.divisionId);
                     const tagColor = primaryDiv?.color || 'var(--mandiri-gold)';
 
+                    // Calculate grid row and col for smart popover alignment without clipping
+                    const slotIndex = startDayOffset + dayNum - 1;
+                    const rowIndex = Math.floor(slotIndex / 7);
+                    const colIndex = slotIndex % 7;
+                    const isTopHalf = rowIndex <= 1; // Row 0 or 1 opens downwards
+                    const isLeftCol = colIndex <= 1;
+                    const isRightCol = colIndex >= 5;
+
                     return (
                       <div
                         key={dayNum}
@@ -1066,6 +1074,7 @@ export default function ProgramSection({
                           flexDirection: 'column',
                           justifyContent: 'space-between',
                           position: 'relative',
+                          zIndex: hoveredDate === fullDateStr ? 70 : 1,
                           cursor: hasEvents ? 'pointer' : 'default',
                           transition: 'all 0.15s ease',
                           boxShadow: hasEvents ? `0 2px 10px ${tagColor}25` : 'none',
@@ -1169,29 +1178,33 @@ export default function ProgramSection({
                           <div style={{ height: '14px' }} />
                         )}
 
-                        {/* Interactive Floating Hover Popover (Jika ada 1 atau lebih event tumpang tindih) */}
+                        {/* Interactive Floating Hover Popover (Dengan Smart Auto-Flip & Horizontal Boundary Guard) */}
                         {hoveredDate === fullDateStr && hasEvents && (
                           <div
                             style={{
                               position: 'absolute',
-                              bottom: 'calc(100% + 8px)',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              zIndex: 100,
-                              minWidth: '220px',
-                              maxWidth: '280px',
+                              top: isTopHalf ? 'calc(100% + 8px)' : 'auto',
+                              bottom: isTopHalf ? 'auto' : 'calc(100% + 8px)',
+                              left: isLeftCol ? '0' : (isRightCol ? 'auto' : '50%'),
+                              right: isRightCol ? '0' : 'auto',
+                              transform: (isLeftCol || isRightCol) ? 'none' : 'translateX(-50%)',
+                              zIndex: 999,
+                              minWidth: '240px',
+                              maxWidth: '300px',
+                              maxHeight: '260px',
+                              overflowY: 'auto',
                               background: isDark ? '#0b1329' : '#ffffff',
                               border: `1.5px solid ${tagColor}`,
                               borderRadius: 'var(--radius-md)',
-                              boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
-                              padding: '10px 12px',
+                              boxShadow: '0 16px 36px rgba(0,0,0,0.5)',
+                              padding: '12px 14px',
                               display: 'flex',
                               flexDirection: 'column',
                               gap: '6px',
                               pointerEvents: 'none'
                             }}
                           >
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700, borderBottom: '1px solid var(--border-card)', paddingBottom: '4px' }}>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 700, borderBottom: '1px solid var(--border-card)', paddingBottom: '4px', position: 'sticky', top: 0, background: isDark ? '#0b1329' : '#ffffff', zIndex: 1 }}>
                               📅 {dayNum} {monthNames[currentMonth]} {currentYear} • {dayEvents.length} Agenda
                             </div>
                             {dayEvents.map((ev, evIdx) => {
