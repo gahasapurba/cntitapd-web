@@ -76,6 +76,7 @@ export default function ProgramSection({
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'all'
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'calendar'
   const [eventPage, setEventPage] = useState(1);
+  const [calendarEventPage, setCalendarEventPage] = useState(1);
   const [rsvpModalEvent, setRsvpModalEvent] = useState(null);
   const [sameDayModalEvents, setSameDayModalEvents] = useState([]);
   const [copiedEventId, setCopiedEventId] = useState(null);
@@ -337,7 +338,10 @@ export default function ProgramSection({
             border: '1px solid var(--border-card)'
           }}>
             <button
-              onClick={() => setViewMode('grid')}
+              onClick={() => {
+                setViewMode('grid');
+                setEventPage(1);
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -354,10 +358,13 @@ export default function ProgramSection({
               }}
             >
               <Grid size={15} />
-              <span>Daftar Kartu</span>
+              <span>List Event</span>
             </button>
             <button
-              onClick={() => setViewMode('calendar')}
+              onClick={() => {
+                setViewMode('calendar');
+                setCalendarEventPage(1);
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -598,7 +605,7 @@ export default function ProgramSection({
             )}
           </div>
         ) : (() => {
-          const EVENTS_PER_PAGE = 6;
+          const EVENTS_PER_PAGE = 8;
           const totalEventPages = Math.ceil(filteredEvents.length / EVENTS_PER_PAGE) || 1;
           const safeEventPage = Math.min(Math.max(1, eventPage), totalEventPages);
           const paginatedEvents = filteredEvents.slice(
@@ -890,6 +897,7 @@ export default function ProgramSection({
         const startDayOffset = firstDayOfWeek(currentYear, currentMonth);
 
         const handlePrevMonth = () => {
+          setCalendarEventPage(1);
           if (currentMonth === 0) {
             setCurrentMonth(11);
             setCurrentYear(prev => prev - 1);
@@ -899,6 +907,7 @@ export default function ProgramSection({
         };
 
         const handleNextMonth = () => {
+          setCalendarEventPage(1);
           if (currentMonth === 11) {
             setCurrentMonth(0);
             setCurrentYear(prev => prev + 1);
@@ -1377,68 +1386,180 @@ export default function ProgramSection({
 
             {/* Quick Summary Cards of Month's Events */}
             <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={16} color="var(--mandiri-gold)" />
-                <span>Rincian Event Terjadwal Bulan {monthNames[currentMonth]} {currentYear}:</span>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Sparkles size={16} color="var(--mandiri-gold)" />
+                  <span>Rincian Event Terjadwal Bulan {monthNames[currentMonth]} {currentYear}:</span>
+                </div>
+                {currentMonthEvents.length > 0 && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+                    Total {currentMonthEvents.length} Event
+                  </span>
+                )}
               </div>
 
               {currentMonthEvents.length === 0 ? (
                 <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   Tidak ada agenda event pada bulan {monthNames[currentMonth]} {currentYear}. Gunakan tombol bulan untuk melihat agenda di bulan lainnya.
                 </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-                  {currentMonthEvents.map((evt) => {
-                    const divInfo = divisions.find(d => d.id === evt.divisionId);
-                    return (
-                      <div
-                        key={evt.id}
-                        onClick={() => handleOpenEventModal(evt)}
-                        className="glass-panel glass-panel-hover"
-                        style={{
-                          padding: '18px',
-                          borderRadius: 'var(--radius-md)',
-                          borderLeft: `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '8px'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: divInfo?.color || 'var(--mandiri-gold)', textTransform: 'uppercase' }}>
-                            {evt.divisionName || divInfo?.name}
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            {evt.isLimited && Number(evt.maxQuota) > 0 && (() => {
-                              const qCount = eventRsvps.filter(r => r.eventId === evt.id).length;
-                              const isFull = qCount >= Number(evt.maxQuota);
-                              return (
-                                <span className={isFull ? "badge-red" : "badge-gold"} style={{ fontSize: '0.64rem' }}>
-                                  Kuota: {qCount}/{evt.maxQuota} {isFull ? '(Penuh)' : ''}
+              ) : (() => {
+                const CALENDAR_EVENTS_PER_PAGE = 9;
+                const totalCalendarPages = Math.ceil(currentMonthEvents.length / CALENDAR_EVENTS_PER_PAGE) || 1;
+                const safeCalendarPage = Math.min(Math.max(1, calendarEventPage), totalCalendarPages);
+                const paginatedCalendarEvents = currentMonthEvents.slice(
+                  (safeCalendarPage - 1) * CALENDAR_EVENTS_PER_PAGE,
+                  safeCalendarPage * CALENDAR_EVENTS_PER_PAGE
+                );
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                      {paginatedCalendarEvents.map((evt) => {
+                        const divInfo = divisions.find(d => d.id === evt.divisionId);
+                        return (
+                          <div
+                            key={evt.id}
+                            onClick={() => handleOpenEventModal(evt)}
+                            className="glass-panel glass-panel-hover"
+                            style={{
+                              padding: '18px',
+                              borderRadius: 'var(--radius-md)',
+                              borderLeft: `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: divInfo?.color || 'var(--mandiri-gold)', textTransform: 'uppercase' }}>
+                                {evt.divisionName || divInfo?.name}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {evt.isLimited && Number(evt.maxQuota) > 0 && (() => {
+                                  const qCount = eventRsvps.filter(r => r.eventId === evt.id).length;
+                                  const isFull = qCount >= Number(evt.maxQuota);
+                                  return (
+                                    <span className={isFull ? "badge-red" : "badge-gold"} style={{ fontSize: '0.64rem' }}>
+                                      Kuota: {qCount}/{evt.maxQuota} {isFull ? '(Penuh)' : ''}
+                                    </span>
+                                  );
+                                })()}
+                                <span className={evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate) ? "badge-cyan" : "badge-gold"} style={{ fontSize: '0.68rem' }}>
+                                  {evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate) ? 'Completed' : evt.status}
                                 </span>
-                              );
-                            })()}
-                            <span className={evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate) ? "badge-cyan" : "badge-gold"} style={{ fontSize: '0.68rem' }}>
-                              {evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate) ? 'Completed' : evt.status}
-                            </span>
+                              </div>
+                            </div>
+                            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, lineHeight: 1.3 }}>
+                              {evt.title}
+                            </h4>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 700 }}>
+                              📅 {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
+                            </div>
+                            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <MapPin size={13} color="var(--mandiri-blue)" />
+                              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{evt.location}</span>
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Pagination Controls for Kalender Tahunan (9 per page) */}
+                    {totalCalendarPages > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                        paddingTop: '16px',
+                        borderTop: '1px solid var(--border-card)'
+                      }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                          Menampilkan <strong>{(safeCalendarPage - 1) * CALENDAR_EVENTS_PER_PAGE + 1} - {Math.min(safeCalendarPage * CALENDAR_EVENTS_PER_PAGE, currentMonthEvents.length)}</strong> dari <strong>{currentMonthEvents.length}</strong> event
                         </div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, lineHeight: 1.3 }}>
-                          {evt.title}
-                        </h4>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--neon-cyan)', fontWeight: 700 }}>
-                          📅 {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
-                        </div>
-                        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <MapPin size={13} color="var(--mandiri-blue)" />
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{evt.location}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            type="button"
+                            disabled={safeCalendarPage === 1}
+                            onClick={() => setCalendarEventPage(p => Math.max(1, p - 1))}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              border: '1px solid var(--border-card)',
+                              background: safeCalendarPage === 1 ? 'transparent' : 'var(--input-bg)',
+                              color: safeCalendarPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              cursor: safeCalendarPage === 1 ? 'not-allowed' : 'pointer',
+                              opacity: safeCalendarPage === 1 ? 0.45 : 1
+                            }}
+                          >
+                            ◀ Prev
+                          </button>
+
+                          {Array.from({ length: totalCalendarPages }, (_, i) => i + 1).map((pg) => {
+                            if (totalCalendarPages > 7 && Math.abs(pg - safeCalendarPage) > 2 && pg !== 1 && pg !== totalCalendarPages) {
+                              if (pg === 2 || pg === totalCalendarPages - 1) {
+                                return <span key={pg} style={{ padding: '0 4px', color: 'var(--text-dim)', fontSize: '0.75rem' }}>...</span>;
+                              }
+                              return null;
+                            }
+                            const isActive = pg === safeCalendarPage;
+                            return (
+                              <button
+                                key={pg}
+                                type="button"
+                                onClick={() => setCalendarEventPage(pg)}
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 800,
+                                  border: isActive ? 'none' : '1px solid var(--border-card)',
+                                  background: isActive ? 'var(--mandiri-gold)' : 'transparent',
+                                  color: isActive ? '#040914' : 'var(--text-main)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                {pg}
+                              </button>
+                            );
+                          })}
+
+                          <button
+                            type="button"
+                            disabled={safeCalendarPage === totalCalendarPages}
+                            onClick={() => setCalendarEventPage(p => Math.min(totalCalendarPages, p + 1))}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              border: '1px solid var(--border-card)',
+                              background: safeCalendarPage === totalCalendarPages ? 'transparent' : 'var(--input-bg)',
+                              color: safeCalendarPage === totalCalendarPages ? 'var(--text-dim)' : 'var(--text-main)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              cursor: safeCalendarPage === totalCalendarPages ? 'not-allowed' : 'pointer',
+                              opacity: safeCalendarPage === totalCalendarPages ? 0.45 : 1
+                            }}
+                          >
+                            Next ▶
+                          </button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );
