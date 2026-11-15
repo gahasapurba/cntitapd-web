@@ -516,9 +516,15 @@ export default function DynamicFormSection({
                             fontWeight: 700,
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            background: isFull ? 'rgba(244, 63, 94, 0.15)' : 'rgba(6, 182, 212, 0.15)',
-                            color: isFull ? '#f43f5e' : '#06b6d4',
-                            border: `1px solid ${isFull ? 'rgba(244, 63, 94, 0.4)' : 'rgba(6, 182, 212, 0.4)'}`
+                            background: isFull
+                              ? (isDark ? 'rgba(244, 63, 94, 0.15)' : '#ffe4e6')
+                              : (isDark ? 'rgba(6, 182, 212, 0.15)' : '#e0f2fe'),
+                            color: isFull
+                              ? (isDark ? '#f43f5e' : '#be123c')
+                              : (isDark ? '#06b6d4' : '#0369a1'),
+                            border: `1px solid ${isFull
+                              ? (isDark ? 'rgba(244, 63, 94, 0.4)' : '#fca5a5')
+                              : (isDark ? 'rgba(6, 182, 212, 0.4)' : '#7dd3fc')}`
                           }}>
                             {isFull ? `🔒 Kuota Penuh (${fSubs.length}/${f.maxQuota})` : `👥 ${fSubs.length}/${f.maxQuota} Terisi`}
                           </span>
@@ -804,9 +810,15 @@ export default function DynamicFormSection({
                               fontWeight: 700,
                               padding: '2px 9px',
                               borderRadius: 'var(--radius-full)',
-                              background: isCurrentQuotaFull ? 'rgba(244, 63, 94, 0.15)' : 'rgba(6, 182, 212, 0.15)',
-                              color: isCurrentQuotaFull ? '#f43f5e' : '#06b6d4',
-                              border: `1px solid ${isCurrentQuotaFull ? 'rgba(244, 63, 94, 0.4)' : 'rgba(6, 182, 212, 0.4)'}`
+                              background: isCurrentQuotaFull
+                                ? (isDark ? 'rgba(244, 63, 94, 0.15)' : '#ffe4e6')
+                                : (isDark ? 'rgba(6, 182, 212, 0.15)' : '#e0f2fe'),
+                              color: isCurrentQuotaFull
+                                ? (isDark ? '#f43f5e' : '#be123c')
+                                : (isDark ? '#06b6d4' : '#0369a1'),
+                              border: `1px solid ${isCurrentQuotaFull
+                                ? (isDark ? 'rgba(244, 63, 94, 0.4)' : '#fca5a5')
+                                : (isDark ? 'rgba(6, 182, 212, 0.4)' : '#7dd3fc')}`
                             }}>
                               👥 Kuota Pendaftaran: {currentFormSubs.length} / {currentForm.maxQuota} {isCurrentQuotaFull ? '(Kuota Penuh)' : 'Terisi'}
                             </span>
@@ -829,9 +841,9 @@ export default function DynamicFormSection({
                             maxWidth: '620px',
                             padding: '12px 18px',
                             borderRadius: 'var(--radius-md)',
-                            background: 'rgba(244, 63, 94, 0.12)',
-                            border: '1.5px solid rgba(244, 63, 94, 0.4)',
-                            color: '#f43f5e',
+                            background: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fff1f2',
+                            border: isDark ? '1.5px solid rgba(244, 63, 94, 0.4)' : '1.5px solid #fecdd3',
+                            color: isDark ? '#f43f5e' : '#be123c',
                             fontSize: '0.86rem',
                             fontWeight: 700,
                             display: 'flex',
@@ -1169,18 +1181,18 @@ export default function DynamicFormSection({
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '10px',
-                            background: 'var(--input-bg)',
-                            color: 'var(--text-muted)',
+                            background: isDark ? 'var(--input-bg)' : '#f8fafc',
+                            color: isDark ? 'var(--text-muted)' : '#64748b',
                             padding: '14px',
                             borderRadius: 'var(--radius-full)',
                             fontWeight: 700,
                             fontSize: '0.92rem',
-                            border: '1.5px solid rgba(244, 63, 94, 0.4)',
+                            border: isDark ? '1.5px solid rgba(244, 63, 94, 0.4)' : '1.5px solid #fca5a5',
                             marginTop: '12px',
                             cursor: 'not-allowed'
                           }}
                         >
-                          <AlertCircle size={18} color="#f43f5e" />
+                          <AlertCircle size={18} color={isDark ? '#f43f5e' : '#be123c'} />
                           <span>Pendaftaran Ditutup (Kuota Penuh: {currentSubs.length}/{currentForm.maxQuota})</span>
                         </div>
                       );

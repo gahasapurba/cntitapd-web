@@ -4521,7 +4521,9 @@ export default function AdminPortal({
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
                               <span style={{
-                                color: (evt.isLimited && relatedRsvps.length >= Number(evt.maxQuota || 0)) ? '#f43f5e' : 'var(--neon-cyan)',
+                                color: (evt.isLimited && relatedRsvps.length >= Number(evt.maxQuota || 0))
+                                  ? (isDark ? '#f43f5e' : '#be123c')
+                                  : (isDark ? 'var(--neon-cyan)' : '#0284c7'),
                                 fontWeight: 700
                               }}>
                                 👥 RSVP: {relatedRsvps.length}{evt.isLimited && Number(evt.maxQuota) > 0 ? ` / ${evt.maxQuota} ${relatedRsvps.length >= Number(evt.maxQuota) ? '(Penuh)' : '(Terbatas)'}` : ' (Bebas)'}
@@ -7896,9 +7898,15 @@ export default function AdminPortal({
                       {f.isLimited && (
                         <span style={{
                           fontSize: '0.65rem',
-                          background: subCount >= (f.maxQuota || 0) ? 'rgba(244, 63, 94, 0.15)' : 'rgba(6, 182, 212, 0.15)',
-                          color: subCount >= (f.maxQuota || 0) ? '#f43f5e' : '#06b6d4',
-                          border: `1px solid ${subCount >= (f.maxQuota || 0) ? 'rgba(244, 63, 94, 0.4)' : 'rgba(6, 182, 212, 0.4)'}`,
+                          background: subCount >= (f.maxQuota || 0)
+                            ? (isDark ? 'rgba(244, 63, 94, 0.15)' : '#ffe4e6')
+                            : (isDark ? 'rgba(6, 182, 212, 0.15)' : '#e0f2fe'),
+                          color: subCount >= (f.maxQuota || 0)
+                            ? (isDark ? '#f43f5e' : '#be123c')
+                            : (isDark ? '#06b6d4' : '#0369a1'),
+                          border: `1px solid ${subCount >= (f.maxQuota || 0)
+                            ? (isDark ? 'rgba(244, 63, 94, 0.4)' : '#fca5a5')
+                            : (isDark ? 'rgba(6, 182, 212, 0.4)' : '#7dd3fc')}`,
                           padding: '2px 7px',
                           borderRadius: '4px',
                           fontWeight: 700

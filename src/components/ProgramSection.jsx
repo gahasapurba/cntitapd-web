@@ -27,6 +27,34 @@ import {
 } from 'lucide-react';
 import { formatWibEventRange, isEventPassed } from '../utils/dateUtils';
 
+// Helper to determine optimal high-contrast text color (black vs white) on dynamic colored badges
+function getBadgeTextColor(bgColor) {
+  if (!bgColor) return '#ffffff';
+  if (bgColor.includes('gold')) return '#040914';
+  if (bgColor.startsWith('#')) {
+    const hex = bgColor.replace('#', '');
+    const fullHex = hex.length === 3 
+      ? hex.split('').map(c => c + c).join('') 
+      : hex;
+    const r = parseInt(fullHex.substring(0, 2), 16) || 0;
+    const g = parseInt(fullHex.substring(2, 4), 16) || 0;
+    const b = parseInt(fullHex.substring(4, 6), 16) || 0;
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return yiq >= 150 ? '#040914' : '#ffffff';
+  }
+  if (bgColor.startsWith('rgb')) {
+    const matches = bgColor.match(/\d+/g);
+    if (matches && matches.length >= 3) {
+      const r = parseInt(matches[0], 10);
+      const g = parseInt(matches[1], 10);
+      const b = parseInt(matches[2], 10);
+      const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+      return yiq >= 150 ? '#040914' : '#ffffff';
+    }
+  }
+  return '#ffffff';
+}
+
 export default function ProgramSection({
   events = [],
   divisions = [],
@@ -654,16 +682,17 @@ export default function ProgramSection({
                       const isFull = isLimited && maxQ > 0 && count >= maxQ;
 
                       if (isLimited && maxQ > 0) {
+                        const quotaColor = isFull ? (isDark ? '#f43f5e' : '#be123c') : (isDark ? 'var(--mandiri-gold)' : '#b45309');
                         return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isFull ? '#f43f5e' : 'var(--mandiri-gold)', fontWeight: 800 }}>
-                            <Users size={15} color={isFull ? '#f43f5e' : 'var(--mandiri-gold)'} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: quotaColor, fontWeight: 800 }}>
+                            <Users size={15} color={quotaColor} />
                             <span>Kuota: {count}/{maxQ} {isFull ? '• (Penuh)' : `• (Sisa ${Math.max(0, maxQ - count)})`}</span>
                           </div>
                         );
                       }
                       return count > 0 ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--neon-cyan)', fontWeight: 700 }}>
-                          <Users size={15} color="var(--neon-cyan)" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isDark ? 'var(--neon-cyan)' : '#0284c7', fontWeight: 700 }}>
+                          <Users size={15} color={isDark ? 'var(--neon-cyan)' : '#0284c7'} />
                           <span>{count} Insan IT APD telah konfirmasi hadir (RSVP)</span>
                         </div>
                       ) : null;
@@ -1086,27 +1115,32 @@ export default function ProgramSection({
                           <span style={{
                             fontSize: '0.82rem',
                             fontWeight: hasEvents ? 900 : 600,
-                            color: hasEvents ? tagColor : 'var(--text-main)',
+                            color: hasEvents ? (isDark ? tagColor : '#003d79') : 'var(--text-main)',
                             borderRadius: '50%',
                             width: '22px',
                             height: '22px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: hasEvents ? (isDark ? '#040914' : '#ffffff') : 'transparent'
+                            background: hasEvents ? (isDark ? '#040914' : '#ffffff') : 'transparent',
+                            boxShadow: hasEvents && !isDark ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
                           }}>
                             {dayNum}
                           </span>
                           {hasEvents && dayEvents.length > 1 && (
-                            <span style={{
-                              fontSize: '0.62rem',
-                              fontWeight: 800,
-                              background: tagColor,
-                              color: '#040914',
-                              padding: '1px 5px',
-                              borderRadius: '8px',
-                              lineHeight: 1
-                            }}>
+                            <span 
+                              title={`${dayEvents.length} Event Terjadwal`}
+                              style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                background: tagColor,
+                                color: getBadgeTextColor(tagColor),
+                                padding: '1px 6px',
+                                borderRadius: '8px',
+                                lineHeight: 1.2,
+                                boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.2)'
+                              }}
+                            >
                               +{dayEvents.length - 1}
                             </span>
                           )}
@@ -1130,14 +1164,18 @@ export default function ProgramSection({
                                   style={{
                                     fontSize: '0.63rem',
                                     fontWeight: 700,
-                                    background: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.92)',
-                                    color: isEvtComp ? 'var(--text-muted)' : col,
+                                    background: isDark ? 'rgba(0,0,0,0.6)' : '#ffffff',
+                                    color: isEvtComp ? 'var(--text-muted)' : (isDark ? col : '#0f172a'),
                                     padding: '2px 5px',
                                     borderRadius: '4px',
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     borderLeft: `2.5px solid ${isEvtComp ? '#64748b' : col}`,
+                                    borderRight: isDark ? 'none' : '1px solid #e2e8f0',
+                                    borderTop: isDark ? 'none' : '1px solid #e2e8f0',
+                                    borderBottom: isDark ? 'none' : '1px solid #e2e8f0',
+                                    boxShadow: isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
                                     lineHeight: 1.25,
                                     width: '100%',
                                     cursor: 'pointer',
@@ -1157,16 +1195,17 @@ export default function ProgramSection({
                                 }}
                                 style={{
                                   fontSize: '0.62rem',
-                                  color: 'var(--mandiri-gold)',
+                                  color: isDark ? 'var(--mandiri-gold)' : '#b45309',
                                   fontWeight: 800,
-                                  padding: '1px 4px',
+                                  padding: '1px 5px',
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '2px',
                                   lineHeight: 1.2,
                                   borderRadius: '3px',
-                                  background: isDark ? 'rgba(255, 184, 0, 0.1)' : 'rgba(255, 184, 0, 0.15)'
+                                  background: isDark ? 'rgba(255, 184, 0, 0.12)' : '#fef3c7',
+                                  border: isDark ? '1px solid rgba(255, 184, 0, 0.25)' : '1px solid #fde68a'
                                 }}
                                 title="Klik untuk melihat seluruh agenda di tanggal ini"
                               >
@@ -1191,13 +1230,13 @@ export default function ProgramSection({
                               transform: (isLeftCol || isRightCol) ? 'none' : 'translateX(-50%)',
                               zIndex: 999,
                               minWidth: '260px',
-                              maxWidth: '320px',
+                              maxWidth: 'min(320px, calc(100vw - 32px))',
                               maxHeight: 'min(440px, 75vh)',
                               overflowY: 'auto',
                               background: isDark ? '#0b1329' : '#ffffff',
-                              border: `1.5px solid ${tagColor}`,
+                              border: isDark ? `1.5px solid ${tagColor}` : '1.5px solid #cbd5e1',
                               borderRadius: 'var(--radius-md)',
-                              boxShadow: '0 18px 40px rgba(0,0,0,0.55)',
+                              boxShadow: isDark ? '0 18px 40px rgba(0,0,0,0.55)' : '0 14px 35px rgba(0,61,121,0.22)',
                               padding: '12px 14px',
                               display: 'flex',
                               flexDirection: 'column',
@@ -1218,9 +1257,9 @@ export default function ProgramSection({
 
                             <div style={{
                               fontSize: '0.74rem',
-                              color: 'var(--text-dim)',
+                              color: isDark ? 'var(--text-dim)' : '#475569',
                               fontWeight: 800,
-                              borderBottom: '1px solid var(--border-card)',
+                              borderBottom: isDark ? '1px solid var(--border-card)' : '1px solid #e2e8f0',
                               paddingBottom: '6px',
                               position: 'sticky',
                               top: 0,
@@ -1233,11 +1272,12 @@ export default function ProgramSection({
                               <span>📅 {dayNum} {monthNames[currentMonth]} {currentYear}</span>
                               <span style={{
                                 background: tagColor,
-                                color: '#040914',
-                                padding: '1px 6px',
+                                color: getBadgeTextColor(tagColor),
+                                padding: '2px 8px',
                                 borderRadius: '10px',
                                 fontSize: '0.66rem',
-                                fontWeight: 800
+                                fontWeight: 800,
+                                boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.15)'
                               }}>
                                 {dayEvents.length} Agenda
                               </span>
@@ -1262,18 +1302,18 @@ export default function ProgramSection({
                                       gap: '2px',
                                       padding: '6px 8px',
                                       borderRadius: 'var(--radius-sm)',
-                                      background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                                      border: '1px solid var(--border-card)',
+                                      background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+                                      border: isDark ? '1px solid var(--border-card)' : '1px solid #e2e8f0',
                                       cursor: 'pointer',
                                       transition: 'all 0.15s ease'
                                     }}
                                     onMouseEnter={(e) => {
-                                      e.currentTarget.style.background = isDark ? 'rgba(255,184,0,0.12)' : 'rgba(255,184,0,0.15)';
+                                      e.currentTarget.style.background = isDark ? 'rgba(255,184,0,0.12)' : '#fef3c7';
                                       e.currentTarget.style.borderColor = 'var(--mandiri-gold)';
                                     }}
                                     onMouseLeave={(e) => {
-                                      e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
-                                      e.currentTarget.style.borderColor = 'var(--border-card)';
+                                      e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc';
+                                      e.currentTarget.style.borderColor = isDark ? 'var(--border-card)' : '#e2e8f0';
                                     }}
                                     title="Klik untuk membuka rincian agenda ini"
                                   >
@@ -1288,14 +1328,14 @@ export default function ProgramSection({
                                       <span style={{
                                         fontSize: '0.78rem',
                                         fontWeight: 800,
-                                        color: isEvtComp ? 'var(--text-muted)' : 'var(--text-main)',
+                                        color: isEvtComp ? 'var(--text-muted)' : (isDark ? 'var(--text-main)' : '#0f172a'),
                                         lineHeight: 1.25,
                                         flex: 1
                                       }}>
                                         {isEvtComp ? `✓ ${ev.title}` : ev.title}
                                       </span>
                                     </div>
-                                    <div style={{ fontSize: '0.67rem', color: 'var(--text-muted)', paddingLeft: '13px' }}>
+                                    <div style={{ fontSize: '0.67rem', color: isDark ? 'var(--text-muted)' : '#64748b', paddingLeft: '13px' }}>
                                       {ev.divisionName || divObj?.name} • 📍 {ev.location}
                                     </div>
                                   </div>
@@ -1305,11 +1345,11 @@ export default function ProgramSection({
 
                             <div style={{
                               fontSize: '0.66rem',
-                              color: 'var(--mandiri-gold)',
+                              color: isDark ? 'var(--mandiri-gold)' : '#b45309',
                               fontWeight: 700,
                               textAlign: 'center',
                               paddingTop: '6px',
-                              borderTop: '1px solid var(--border-card)',
+                              borderTop: isDark ? '1px solid var(--border-card)' : '1px solid #e2e8f0',
                               marginTop: '2px',
                               position: 'sticky',
                               bottom: 0,
