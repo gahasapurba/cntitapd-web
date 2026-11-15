@@ -30,7 +30,9 @@ import { formatWibEventRange, isEventPassed } from '../utils/dateUtils';
 // Helper to determine optimal high-contrast text color (black vs white) on dynamic colored badges
 function getBadgeTextColor(bgColor) {
   if (!bgColor) return '#ffffff';
-  if (bgColor.includes('gold')) return '#040914';
+  const lower = String(bgColor).toLowerCase();
+  if (lower.includes('gold') || lower.includes('yellow') || lower.includes('#ffb800') || lower.includes('#f59e0b')) return '#040914';
+  if (lower.includes('blue') || lower.includes('navy') || lower.includes('purple') || lower.includes('rose') || lower.includes('dark')) return '#ffffff';
   if (bgColor.startsWith('#')) {
     const hex = bgColor.replace('#', '');
     const fullHex = hex.length === 3 
@@ -40,7 +42,7 @@ function getBadgeTextColor(bgColor) {
     const g = parseInt(fullHex.substring(2, 4), 16) || 0;
     const b = parseInt(fullHex.substring(4, 6), 16) || 0;
     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return yiq >= 150 ? '#040914' : '#ffffff';
+    return yiq >= 140 ? '#040914' : '#ffffff';
   }
   if (bgColor.startsWith('rgb')) {
     const matches = bgColor.match(/\d+/g);
@@ -49,7 +51,7 @@ function getBadgeTextColor(bgColor) {
       const g = parseInt(matches[1], 10);
       const b = parseInt(matches[2], 10);
       const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-      return yiq >= 150 ? '#040914' : '#ffffff';
+      return yiq >= 140 ? '#040914' : '#ffffff';
     }
   }
   return '#ffffff';
@@ -1034,6 +1036,7 @@ export default function ProgramSection({
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, 1fr)',
+                  gridAutoRows: 'minmax(115px, auto)',
                   gap: '8px'
                 }}>
                   {/* Empty cells before month begins */}
@@ -1041,7 +1044,9 @@ export default function ProgramSection({
                     <div
                       key={`empty-${i}`}
                       style={{
-                        height: '100px',
+                        minHeight: '115px',
+                        height: '100%',
+                        boxSizing: 'border-box',
                         borderRadius: 'var(--radius-sm)',
                         background: 'rgba(255, 255, 255, 0.01)',
                         border: '1px dashed rgba(255, 255, 255, 0.04)',
@@ -1088,7 +1093,7 @@ export default function ProgramSection({
                         }}
                         onMouseLeave={() => setHoveredDate(null)}
                         style={{
-                          minHeight: '100px',
+                          minHeight: '115px',
                           height: '100%',
                           boxSizing: 'border-box',
                           borderRadius: 'var(--radius-sm)',
@@ -1098,10 +1103,11 @@ export default function ProgramSection({
                           border: hasEvents
                             ? `2px solid ${tagColor}`
                             : '1px solid var(--border-card)',
-                          padding: '6px 8px',
+                          padding: '6px 7px',
                           display: 'flex',
                           flexDirection: 'column',
-                          justifyContent: 'space-between',
+                          justifyContent: 'flex-start',
+                          gap: '3px',
                           position: 'relative',
                           zIndex: hoveredDate === fullDateStr ? 70 : 1,
                           cursor: hasEvents ? 'pointer' : 'default',
@@ -1111,7 +1117,7 @@ export default function ProgramSection({
                         }}
                       >
                         {/* Date Number Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1px' }}>
                           <span style={{
                             fontSize: '0.82rem',
                             fontWeight: hasEvents ? 900 : 600,
@@ -1148,7 +1154,7 @@ export default function ProgramSection({
 
                         {/* Interactive Event Label Chips in Day Cell */}
                         {hasEvents ? (
-                          <div style={{ marginTop: 'auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2.5px', marginTop: '1px' }}>
                             {dayEvents.slice(0, 2).map((ev, evIdx) => {
                               const divObj = divisions.find(d => d.id === ev.divisionId);
                               const col = divObj?.color || tagColor;
@@ -1197,7 +1203,7 @@ export default function ProgramSection({
                                   fontSize: '0.62rem',
                                   color: isDark ? 'var(--mandiri-gold)' : '#b45309',
                                   fontWeight: 800,
-                                  padding: '1px 5px',
+                                  padding: '1px 6px',
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -1205,7 +1211,9 @@ export default function ProgramSection({
                                   lineHeight: 1.2,
                                   borderRadius: '3px',
                                   background: isDark ? 'rgba(255, 184, 0, 0.12)' : '#fef3c7',
-                                  border: isDark ? '1px solid rgba(255, 184, 0, 0.25)' : '1px solid #fde68a'
+                                  border: isDark ? '1px solid rgba(255, 184, 0, 0.25)' : '1px solid #fde68a',
+                                  alignSelf: 'flex-start',
+                                  marginTop: '1px'
                                 }}
                                 title="Klik untuk melihat seluruh agenda di tanggal ini"
                               >

@@ -211,22 +211,31 @@ export default function Navbar({
               {activeFormsCount > 0 ? (
                 <span style={{
                   fontSize: '0.58rem',
-                  background: '#b45309',
+                  background: isFormActive ? '#0f172a' : '#b45309',
                   color: '#ffffff',
                   padding: '1px 5px',
                   borderRadius: '10px',
-                  fontWeight: 800
+                  fontWeight: 800,
+                  border: isFormActive ? '1px solid rgba(0, 0, 0, 0.3)' : 'none'
                 }}>
                   {activeFormsCount} AKTIF
                 </span>
               ) : (
                 <span style={{
                   fontSize: '0.58rem',
-                  background: 'var(--border-card)',
-                  color: 'var(--text-muted)',
-                  padding: '1px 4px',
+                  background: isFormActive
+                    ? '#0f172a'
+                    : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'),
+                  color: isFormActive
+                    ? '#ffffff'
+                    : (isDark ? '#cbd5e1' : '#475569'),
+                  border: isFormActive
+                    ? '1px solid rgba(0, 0, 0, 0.35)'
+                    : (isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #cbd5e1'),
+                  padding: '1px 5px',
                   borderRadius: '4px',
-                  fontWeight: 700
+                  fontWeight: 800,
+                  letterSpacing: '0.02em'
                 }}>
                   CLOSED
                 </span>
@@ -466,22 +475,31 @@ export default function Navbar({
               {activeFormsCount > 0 ? (
                 <span style={{
                   fontSize: '0.68rem',
-                  background: '#b45309',
+                  background: isFormActive ? '#0f172a' : '#b45309',
                   color: '#ffffff',
                   padding: '2px 8px',
                   borderRadius: '6px',
-                  fontWeight: 800
+                  fontWeight: 800,
+                  border: isFormActive ? '1px solid rgba(0, 0, 0, 0.3)' : 'none'
                 }}>
                   {activeFormsCount} AKTIF
                 </span>
               ) : (
                 <span style={{
                   fontSize: '0.68rem',
-                  background: 'var(--border-card)',
-                  color: 'var(--text-muted)',
+                  background: isFormActive
+                    ? '#0f172a'
+                    : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'),
+                  color: isFormActive
+                    ? '#ffffff'
+                    : (isDark ? '#cbd5e1' : '#475569'),
+                  border: isFormActive
+                    ? '1px solid rgba(0, 0, 0, 0.35)'
+                    : (isDark ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #cbd5e1'),
                   padding: '2px 8px',
                   borderRadius: '6px',
-                  fontWeight: 700
+                  fontWeight: 800,
+                  letterSpacing: '0.02em'
                 }}>
                   CLOSED
                 </span>
