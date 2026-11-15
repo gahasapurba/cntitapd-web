@@ -125,6 +125,32 @@ export async function checkFormsAnnouncementColumn() {
   return formsAnnouncementColName;
 }
 
+let isFormsLimitedColChecked = false;
+let isFormsLimitedColSupported = false;
+let isFormsMaxQuotaColChecked = false;
+let isFormsMaxQuotaColSupported = false;
+
+export async function checkFormsQuotaColumns() {
+  if (isFormsLimitedColChecked && isFormsMaxQuotaColChecked) {
+    return { isLimitedSupported: isFormsLimitedColSupported, isMaxQuotaSupported: isFormsMaxQuotaColSupported };
+  }
+  try {
+    const { error: errLim } = await supabase.from('forms').select('is_limited').limit(1);
+    isFormsLimitedColSupported = !errLim;
+    isFormsLimitedColChecked = true;
+  } catch (e) {
+    isFormsLimitedColSupported = false;
+  }
+  try {
+    const { error: errQuota } = await supabase.from('forms').select('max_quota').limit(1);
+    isFormsMaxQuotaColSupported = !errQuota;
+    isFormsMaxQuotaColChecked = true;
+  } catch (e) {
+    isFormsMaxQuotaColSupported = false;
+  }
+  return { isLimitedSupported: isFormsLimitedColSupported, isMaxQuotaSupported: isFormsMaxQuotaColSupported };
+}
+
 let isDepartmentsTableChecked = false;
 let isDepartmentsTableSupported = false;
 
@@ -656,14 +682,19 @@ export const rowMappers = {
     toDb: (item, idx = 0) => {
       const rawFields = Array.isArray(item.fields) ? [...item.fields] : [];
       const showAnnouncementVal = item.showAnnouncement === true;
-      // Persist requiresTracking, tenureId & showAnnouncement inside fields[0] as resilient fallback if database column does not exist yet
+      const isLimitedVal = item.isLimited === true;
+      const maxQuotaVal = Math.max(0, parseInt(item.maxQuota, 10) || 0);
+
+      // Persist requiresTracking, tenureId, showAnnouncement, isLimited & maxQuota inside fields[0] as resilient fallback if database column does not exist yet
       if (rawFields.length > 0) {
         rawFields[0] = {
           ...rawFields[0],
           _requiresTracking: item.requiresTracking !== false,
           _tenureId: item.tenureId || item.tenure_id || '',
           _showAnnouncement: showAnnouncementVal,
-          _isShowAccepted: showAnnouncementVal
+          _isShowAccepted: showAnnouncementVal,
+          _isLimited: isLimitedVal,
+          _maxQuota: maxQuotaVal
         };
       }
 
@@ -686,6 +717,12 @@ export const rowMappers = {
       if (formsAnnouncementColName) {
         row[formsAnnouncementColName] = showAnnouncementVal;
       }
+      if (isFormsLimitedColSupported) {
+        row.is_limited = isLimitedVal;
+      }
+      if (isFormsMaxQuotaColSupported) {
+        row.max_quota = maxQuotaVal;
+      }
       return row;
     },
     fromDb: (row) => {
@@ -706,6 +743,20 @@ export const rowMappers = {
         showAnnouncement = (rawFields[0]._showAnnouncement === true || rawFields[0]._isShowAccepted === true);
       }
 
+      let isLimited = false;
+      if (row.is_limited !== undefined && row.is_limited !== null) {
+        isLimited = row.is_limited === true;
+      } else if (rawFields.length > 0 && rawFields[0]?._isLimited !== undefined) {
+        isLimited = rawFields[0]._isLimited === true;
+      }
+
+      let maxQuota = 0;
+      if (row.max_quota !== undefined && row.max_quota !== null) {
+        maxQuota = Math.max(0, parseInt(row.max_quota, 10) || 0);
+      } else if (rawFields.length > 0 && rawFields[0]?._maxQuota !== undefined) {
+        maxQuota = Math.max(0, parseInt(rawFields[0]._maxQuota, 10) || 0);
+      }
+
       const tenureIdVal = row.tenure_id || (rawFields.length > 0 && rawFields[0]?._tenureId) || '';
 
       return {
@@ -717,6 +768,8 @@ export const rowMappers = {
         isOpen: row.is_open !== false,
         requiresTracking: isTracking,
         showAnnouncement: showAnnouncement,
+        isLimited: isLimited,
+        maxQuota: maxQuota,
         tenureId: tenureIdVal,
         fields: rawFields,
         createdAt: row.created_at || null,
@@ -845,6 +898,7 @@ export async function fetchAllCloudState() {
       checkFormsTrackingColumn(),
       checkFormsTenureColumn(),
       checkFormsAnnouncementColumn(),
+      checkFormsQuotaColumns(),
       checkRsvpsDepartmentColumn(),
       checkDivisionsSchema(),
       checkDepartmentsTable(),
@@ -1122,6 +1176,7 @@ export async function pushCloudState(key, value) {
       await checkFormsTrackingColumn();
       await checkFormsTenureColumn();
       await checkFormsAnnouncementColumn();
+      await checkFormsQuotaColumns();
     }
     if (key === 'eventRsvps') {
       await checkRsvpsDepartmentColumn();
@@ -1219,6 +1274,7 @@ export async function mergeAndPushCloudList(key, newItem, currentLocalList = [])
     await checkFormsTrackingColumn();
     await checkFormsTenureColumn();
     await checkFormsAnnouncementColumn();
+    await checkFormsQuotaColumns();
   }
 
   try {

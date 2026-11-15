@@ -186,12 +186,28 @@ export default function DynamicFormSection({
     if (honeypotVal && honeypotVal.trim()) {
       return;
     }
+    const dl = getDeadlineStatus(currentForm?.deadline);
+    if (dl.isExpired) {
+      alert('Batas waktu pendaftaran formulir ini telah berakhir.');
+      return;
+    }
+    const currentSubs = submissions.filter(s => s.formId === currentForm?.id);
+    if (currentForm?.isLimited && currentForm.maxQuota > 0 && currentSubs.length >= currentForm.maxQuota) {
+      alert('Maaf, pendaftaran formulir ini telah ditutup karena kuota responden telah terpenuhi.');
+      return;
+    }
     if (!validate()) return;
     setIsConfirmOpen(true);
   };
 
   const handleConfirmSubmit = async () => {
     if (isSubmitting) return;
+    const currentSubs = submissions.filter(s => s.formId === currentForm?.id);
+    if (currentForm?.isLimited && currentForm.maxQuota > 0 && currentSubs.length >= currentForm.maxQuota) {
+      setIsConfirmOpen(false);
+      alert('Maaf, pendaftaran formulir ini telah ditutup karena kuota responden telah terpenuhi.');
+      return;
+    }
     setIsSubmitting(true);
 
     const uploadedFiles = { ...fileData };
@@ -487,9 +503,28 @@ export default function DynamicFormSection({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                    <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                      {f.category || 'Formulir'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                        {f.category || 'Formulir'}
+                      </span>
+                      {f.isLimited && (() => {
+                        const fSubs = submissions.filter(s => s.formId === f.id);
+                        const isFull = f.maxQuota > 0 && fSubs.length >= f.maxQuota;
+                        return (
+                          <span style={{
+                            fontSize: '0.66rem',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: isFull ? 'rgba(244, 63, 94, 0.15)' : 'rgba(6, 182, 212, 0.15)',
+                            color: isFull ? '#f43f5e' : '#06b6d4',
+                            border: `1px solid ${isFull ? 'rgba(244, 63, 94, 0.4)' : 'rgba(6, 182, 212, 0.4)'}`
+                          }}>
+                            {isFull ? `🔒 Kuota Penuh (${fSubs.length}/${f.maxQuota})` : `👥 ${fSubs.length}/${f.maxQuota} Terisi`}
+                          </span>
+                        );
+                      })()}
+                    </div>
                     {(() => {
                       const dl = getDeadlineStatus(f.deadline);
                       if (dl.isExpired) {
@@ -519,10 +554,16 @@ export default function DynamicFormSection({
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5, flex: 1 }}>
                     {f.subtitle}
                   </p>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border-card)', fontSize: '0.78rem', fontWeight: 700, color: isSelected ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
-                    <span>{isSelected ? '✓ Sedang Dibuka' : 'Buka Formulir'}</span>
-                    <ChevronRight size={14} />
-                  </div>
+                  {(() => {
+                    const fSubs = submissions.filter(s => s.formId === f.id);
+                    const isFull = f.isLimited && f.maxQuota > 0 && fSubs.length >= f.maxQuota;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border-card)', fontSize: '0.78rem', fontWeight: 700, color: isSelected ? 'var(--mandiri-gold)' : (isFull ? '#f43f5e' : 'var(--text-muted)') }}>
+                        <span>{isSelected ? '✓ Sedang Dibuka' : (isFull ? '🔒 Kuota Penuh (Lihat Detail)' : 'Buka Formulir')}</span>
+                        <ChevronRight size={14} />
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -748,12 +789,28 @@ export default function DynamicFormSection({
                   </p>
                   {(() => {
                     const dl = getDeadlineStatus(currentForm.deadline);
+                    const currentFormSubs = submissions.filter(s => s.formId === currentForm.id);
+                    const isCurrentQuotaFull = currentForm.isLimited && currentForm.maxQuota > 0 && currentFormSubs.length >= currentForm.maxQuota;
+
                     return (
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
                             📅 Batas Akhir: {formatDeadlineWib(currentForm.deadline)}
                           </span>
+                          {currentForm.isLimited && (
+                            <span style={{
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              padding: '2px 9px',
+                              borderRadius: 'var(--radius-full)',
+                              background: isCurrentQuotaFull ? 'rgba(244, 63, 94, 0.15)' : 'rgba(6, 182, 212, 0.15)',
+                              color: isCurrentQuotaFull ? '#f43f5e' : '#06b6d4',
+                              border: `1px solid ${isCurrentQuotaFull ? 'rgba(244, 63, 94, 0.4)' : 'rgba(6, 182, 212, 0.4)'}`
+                            }}>
+                              👥 Kuota Pendaftaran: {currentFormSubs.length} / {currentForm.maxQuota} {isCurrentQuotaFull ? '(Kuota Penuh)' : 'Terisi'}
+                            </span>
+                          )}
                           {dl.isToday && (
                             <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
                               ⚠️ Hari Terakhir Pendaftaran!
@@ -765,6 +822,28 @@ export default function DynamicFormSection({
                             </span>
                           )}
                         </div>
+
+                        {isCurrentQuotaFull && !dl.isExpired && (
+                          <div style={{
+                            margin: '16px auto 0 auto',
+                            maxWidth: '620px',
+                            padding: '12px 18px',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'rgba(244, 63, 94, 0.12)',
+                            border: '1.5px solid rgba(244, 63, 94, 0.4)',
+                            color: '#f43f5e',
+                            fontSize: '0.86rem',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            justifyContent: 'center',
+                            lineHeight: 1.5
+                          }}>
+                            <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                            <span>Pendaftaran Formulir Telah Ditutup (Kuota Penuh). Kuota maksimal ({currentFormSubs.length}/{currentForm.maxQuota} responden) telah terpenuhi. Formulir ini sudah tidak menerima tanggapan baru.</span>
+                          </div>
+                        )}
 
                         {dl.isExpired && (
                           <div style={{
@@ -1079,32 +1158,60 @@ export default function DynamicFormSection({
                       <AlertCircle size={18} color="#f43f5e" />
                       <span>Pendaftaran Ditutup (Batas Waktu Berakhir)</span>
                     </div>
-                  ) : (
-                    <button
-                      type="submit"
-                      className="pulse-glow"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        background: 'var(--mandiri-gold)',
-                        color: '#0a1128',
-                        padding: '15px',
-                        borderRadius: 'var(--radius-full)',
-                        fontWeight: 800,
-                        fontSize: '0.96rem',
-                        border: 'none',
-                        cursor: 'pointer',
-                        marginTop: '12px',
-                        transition: 'all 0.2s ease',
-                        boxShadow: '0 4px 15px rgba(255, 184, 0, 0.35)'
-                      }}
-                    >
-                      <Send size={18} />
-                      <span>Kirim Formulir Pendaftaran</span>
-                    </button>
-                  )}
+                  ) : (() => {
+                    const currentSubs = submissions.filter(s => s.formId === currentForm.id);
+                    const isQuotaFull = currentForm.isLimited && currentForm.maxQuota > 0 && currentSubs.length >= currentForm.maxQuota;
+                    if (isQuotaFull) {
+                      return (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
+                            background: 'var(--input-bg)',
+                            color: 'var(--text-muted)',
+                            padding: '14px',
+                            borderRadius: 'var(--radius-full)',
+                            fontWeight: 700,
+                            fontSize: '0.92rem',
+                            border: '1.5px solid rgba(244, 63, 94, 0.4)',
+                            marginTop: '12px',
+                            cursor: 'not-allowed'
+                          }}
+                        >
+                          <AlertCircle size={18} color="#f43f5e" />
+                          <span>Pendaftaran Ditutup (Kuota Penuh: {currentSubs.length}/{currentForm.maxQuota})</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <button
+                        type="submit"
+                        className="pulse-glow"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '10px',
+                          background: 'var(--mandiri-gold)',
+                          color: '#0a1128',
+                          padding: '15px',
+                          borderRadius: 'var(--radius-full)',
+                          fontWeight: 800,
+                          fontSize: '0.96rem',
+                          border: 'none',
+                          cursor: 'pointer',
+                          marginTop: '12px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 4px 15px rgba(255, 184, 0, 0.35)'
+                        }}
+                      >
+                        <Send size={18} />
+                        <span>Kirim Berkas Pendaftaran</span>
+                      </button>
+                    );
+                  })()}
                 </form>
               </>
             )}

@@ -1051,8 +1051,9 @@ export default function ProgramSection({
                         }}
                         onMouseLeave={() => setHoveredDate(null)}
                         style={{
-                          minHeight: '78px',
-                          maxHeight: '78px',
+                          minHeight: '100px',
+                          height: '100%',
+                          boxSizing: 'border-box',
                           borderRadius: 'var(--radius-sm)',
                           background: hasEvents
                             ? (isDark ? `${tagColor}22` : `${tagColor}15`)
@@ -1140,7 +1141,26 @@ export default function ProgramSection({
                               );
                             })}
                             {dayEvents.length > 2 && (
-                              <div style={{ fontSize: '0.58rem', color: 'var(--mandiri-gold)', fontWeight: 800, paddingLeft: '2px' }}>
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEventModal(dayEvents[0], dayEvents);
+                                }}
+                                style={{
+                                  fontSize: '0.62rem',
+                                  color: 'var(--mandiri-gold)',
+                                  fontWeight: 800,
+                                  padding: '1px 4px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '2px',
+                                  lineHeight: 1.2,
+                                  borderRadius: '3px',
+                                  background: isDark ? 'rgba(255, 184, 0, 0.1)' : 'rgba(255, 184, 0, 0.15)'
+                                }}
+                                title="Klik untuk melihat seluruh agenda di tanggal ini"
+                              >
                                 +{dayEvents.length - 2} lagi...
                               </div>
                             )}

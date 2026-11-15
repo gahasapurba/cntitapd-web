@@ -401,6 +401,8 @@ export default function AdminPortal({
   const [newFormSubtitle, setNewFormSubtitle] = useState('');
   const [newFormRequiresTracking, setNewFormRequiresTracking] = useState(true);
   const [newFormShowAnnouncement, setNewFormShowAnnouncement] = useState(false);
+  const [newFormIsLimited, setNewFormIsLimited] = useState(false);
+  const [newFormMaxQuota, setNewFormMaxQuota] = useState('');
   const [newFormTenureId, setNewFormTenureId] = useState(activeTenure?.id || '');
   const [selectedSubFilter, setSelectedSubFilter] = useState('all');
   const [draggedFieldIndex, setDraggedFieldIndex] = useState(null);
@@ -7417,6 +7419,9 @@ export default function AdminPortal({
               if (!newFormTitle.trim()) errs.newFormTitle = 'Judul Formulir wajib diisi';
               if (!newFormCategory.trim()) errs.newFormCategory = 'Kategori Formulir wajib dipilih';
               if (!newFormDeadline.trim()) errs.newFormDeadline = 'Batas Akhir / Deadline Pendaftaran wajib ditentukan';
+              if (newFormIsLimited && (!newFormMaxQuota || parseInt(newFormMaxQuota, 10) <= 0)) {
+                errs.newFormMaxQuota = 'Maksimal kuota harus lebih dari 0 jika kuota dibatasi';
+              }
               if (Object.keys(errs).length > 0) {
                 setFormErrors((prev) => ({ ...prev, ...errs }));
                 showToast('Mohon lengkapi kolom wajib pada form Formulir', 'error');
@@ -7433,6 +7438,8 @@ export default function AdminPortal({
                 isOpen: true,
                 requiresTracking: newFormRequiresTracking,
                 showAnnouncement: newFormShowAnnouncement,
+                isLimited: newFormIsLimited,
+                maxQuota: newFormIsLimited ? (parseInt(newFormMaxQuota, 10) || 0) : 0,
                 tenureId: targetTenureId,
                 fields: newFormRequiresTracking ? [
                   { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
@@ -7456,6 +7463,8 @@ export default function AdminPortal({
               setNewFormCategory('');
               setNewFormRequiresTracking(true);
               setNewFormShowAnnouncement(false);
+              setNewFormIsLimited(false);
+              setNewFormMaxQuota('');
               showToast(`Formulir "${newForm.title}" berhasil dibuat & dipublikasikan!`);
             }}
             className="admin-form-two-col"
@@ -7641,6 +7650,48 @@ export default function AdminPortal({
                   ? 'Aktif: Daftar peserta yang berstatus "Accepted / Diterima" akan dipublikasikan secara terbuka pada section Hall of Welcome di halaman formulir.'
                   : 'Nonaktif: Hasil seleksi tidak dipublikasikan ke publik di halaman formulir (hanya dapat dicek secara mandiri oleh responden jika tracking aktif).'}
               </span>
+            </div>
+
+            {/* Option: Batasi Kuota Responden */}
+            <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: newFormIsLimited ? '#06b6d4' : 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={newFormIsLimited}
+                  onChange={(e) => {
+                    setNewFormIsLimited(e.target.checked);
+                    if (!e.target.checked) {
+                      setNewFormMaxQuota('');
+                      clearFieldError('newFormMaxQuota');
+                    }
+                  }}
+                />
+                <span>🔒 Batasi Kuota Responden / Pengisian Formulir</span>
+              </label>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px' }}>
+                {newFormIsLimited
+                  ? 'Aktif: Formulir akan otomatis ditutup bila total data yang mengisi/submit telah mencapai batas kuota maksimal.'
+                  : 'Nonaktif: Formulir terbuka tanpa batasan kuota responden (hanya dibatasi oleh deadline).'}
+              </span>
+              {newFormIsLimited && (
+                <div style={{ marginLeft: '24px', marginTop: '2px', maxWidth: '280px' }}>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Maksimal Kuota Responden <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Contoh: 100"
+                    value={newFormMaxQuota}
+                    onChange={(e) => {
+                      setNewFormMaxQuota(e.target.value);
+                      clearFieldError('newFormMaxQuota');
+                    }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.newFormMaxQuota ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
+                  />
+                  {renderFieldError('newFormMaxQuota')}
+                </div>
+              )}
             </div>
 
             <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
@@ -7840,6 +7891,19 @@ export default function AdminPortal({
                       ) : (
                         <span style={{ fontSize: '0.65rem', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-dim)', border: '1px solid var(--border-card)', padding: '2px 7px', borderRadius: '4px' }}>
                           🔒 Pengumuman Tertutup
+                        </span>
+                      )}
+                      {f.isLimited && (
+                        <span style={{
+                          fontSize: '0.65rem',
+                          background: subCount >= (f.maxQuota || 0) ? 'rgba(244, 63, 94, 0.15)' : 'rgba(6, 182, 212, 0.15)',
+                          color: subCount >= (f.maxQuota || 0) ? '#f43f5e' : '#06b6d4',
+                          border: `1px solid ${subCount >= (f.maxQuota || 0) ? 'rgba(244, 63, 94, 0.4)' : 'rgba(6, 182, 212, 0.4)'}`,
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          fontWeight: 700
+                        }}>
+                          {subCount >= (f.maxQuota || 0) ? `🔒 Kuota Penuh (${subCount}/${f.maxQuota})` : `👥 Kuota: ${subCount}/${f.maxQuota} Terisi`}
                         </span>
                       )}
                       {(() => {
@@ -11715,6 +11779,57 @@ export default function AdminPortal({
                   </span>
                 </div>
 
+                {/* Option: Batasi Kuota Responden */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: editingItem.item.isLimited ? '#06b6d4' : 'var(--text-muted)' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!editingItem.item.isLimited}
+                      onChange={(e) => {
+                        const isLim = e.target.checked;
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            isLimited: isLim,
+                            maxQuota: isLim ? (editingItem.item.maxQuota || 50) : 0
+                          }
+                        });
+                      }}
+                    />
+                    <span>🔒 Batasi Kuota Responden / Pengisian Formulir</span>
+                  </label>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px' }}>
+                    {editingItem.item.isLimited
+                      ? 'Aktif: Formulir akan otomatis ditutup bila total data yang mengisi/submit telah mencapai batas kuota maksimal.'
+                      : 'Nonaktif: Formulir terbuka tanpa batasan kuota responden (hanya dibatasi oleh deadline).'}
+                  </span>
+                  {editingItem.item.isLimited && (
+                    <div style={{ marginLeft: '24px', marginTop: '2px', maxWidth: '280px' }}>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                        Maksimal Kuota Responden <span style={{ color: '#f43f5e' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Contoh: 100"
+                        value={editingItem.item.maxQuota || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingItem({
+                            ...editingItem,
+                            item: {
+                              ...editingItem.item,
+                              maxQuota: val === '' ? '' : parseInt(val, 10) || 0
+                            }
+                          });
+                        }}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                  )}
+                </div>
+
                 {/* Custom Field Builder */}
                 <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
@@ -12881,6 +12996,11 @@ export default function AdminPortal({
                       showToast('Batas Akhir / Deadline Pendaftaran wajib ditentukan', 'error');
                       return;
                     }
+                    if (it.isLimited && (!it.maxQuota || parseInt(it.maxQuota, 10) <= 0)) {
+                      setEditModalError('Maksimal kuota responden harus lebih dari 0 jika kuota dibatasi');
+                      showToast('Maksimal kuota responden harus lebih dari 0 jika kuota dibatasi', 'error');
+                      return;
+                    }
                   }
                   if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {
                     setEditModalError('Pengirim, penerima, dan pesan apresiasi wajib diisi');
@@ -13073,7 +13193,15 @@ export default function AdminPortal({
                     if (onUpdateForm) {
                       const cleanFields = fields.map(({ rawOptions, ...rest }) => rest);
                       const cleanDeadline = editingItem.item.deadline ? toDatetimeLocalSecondsValue(editingItem.item.deadline) : '';
-                      onUpdateForm({ ...editingItem.item, deadline: cleanDeadline, fields: cleanFields });
+                      const isLimitedVal = editingItem.item.isLimited === true;
+                      const maxQuotaVal = isLimitedVal ? (parseInt(editingItem.item.maxQuota, 10) || 0) : 0;
+                      onUpdateForm({
+                        ...editingItem.item,
+                        deadline: cleanDeadline,
+                        fields: cleanFields,
+                        isLimited: isLimitedVal,
+                        maxQuota: maxQuotaVal
+                      });
                     }
                   }
                   if (editingItem.type === 'event' && onUpdateEvent) {
