@@ -328,7 +328,7 @@ export default function HomeSection({
                 <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'monospace' }}>
                   {activeMembers.length} Personel
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Inti & Pimpro CNT IT APD {activeTenure?.code ? `(${activeTenure.code})` : ''}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pengurus & Anggota CNT IT APD {activeTenure?.code ? `(${activeTenure.code})` : ''}</div>
               </div>
             )}
 
