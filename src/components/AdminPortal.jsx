@@ -2043,6 +2043,40 @@ export default function AdminPortal({
         });
         const topKudosRecipient = Object.entries(recipientCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Belum ada';
 
+        // Breakdown personel dinamis berdasarkan role yang ada pada periode/tenure ini
+        const currentTenureRoles = (activeTenureId
+          ? getTenureRoles(activeTenureId, roleQuotas, tenureRoles)
+          : (tenures.length > 0 ? getTenureRoles(tenures[0]?.id, roleQuotas, tenureRoles) : [])
+        ).sort((a, b) => (Number(a.level ?? 5) - Number(b.level ?? 5)) || (Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0)));
+
+        const roleCounts = [];
+        if (currentTenureRoles.length > 0) {
+          const accountedMemberIds = new Set();
+          currentTenureRoles.forEach(r => {
+            const matchedMembers = scopedMembers.filter(m => {
+              if (m.roleId && m.roleId === r.id) return true;
+              const matched = findMatchingRole(m, currentTenureRoles);
+              return matched ? matched.id === r.id : (m.role || '').toLowerCase().trim() === r.name.toLowerCase().trim();
+            });
+            matchedMembers.forEach(m => accountedMemberIds.add(m.id));
+            roleCounts.push({ name: r.name, count: matchedMembers.length });
+          });
+
+          const unassigned = scopedMembers.filter(m => !accountedMemberIds.has(m.id));
+          if (unassigned.length > 0) {
+            roleCounts.push({ name: 'Lainnya', count: unassigned.length });
+          }
+        } else {
+          const dynamicMap = {};
+          scopedMembers.forEach(m => {
+            const rName = (m.role || m.title || 'Personel').trim();
+            dynamicMap[rName] = (dynamicMap[rName] || 0) + 1;
+          });
+          Object.entries(dynamicMap).forEach(([name, count]) => {
+            roleCounts.push({ name, count });
+          });
+        }
+
         return (
           <div style={{
             display: 'grid',
@@ -2056,8 +2090,31 @@ export default function AdminPortal({
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', margin: '2px 0' }}>
                 {scopedMembers.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Orang</span>
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {scopedMembers.filter(m => m.category === 'pembina').length} Pembina • {scopedMembers.filter(m => m.category === 'inti').length} BPH • {scopedMembers.filter(m => m.category === 'pimpro').length} Pimpro • {scopedMembers.filter(m => m.category === 'anggota').length} Squad
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.45,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '2px 6px',
+                  alignItems: 'center'
+                }}
+              >
+                {roleCounts.length > 0 ? (
+                  roleCounts.map((rc, idx) => (
+                    <span key={idx} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <span>
+                        <strong style={{ color: isDark ? '#f8fafc' : '#1e293b' }}>{rc.count}</strong> {rc.name}
+                      </span>
+                      {idx < roleCounts.length - 1 && (
+                        <span style={{ margin: '0 4px', opacity: 0.5 }}>•</span>
+                      )}
+                    </span>
+                  ))
+                ) : (
+                  <span>Belum ada role di periode ini</span>
+                )}
               </div>
             </div>
 
