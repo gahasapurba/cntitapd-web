@@ -14,6 +14,8 @@ import {
   Search,
   Filter,
   Download,
+  Share2,
+  Loader2,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -66,6 +68,8 @@ export default function KudosSection({
   const [aspirasiSearchQuery, setAspirasiSearchQuery] = useState('');
   const [aspirasiCategoryFilter, setAspirasiCategoryFilter] = useState('all');
   const [aspirasiStatusFilter, setAspirasiStatusFilter] = useState('all');
+  const [previewCardModal, setPreviewCardModal] = useState(null);
+  const [downloadingKudosId, setDownloadingKudosId] = useState(null);
 
   const handleToggleLike = (kudosItem) => {
     const kudosId = kudosItem.id;
@@ -83,14 +87,20 @@ export default function KudosSection({
     }
   };
 
-  // HTML5 Canvas Generator for Shareable PNG Kudos Certificate Card
-  const handleDownloadKudosCard = (kudosItem) => {
+  // HTML5 Canvas Generator for Shareable PNG Kudos Certificate Card (Universal Mobile & Desktop Support)
+  const handleDownloadKudosCard = async (kudosItem) => {
+    if (!kudosItem) return;
+    setDownloadingKudosId(kudosItem.id);
+
     try {
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 680;
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        setDownloadingKudosId(null);
+        return;
+      }
 
       // 1. Background Gradient (Mandiri Cosmic Navy)
       const bgGrad = ctx.createLinearGradient(0, 0, 1080, 680);
@@ -175,19 +185,72 @@ export default function KudosSection({
       ctx.textAlign = 'right';
       ctx.fillText('Direktorat IT • Bank Mandiri', 1004, 598);
 
-      // 9. Trigger Download
+      // 9. Generate High-Res Image & Trigger Multi-Tier Download / Share
       const dataUrl = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
       const safeRecipient = String(kudosItem.recipient || 'apd')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .slice(0, 28);
-      a.href = dataUrl;
-      a.download = `kudos-cnt-apd-${safeRecipient}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (e) { }
+      const fileName = `kudos-cnt-apd-${safeRecipient}.png`;
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setPreviewCardModal({ dataUrl, blob: null, fileName, kudosItem });
+          setDownloadingKudosId(null);
+          return;
+        }
+
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+
+        // Tier 1: Coba Web Share API jika didukung oleh browser mobile
+        if (typeof navigator !== 'undefined' && navigator.canShare) {
+          try {
+            const file = new File([blob], fileName, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: `Kartu Kudos: ${kudosItem.recipient}`,
+                text: `Apresiasi Kudos untuk ${kudosItem.recipient} dari ${kudosItem.sender} (CNT IT APD)`
+              });
+              setDownloadingKudosId(null);
+              return;
+            }
+          } catch (shareErr) {
+            if (shareErr && shareErr.name === 'AbortError') {
+              setDownloadingKudosId(null);
+              return;
+            }
+          }
+        }
+
+        // Tier 2: Pada Mobile yang tidak mendukung share file, langsung buka Preview Modal
+        if (isMobile) {
+          setPreviewCardModal({ dataUrl, blob, fileName, kudosItem });
+          setDownloadingKudosId(null);
+          return;
+        }
+
+        // Tier 3: Pada Desktop, download langsung via Blob URL
+        try {
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = fileName;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+          }, 3000);
+        } catch (downloadErr) {
+          setPreviewCardModal({ dataUrl, blob, fileName, kudosItem });
+        }
+        setDownloadingKudosId(null);
+      }, 'image/png');
+    } catch (e) {
+      setDownloadingKudosId(null);
+    }
   };
 
   const validateKudos = () => {
@@ -809,7 +872,8 @@ export default function KudosSection({
                               <button
                                 type="button"
                                 onClick={() => handleDownloadKudosCard(kudos)}
-                                title="Unduh kartu ucapan Kudos beresolusi tinggi (PNG) untuk dibagikan ke WhatsApp / Teams"
+                                disabled={downloadingKudosId === kudos.id}
+                                title="Unduh atau bagikan kartu ucapan Kudos (PNG) ke WhatsApp / Teams"
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -819,13 +883,24 @@ export default function KudosSection({
                                   color: 'var(--mandiri-gold)',
                                   padding: '4px 11px',
                                   borderRadius: 'var(--radius-full)',
-                                  cursor: 'pointer',
+                                  cursor: downloadingKudosId === kudos.id ? 'wait' : 'pointer',
                                   fontSize: '0.72rem',
-                                  fontWeight: 800
+                                  fontWeight: 800,
+                                  opacity: downloadingKudosId === kudos.id ? 0.7 : 1,
+                                  transition: 'all 0.15s ease'
                                 }}
                               >
-                                <Download size={12} />
-                                <span>Unduh Kartu (PNG)</span>
+                                {downloadingKudosId === kudos.id ? (
+                                  <>
+                                    <Loader2 size={12} className="spin" />
+                                    <span>Menyiapkan...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download size={12} />
+                                    <span>Unduh Kartu (PNG)</span>
+                                  </>
+                                )}
                               </button>
 
                               <button
@@ -1697,6 +1772,197 @@ export default function KudosSection({
                 }}
               >
                 {isSubmittingAspirasi ? 'Mengirim...' : 'Ya, Kirim Aspirasi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PREVIEW & SIMPAN KARTU KUDOS (OPTIMAL DI MOBILE & DESKTOP) */}
+      {previewCardModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div className="glass-panel modal-container" style={{
+            maxWidth: '560px',
+            width: '100%',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            padding: '20px',
+            border: '1.5px solid var(--mandiri-gold)',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={18} color="var(--mandiri-gold)" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  Kartu Apresiasi Kudos
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewCardModal(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Gambar Kartu Kudos */}
+            <div style={{ width: '100%', textAlign: 'center' }}>
+              <img
+                src={previewCardModal.dataUrl}
+                alt="Kartu Kudos CNT IT APD"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '10px',
+                  border: '1.5px solid rgba(255, 184, 0, 0.4)',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+                  display: 'block'
+                }}
+              />
+            </div>
+
+            {/* Petunjuk Praktis Khusus Pengguna HP */}
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              borderRadius: 'var(--radius-md)',
+              padding: '12px 14px',
+              fontSize: '0.78rem',
+              color: 'var(--text-main)',
+              lineHeight: 1.55
+            }}>
+              <strong style={{ color: 'var(--neon-cyan)', display: 'block', marginBottom: '4px' }}>
+                📱 Cara Menyimpan di HP / iPhone:
+              </strong>
+              <span>
+                <strong>Tekan dan tahan (tahan jari)</strong> pada gambar kartu di atas, lalu pilih <strong>"Simpan Gambar" (Save to Photos)</strong> atau <strong>"Salin"</strong> untuk dikirim langsung ke WhatsApp / Teams.
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: '4px' }}>
+              {/* Tombol Bagikan Native jika didukung */}
+              {typeof navigator !== 'undefined' && navigator.share && previewCardModal.blob && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const file = new File([previewCardModal.blob], previewCardModal.fileName, { type: 'image/png' });
+                      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                          files: [file],
+                          title: `Kartu Kudos: ${previewCardModal.kudosItem.recipient}`,
+                          text: `Apresiasi Kudos untuk ${previewCardModal.kudosItem.recipient} dari ${previewCardModal.kudosItem.sender} (CNT IT APD)`
+                        });
+                      } else {
+                        await navigator.share({
+                          title: `Kartu Kudos: ${previewCardModal.kudosItem.recipient}`,
+                          text: `Apresiasi Kudos untuk ${previewCardModal.kudosItem.recipient} dari ${previewCardModal.kudosItem.sender} (CNT IT APD)`
+                        });
+                      }
+                    } catch (e) {}
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '10px 16px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Share2 size={15} />
+                  <span>Bagikan via HP</span>
+                </button>
+              )}
+
+              {/* Tombol Unduh File Langsung */}
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    const blob = previewCardModal.blob;
+                    const url = blob ? URL.createObjectURL(blob) : previewCardModal.dataUrl;
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = previewCardModal.fileName;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                      document.body.removeChild(a);
+                      if (blob) URL.revokeObjectURL(url);
+                    }, 2000);
+                  } catch (e) {}
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '10px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  color: '#040914',
+                  border: 'none',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <Download size={15} />
+                <span>Unduh File (PNG)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreviewCardModal(null)}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  color: 'var(--text-main)',
+                  border: '1px solid var(--border-card)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Tutup
               </button>
             </div>
           </div>
