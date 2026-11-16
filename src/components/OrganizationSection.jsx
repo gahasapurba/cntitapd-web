@@ -178,7 +178,7 @@ export default function OrganizationSection({
   };
 
   return (
-    <div className="org-section-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '60px', paddingBottom: '80px', position: 'relative', zIndex: 10 }}>
+    <div className="org-section-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '60px', paddingTop: '48px', paddingBottom: '80px', position: 'relative', zIndex: 10 }}>
       
       {/* Section Header */}
       <div style={{ textAlign: 'center', maxWidth: '780px', margin: '0 auto', padding: '0 8px' }}>

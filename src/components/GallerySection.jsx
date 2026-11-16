@@ -182,7 +182,7 @@ export default function GallerySection({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingBottom: '80px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', paddingTop: '48px', paddingBottom: '80px' }}>
       
       {/* Header */}
       <div style={{ textAlign: 'center', maxWidth: '740px', margin: '0 auto' }}>

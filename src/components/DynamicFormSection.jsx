@@ -371,7 +371,7 @@ export default function DynamicFormSection({
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '48px', paddingBottom: '80px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '48px', paddingTop: '48px', paddingBottom: '80px' }}>
       
       {/* 1. Header Hub */}
       <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>

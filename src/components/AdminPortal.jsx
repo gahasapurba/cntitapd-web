@@ -1751,7 +1751,7 @@ export default function AdminPortal({
 
   // IF AUTHENTICATED: SHOW ADMIN DASHBOARD
   return (
-    <div className="admin-portal-wrapper" style={{ maxWidth: '1000px', margin: '20px auto 80px auto', display: 'flex', flexDirection: 'column', gap: '28px', position: 'relative' }}>
+    <div className="admin-portal-wrapper" style={{ maxWidth: '1000px', margin: '0 auto 80px auto', paddingTop: '36px', display: 'flex', flexDirection: 'column', gap: '28px', position: 'relative' }}>
       {/* Floating Toast Notification Banner */}
       {toast && (
         <div
