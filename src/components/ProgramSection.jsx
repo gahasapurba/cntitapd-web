@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { formatWibEventRange, isEventPassed } from '../utils/dateUtils';
 import { getPublicBaseUrl } from '../utils/urlUtils';
+import { getUnifiedEventAttendees } from '../utils/quotaUtils';
 
 // Helper to determine optimal high-contrast text color (black vs white) on dynamic colored badges
 function getBadgeTextColor(bgColor) {
@@ -77,7 +78,8 @@ export default function ProgramSection({
   onNavigateForm,
   onNavigateEventStats,
   galleries = [],
-  onNavigateGallery
+  onNavigateGallery,
+  submissions = []
 }) {
   const isDark = theme === 'dark';
   const [filterDiv, setFilterDiv] = useState('all');
@@ -699,24 +701,39 @@ export default function ProgramSection({
                       <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Peserta: {evt.peserta || evt.kpi}</span>
                     </div>
                     {(() => {
-                      const count = eventRsvps.filter(r => r.eventId === evt.id).length;
-                      const isLimited = Boolean(evt.isLimited);
-                      const maxQ = Number(evt.maxQuota || 0);
-                      const isFull = isLimited && maxQ > 0 && count >= maxQ;
+                      const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
+                      const isLimited = attendeeInfo.isLimited;
+                      const maxQ = attendeeInfo.maxQuota;
+                      const count = attendeeInfo.count;
+                      const isFull = attendeeInfo.isFull;
 
                       if (isLimited && maxQ > 0) {
                         const quotaColor = isFull ? (isDark ? '#f43f5e' : '#be123c') : (isDark ? 'var(--mandiri-gold)' : '#b45309');
                         return (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: quotaColor, fontWeight: 800 }}>
                             <Users size={15} color={quotaColor} />
-                            <span>Kuota: {count}/{maxQ} {isFull ? '• (Penuh)' : `• (Sisa ${Math.max(0, maxQ - count)})`}</span>
+                            <span>
+                              Kuota: {count}/{maxQ} {isFull ? '• (Penuh)' : `• (Sisa ${Math.max(0, maxQ - count)})`}
+                              {attendeeInfo.isConnected && attendeeInfo.rsvpCount > 0 && (
+                                <span style={{ fontSize: '0.68rem', opacity: 0.85, marginLeft: '4px' }}>
+                                  ({attendeeInfo.formSubCount} Form + {attendeeInfo.rsvpCount} RSVP)
+                                </span>
+                              )}
+                            </span>
                           </div>
                         );
                       }
                       return count > 0 ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isDark ? 'var(--neon-cyan)' : '#0284c7', fontWeight: 700 }}>
                           <Users size={15} color={isDark ? 'var(--neon-cyan)' : '#0284c7'} />
-                          <span>{count} Insan IT APD telah konfirmasi hadir (RSVP)</span>
+                          <span>
+                            {count} Insan IT APD telah terdaftar
+                            {attendeeInfo.isConnected && attendeeInfo.rsvpCount > 0 && (
+                              <span style={{ fontSize: '0.68rem', opacity: 0.85, marginLeft: '4px' }}>
+                                ({attendeeInfo.formSubCount} Form + {attendeeInfo.rsvpCount} RSVP)
+                              </span>
+                            )}
+                          </span>
                         </div>
                       ) : null;
                     })()}
@@ -1808,6 +1825,9 @@ export default function ProgramSection({
                 });
 
                 if (connectedForm) {
+                  const attendeeInfo = getUnifiedEventAttendees(rsvpModalEvent, forms, eventRsvps, submissions);
+                  const isQuotaFull = attendeeInfo.isFull;
+
                   return (
                     <div style={{
                       padding: '20px',
@@ -1855,12 +1875,41 @@ export default function ProgramSection({
                             {connectedForm.subtitle}
                           </div>
                         )}
-                        {connectedForm.deadline && (
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px' }}>
-                            ⏳ Batas Akhir: {formatDeadlineWib(connectedForm.deadline)}
-                          </div>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
+                          {connectedForm.deadline && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                              ⏳ Batas Akhir: {formatDeadlineWib(connectedForm.deadline)}
+                            </div>
+                          )}
+                          {attendeeInfo.isLimited && attendeeInfo.maxQuota > 0 && (
+                            <div style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              color: isQuotaFull ? '#f43f5e' : 'var(--mandiri-gold)'
+                            }}>
+                              👥 Kuota Acara: {attendeeInfo.count}/{attendeeInfo.maxQuota} {isQuotaFull ? '(Penuh)' : `(Sisa ${attendeeInfo.remaining})`}
+                            </div>
+                          )}
+                        </div>
                       </div>
+
+                      {isQuotaFull && (
+                        <div style={{
+                          padding: '12px 16px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fff1f2',
+                          border: isDark ? '1.5px solid rgba(244, 63, 94, 0.4)' : '1.5px solid #fecdd3',
+                          color: isDark ? '#f43f5e' : '#be123c',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <Lock size={16} />
+                          <span>Pendaftaran Acara Telah Ditutup (Kuota Penuh: {attendeeInfo.count}/{attendeeInfo.maxQuota} peserta terdaftar).</span>
+                        </div>
+                      )}
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <button
@@ -1881,18 +1930,18 @@ export default function ProgramSection({
                             gap: '8px',
                             padding: '12px 18px',
                             borderRadius: 'var(--radius-full)',
-                            background: 'linear-gradient(135deg, var(--mandiri-gold) 0%, #d99b00 100%)',
-                            color: '#0b132b',
+                            background: isQuotaFull ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, var(--mandiri-gold) 0%, #d99b00 100%)',
+                            color: isQuotaFull ? 'var(--text-muted)' : '#0b132b',
                             fontWeight: 800,
                             fontSize: '0.88rem',
-                            border: 'none',
+                            border: isQuotaFull ? '1px solid var(--border-card)' : 'none',
                             cursor: 'pointer',
-                            boxShadow: '0 4px 14px rgba(255, 184, 0, 0.35)',
+                            boxShadow: isQuotaFull ? 'none' : '0 4px 14px rgba(255, 184, 0, 0.35)',
                             transition: 'all 0.2s ease'
                           }}
                         >
-                          <ExternalLink size={16} />
-                          <span>Buka Formulir Pendaftaran Acara</span>
+                          {isQuotaFull ? <Lock size={16} /> : <ExternalLink size={16} />}
+                          <span>{isQuotaFull ? 'Buka Formulir Pendaftaran (Kuota Penuh)' : 'Buka Formulir Pendaftaran Acara'}</span>
                         </button>
 
                         <button
@@ -1927,21 +1976,20 @@ export default function ProgramSection({
                         </button>
                       </div>
 
-                      {currentEventRsvps.length > 0 && (
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px dashed var(--border-card)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '10px 12px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px'
-                        }}>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            ℹ️ <strong>Catatan Data:</strong> Terdapat <strong>{currentEventRsvps.length} RSVP awal</strong> yang tersimpan sebelum formulir dihubungkan. Data tetap aman dan dapat diikutkan pada undian.
-                          </div>
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px dashed var(--border-card)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          ℹ️ <strong>Sinkronisasi Kuota Terpadu:</strong> Terdaftar <strong>{attendeeInfo.formSubCount} peserta via Formulir</strong>
+                          {attendeeInfo.rsvpCount > 0 ? ` dan ${attendeeInfo.rsvpCount} RSVP awal bawaan.` : '.'} Total terdaftar saat ini: <strong>{attendeeInfo.count} peserta</strong>.
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 }

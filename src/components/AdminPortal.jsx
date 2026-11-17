@@ -49,6 +49,7 @@ import {
 import { uploadMediaToCloud } from '../lib/supabase';
 import { soundFx } from '../utils/audio';
 import { getPublicBaseUrl } from '../utils/urlUtils';
+import { getUnifiedEventAttendees } from '../utils/quotaUtils';
 import { 
   parseDateToIso, 
   formatToIndonesianDate, 
@@ -4564,7 +4565,7 @@ export default function AdminPortal({
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
                     {paginatedAdminEvents.map((evt) => {
                       const divObj = divisions.find(d => d.id === evt.divisionId);
-                      const relatedRsvps = (eventRsvps || []).filter(r => r.eventId === evt.id);
+                      const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
 
                       return (
                         <div
@@ -4611,12 +4612,17 @@ export default function AdminPortal({
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
                               <span style={{
-                                color: (evt.isLimited && relatedRsvps.length >= Number(evt.maxQuota || 0))
+                                color: (evt.isLimited && attendeeInfo.isFull)
                                   ? (isDark ? '#f43f5e' : '#be123c')
                                   : (isDark ? 'var(--neon-cyan)' : '#0284c7'),
                                 fontWeight: 700
                               }}>
-                                👥 RSVP: {relatedRsvps.length}{evt.isLimited && Number(evt.maxQuota) > 0 ? ` / ${evt.maxQuota} ${relatedRsvps.length >= Number(evt.maxQuota) ? '(Penuh)' : '(Terbatas)'}` : ' (Bebas)'}
+                                👥 {attendeeInfo.isConnected ? 'Peserta (Form & RSVP)' : 'RSVP'}: {attendeeInfo.count}{evt.isLimited && Number(evt.maxQuota) > 0 ? ` / ${evt.maxQuota} ${attendeeInfo.isFull ? '(Penuh)' : '(Terbatas)'}` : ' (Bebas)'}
+                                {attendeeInfo.isConnected && attendeeInfo.rsvpCount > 0 && (
+                                  <span style={{ fontSize: '0.66rem', opacity: 0.85, marginLeft: '4px' }}>
+                                    ({attendeeInfo.formSubCount} Form + {attendeeInfo.rsvpCount} RSVP)
+                                  </span>
+                                )}
                               </span>
                               <button
                                 type="button"

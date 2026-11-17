@@ -28,12 +28,14 @@ import { uploadMediaToCloud } from '../lib/supabase';
 import { getDeadlineStatus, formatDeadlineWib, formatWibDateTime, formatWibTimestamp } from '../utils/dateUtils';
 import { generateFormQrPoster } from '../utils/qrPosterGenerator';
 import { getPublicBaseUrl } from '../utils/urlUtils';
+import { getUnifiedFormQuota } from '../utils/quotaUtils';
 
 export default function DynamicFormSection({ 
   forms = [], 
   divisions = [], 
   departments = [],
   events = [], 
+  eventRsvps = [],
   submissions = [],
   onSubmitSubmission, 
   theme,
@@ -270,9 +272,9 @@ export default function DynamicFormSection({
       alert('Batas waktu pendaftaran formulir ini telah berakhir.');
       return;
     }
-    const currentSubs = submissions.filter(s => s.formId === currentForm?.id);
-    if (currentForm?.isLimited && currentForm.maxQuota > 0 && currentSubs.length >= currentForm.maxQuota) {
-      alert('Maaf, pendaftaran formulir ini telah ditutup karena kuota responden telah terpenuhi.');
+    const formQuota = getUnifiedFormQuota(currentForm, events, forms, eventRsvps, submissions);
+    if (formQuota.isFull) {
+      alert(`Maaf, pendaftaran formulir ini telah ditutup karena kuota ${formQuota.isConnected ? 'acara (' + formQuota.connectedEvent?.title + ')' : 'pendaftaran'} telah terpenuhi (${formQuota.count}/${formQuota.maxQuota} peserta).`);
       return;
     }
     if (!validate()) return;
@@ -281,10 +283,10 @@ export default function DynamicFormSection({
 
   const handleConfirmSubmit = async () => {
     if (isSubmitting) return;
-    const currentSubs = submissions.filter(s => s.formId === currentForm?.id);
-    if (currentForm?.isLimited && currentForm.maxQuota > 0 && currentSubs.length >= currentForm.maxQuota) {
+    const formQuota = getUnifiedFormQuota(currentForm, events, forms, eventRsvps, submissions);
+    if (formQuota.isFull) {
       setIsConfirmOpen(false);
-      alert('Maaf, pendaftaran formulir ini telah ditutup karena kuota responden telah terpenuhi.');
+      alert(`Maaf, pendaftaran formulir ini telah ditutup karena kuota ${formQuota.isConnected ? 'acara (' + formQuota.connectedEvent?.title + ')' : 'pendaftaran'} telah terpenuhi (${formQuota.count}/${formQuota.maxQuota} peserta).`);
       return;
     }
 
@@ -612,9 +614,10 @@ export default function DynamicFormSection({
                       <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
                         {f.category || 'Formulir'}
                       </span>
-                      {f.isLimited && (() => {
-                        const fSubs = submissions.filter(s => s.formId === f.id);
-                        const isFull = f.maxQuota > 0 && fSubs.length >= f.maxQuota;
+                      {(() => {
+                        const formQuota = getUnifiedFormQuota(f, events, forms, eventRsvps, submissions);
+                        if (!formQuota.isLimited || formQuota.maxQuota <= 0) return null;
+                        const isFull = formQuota.isFull;
                         return (
                           <span style={{
                             fontSize: '0.66rem',
@@ -631,7 +634,10 @@ export default function DynamicFormSection({
                               ? (isDark ? 'rgba(244, 63, 94, 0.4)' : '#fca5a5')
                               : (isDark ? 'rgba(6, 182, 212, 0.4)' : '#7dd3fc')}`
                           }}>
-                            {isFull ? `🔒 Kuota Penuh (${fSubs.length}/${f.maxQuota})` : `👥 ${fSubs.length}/${f.maxQuota} Terisi`}
+                            {isFull
+                              ? `🔒 ${formQuota.isConnected ? 'Kuota Acara Penuh' : 'Kuota Penuh'} (${formQuota.count}/${formQuota.maxQuota})`
+                              : `👥 ${formQuota.isConnected ? 'Acara' : 'Kuota'}: ${formQuota.count}/${formQuota.maxQuota} Terisi`
+                            }
                           </span>
                         );
                       })()}
@@ -900,8 +906,8 @@ export default function DynamicFormSection({
                   </p>
                   {(() => {
                     const dl = getDeadlineStatus(currentForm.deadline);
-                    const currentFormSubs = submissions.filter(s => s.formId === currentForm.id);
-                    const isCurrentQuotaFull = currentForm.isLimited && currentForm.maxQuota > 0 && currentFormSubs.length >= currentForm.maxQuota;
+                    const formQuota = getUnifiedFormQuota(currentForm, events, forms, eventRsvps, submissions);
+                    const isCurrentQuotaFull = formQuota.isFull;
 
                     return (
                       <>
@@ -909,7 +915,7 @@ export default function DynamicFormSection({
                           <span style={{ fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
                             📅 Batas Akhir: {formatDeadlineWib(currentForm.deadline)}
                           </span>
-                          {currentForm.isLimited && (
+                          {formQuota.isLimited && formQuota.maxQuota > 0 && (
                             <span style={{
                               fontSize: '0.74rem',
                               fontWeight: 700,
@@ -925,7 +931,13 @@ export default function DynamicFormSection({
                                 ? (isDark ? 'rgba(244, 63, 94, 0.4)' : '#fca5a5')
                                 : (isDark ? 'rgba(6, 182, 212, 0.4)' : '#7dd3fc')}`
                             }}>
-                              👥 Kuota Pendaftaran: {currentFormSubs.length} / {currentForm.maxQuota} {isCurrentQuotaFull ? '(Kuota Penuh)' : 'Terisi'}
+                              👥 {formQuota.isConnected ? '🎪 Kuota Acara: ' : 'Kuota Pendaftaran: '}
+                              {formQuota.count} / {formQuota.maxQuota} {isCurrentQuotaFull ? '(Kuota Penuh)' : `(Sisa ${formQuota.remaining})`}
+                              {formQuota.isConnected && formQuota.initialRsvpCount > 0 && (
+                                <span style={{ opacity: 0.85, fontSize: '0.68rem', marginLeft: '4px' }}>
+                                  ({formQuota.formSubCount} Form + {formQuota.initialRsvpCount} RSVP)
+                                </span>
+                              )}
                             </span>
                           )}
                           {dl.isToday && (
@@ -958,7 +970,12 @@ export default function DynamicFormSection({
                             lineHeight: 1.5
                           }}>
                             <AlertCircle size={18} style={{ flexShrink: 0 }} />
-                            <span>Pendaftaran Formulir Telah Ditutup (Kuota Penuh). Kuota maksimal ({currentFormSubs.length}/{currentForm.maxQuota} responden) telah terpenuhi. Formulir ini sudah tidak menerima tanggapan baru.</span>
+                            <span>
+                              {formQuota.isConnected
+                                ? `Mohon maaf, kuota pendaftaran untuk kegiatan "${formQuota.connectedEvent?.title}" telah penuh (${formQuota.count}/${formQuota.maxQuota} peserta). Pendaftaran formulir resmi telah ditutup.`
+                                : `Mohon maaf, kuota pendaftaran formulir ini telah penuh (${formQuota.count}/${formQuota.maxQuota} responden). Pendaftaran telah resmi ditutup.`
+                              }
+                            </span>
                           </div>
                         )}
 
@@ -1319,8 +1336,8 @@ export default function DynamicFormSection({
                       <span>Pendaftaran Ditutup (Batas Waktu Berakhir)</span>
                     </div>
                   ) : (() => {
-                    const currentSubs = submissions.filter(s => s.formId === currentForm.id);
-                    const isQuotaFull = currentForm.isLimited && currentForm.maxQuota > 0 && currentSubs.length >= currentForm.maxQuota;
+                    const formQuota = getUnifiedFormQuota(currentForm, events, forms, eventRsvps, submissions);
+                    const isQuotaFull = formQuota.isFull;
                     if (isQuotaFull) {
                       return (
                         <div
@@ -1341,7 +1358,7 @@ export default function DynamicFormSection({
                           }}
                         >
                           <AlertCircle size={18} color={isDark ? '#f43f5e' : '#be123c'} />
-                          <span>Pendaftaran Ditutup (Kuota Penuh: {currentSubs.length}/{currentForm.maxQuota})</span>
+                          <span>Pendaftaran Ditutup ({formQuota.isConnected ? 'Kuota Acara Penuh' : 'Kuota Penuh'}: {formQuota.count}/{formQuota.maxQuota})</span>
                         </div>
                       );
                     }

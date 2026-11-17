@@ -1475,6 +1475,7 @@ export default function App() {
               onNavigateEventStats={(eId) => setCurrentTab('event-stats', null, eId)}
               galleries={galleries}
               onNavigateGallery={(gId) => setCurrentTab('galeri', null, null, true, gId)}
+              submissions={submissions}
             />
           )}
 
@@ -1533,6 +1534,7 @@ export default function App() {
               divisions={divisions}
               departments={departments}
               events={events}
+              eventRsvps={eventRsvps}
               submissions={submissions}
               onSubmitSubmission={handleSubmitSubmission}
               theme={theme}
