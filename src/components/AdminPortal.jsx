@@ -490,7 +490,7 @@ export default function AdminPortal({
     });
   };
 
-  // Helper to initiate event deletion with RSVP, Form, Submission, and Lucky Draw dependency checks
+  // Helper to initiate event deletion with RSVP, Form, Submission, Lucky Draw, and Gallery dependency checks
   const handleDeleteEventClick = (evt) => {
     const relatedRsvps = (eventRsvps || []).filter(r => r.eventId === evt.id);
     const rsvpCount = relatedRsvps.length;
@@ -508,7 +508,11 @@ export default function AdminPortal({
     const relatedLuckyDraws = (luckyDraws || []).filter(ld => ld.eventId === evt.id);
     const luckyDrawCount = relatedLuckyDraws.length;
 
-    const isBlocked = rsvpCount > 0 || formCount > 0 || formSubCount > 0 || luckyDrawCount > 0;
+    // Check connected gallery albums
+    const connectedGals = (galleries || []).filter(g => g.eventId === evt.id);
+    const galCount = connectedGals.length;
+
+    const isBlocked = rsvpCount > 0 || formCount > 0 || formSubCount > 0 || luckyDrawCount > 0 || galCount > 0;
 
     setDeleteConfirm({
       type: 'event',
@@ -518,7 +522,9 @@ export default function AdminPortal({
       formCount,
       formSubCount,
       luckyDrawCount,
+      galCount,
       connectedFormNames: connectedForms.map(f => f.title).join(', '),
+      connectedGalTitles: connectedGals.map(g => g.title).join(', '),
       isBlocked
     });
   };
@@ -563,6 +569,7 @@ export default function AdminPortal({
   const [galYear, setGalYear] = useState(String(new Date().getFullYear()));
   const [galDivisionId, setGalDivisionId] = useState('');
   const [galDivision, setGalDivision] = useState('');
+  const [galEventId, setGalEventId] = useState('');
   const [galTenureId, setGalTenureId] = useState(activeTenure?.id || '');
   const [galDesc, setGalDesc] = useState('');
   const [galPhotos, setGalPhotos] = useState('');
@@ -1520,6 +1527,7 @@ export default function AdminPortal({
       divisionId: selectedDiv ? selectedDiv.id : (galDivisionId || ''),
       division: selectedDiv ? selectedDiv.name : galDivision,
       divisionName: selectedDiv ? selectedDiv.name : galDivision,
+      eventId: galEventId || null,
       title: galTitle,
       date: finalGalDate,
       description: galDesc,
@@ -1540,6 +1548,7 @@ export default function AdminPortal({
     setGalMonth(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
     setGalYear(String(new Date().getFullYear()));
     setGalDivisionId('');
+    setGalEventId('');
     setGalDesc('');
     setGalPhotos('');
     setUploadedPhotos([]);
@@ -5469,6 +5478,37 @@ export default function AdminPortal({
               );
             })()}
 
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                🔗 Hubungkan ke Program / Acara (Opsional)
+              </label>
+              <select
+                value={galEventId}
+                onChange={(e) => setGalEventId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <option value="">-- Tidak Terhubung ke Acara Tertentu --</option>
+                {(events || [])
+                  .filter(ev => !galTenureId || ev.tenureId === galTenureId)
+                  .map(ev => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.title} ({ev.date || 'Tanpa Tanggal'})
+                    </option>
+                  ))}
+              </select>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginTop: '4px' }}>
+                Jika dipilih, album dokumentasi ini akan terhubung langsung ke halaman acara tersebut di Program Kerja.
+              </span>
+            </div>
+
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Deskripsi Singkat Acara <span style={{ color: '#f43f5e' }}>*</span>
@@ -5873,6 +5913,14 @@ export default function AdminPortal({
                             return `${formatWibDateTime(gal.date)} • ${displayDiv} • ${gal.photos?.length || 0} Foto`;
                           })()}
                         </div>
+                        {gal.eventId && (() => {
+                          const connectedEvt = (events || []).find(e => String(e.id) === String(gal.eventId));
+                          return (
+                            <div style={{ fontSize: '0.74rem', color: 'var(--neon-cyan)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>🔗 Acara: <strong>{connectedEvt?.title || gal.eventId}</strong></span>
+                            </div>
+                          );
+                        })()}
                         {gal.updatedAt && (
                           <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '2px' }}>
                             {formatLastUpdatedWib(gal.updatedAt)}
@@ -11391,6 +11439,38 @@ export default function AdminPortal({
                       );
                     })()}
                   </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      🔗 Hubungkan ke Program / Acara (Opsional)
+                    </label>
+                    {(() => {
+                      const editGalTenure = editingItem.item.tenureId || activeTenure?.id || '';
+                      const availableEvents = (events || []).filter(ev => !editGalTenure || ev.tenureId === editGalTenure);
+                      return (
+                        <select
+                          value={editingItem.item.eventId || ''}
+                          onChange={(e) => {
+                            setEditingItem({
+                              ...editingItem,
+                              item: {
+                                ...editingItem.item,
+                                eventId: e.target.value || null
+                              }
+                            });
+                          }}
+                          style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
+                        >
+                          <option value="">-- Tidak Terhubung ke Acara Tertentu --</option>
+                          {availableEvents.map(ev => (
+                            <option key={ev.id} value={ev.id}>
+                              {ev.title} ({ev.date || 'Tanpa Tanggal'})
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })()}
+                  </div>
                 </div>
 
                 <div>
@@ -14738,6 +14818,26 @@ export default function AdminPortal({
                         </div>
                       </div>
                     )}
+
+                    {deleteConfirm.galCount > 0 && (
+                      <div style={{
+                        background: 'rgba(59, 130, 246, 0.12)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <Camera size={18} color="#60a5fa" />
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Dokumentasi Galeri Terhubung</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#60a5fa' }}>
+                            {deleteConfirm.galCount} Album: {deleteConfirm.connectedGalTitles}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{
@@ -14750,7 +14850,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    💡 <strong>Petunjuk:</strong> Harap putuskan koneksi form ke event ini melalui tab Formulir, atau bersihkan riwayat RSVP dan hasil undian doorprize terlebih dahulu demi menjaga konsistensi database.
+                    💡 <strong>Petunjuk:</strong> Harap putuskan koneksi form/galeri ke event ini, atau bersihkan riwayat RSVP dan hasil undian doorprize terlebih dahulu demi menjaga konsistensi database.
                   </div>
                 </>
               ) : (
@@ -14768,7 +14868,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    ✓ <strong>Aman Dihapus:</strong> Event ini tidak memiliki riwayat RSVP, formulir terhubung, maupun pemenang undian.
+                    ✓ <strong>Aman Dihapus:</strong> Event ini tidak memiliki riwayat RSVP, formulir terhubung, dokumentasi galeri, maupun pemenang undian.
                   </div>
                 </>
               )

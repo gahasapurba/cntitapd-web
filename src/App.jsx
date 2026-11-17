@@ -1473,6 +1473,8 @@ export default function App() {
               forms={forms}
               onNavigateForm={(fId) => setCurrentTab('form', fId)}
               onNavigateEventStats={(eId) => setCurrentTab('event-stats', null, eId)}
+              galleries={galleries}
+              onNavigateGallery={(gId) => setCurrentTab('galeri', null, null, true, gId)}
             />
           )}
 
@@ -1497,11 +1499,13 @@ export default function App() {
             <GallerySection
               galleries={galleries}
               divisions={divisions}
+              events={events}
               activeTenure={activeTenure}
               tenures={tenures}
               theme={theme}
               initialGalleryId={activeGalleryIdFromUrl}
               onSelectGalleryUrl={(gId) => setCurrentTab('galeri', null, null, false, gId)}
+              onNavigateEvent={(eId) => setCurrentTab('event', null, eId)}
             />
           )}
 

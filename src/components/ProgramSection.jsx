@@ -25,7 +25,8 @@ import {
   Lock,
   CalendarX,
   BarChart3,
-  FileText
+  FileText,
+  Camera
 } from 'lucide-react';
 import { formatWibEventRange, isEventPassed } from '../utils/dateUtils';
 
@@ -73,7 +74,9 @@ export default function ProgramSection({
   tenures = [],
   forms = [],
   onNavigateForm,
-  onNavigateEventStats
+  onNavigateEventStats,
+  galleries = [],
+  onNavigateGallery
 }) {
   const isDark = theme === 'dark';
   const [filterDiv, setFilterDiv] = useState('all');
@@ -719,6 +722,39 @@ export default function ProgramSection({
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    {(() => {
+                      const linkedGal = (galleries || []).find(g => String(g.eventId) === String(evt.id));
+                      if (!linkedGal) return null;
+                      return (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onNavigateGallery) {
+                              onNavigateGallery(linkedGal.id);
+                            } else {
+                              window.location.href = `/?galeri=${encodeURIComponent(linkedGal.id)}#galeri`;
+                            }
+                          }}
+                          title={`Lihat Galeri Foto: ${linkedGal.title}`}
+                          style={{
+                            padding: '11px 13px',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'rgba(168, 85, 247, 0.12)',
+                            border: '1.5px solid rgba(168, 85, 247, 0.45)',
+                            color: '#c084fc',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0
+                          }}
+                        >
+                          <Camera size={16} />
+                        </button>
+                      );
+                    })()}
                     <button
                       className="btn-rsvp-action"
                       style={{
@@ -2246,6 +2282,44 @@ export default function ProgramSection({
                   <span>Google Calendar</span>
                 </a>
               </div>
+
+              {(() => {
+                const connectedGallery = (galleries || []).find(g => String(g.eventId) === String(rsvpModalEvent.id));
+                if (!connectedGallery) return null;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCloseEventModal();
+                      if (onNavigateGallery) {
+                        onNavigateGallery(connectedGallery.id);
+                      } else {
+                        window.location.href = `/?galeri=${encodeURIComponent(connectedGallery.id)}#galeri`;
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '11px 18px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'rgba(168, 85, 247, 0.14)',
+                      border: '1.5px solid rgba(168, 85, 247, 0.55)',
+                      color: '#c084fc',
+                      fontWeight: 800,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 15px rgba(168, 85, 247, 0.15)'
+                    }}
+                  >
+                    <Camera size={16} />
+                    <span>Lihat Galeri Foto & Dokumentasi Acara 📸</span>
+                  </button>
+                );
+              })()}
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '2px' }}>
                 {onNavigateOprec && (

@@ -97,6 +97,8 @@ CREATE TABLE public.events (
 CREATE TABLE public.galleries (
     id TEXT PRIMARY KEY,
     tenure_id TEXT DEFAULT 'tenure-2026',
+    division_id TEXT REFERENCES public.divisions(id) ON DELETE SET NULL,
+    event_id TEXT REFERENCES public.events(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
     date TEXT,
     division TEXT,
@@ -308,6 +310,19 @@ ALTER TABLE public.events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAUL
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_limited BOOLEAN DEFAULT false;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_quota INT DEFAULT 0;
 ALTER TABLE public.galleries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.galleries ADD COLUMN IF NOT EXISTS event_id TEXT;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'fk_galleries_event' AND table_name = 'galleries'
+  ) THEN
+    ALTER TABLE public.galleries 
+    ADD CONSTRAINT fk_galleries_event 
+    FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_galleries_event_id ON public.galleries(event_id);
 ALTER TABLE public.kudos ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE public.aspirasi ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();

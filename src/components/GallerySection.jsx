@@ -22,11 +22,13 @@ import { formatWibDateTime } from '../utils/dateUtils';
 export default function GallerySection({ 
   galleries = [], 
   divisions = [], 
+  events = [],
   activeTenure = null, 
   theme, 
   tenures = [],
   initialGalleryId = null,
-  onSelectGalleryUrl
+  onSelectGalleryUrl,
+  onNavigateEvent
 }) {
   const isDark = theme === 'dark';
   const [selectedGalleryId, setSelectedGalleryId] = useState(null);
@@ -471,6 +473,40 @@ export default function GallerySection({
               <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 Divisi: {activeEvent.divisionName || activeEvent.division || 'CNT IT APD'}
               </span>
+              {activeEvent.eventId && (() => {
+                const connectedEvt = (events || []).find(e => String(e.id) === String(activeEvent.eventId));
+                if (!connectedEvt) return null;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onNavigateEvent) {
+                        onNavigateEvent(connectedEvt.id);
+                      } else {
+                        window.location.href = `/?event=${encodeURIComponent(connectedEvt.id)}#event`;
+                      }
+                    }}
+                    title="Buka detail acara ini di Program Kerja"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.45)',
+                      color: 'var(--neon-cyan)',
+                      padding: '3px 10px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span>📅 Acara: {connectedEvt.title}</span>
+                    <ExternalLink size={11} />
+                  </button>
+                );
+              })()}
             </div>
 
             {/* Quick Share Buttons */}
@@ -820,15 +856,35 @@ export default function GallerySection({
                         transition: 'all 0.2s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '0.75rem', color: 'var(--mandiri-gold)', fontWeight: 700 }}>
                           {formatWibDateTime(item.date) || '-'}
                         </span>
-                        {(item.divisionName || item.division) && (
-                          <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
-                            {item.divisionName || item.division}
-                          </span>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          {item.eventId && (() => {
+                            const connectedEvt = (events || []).find(e => String(e.id) === String(item.eventId));
+                            if (!connectedEvt) return null;
+                            return (
+                              <span
+                                className="badge-cyan"
+                                style={{
+                                  fontSize: '0.62rem',
+                                  padding: '2px 8px',
+                                  background: 'rgba(56, 189, 248, 0.12)',
+                                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                                  color: 'var(--neon-cyan)'
+                                }}
+                              >
+                                📅 {connectedEvt.title}
+                              </span>
+                            );
+                          })()}
+                          {(item.divisionName || item.division) && (
+                            <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
+                              {item.divisionName || item.division}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
                         {item.title}

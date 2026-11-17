@@ -71,6 +71,21 @@ export async function checkGalleryDivisionIdColumn() {
   return isGalleryDivisionIdSupported;
 }
 
+let isGalleryEventIdChecked = false;
+let isGalleryEventIdSupported = false;
+
+export async function checkGalleryEventIdColumn() {
+  if (isGalleryEventIdChecked) return isGalleryEventIdSupported;
+  try {
+    const { error } = await supabase.from('galleries').select('event_id').limit(1);
+    isGalleryEventIdSupported = !error;
+    isGalleryEventIdChecked = true;
+  } catch (e) {
+    isGalleryEventIdSupported = false;
+  }
+  return isGalleryEventIdSupported;
+}
+
 let isFormsTrackingColChecked = false;
 let isFormsTrackingColSupported = false;
 
@@ -651,12 +666,16 @@ export const rowMappers = {
       if (isGalleryDivisionColSupported) {
         row.division = item.divisionName || item.division || '';
       }
+      if (isGalleryEventIdSupported) {
+        row.event_id = item.eventId || null;
+      }
       return row;
     },
     fromDb: (row) => ({
       id: row.id,
       tenureId: row.tenure_id,
       divisionId: row.division_id || undefined,
+      eventId: row.event_id || undefined,
       title: row.title,
       date: row.date,
       createdAt: row.created_at || null,
@@ -988,6 +1007,7 @@ export async function fetchAllCloudState() {
   try {
     await Promise.all([
       checkGalleryDivisionIdColumn(),
+      checkGalleryEventIdColumn(),
       detectEventsSchema(),
       checkFormsTrackingColumn(),
       checkFormsTenureColumn(),
@@ -1284,6 +1304,7 @@ export async function pushCloudState(key, value) {
     }
     if (key === 'galleries') {
       await checkGalleryDivisionIdColumn();
+      await checkGalleryEventIdColumn();
     }
     if (key === 'events') {
       await detectEventsSchema();
