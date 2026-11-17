@@ -71,12 +71,20 @@ export default function DynamicFormSection({
   const [posterPreview, setPosterPreview] = useState(null);
 
   useEffect(() => {
-    if (initialFormId && activeForms.some(f => f.id === initialFormId)) {
-      setSelectedFormId(initialFormId);
-    } else if (activeForms.length > 0 && !activeForms.some(f => f.id === selectedFormId)) {
+    if (initialFormId) {
+      const targetForm = forms.find(f => f.id === initialFormId);
+      if (targetForm) {
+        if (activeTenure?.id && targetForm.tenureId && targetForm.tenureId !== activeTenure.id) {
+          setTenureFilter('all');
+        }
+        setSelectedFormId(initialFormId);
+        return;
+      }
+    }
+    if (activeForms.length > 0 && !activeForms.some(f => f.id === selectedFormId)) {
       setSelectedFormId(activeForms[0].id);
     }
-  }, [initialFormId, forms, tenureFilter]);
+  }, [initialFormId, forms, activeTenure]);
 
   // Current active form object
   const currentForm = activeForms.find(f => f.id === selectedFormId) || activeForms[0] || null;

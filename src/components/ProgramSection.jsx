@@ -28,7 +28,7 @@ import {
   FileText,
   Camera
 } from 'lucide-react';
-import { formatWibEventRange, isEventPassed } from '../utils/dateUtils';
+import { formatWibEventRange, isEventPassed, formatDeadlineWib } from '../utils/dateUtils';
 import { getPublicBaseUrl } from '../utils/urlUtils';
 import { getUnifiedEventAttendees } from '../utils/quotaUtils';
 
@@ -162,13 +162,16 @@ export default function ProgramSection({
         const found = events.find(e => e.id === initialEventId);
         if (found) {
           setRsvpModalEvent(found);
+          if (activeTenure?.id && found.tenureId && found.tenureId !== activeTenure.id) {
+            setTenureFilter('all');
+          }
         }
       }
     } else if (!initialEventId) {
       lastHandledInitialId.current = null;
       setRsvpModalEvent(null);
     }
-  }, [initialEventId, events]);
+  }, [initialEventId, events, activeTenure]);
 
   // Close modal on Escape key
   useEffect(() => {

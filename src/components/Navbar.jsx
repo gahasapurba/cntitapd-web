@@ -507,7 +507,7 @@ export default function Navbar({
             </button>
           )}
 
-          {navItems.length === 0 && !isOprecVisible && (
+          {navItems.length === 0 && !isFormVisible && (
             <div style={{ padding: '12px', textAlign: 'center', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
               Semua menu navigasi halaman sedang disembunyikan oleh Admin.
             </div>

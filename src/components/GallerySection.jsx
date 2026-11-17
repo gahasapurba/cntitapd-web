@@ -866,18 +866,32 @@ export default function GallerySection({
                             const connectedEvt = (events || []).find(e => String(e.id) === String(item.eventId));
                             if (!connectedEvt) return null;
                             return (
-                              <span
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onNavigateEvent) {
+                                    onNavigateEvent(connectedEvt.id);
+                                  } else {
+                                    window.location.href = `/?event=${encodeURIComponent(connectedEvt.id)}#event`;
+                                  }
+                                }}
                                 className="badge-cyan"
+                                title={`Lihat Agenda Acara: ${connectedEvt.title}`}
                                 style={{
                                   fontSize: '0.62rem',
                                   padding: '2px 8px',
                                   background: 'rgba(56, 189, 248, 0.12)',
                                   border: '1px solid rgba(56, 189, 248, 0.35)',
-                                  color: 'var(--neon-cyan)'
+                                  color: 'var(--neon-cyan)',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
                                 }}
                               >
                                 📅 {connectedEvt.title}
-                              </span>
+                              </button>
                             );
                           })()}
                           {(item.divisionName || item.division) && (
