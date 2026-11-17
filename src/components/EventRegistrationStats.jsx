@@ -892,7 +892,7 @@ export default function EventRegistrationStats({
       <div
         className="glass-panel"
         style={{
-          padding: '22px 28px',
+          padding: 'clamp(16px, 3vw, 24px)',
           borderRadius: 'var(--radius-lg)',
           border: '1.5px solid rgba(255, 184, 0, 0.35)',
           background: isDark
@@ -911,15 +911,15 @@ export default function EventRegistrationStats({
               TOTAL PESERTA HADIR ({event.title.toUpperCase()})
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 'clamp(2.4rem, 5vw, 3.4rem)', fontWeight: 900, color: 'var(--mandiri-gold)', lineHeight: 1 }}>
+              <span style={{ fontSize: 'clamp(2.2rem, 5vw, 3.4rem)', fontWeight: 900, color: 'var(--mandiri-gold)', lineHeight: 1 }}>
                 {totalPendaftar}
               </span>
               {effectiveIsLimited && effectiveMaxQuota > 0 ? (
-                <span style={{ fontSize: 'clamp(0.95rem, 2vw, 1.25rem)', fontWeight: 600, color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: 'clamp(0.9rem, 2vw, 1.25rem)', fontWeight: 600, color: 'var(--text-muted)' }}>
                   / {effectiveMaxQuota} Target Peserta
                 </span>
               ) : (
-                <span style={{ fontSize: 'clamp(0.95rem, 2vw, 1.2rem)', fontWeight: 600, color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: 'clamp(0.9rem, 2vw, 1.2rem)', fontWeight: 600, color: 'var(--text-muted)' }}>
                   Peserta Terdaftar
                 </span>
               )}
@@ -928,17 +928,17 @@ export default function EventRegistrationStats({
 
           {/* Right: Tingkat Partisipasi (if limited) OR Unlimited Badge */}
           {effectiveIsLimited && effectiveMaxQuota > 0 ? (
-            <div style={{ textAlign: 'right' }}>
+            <div style={{ textAlign: 'left' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                 Tingkat Partisipasi
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginTop: '2px' }}>
-                <span style={{ fontSize: 'clamp(2rem, 4vw, 2.8rem)', fontWeight: 900, color: 'var(--mandiri-gold)', lineHeight: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '2px' }}>
+                <span style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 900, color: 'var(--mandiri-gold)', lineHeight: 1 }}>
                   {participationRate}%
                 </span>
                 <div style={{
-                  width: '46px',
-                  height: '46px',
+                  width: '44px',
+                  height: '44px',
                   borderRadius: '12px',
                   background: 'rgba(255, 184, 0, 0.12)',
                   border: '1.5px solid rgba(255, 184, 0, 0.4)',
@@ -999,7 +999,7 @@ export default function EventRegistrationStats({
           justifyContent: 'center',
           gap: '8px',
           background: 'var(--input-bg)',
-          padding: '6px',
+          padding: '5px',
           borderRadius: 'var(--radius-full)',
           maxWidth: '460px',
           margin: '0 auto',
@@ -1013,11 +1013,11 @@ export default function EventRegistrationStats({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              padding: '9px 18px',
+              gap: '6px',
+              padding: '8px clamp(10px, 2.5vw, 16px)',
               borderRadius: 'var(--radius-full)',
               border: 'none',
-              fontSize: '0.86rem',
+              fontSize: 'clamp(0.75rem, 2.4vw, 0.85rem)',
               fontWeight: 800,
               cursor: 'pointer',
               background: activeView === 'stats' ? 'var(--mandiri-gold)' : 'transparent',
@@ -1026,8 +1026,8 @@ export default function EventRegistrationStats({
               transition: 'all 0.2s ease'
             }}
           >
-            <FileSpreadsheet size={16} />
-            <span>Statistik & QR Presensi</span>
+            <FileSpreadsheet size={15} />
+            <span>Statistik & QR</span>
           </button>
 
           <button
@@ -1037,11 +1037,11 @@ export default function EventRegistrationStats({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              padding: '9px 18px',
+              gap: '6px',
+              padding: '8px clamp(10px, 2.5vw, 16px)',
               borderRadius: 'var(--radius-full)',
               border: 'none',
-              fontSize: '0.86rem',
+              fontSize: 'clamp(0.75rem, 2.4vw, 0.85rem)',
               fontWeight: 800,
               cursor: 'pointer',
               background: activeView === 'luckydraw' ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' : 'transparent',
@@ -1050,8 +1050,8 @@ export default function EventRegistrationStats({
               transition: 'all 0.2s ease'
             }}
           >
-            <Trophy size={16} />
-            <span>Undian Doorprize ({eventWinners.length})</span>
+            <Trophy size={15} />
+            <span>Undian ({eventWinners.length})</span>
           </button>
         </div>
       )}
@@ -1141,7 +1141,7 @@ export default function EventRegistrationStats({
           {/* 5. MIDDLE 2-COLUMN SECTION: QR CODE (LEFT) & DYNAMIC DIAGRAM (RIGHT) (IMAGE 3 STYLE) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
             gap: '18px',
             alignItems: 'stretch'
           }}>
@@ -1387,7 +1387,7 @@ export default function EventRegistrationStats({
                 {diagramData.items.length > 0 ? (
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
                     gap: '12px',
                     marginTop: '12px'
                   }}>
@@ -1649,7 +1649,7 @@ export default function EventRegistrationStats({
             </div>
 
             {/* Table */}
-            <div style={{ overflowX: 'auto' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-card)', color: 'var(--text-dim)' }}>
@@ -2017,7 +2017,7 @@ export default function EventRegistrationStats({
             {/* Input Controls Grid */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
               gap: '14px',
               padding: '16px',
               background: 'var(--input-bg)',
@@ -2144,17 +2144,20 @@ export default function EventRegistrationStats({
                   onClick={handleRunLuckyDraw}
                   disabled={isRolling || eligiblePool.length === 0}
                   style={{
-                    padding: '14px 44px',
+                    padding: '12px clamp(20px, 4vw, 44px)',
                     borderRadius: 'var(--radius-full)',
                     background: eligiblePool.length === 0 ? 'var(--input-bg)' : 'linear-gradient(135deg, #FFB800 0%, #e0a300 100%)',
                     color: eligiblePool.length === 0 ? 'var(--text-dim)' : '#040914',
                     fontWeight: 900,
-                    fontSize: '1.05rem',
+                    fontSize: 'clamp(0.92rem, 2.5vw, 1.05rem)',
                     border: 'none',
                     cursor: eligiblePool.length > 0 && !isRolling ? 'pointer' : 'not-allowed',
                     boxShadow: eligiblePool.length > 0 && !isRolling ? '0 0 30px rgba(255, 184, 0, 0.4)' : 'none',
                     transform: isRolling ? 'scale(0.96)' : 'scale(1)',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    maxWidth: '100%',
+                    whiteSpace: 'normal',
+                    textAlign: 'center'
                   }}
                 >
                   {isRolling ? 'Sedang Mengundi...' : `🎰 Putar & Undi (${drawCount} Pemenang)`}

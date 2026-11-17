@@ -1975,7 +1975,8 @@ export default function ProgramSection({
                             border: '1.5px solid rgba(6, 182, 212, 0.45)',
                             color: 'var(--neon-cyan)',
                             fontWeight: 800,
-                            fontSize: '0.86rem',
+                            fontSize: 'clamp(0.78rem, 2.5vw, 0.86rem)',
+                            textAlign: 'center',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease'
                           }}

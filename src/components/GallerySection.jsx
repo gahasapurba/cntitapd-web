@@ -500,11 +500,14 @@ export default function GallerySection({
                       fontSize: '0.72rem',
                       fontWeight: 700,
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.2s ease',
+                      maxWidth: '100%'
                     }}
                   >
-                    <span>📅 Acara: {connectedEvt.title}</span>
-                    <ExternalLink size={11} />
+                    <span style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📅 Acara: {connectedEvt.title}
+                    </span>
+                    <ExternalLink size={11} style={{ flexShrink: 0 }} />
                   </button>
                 );
               })()}
@@ -887,7 +890,11 @@ export default function GallerySection({
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '4px'
+                                  gap: '4px',
+                                  maxWidth: '180px',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
                                 }}
                               >
                                 📅 {connectedEvt.title}

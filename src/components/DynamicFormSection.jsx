@@ -1680,8 +1680,8 @@ export default function DynamicFormSection({
 
                         return (
                           <div key={f.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                            <span style={{ color: 'var(--mandiri-gold)', fontWeight: 800 }}>•</span>
-                            <div style={{ color: 'var(--text-main)' }}>
+                            <span style={{ color: 'var(--mandiri-gold)', fontWeight: 800, flexShrink: 0 }}>•</span>
+                            <div style={{ color: 'var(--text-main)', wordBreak: 'break-word', flex: 1 }}>
                               <strong>Form {f.title}</strong>
                               {' — '}
                               <span style={{ color: 'var(--text-muted)' }}>Indeks Pencarian : </span>
