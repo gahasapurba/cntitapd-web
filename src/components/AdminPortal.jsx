@@ -7873,11 +7873,23 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.newFormEventId ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
                   >
                     <option value="">-- Pilih Event yang Ada di Database --</option>
-                    {(events || []).map((evt) => (
-                      <option key={evt.id} value={evt.id}>
-                        {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : 'Tanpa Tanggal'})
-                      </option>
-                    ))}
+                    {(() => {
+                      const targetTenure = newFormTenureId || activeTenure?.id;
+                      const filteredEvents = (events || []).filter((evt) => {
+                        const evtTenure = evt.tenureId || divisions.find(d => d.id === evt.divisionId)?.tenureId;
+                        return !targetTenure || !evtTenure || evtTenure === targetTenure;
+                      });
+
+                      if (filteredEvents.length === 0) {
+                        return <option value="" disabled>-- Belum ada acara pada periode kepengurusan ini --</option>;
+                      }
+
+                      return filteredEvents.map((evt) => (
+                        <option key={evt.id} value={evt.id}>
+                          {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : (evt.date || 'Tanpa Tanggal')})
+                        </option>
+                      ));
+                    })()}
                   </select>
                   {renderFieldError('newFormEventId')}
                 </div>
@@ -12185,11 +12197,23 @@ export default function AdminPortal({
                         style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                       >
                         <option value="">-- Pilih Event yang Ada di Database --</option>
-                        {(events || []).map((evt) => (
-                          <option key={evt.id} value={evt.id}>
-                            {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : 'Tanpa Tanggal'})
-                          </option>
-                        ))}
+                        {(() => {
+                          const formTenure = editingItem.item.tenureId || activeTenure?.id;
+                          const filteredEvents = (events || []).filter((evt) => {
+                            const evtTenure = evt.tenureId || divisions.find(d => d.id === evt.divisionId)?.tenureId;
+                            return !formTenure || !evtTenure || evtTenure === formTenure || evt.id === editingItem.item.eventId;
+                          });
+
+                          if (filteredEvents.length === 0) {
+                            return <option value="" disabled>-- Belum ada acara pada periode kepengurusan ini --</option>;
+                          }
+
+                          return filteredEvents.map((evt) => (
+                            <option key={evt.id} value={evt.id}>
+                              {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : (evt.date || 'Tanpa Tanggal')})
+                            </option>
+                          ));
+                        })()}
                       </select>
                     </div>
                   )}
