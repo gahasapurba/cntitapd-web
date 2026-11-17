@@ -35,12 +35,13 @@ export function getUnifiedEventAttendees(evt, forms = [], eventRsvps = [], submi
     };
   }
 
-  const isLimited = Boolean(evt.isLimited);
-  const maxQuota = Number(evt.maxQuota || 0);
   const rsvps = (eventRsvps || []).filter(r => String(r.eventId) === String(evt.id));
   const connForm = getConnectedFormForEvent(evt, forms);
 
+  // If NOT connected to a form: strictly use original event limits & initial RSVPs
   if (!connForm) {
+    const isLimited = Boolean(evt.isLimited);
+    const maxQuota = Number(evt.maxQuota || 0);
     const count = rsvps.length;
     const isFull = isLimited && maxQuota > 0 && count >= maxQuota;
     return {
@@ -56,47 +57,25 @@ export function getUnifiedEventAttendees(evt, forms = [], eventRsvps = [], submi
     };
   }
 
+  // If CONNECTED to a form:
+  // 1. Quota & limit strictly follow the connected form (without wiping raw event limits in DB)
+  // 2. Count strictly follows form submissions (old RSVPs are preserved in DB/state, but not counted)
+  const isLimited = Boolean(connForm.isLimited);
+  const maxQuota = Number(connForm.maxQuota || 0);
   const formSubs = (submissions || []).filter(s => String(s.formId) === String(connForm.id));
-
-  // Deduplicate participants who might be present in both initial RSVPs and form submissions
-  const seen = new Set();
-  let uniqueCount = 0;
-
-  // Add form submissions
-  formSubs.forEach(s => {
-    const d = s.data || {};
-    const name = (d['f-fullName'] || d['f-teamName'] || d['f-name'] || d.fullName || s.fullName || '').trim().toLowerCase();
-    const ident = (d['f-nip'] || d['f-whatsapp'] || d['f-email'] || d.nip || d.whatsapp || s.id || '').trim().toLowerCase();
-    const key = name && ident ? `${name}|${ident}` : s.id;
-    if (!seen.has(key)) {
-      seen.add(key);
-      uniqueCount++;
-    }
-  });
-
-  // Add initial RSVPs
-  rsvps.forEach(r => {
-    const name = (r.name || '').trim().toLowerCase();
-    const ident = (r.phone || r.email || r.department || r.id || '').trim().toLowerCase();
-    const key = name && ident ? `${name}|${ident}` : r.id;
-    if (!seen.has(key)) {
-      seen.add(key);
-      uniqueCount++;
-    }
-  });
-
-  const isFull = isLimited && maxQuota > 0 && uniqueCount >= maxQuota;
+  const count = formSubs.length;
+  const isFull = isLimited && maxQuota > 0 && count >= maxQuota;
 
   return {
-    count: uniqueCount,
-    rsvpCount: rsvps.length,
-    formSubCount: formSubs.length,
+    count,
+    rsvpCount: rsvps.length, // preserved for reversion / auditing
+    formSubCount: count,
     isConnected: true,
     connectedForm: connForm,
     isLimited,
     maxQuota,
     isFull,
-    remaining: Math.max(0, maxQuota - uniqueCount)
+    remaining: Math.max(0, maxQuota - count)
   };
 }
 
@@ -117,38 +96,29 @@ export function getUnifiedFormQuota(form, events = [], forms = [], eventRsvps = 
   }
 
   const connEvent = getConnectedEventForForm(form, events);
-
-  if (connEvent) {
-    // Event is connected: event's quota is the authoritative quota
-    const eventStats = getUnifiedEventAttendees(connEvent, forms, eventRsvps, submissions);
-    const isLimited = eventStats.isLimited || Boolean(form.isLimited);
-    const maxQuota = eventStats.maxQuota > 0 
-      ? eventStats.maxQuota 
-      : Number(form.maxQuota || 0);
-
-    const isFull = isLimited && maxQuota > 0 && eventStats.count >= maxQuota;
-
-    return {
-      isConnected: true,
-      connectedEvent: connEvent,
-      isLimited,
-      maxQuota,
-      count: eventStats.count,
-      formSubCount: eventStats.formSubCount,
-      initialRsvpCount: eventStats.rsvpCount,
-      isFull,
-      remaining: Math.max(0, maxQuota - eventStats.count),
-      label: `Acara: ${connEvent.title}`
-    };
-  }
-
-  // Standalone form
   const formSubs = (submissions || []).filter(s => String(s.formId) === String(form.id));
   const isLimited = Boolean(form.isLimited);
   const maxQuota = Number(form.maxQuota || 0);
   const count = formSubs.length;
   const isFull = isLimited && maxQuota > 0 && count >= maxQuota;
 
+  if (connEvent) {
+    const rsvps = (eventRsvps || []).filter(r => String(r.eventId) === String(connEvent.id));
+    return {
+      isConnected: true,
+      connectedEvent: connEvent,
+      isLimited,
+      maxQuota,
+      count,
+      formSubCount: count,
+      initialRsvpCount: rsvps.length,
+      isFull,
+      remaining: Math.max(0, maxQuota - count),
+      label: `Acara: ${connEvent.title}`
+    };
+  }
+
+  // Standalone form
   return {
     isConnected: false,
     connectedEvent: null,

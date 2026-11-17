@@ -1515,14 +1515,16 @@ export default function ProgramSection({
                                 {evt.divisionName || divInfo?.name}
                               </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                {evt.isLimited && Number(evt.maxQuota) > 0 && (() => {
-                                  const qCount = eventRsvps.filter(r => r.eventId === evt.id).length;
-                                  const isFull = qCount >= Number(evt.maxQuota);
-                                  return (
-                                    <span className={isFull ? "badge-red" : "badge-gold"} style={{ fontSize: '0.64rem' }}>
-                                      Kuota: {qCount}/{evt.maxQuota} {isFull ? '(Penuh)' : ''}
-                                    </span>
-                                  );
+                                {(() => {
+                                  const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
+                                  if (attendeeInfo.isLimited && attendeeInfo.maxQuota > 0) {
+                                    return (
+                                      <span className={attendeeInfo.isFull ? "badge-red" : "badge-gold"} style={{ fontSize: '0.64rem' }}>
+                                        Kuota: {attendeeInfo.count}/{attendeeInfo.maxQuota} {attendeeInfo.isFull ? '(Penuh)' : ''}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
                                 })()}
                                 <span className={evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate) ? "badge-cyan" : "badge-gold"} style={{ fontSize: '0.68rem' }}>
                                   {evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate) ? 'Completed' : evt.status}
@@ -1794,18 +1796,22 @@ export default function ProgramSection({
                   <Users size={14} color="var(--mandiri-gold)" />
                   <strong>Peserta:</strong> <span>{rsvpModalEvent.peserta || rsvpModalEvent.kpi}</span>
                 </div>
-                {rsvpModalEvent.isLimited && Number(rsvpModalEvent.maxQuota) > 0 && (() => {
-                  const maxQ = Number(rsvpModalEvent.maxQuota);
-                  const isFull = currentEventRsvps.length >= maxQ;
-                  return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Lock size={14} color={isFull ? '#f43f5e' : 'var(--mandiri-gold)'} />
-                      <strong>Batas Kuota:</strong>
-                      <span style={{ fontWeight: 800, color: isFull ? '#f43f5e' : 'var(--mandiri-gold)' }}>
-                        {currentEventRsvps.length} / {maxQ} Terisi {isFull ? '(Kuota Penuh)' : `(Sisa ${Math.max(0, maxQ - currentEventRsvps.length)})`}
-                      </span>
-                    </div>
-                  );
+                {(() => {
+                  const attendeeInfo = getUnifiedEventAttendees(rsvpModalEvent, forms, eventRsvps, submissions);
+                  if (attendeeInfo.isLimited && attendeeInfo.maxQuota > 0) {
+                    const maxQ = attendeeInfo.maxQuota;
+                    const isFull = attendeeInfo.isFull;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Lock size={14} color={isFull ? '#f43f5e' : 'var(--mandiri-gold)'} />
+                        <strong>Batas Kuota:</strong>
+                        <span style={{ fontWeight: 800, color: isFull ? '#f43f5e' : 'var(--mandiri-gold)' }}>
+                          {attendeeInfo.count} / {maxQ} Terisi {isFull ? '(Kuota Penuh)' : `(Sisa ${attendeeInfo.remaining})`}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
                 })()}
                 {(rsvpModalEvent.kategori || rsvpModalEvent.category || rsvpModalEvent.badge) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

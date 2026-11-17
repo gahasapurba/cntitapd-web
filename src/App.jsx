@@ -1487,6 +1487,8 @@ export default function App() {
               submissions={submissions}
               eventRsvps={eventRsvps}
               luckyDraws={luckyDraws}
+              departments={departments}
+              divisions={divisions}
               onAddLuckyDraw={handleAddLuckyDraw}
               onDeleteLuckyDraw={handleDeleteLuckyDraw}
               onResetLuckyDraw={handleResetLuckyDraw}
