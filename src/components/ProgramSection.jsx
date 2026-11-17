@@ -670,11 +670,16 @@ export default function ProgramSection({
                           {evt.category || evt.badge}
                         </span>
                       )}
-                      {(forms || []).some(f => (f.isEventConnected || f.fields?.[0]?._isEventConnected) && String(f.eventId || f.fields?.[0]?._eventId) === String(evt.id)) && (
-                        <span className="badge-gold" style={{ fontSize: '0.66rem', fontWeight: 800 }}>
-                          🎪 Form & Undian
-                        </span>
-                      )}
+                      {(() => {
+                        const connectedForm = (forms || []).find(f => (f.isEventConnected || f.fields?.[0]?._isEventConnected) && String(f.eventId || f.fields?.[0]?._eventId) === String(evt.id));
+                        if (!connectedForm) return null;
+                        const isLucky = connectedForm.isLuckyDraw === true || connectedForm.fields?.[0]?._isLuckyDraw === true;
+                        return (
+                          <span className="badge-gold" style={{ fontSize: '0.66rem', fontWeight: 800 }}>
+                            {isLucky ? '🎪 Form & Undian' : '📋 Form Terhubung'}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
 
