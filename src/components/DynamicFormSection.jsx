@@ -198,6 +198,27 @@ export default function DynamicFormSection({
     }
   };
 
+  // Instant Unique Check on Blur
+  const handleInputBlur = (field) => {
+    if (!field || !field.isUnique || !currentForm) return;
+    const val = formData[field.id];
+    if (val && String(val).trim()) {
+      const inputValNorm = String(val).trim().toLowerCase();
+      const duplicateSub = (submissions || []).find(s => {
+        if (s.formId !== currentForm.id) return false;
+        const ans = s.data?.[field.id] ?? s[field.id] ?? s.answers?.[field.id];
+        if (ans === undefined || ans === null) return false;
+        return String(ans).trim().toLowerCase() === inputValNorm;
+      });
+      if (duplicateSub) {
+        setErrors(prev => ({
+          ...prev,
+          [field.id]: `${field.label} "${val}" sudah pernah terdaftar sebelumnya. Field ini bersifat unik dan tidak menerima data duplikat.`
+        }));
+      }
+    }
+  };
+
   // Handle File Selection - Deferred upload on Submit only (never prematurely on file pick)
   const handleFileUpload = (fieldId, e) => {
     const file = e.target.files?.[0];
@@ -248,7 +269,7 @@ export default function DynamicFormSection({
         const inputValNorm = String(val).trim().toLowerCase();
         const duplicateSub = (submissions || []).find(s => {
           if (s.formId !== currentForm.id) return false;
-          const ans = s.answers?.[field.id];
+          const ans = s.data?.[field.id] ?? s[field.id] ?? s.answers?.[field.id];
           if (ans === undefined || ans === null) return false;
           return String(ans).trim().toLowerCase() === inputValNorm;
         });
@@ -307,7 +328,7 @@ export default function DynamicFormSection({
           const inputValNorm = String(val).trim().toLowerCase();
           const duplicateSub = (submissions || []).find(s => {
             if (s.formId !== currentForm.id) return false;
-            const ans = s.answers?.[field.id];
+            const ans = s.data?.[field.id] ?? s[field.id] ?? s.answers?.[field.id];
             if (ans === undefined || ans === null) return false;
             return String(ans).trim().toLowerCase() === inputValNorm;
           });
@@ -1168,6 +1189,7 @@ export default function DynamicFormSection({
                             placeholder={field.placeholder || ''}
                             value={formData[field.id] || ''}
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
+                            onBlur={() => handleInputBlur(field)}
                             style={inputStyle(hasError)}
                           />
                         )}
@@ -1179,6 +1201,7 @@ export default function DynamicFormSection({
                             placeholder={field.placeholder || ''}
                             value={formData[field.id] || ''}
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
+                            onBlur={() => handleInputBlur(field)}
                             style={{ ...inputStyle(hasError), resize: 'vertical' }}
                           />
                         )}
@@ -1188,6 +1211,7 @@ export default function DynamicFormSection({
                           <select
                             value={formData[field.id] || ''}
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
+                            onBlur={() => handleInputBlur(field)}
                             style={inputStyle(hasError)}
                           >
                             <option value="">-- Pilih {field.label} --</option>

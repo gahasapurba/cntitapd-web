@@ -12536,7 +12536,7 @@ export default function AdminPortal({
                                   const formSubs = submissions.filter(s => s.formId === editingItem.item.id);
                                   const valCounts = {};
                                   formSubs.forEach(s => {
-                                    const rawVal = s.answers?.[fld.id];
+                                    const rawVal = s.data?.[fld.id] ?? s[fld.id] ?? s.answers?.[fld.id];
                                     if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
                                       const normVal = String(rawVal).trim().toLowerCase();
                                       valCounts[normVal] = (valCounts[normVal] || 0) + 1;
@@ -13487,7 +13487,7 @@ export default function AdminPortal({
                       for (const uf of uniqueFields) {
                         const valCounts = {};
                         formSubs.forEach(s => {
-                          const rawVal = s.answers?.[uf.id];
+                          const rawVal = s.data?.[uf.id] ?? s[uf.id] ?? s.answers?.[uf.id];
                           if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
                             const normVal = String(rawVal).trim().toLowerCase();
                             valCounts[normVal] = (valCounts[normVal] || 0) + 1;
