@@ -18,6 +18,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { formatWibDateTime } from '../utils/dateUtils';
+import { getPublicBaseUrl } from '../utils/urlUtils';
 
 export default function GallerySection({ 
   galleries = [], 
@@ -142,7 +143,7 @@ export default function GallerySection({
   }, [initialGalleryId, galleries, activeTenure]);
 
   const getGalleryShareUrl = (galId) => {
-    const origin = window.location.origin;
+    const origin = getPublicBaseUrl();
     return `${origin}/?gallery=${encodeURIComponent(galId)}#galeri`;
   };
 

@@ -29,6 +29,7 @@ import {
   Camera
 } from 'lucide-react';
 import { formatWibEventRange, isEventPassed } from '../utils/dateUtils';
+import { getPublicBaseUrl } from '../utils/urlUtils';
 
 // Helper to determine optimal high-contrast text color (black vs white) on dynamic colored badges
 function getBadgeTextColor(bgColor) {
@@ -201,7 +202,7 @@ export default function ProgramSection({
   };
 
   const getEventDirectUrl = (evtId) => {
-    return `${window.location.origin}/?event=${encodeURIComponent(evtId)}#event`;
+    return `${getPublicBaseUrl()}/?event=${encodeURIComponent(evtId)}#event`;
   };
 
   const handleCopyEventLink = (evt) => {

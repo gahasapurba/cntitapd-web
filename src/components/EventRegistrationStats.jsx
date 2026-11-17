@@ -25,6 +25,7 @@ import {
 import confetti from 'canvas-confetti';
 import { generateFormQrPoster } from '../utils/qrPosterGenerator';
 import { formatWibTimestamp, formatDeadlineWib } from '../utils/dateUtils';
+import { getPublicBaseUrl } from '../utils/urlUtils';
 
 export default function EventRegistrationStats({
   eventId,
@@ -247,7 +248,7 @@ export default function EventRegistrationStats({
       const result = await generateFormQrPoster({
         form: connectedForm,
         event: event,
-        baseUrl: window.location.origin
+        baseUrl: getPublicBaseUrl()
       });
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');

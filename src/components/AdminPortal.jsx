@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { soundFx } from '../utils/audio';
+import { getPublicBaseUrl } from '../utils/urlUtils';
 import { 
   parseDateToIso, 
   formatToIndonesianDate, 
@@ -8142,7 +8143,7 @@ export default function AdminPortal({
                     <button
                       type="button"
                       onClick={() => {
-                        const url = `${window.location.origin}/?form=${encodeURIComponent(f.id)}#form`;
+                        const url = `${getPublicBaseUrl()}/?form=${encodeURIComponent(f.id)}#form`;
                         navigator.clipboard?.writeText(url);
                         showToast(`Link langsung formulir "${f.title}" berhasil disalin!`);
                       }}
@@ -8169,7 +8170,7 @@ export default function AdminPortal({
                     <button
                       type="button"
                       onClick={() => {
-                        const url = `${window.location.origin}/?form=${encodeURIComponent(f.id)}#form`;
+                        const url = `${getPublicBaseUrl()}/?form=${encodeURIComponent(f.id)}#form`;
                         const dl = f.deadline ? formatDeadlineWib(f.deadline) : 'Tanpa batas waktu';
                         const text = `📋 *Formulir Registrasi CNT IT APD*\n*${f.title}*\n⏳ Batas Pengisian: ${dl}\n\nSilakan isi formulir melalui tautan resmi berikut:\n${url}`;
                         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');

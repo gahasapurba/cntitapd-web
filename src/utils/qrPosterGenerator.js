@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import { formatDeadlineWib } from './dateUtils';
+import { getPublicBaseUrl } from './urlUtils';
 
 /**
  * Generate a high-resolution, professionally styled Printable Poster Card (PNG)
@@ -8,7 +9,7 @@ import { formatDeadlineWib } from './dateUtils';
 export async function generateFormQrPoster({
   form,
   event = null,
-  baseUrl = window.location.origin
+  baseUrl = getPublicBaseUrl()
 }) {
   if (!form) throw new Error('Form data is required');
 

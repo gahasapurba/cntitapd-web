@@ -27,6 +27,7 @@ import confetti from 'canvas-confetti';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { getDeadlineStatus, formatDeadlineWib, formatWibDateTime, formatWibTimestamp } from '../utils/dateUtils';
 import { generateFormQrPoster } from '../utils/qrPosterGenerator';
+import { getPublicBaseUrl } from '../utils/urlUtils';
 
 export default function DynamicFormSection({ 
   forms = [], 
@@ -94,7 +95,7 @@ export default function DynamicFormSection({
   const [statusQuery, setStatusQuery] = useState('');
 
   const getFormDirectUrl = (fId) => {
-    return `${window.location.origin}/?form=${encodeURIComponent(fId)}#form`;
+    return `${getPublicBaseUrl()}/?form=${encodeURIComponent(fId)}#form`;
   };
 
   const handleCopyFormLink = (targetForm = currentForm) => {
