@@ -122,8 +122,15 @@ export default function DynamicFormSection({
     setGeneratingPoster(true);
     try {
       const shareUrl = getFormDirectUrl(targetForm.id);
+      const connectedEvent = (events || []).find(e => {
+        const isConn = targetForm.isEventConnected || targetForm.fields?.[0]?._isEventConnected;
+        const evtId = targetForm.eventId || targetForm.fields?.[0]?._eventId;
+        return Boolean(isConn) && String(evtId) === String(e.id);
+      }) || (events || []).find(e => String(e.id) === String(targetForm.eventId));
+
       const poster = await generateFormQrPoster({
         form: targetForm,
+        event: connectedEvent,
         formUrl: shareUrl,
         title: targetForm.title,
         description: targetForm.description || targetForm.subtitle,

@@ -151,10 +151,12 @@ export async function generateFormQrPoster(options = {}) {
     ctx.fillText(line, width / 2, subY + idx * 32);
   });
 
-  // 8. Event Connection Banner (if connected)
+  // 8. Event Connection Banner (only if a real event is connected with a valid title)
   let qrContainerY = 470;
-  if (event || form.isEventConnected) {
-    const eventName = event?.title || 'Agenda Acara CNT IT APD';
+  const rawEventTitle = event?.title || (typeof form.event === 'object' ? form.event?.title : null) || form.eventTitle || null;
+  const eventName = rawEventTitle && String(rawEventTitle).trim() ? String(rawEventTitle).trim() : null;
+
+  if (eventName) {
     const eventBannerY = subY + subLines.slice(0, 2).length * 32 + 16;
     
     ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
