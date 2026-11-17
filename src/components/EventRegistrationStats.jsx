@@ -2006,7 +2006,7 @@ export default function EventRegistrationStats({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Lucky Draw Control Center */}
           <div className="glass-panel" style={{
-            padding: '28px',
+            padding: 'clamp(16px, 3.5vw, 28px)',
             borderRadius: 'var(--radius-lg)',
             border: '2px solid var(--mandiri-gold)',
             boxShadow: '0 12px 40px rgba(255, 184, 0, 0.15)',
@@ -2155,7 +2155,7 @@ export default function EventRegistrationStats({
                 ? '2px solid var(--mandiri-gold)'
                 : (isDark ? '2px dashed rgba(255, 184, 0, 0.4)' : '2px dashed rgba(255, 184, 0, 0.65)'),
               borderRadius: 'var(--radius-lg)',
-              padding: '36px 20px',
+              padding: 'clamp(22px, 4.5vw, 36px) clamp(12px, 3vw, 20px)',
               textAlign: 'center',
               boxShadow: isRolling
                 ? '0 0 45px rgba(255, 184, 0, 0.45)'
@@ -2406,7 +2406,7 @@ export default function EventRegistrationStats({
             width: '100%',
             maxHeight: '90vh',
             overflowY: 'auto',
-            padding: '24px',
+            padding: 'clamp(16px, 4vw, 24px)',
             border: '2px solid var(--mandiri-gold)',
             boxShadow: '0 25px 60px rgba(255, 184, 0, 0.35)',
             textAlign: 'center',
@@ -2556,7 +2556,7 @@ export default function EventRegistrationStats({
           <div className="glass-panel modal-container" style={{
             maxWidth: '440px',
             width: '100%',
-            padding: '24px',
+            padding: 'clamp(16px, 4vw, 24px)',
             border: '1.5px solid #f43f5e',
             borderRadius: 'var(--radius-md)',
             textAlign: 'center',
@@ -2636,7 +2636,7 @@ export default function EventRegistrationStats({
           <div className="glass-panel modal-container" style={{
             maxWidth: '440px',
             width: '100%',
-            padding: '24px',
+            padding: 'clamp(16px, 4vw, 24px)',
             border: '1.5px solid rgba(244, 63, 94, 0.4)',
             borderRadius: 'var(--radius-md)',
             textAlign: 'center',
