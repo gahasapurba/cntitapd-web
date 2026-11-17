@@ -758,15 +758,75 @@ export default function App() {
     const now = new Date().toISOString();
     const stampedForm = { ...newForm, createdAt: newForm.createdAt || now, updatedAt: newForm.updatedAt || now };
     setForms((prev) => {
-      const next = [stampedForm, ...prev];
+      let next = [...prev];
+      // Jika form baru terhubung ke event, lepaskan koneksi dari form lama yang sebelumnya terhubung ke event tersebut (One-to-One Smart Takeover)
+      if (stampedForm.isEventConnected && stampedForm.eventId) {
+        next = next.map(f => {
+          const isSameEvent = String(f.eventId || f.fields?.[0]?._eventId) === String(stampedForm.eventId);
+          const isConn = f.isEventConnected || f.fields?.[0]?._isEventConnected;
+          if (isSameEvent && isConn) {
+            const updatedFields = f.fields ? f.fields.map((fld, idx) => {
+              if (idx === 0) {
+                const c = { ...fld };
+                c._isEventConnected = false;
+                c._eventId = '';
+                c._isLuckyDraw = false;
+                return c;
+              }
+              return fld;
+            }) : f.fields;
+            return {
+              ...f,
+              isEventConnected: false,
+              eventId: '',
+              isLuckyDraw: false,
+              fields: updatedFields,
+              updatedAt: now
+            };
+          }
+          return f;
+        });
+      }
+      next = [stampedForm, ...next];
       pushCloudState('forms', next);
       return next;
     });
   };
   const handleUpdateForm = (updatedForm) => {
-    const stampedForm = { ...updatedForm, updatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const stampedForm = { ...updatedForm, updatedAt: now };
     setForms((prev) => {
-      const next = prev.map(f => f.id === stampedForm.id ? stampedForm : f);
+      let next = prev.map(f => f.id === stampedForm.id ? stampedForm : f);
+      // Jika form yang diupdate terhubung ke event, lepaskan koneksi dari form lain yang terhubung ke event tersebut (One-to-One Smart Takeover)
+      if (stampedForm.isEventConnected && stampedForm.eventId) {
+        next = next.map(f => {
+          if (f.id !== stampedForm.id) {
+            const isSameEvent = String(f.eventId || f.fields?.[0]?._eventId) === String(stampedForm.eventId);
+            const isConn = f.isEventConnected || f.fields?.[0]?._isEventConnected;
+            if (isSameEvent && isConn) {
+              const updatedFields = f.fields ? f.fields.map((fld, idx) => {
+                if (idx === 0) {
+                  const c = { ...fld };
+                  c._isEventConnected = false;
+                  c._eventId = '';
+                  c._isLuckyDraw = false;
+                  return c;
+                }
+                return fld;
+              }) : f.fields;
+              return {
+                ...f,
+                isEventConnected: false,
+                eventId: '',
+                isLuckyDraw: false,
+                fields: updatedFields,
+                updatedAt: now
+              };
+            }
+          }
+          return f;
+        });
+      }
       pushCloudState('forms', next);
       return next;
     });

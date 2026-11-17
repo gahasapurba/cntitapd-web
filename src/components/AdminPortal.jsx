@@ -7898,14 +7898,49 @@ export default function AdminPortal({
                         return <option value="" disabled>-- Belum ada acara pada periode kepengurusan ini --</option>;
                       }
 
-                      return filteredEvents.map((evt) => (
-                        <option key={evt.id} value={evt.id}>
-                          {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : (evt.date || 'Tanpa Tanggal')})
-                        </option>
-                      ));
+                      return filteredEvents.map((evt) => {
+                        const existingConnectedForm = (forms || []).find((f) =>
+                          (f.isEventConnected || f.fields?.[0]?._isEventConnected) &&
+                          String(f.eventId || f.fields?.[0]?._eventId) === String(evt.id)
+                        );
+                        return (
+                          <option key={evt.id} value={evt.id}>
+                            {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : (evt.date || 'Tanpa Tanggal')})
+                            {existingConnectedForm ? ` ⚠️ (Sedang terhubung ke: "${existingConnectedForm.title}")` : ''}
+                          </option>
+                        );
+                      });
                     })()}
                   </select>
                   {renderFieldError('newFormEventId')}
+
+                  {(() => {
+                    if (!newFormEventId) return null;
+                    const conflictForm = (forms || []).find((f) =>
+                      (f.isEventConnected || f.fields?.[0]?._isEventConnected) &&
+                      String(f.eventId || f.fields?.[0]?._eventId) === String(newFormEventId)
+                    );
+                    if (!conflictForm) return null;
+                    return (
+                      <div
+                        style={{
+                          marginTop: '8px',
+                          padding: '8px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          color: '#fbbf24',
+                          fontSize: '0.78rem',
+                          lineHeight: '1.45'
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+                          <span>⚠️ Pengalihan Koneksi Acara (Smart Takeover)</span>
+                        </div>
+                        Acara ini saat ini sedang terhubung ke formulir <strong>"{conflictForm.title}"</strong>. Menyimpan formulir baru ini akan <strong>mengalihkan koneksi acara secara otomatis</strong> ke formulir ini. Formulir <em>"{conflictForm.title}"</em> otomatis kembali menjadi formulir mandiri tanpa menghapus data pendaftar yang sudah masuk.
+                      </div>
+                    );
+                  })()}
 
                   {/* Option: Butuh Pengundian Doorprize */}
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--border-card)' }}>
@@ -12254,13 +12289,50 @@ export default function AdminPortal({
                             return <option value="" disabled>-- Belum ada acara pada periode kepengurusan ini --</option>;
                           }
 
-                          return filteredEvents.map((evt) => (
-                            <option key={evt.id} value={evt.id}>
-                              {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : (evt.date || 'Tanpa Tanggal')})
-                            </option>
-                          ));
+                          return filteredEvents.map((evt) => {
+                            const existingConnectedForm = (forms || []).find((f) =>
+                              f.id !== editingItem.item.id &&
+                              (f.isEventConnected || f.fields?.[0]?._isEventConnected) &&
+                              String(f.eventId || f.fields?.[0]?._eventId) === String(evt.id)
+                            );
+                            return (
+                              <option key={evt.id} value={evt.id}>
+                                {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : (evt.date || 'Tanpa Tanggal')})
+                                {existingConnectedForm ? ` ⚠️ (Sedang terhubung ke: "${existingConnectedForm.title}")` : ''}
+                              </option>
+                            );
+                          });
                         })()}
                       </select>
+
+                      {(() => {
+                        if (!editingItem.item.eventId) return null;
+                        const conflictForm = (forms || []).find((f) =>
+                          f.id !== editingItem.item.id &&
+                          (f.isEventConnected || f.fields?.[0]?._isEventConnected) &&
+                          String(f.eventId || f.fields?.[0]?._eventId) === String(editingItem.item.eventId)
+                        );
+                        if (!conflictForm) return null;
+                        return (
+                          <div
+                            style={{
+                              marginTop: '8px',
+                              padding: '8px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(245, 158, 11, 0.12)',
+                              border: '1px solid rgba(245, 158, 11, 0.35)',
+                              color: '#fbbf24',
+                              fontSize: '0.78rem',
+                              lineHeight: '1.45'
+                            }}
+                          >
+                            <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+                              <span>⚠️ Pengalihan Koneksi Acara (Smart Takeover)</span>
+                            </div>
+                            Acara ini saat ini sedang terhubung ke formulir <strong>"{conflictForm.title}"</strong>. Menyimpan perubahan ini akan <strong>mengalihkan koneksi acara secara otomatis</strong> ke formulir ini. Formulir <em>"{conflictForm.title}"</em> otomatis kembali menjadi formulir mandiri tanpa menghapus data pendaftar yang sudah ada.
+                          </div>
+                        );
+                      })()}
 
                       {/* Option: Butuh Pengundian Doorprize */}
                       <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--border-card)' }}>
