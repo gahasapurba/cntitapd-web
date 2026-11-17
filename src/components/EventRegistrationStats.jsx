@@ -2021,7 +2021,7 @@ export default function EventRegistrationStats({
                   <span>Sistem Pengundian Doorprize Resmi CNT IT APD</span>
                 </div>
                 <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
-                  Mesin Undian Berputar (Lucky Draw)
+                  Undian Doorprize (Lucky Draw)
                 </h2>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                   Kandidat undian diambil 100% dari data pendaftar formulir acara yang sah.
@@ -2141,7 +2141,7 @@ export default function EventRegistrationStats({
                   ))}
                 </select>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '4px' }}>
-                  Nilai field ini akan berputar saat pengundian berlangsung
+                  Nilai field ini akan diacak dan ditampilkan saat pengundian berlangsung
                 </div>
               </div>
             </div>
@@ -2243,7 +2243,7 @@ export default function EventRegistrationStats({
                   ) : (
                     <>
                       <Sparkles size={18} />
-                      <span>Putar & Undi ({drawCount} Pemenang)</span>
+                      <span>Undi Pemenang ({drawCount} Pemenang)</span>
                     </>
                   )}
                 </button>
@@ -2374,7 +2374,7 @@ export default function EventRegistrationStats({
                   color: 'var(--text-muted)',
                   fontSize: '0.84rem'
                 }}>
-                  Belum ada pemenang yang diundi untuk acara ini. Tekan tombol <strong>Putar & Undi</strong> di atas untuk memulai doorprize!
+                  Belum ada pemenang yang diundi untuk acara ini. Tekan tombol <strong>Undi Pemenang</strong> di atas untuk memulai doorprize!
                 </div>
               )}
             </div>
