@@ -23,7 +23,9 @@ import {
   HelpCircle,
   Tag,
   Lock,
-  CalendarX
+  CalendarX,
+  BarChart3,
+  FileText
 } from 'lucide-react';
 import { formatWibEventRange, isEventPassed } from '../utils/dateUtils';
 
@@ -68,7 +70,10 @@ export default function ProgramSection({
   onNavigateOprec,
   initialEventId = null,
   onSelectEventUrl,
-  tenures = []
+  tenures = [],
+  forms = [],
+  onNavigateForm,
+  onNavigateEventStats
 }) {
   const isDark = theme === 'dark';
   const [filterDiv, setFilterDiv] = useState('all');
@@ -654,6 +659,11 @@ export default function ProgramSection({
                       {(evt.category || evt.badge) && (
                         <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
                           {evt.category || evt.badge}
+                        </span>
+                      )}
+                      {(forms || []).some(f => (f.isEventConnected || f.fields?.[0]?._isEventConnected) && String(f.eventId || f.fields?.[0]?._eventId) === String(evt.id)) && (
+                        <span className="badge-gold" style={{ fontSize: '0.66rem', fontWeight: 800 }}>
+                          🎪 Form & Undian
                         </span>
                       )}
                     </div>
@@ -1752,16 +1762,163 @@ export default function ProgramSection({
                 </div>
               </div>
 
-              {/* Quick RSVP Form (Tersimpan di Tabel Supabase public.event_rsvps) */}
-              <div style={{
-                padding: '16px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--input-bg)',
-                border: '1px solid var(--border-card)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px'
-              }}>
+              {/* Connected Form Banner OR Quick RSVP Form */}
+              {(() => {
+                const connectedForm = (forms || []).find(f => {
+                  const isConn = f.isEventConnected || f.fields?.[0]?._isEventConnected;
+                  const evtId = f.eventId || f.fields?.[0]?._eventId;
+                  return Boolean(isConn) && String(evtId) === String(rsvpModalEvent.id);
+                });
+
+                if (connectedForm) {
+                  return (
+                    <div style={{
+                      padding: '20px',
+                      borderRadius: 'var(--radius-md)',
+                      background: isDark
+                        ? 'linear-gradient(135deg, rgba(255, 184, 0, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)'
+                        : 'linear-gradient(135deg, #fffbeb 0%, #ecfeff 100%)',
+                      border: '1.5px solid rgba(255, 184, 0, 0.45)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '14px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1.25rem' }}>📋</span>
+                          <div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                              Pendaftaran Melalui Formulir Resmi
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                              RSVP standar dialihkan ke formulir interaktif acara ini.
+                            </div>
+                          </div>
+                        </div>
+                        <span className="badge-gold" style={{ fontSize: '0.68rem', fontWeight: 800 }}>
+                          Terhubung ke Form
+                        </span>
+                      </div>
+
+                      <div style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-card)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px'
+                      }}>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                          {connectedForm.title}
+                        </div>
+                        {connectedForm.subtitle && (
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                            {connectedForm.subtitle}
+                          </div>
+                        )}
+                        {connectedForm.deadline && (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                            ⏳ Batas Akhir: {formatDeadlineWib(connectedForm.deadline)}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleCloseEventModal();
+                            if (onNavigateForm) {
+                              onNavigateForm(connectedForm.id);
+                            } else {
+                              window.location.href = `/?form=${encodeURIComponent(connectedForm.id)}#form`;
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '12px 18px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'linear-gradient(135deg, var(--mandiri-gold) 0%, #d99b00 100%)',
+                            color: '#0b132b',
+                            fontWeight: 800,
+                            fontSize: '0.88rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 14px rgba(255, 184, 0, 0.35)',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <ExternalLink size={16} />
+                          <span>Buka Formulir Pendaftaran Acara</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleCloseEventModal();
+                            if (onNavigateEventStats) {
+                              onNavigateEventStats(rsvpModalEvent.id);
+                            } else {
+                              window.location.href = `/?stats=${encodeURIComponent(rsvpModalEvent.id)}#event-stats`;
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '11px 18px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'rgba(6, 182, 212, 0.12)',
+                            border: '1.5px solid rgba(6, 182, 212, 0.45)',
+                            color: 'var(--neon-cyan)',
+                            fontWeight: 800,
+                            fontSize: '0.86rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <BarChart3 size={16} />
+                          <span>Lihat Statistik & Undian Doorprize Event 📊</span>
+                        </button>
+                      </div>
+
+                      {currentEventRsvps.length > 0 && (
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px dashed var(--border-card)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px'
+                        }}>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            ℹ️ <strong>Catatan Data:</strong> Terdapat <strong>{currentEventRsvps.length} RSVP awal</strong> yang tersimpan sebelum formulir dihubungkan. Data tetap aman dan dapat diikutkan pada undian.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{
+                    padding: '16px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
                 {(() => {
                   const isPassed = isEventPassed(rsvpModalEvent.startDate, rsvpModalEvent.endDate) || rsvpModalEvent.status === 'Completed';
                   const isLimited = Boolean(rsvpModalEvent.isLimited);
@@ -1992,6 +2149,8 @@ export default function ProgramSection({
                   </div>
                 )}
               </div>
+            );
+          })()}
 
               {/* Add to Calendar Actions (Outlook .ics & Google Calendar) */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>

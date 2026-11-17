@@ -181,7 +181,8 @@ export default function AdminPortal({
   onForceSync,
   onResetDefault,
   onRestoreBackup,
-  theme = 'dark'
+  theme = 'dark',
+  luckyDraws = []
 }) {
   const isDark = theme === 'dark';
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -403,6 +404,8 @@ export default function AdminPortal({
   const [newFormShowAnnouncement, setNewFormShowAnnouncement] = useState(false);
   const [newFormIsLimited, setNewFormIsLimited] = useState(false);
   const [newFormMaxQuota, setNewFormMaxQuota] = useState('');
+  const [newFormIsEventConnected, setNewFormIsEventConnected] = useState(false);
+  const [newFormEventId, setNewFormEventId] = useState('');
   const [newFormTenureId, setNewFormTenureId] = useState(activeTenure?.id || '');
   const [selectedSubFilter, setSelectedSubFilter] = useState('all');
   const [draggedFieldIndex, setDraggedFieldIndex] = useState(null);
@@ -487,17 +490,36 @@ export default function AdminPortal({
     });
   };
 
-  // Helper to initiate event deletion with RSVP dependency checks
+  // Helper to initiate event deletion with RSVP, Form, Submission, and Lucky Draw dependency checks
   const handleDeleteEventClick = (evt) => {
     const relatedRsvps = (eventRsvps || []).filter(r => r.eventId === evt.id);
     const rsvpCount = relatedRsvps.length;
+
+    // Check connected forms
+    const connectedForms = (forms || []).filter(f => (f.isEventConnected || f.fields?.[0]?._isEventConnected) && (f.eventId === evt.id || f.fields?.[0]?._eventId === evt.id));
+    const formCount = connectedForms.length;
+    const connectedFormIds = connectedForms.map(f => f.id);
+
+    // Check connected form submissions
+    const relatedSubs = (submissions || []).filter(s => connectedFormIds.includes(s.formId));
+    const formSubCount = relatedSubs.length;
+
+    // Check lucky draw winners for this event
+    const relatedLuckyDraws = (luckyDraws || []).filter(ld => ld.eventId === evt.id);
+    const luckyDrawCount = relatedLuckyDraws.length;
+
+    const isBlocked = rsvpCount > 0 || formCount > 0 || formSubCount > 0 || luckyDrawCount > 0;
 
     setDeleteConfirm({
       type: 'event',
       id: evt.id,
       name: evt.title,
       rsvpCount,
-      isBlocked: rsvpCount > 0
+      formCount,
+      formSubCount,
+      luckyDrawCount,
+      connectedFormNames: connectedForms.map(f => f.title).join(', '),
+      isBlocked
     });
   };
 
@@ -7481,6 +7503,9 @@ export default function AdminPortal({
               if (newFormIsLimited && (!newFormMaxQuota || parseInt(newFormMaxQuota, 10) <= 0)) {
                 errs.newFormMaxQuota = 'Maksimal kuota harus lebih dari 0 jika kuota dibatasi';
               }
+              if (newFormIsEventConnected && !newFormEventId) {
+                errs.newFormEventId = 'Silakan pilih event / acara yang terhubung';
+              }
               if (Object.keys(errs).length > 0) {
                 setFormErrors((prev) => ({ ...prev, ...errs }));
                 showToast('Mohon lengkapi kolom wajib pada form Formulir', 'error');
@@ -7500,6 +7525,8 @@ export default function AdminPortal({
                 isLimited: newFormIsLimited,
                 maxQuota: newFormIsLimited ? (parseInt(newFormMaxQuota, 10) || 0) : 0,
                 tenureId: targetTenureId,
+                isEventConnected: newFormIsEventConnected,
+                eventId: newFormIsEventConnected ? newFormEventId : '',
                 fields: newFormRequiresTracking ? [
                   { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
                   { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true },
@@ -7524,6 +7551,8 @@ export default function AdminPortal({
               setNewFormShowAnnouncement(false);
               setNewFormIsLimited(false);
               setNewFormMaxQuota('');
+              setNewFormIsEventConnected(false);
+              setNewFormEventId('');
               showToast(`Formulir "${newForm.title}" berhasil dibuat & dipublikasikan!`);
             }}
             className="admin-form-two-col"
@@ -7749,6 +7778,52 @@ export default function AdminPortal({
                     style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.newFormMaxQuota ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
                   />
                   {renderFieldError('newFormMaxQuota')}
+                </div>
+              )}
+            </div>
+
+            {/* Option: Hubungkan ke Event / Acara */}
+            <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: newFormIsEventConnected ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={newFormIsEventConnected}
+                  onChange={(e) => {
+                    setNewFormIsEventConnected(e.target.checked);
+                    if (!e.target.checked) {
+                      setNewFormEventId('');
+                      clearFieldError('newFormEventId');
+                    }
+                  }}
+                />
+                <span>🎪 Hubungkan Formulir ini ke Acara / Event</span>
+              </label>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px' }}>
+                {newFormIsEventConnected
+                  ? 'Aktif: Formulir ini akan menggantikan form RSVP standar pada modal event terkait, dan pendaftar formulir ini akan dianalisis di statistik & undian doorprize event.'
+                  : 'Nonaktif: Formulir mandiri biasa yang tidak terikat secara khusus pada event kalender.'}
+              </span>
+              {newFormIsEventConnected && (
+                <div style={{ marginLeft: '24px', marginTop: '2px', maxWidth: '420px' }}>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Pilih Acara / Event Terhubung <span style={{ color: '#f43f5e' }}>*</span>
+                  </label>
+                  <select
+                    value={newFormEventId}
+                    onChange={(e) => {
+                      setNewFormEventId(e.target.value);
+                      clearFieldError('newFormEventId');
+                    }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: `1.5px solid ${formErrors.newFormEventId ? '#f43f5e' : 'var(--input-border)'}`, color: 'var(--text-main)', fontSize: '0.85rem' }}
+                  >
+                    <option value="">-- Pilih Event yang Ada di Database --</option>
+                    {(events || []).map((evt) => (
+                      <option key={evt.id} value={evt.id}>
+                        {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : 'Tanpa Tanggal'})
+                      </option>
+                    ))}
+                  </select>
+                  {renderFieldError('newFormEventId')}
                 </div>
               )}
             </div>
@@ -8601,7 +8676,21 @@ export default function AdminPortal({
                           {onDeleteSubmission && (
                             <button
                               type="button"
-                              onClick={() => setDeleteConfirm({ type: 'submission', id: sub.id, name: `Berkas ${applicantName}` })}
+                              onClick={() => {
+                                const wonDraw = (luckyDraws || []).find(ld => ld.submissionId === sub.id);
+                                if (wonDraw) {
+                                  setDeleteConfirm({
+                                    type: 'submission',
+                                    id: sub.id,
+                                    name: `Berkas ${applicantName}`,
+                                    isBlocked: true,
+                                    drawPrize: wonDraw.prizeName,
+                                    drawnAt: wonDraw.drawnAt
+                                  });
+                                } else {
+                                  setDeleteConfirm({ type: 'submission', id: sub.id, name: `Berkas ${applicantName}` });
+                                }
+                              }}
                               style={{
                                 background: 'rgba(244, 63, 94, 0.12)',
                                 border: '1px solid rgba(244, 63, 94, 0.35)',
@@ -11895,6 +11984,60 @@ export default function AdminPortal({
                   )}
                 </div>
 
+                {/* Option: Hubungkan ke Event / Acara */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', color: editingItem.item.isEventConnected ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!editingItem.item.isEventConnected}
+                      onChange={(e) => {
+                        const isConn = e.target.checked;
+                        setEditingItem({
+                          ...editingItem,
+                          item: {
+                            ...editingItem.item,
+                            isEventConnected: isConn,
+                            eventId: isConn ? (editingItem.item.eventId || '') : ''
+                          }
+                        });
+                      }}
+                    />
+                    <span>🎪 Hubungkan Formulir ini ke Acara / Event</span>
+                  </label>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px' }}>
+                    {editingItem.item.isEventConnected
+                      ? 'Aktif: Formulir ini akan menggantikan form RSVP standar pada modal event terkait, dan pendaftar formulir ini akan dianalisis di statistik & undian doorprize event.'
+                      : 'Nonaktif: Formulir mandiri biasa yang tidak terikat secara khusus pada event kalender.'}
+                  </span>
+                  {editingItem.item.isEventConnected && (
+                    <div style={{ marginLeft: '24px', marginTop: '2px', maxWidth: '420px' }}>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                        Pilih Acara / Event Terhubung <span style={{ color: '#f43f5e' }}>*</span>
+                      </label>
+                      <select
+                        value={editingItem.item.eventId || ''}
+                        onChange={(e) => {
+                          setEditingItem({
+                            ...editingItem,
+                            item: {
+                              ...editingItem.item,
+                              eventId: e.target.value
+                            }
+                          });
+                        }}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                      >
+                        <option value="">-- Pilih Event yang Ada di Database --</option>
+                        {(events || []).map((evt) => (
+                          <option key={evt.id} value={evt.id}>
+                            {evt.title} ({evt.startDate ? formatToIndonesianDate(evt.startDate.split('T')[0]) : 'Tanpa Tanggal'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
                 {/* Custom Field Builder */}
                 <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
@@ -13066,6 +13209,11 @@ export default function AdminPortal({
                       showToast('Maksimal kuota responden harus lebih dari 0 jika kuota dibatasi', 'error');
                       return;
                     }
+                    if (it.isEventConnected && !it.eventId) {
+                      setEditModalError('Silakan pilih Acara / Event yang terhubung');
+                      showToast('Silakan pilih Acara / Event yang terhubung', 'error');
+                      return;
+                    }
                   }
                   if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {
                     setEditModalError('Pengirim, penerima, dan pesan apresiasi wajib diisi');
@@ -13260,12 +13408,16 @@ export default function AdminPortal({
                       const cleanDeadline = editingItem.item.deadline ? toDatetimeLocalSecondsValue(editingItem.item.deadline) : '';
                       const isLimitedVal = editingItem.item.isLimited === true;
                       const maxQuotaVal = isLimitedVal ? (parseInt(editingItem.item.maxQuota, 10) || 0) : 0;
+                      const isEventConnectedVal = editingItem.item.isEventConnected === true;
+                      const eventIdVal = isEventConnectedVal ? (editingItem.item.eventId || '') : '';
                       onUpdateForm({
                         ...editingItem.item,
                         deadline: cleanDeadline,
                         fields: cleanFields,
                         isLimited: isLimitedVal,
-                        maxQuota: maxQuotaVal
+                        maxQuota: maxQuotaVal,
+                        isEventConnected: isEventConnectedVal,
+                        eventId: eventIdVal
                       });
                     }
                   }
@@ -14108,10 +14260,12 @@ export default function AdminPortal({
                                 : (deleteConfirm.type === 'member'
                                     ? 'Pimpro Masih Memimpin Anggota'
                                     : (deleteConfirm.type === 'event'
-                                        ? 'Event Memiliki Data RSVP'
+                                        ? 'Event Memiliki Relasi Data Aktif'
                                         : (deleteConfirm.type === 'form'
                                             ? 'Formulir Memiliki Data Pengisian'
-                                            : 'Data Masih Memiliki Ketergantungan')))))))
+                                            : (deleteConfirm.type === 'submission'
+                                                ? 'Peserta Adalah Pemenang Undian'
+                                                : 'Data Masih Memiliki Ketergantungan'))))))))
                     : (deleteConfirm.type === 'gallery_photo'
                         ? 'Konfirmasi Hapus Foto'
                         : (deleteConfirm.type === 'tenure'
@@ -14492,7 +14646,7 @@ export default function AdminPortal({
               deleteConfirm.isBlocked ? (
                 <>
                   <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-                    Event <strong>"{deleteConfirm.name}"</strong> belum dapat dihapus karena masih memiliki <strong>{deleteConfirm.rsvpCount} data konfirmasi RSVP</strong> dari pegawai.
+                    Event <strong>"{deleteConfirm.name}"</strong> belum dapat dihapus karena masih memiliki relasi data aktif:
                   </p>
 
                   <div style={{
@@ -14500,25 +14654,90 @@ export default function AdminPortal({
                     border: '1px solid var(--border-card)',
                     borderRadius: '10px',
                     padding: '12px',
-                    textAlign: 'left'
+                    textAlign: 'left',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
                   }}>
-                    <div style={{
-                      background: 'rgba(244, 63, 94, 0.12)',
-                      border: '1px solid rgba(244, 63, 94, 0.3)',
-                      borderRadius: '8px',
-                      padding: '10px 12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px'
-                    }}>
-                      <ClipboardList size={20} color="#f43f5e" />
-                      <div>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Data RSVP Terdaftar</div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f43f5e' }}>
-                          {deleteConfirm.rsvpCount} Pegawai / Pendaftar
+                    {deleteConfirm.rsvpCount > 0 && (
+                      <div style={{
+                        background: 'rgba(244, 63, 94, 0.12)',
+                        border: '1px solid rgba(244, 63, 94, 0.3)',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <ClipboardList size={18} color="#f43f5e" />
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Data RSVP Terdaftar</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f43f5e' }}>
+                            {deleteConfirm.rsvpCount} Pegawai / Pendaftar
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
+
+                    {deleteConfirm.formCount > 0 && (
+                      <div style={{
+                        background: 'rgba(255, 184, 0, 0.12)',
+                        border: '1px solid rgba(255, 184, 0, 0.3)',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <FileText size={18} color="var(--mandiri-gold)" />
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Formulir Pendaftaran Terhubung</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                            {deleteConfirm.formCount} Form: {deleteConfirm.connectedFormNames}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {deleteConfirm.formSubCount > 0 && (
+                      <div style={{
+                        background: 'rgba(6, 182, 212, 0.12)',
+                        border: '1px solid rgba(6, 182, 212, 0.3)',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <Users size={18} color="var(--neon-cyan)" />
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Berkas Responden Formulir Terdaftar</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--neon-cyan)' }}>
+                            {deleteConfirm.formSubCount} Pengisian Berkas Peserta
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {deleteConfirm.luckyDrawCount > 0 && (
+                      <div style={{
+                        background: 'rgba(168, 85, 247, 0.12)',
+                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <Sparkles size={18} color="#c084fc" />
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Pemenang Undian Doorprize</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#c084fc' }}>
+                            {deleteConfirm.luckyDrawCount} Pemenang Tercatat
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{
@@ -14531,7 +14750,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    💡 <strong>Petunjuk:</strong> Buka tab <strong>Kehadiran RSVP</strong> untuk meninjau dan mengekspor rekap pendaftar, lalu bersihkan riwayat RSVP event ini terlebih dahulu sebelum menghapusnya.
+                    💡 <strong>Petunjuk:</strong> Harap putuskan koneksi form ke event ini melalui tab Formulir, atau bersihkan riwayat RSVP dan hasil undian doorprize terlebih dahulu demi menjaga konsistensi database.
                   </div>
                 </>
               ) : (
@@ -14549,9 +14768,54 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    ✓ <strong>Aman Dihapus:</strong> Event ini tidak memiliki riwayat RSVP pendaftar (0 RSVP).
+                    ✓ <strong>Aman Dihapus:</strong> Event ini tidak memiliki riwayat RSVP, formulir terhubung, maupun pemenang undian.
                   </div>
                 </>
+              )
+            )}
+
+            {/* SUBMISSION BODY */}
+            {deleteConfirm.type === 'submission' && (
+              deleteConfirm.isBlocked ? (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    <strong>{deleteConfirm.name}</strong> tidak dapat dihapus karena peserta telah tercatat sebagai <strong>Pemenang Undian Doorprize</strong>!
+                  </p>
+                  <div style={{
+                    background: 'rgba(168, 85, 247, 0.12)',
+                    border: '1px solid rgba(168, 85, 247, 0.35)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <Sparkles size={20} color="#c084fc" />
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Hadiah Doorprize Dimenangkan</div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#c084fc' }}>
+                        🎁 {deleteConfirm.drawPrize || 'Hadiah Doorprize Event'}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{
+                    background: 'rgba(255, 184, 0, 0.1)',
+                    border: '1px solid rgba(255, 184, 0, 0.3)',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.78rem',
+                    color: 'var(--mandiri-gold)',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    💡 <strong>Petunjuk:</strong> Buka halaman <strong>Statistik & Undian Event</strong> untuk membatalkan/menghapus nama pemenang dari daftar undian terlebih dahulu sebelum menghapus berkas pendaftaran ini.
+                  </div>
+                </>
+              ) : (
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                  Apakah Anda yakin ingin menghapus berkas pendaftaran <strong>"{deleteConfirm.name}"</strong>? Berkas dan dokumen lampiran akan dibersihkan.
+                </p>
               )
             )}
 
@@ -14730,7 +14994,7 @@ export default function AdminPortal({
             )}
 
             {/* DEFAULT BODY FOR OTHER TYPES */}
-            {deleteConfirm.type !== 'tenure' && deleteConfirm.type !== 'division' && deleteConfirm.type !== 'department' && deleteConfirm.type !== 'member' && deleteConfirm.type !== 'event' && deleteConfirm.type !== 'form' && deleteConfirm.type !== 'gallery_photo' && (
+            {deleteConfirm.type !== 'tenure' && deleteConfirm.type !== 'division' && deleteConfirm.type !== 'department' && deleteConfirm.type !== 'member' && deleteConfirm.type !== 'event' && deleteConfirm.type !== 'form' && deleteConfirm.type !== 'gallery_photo' && deleteConfirm.type !== 'submission' && (
               <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                 {deleteConfirm.type === 'reset_all' ? (
                   <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>

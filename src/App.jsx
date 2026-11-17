@@ -13,6 +13,7 @@ const KudosSection = lazy(() => import('./components/KudosSection'));
 const AssetKitSection = lazy(() => import('./components/AssetKitSection'));
 const DynamicFormSection = lazy(() => import('./components/DynamicFormSection'));
 const AdminPortal = lazy(() => import('./components/AdminPortal'));
+const EventRegistrationStats = lazy(() => import('./components/EventRegistrationStats'));
 
 const DEFAULT_ANNOUNCEMENT_BAR = {
   badge: '',
@@ -35,7 +36,7 @@ import { formatDeadlineWib, isEventPassed } from './utils/dateUtils';
 import { getTenureRoles, getDivisionLead } from './utils/memberQuotaUtils';
 
 const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'assets', 'form'];
-const VALID_TABS = [...PUBLIC_PAGE_IDS, 'program', 'oprec', 'admin'];
+const VALID_TABS = [...PUBLIC_PAGE_IDS, 'program', 'oprec', 'admin', 'event-stats'];
 
 function parseLocationRoute() {
   const rawHash = (window.location.hash || '').replace(/^#/, '');
@@ -44,10 +45,14 @@ function parseLocationRoute() {
   const formId = params.get('form') || params.get('formId') || null;
   const eventId = params.get('eventId') || params.get('event') || null;
   const galleryId = params.get('gallery') || params.get('galleryId') || null;
+  const statsParam = params.get('stats') || params.get('statsEventId') || null;
   const pathname = (window.location.pathname || '').replace(/\/+$/, '');
 
   if (pathname === '/admin' || hashTab === 'admin') {
     return { tab: 'admin', formId, eventId, galleryId };
+  }
+  if (statsParam || hashTab === 'event-stats') {
+    return { tab: 'event-stats', formId: null, eventId: statsParam || eventId, galleryId: null };
   }
   if (formId) {
     return { tab: 'form', formId, eventId: null, galleryId: null };
@@ -117,11 +122,18 @@ export default function App() {
       setActiveEventIdFromUrl(null);
       setActiveGalleryIdFromUrl(null);
       window.history.replaceState(null, '', `${basePrefix}?form=${encodeURIComponent(formIdParam)}#form`);
-    } else if (eventIdParam) {
-      setActiveEventIdFromUrl(eventIdParam);
-      setActiveFormIdFromUrl(null);
-      setActiveGalleryIdFromUrl(null);
-      window.history.replaceState(null, '', `${basePrefix}?event=${encodeURIComponent(eventIdParam)}#event`);
+    } else if (targetTab === 'event-stats' || eventIdParam) {
+      if (targetTab === 'event-stats') {
+        setActiveEventIdFromUrl(eventIdParam);
+        setActiveFormIdFromUrl(null);
+        setActiveGalleryIdFromUrl(null);
+        window.history.replaceState(null, '', `${basePrefix}?stats=${encodeURIComponent(eventIdParam || '')}#event-stats`);
+      } else {
+        setActiveEventIdFromUrl(eventIdParam);
+        setActiveFormIdFromUrl(null);
+        setActiveGalleryIdFromUrl(null);
+        window.history.replaceState(null, '', `${basePrefix}?event=${encodeURIComponent(eventIdParam)}#event`);
+      }
     } else if (galleryIdParam) {
       setActiveGalleryIdFromUrl(galleryIdParam);
       setActiveFormIdFromUrl(null);
@@ -226,6 +238,7 @@ export default function App() {
   const [brandAssets, setBrandAssets] = useState(() => loadLocalCache('brandAssets', []));
   const [eventRsvps, setEventRsvps] = useState(() => loadLocalCache('eventRsvps', []));
   const [faqs, setFaqs] = useState(() => loadLocalCache('faqs', []));
+  const [luckyDraws, setLuckyDraws] = useState(() => loadLocalCache('luckyDraws', []));
   const [announcementBar, setAnnouncementBar] = useState(() => loadLocalCache('announcementBar', DEFAULT_ANNOUNCEMENT_BAR));
   const [roleQuotas, setRoleQuotas] = useState(() => loadLocalCache('roleQuotas', {}));
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
@@ -331,6 +344,10 @@ export default function App() {
         saveLocalCache('tenureRoles', cloud.tenureRoles);
       }
       if (Array.isArray(cloud.faqs)) setFaqs(cloud.faqs);
+      if (Array.isArray(cloud.luckyDraws)) {
+        setLuckyDraws(cloud.luckyDraws);
+        saveLocalCache('luckyDraws', cloud.luckyDraws);
+      }
       if (cloud.announcementBar && typeof cloud.announcementBar === 'object') {
         setAnnouncementBar({ ...DEFAULT_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
       }
@@ -824,6 +841,35 @@ export default function App() {
     });
   };
 
+  // Lucky Draw State & Handlers
+  const handleAddLuckyDraw = useCallback((newDraws) => {
+    setLuckyDraws((prev) => {
+      const arr = Array.isArray(newDraws) ? newDraws : [newDraws];
+      const updated = [...arr, ...prev];
+      saveLocalCache('luckyDraws', updated);
+      pushCloudState('luckyDraws', updated);
+      return updated;
+    });
+  }, []);
+
+  const handleDeleteLuckyDraw = useCallback((id) => {
+    setLuckyDraws((prev) => {
+      const updated = prev.filter(ld => ld.id !== id);
+      saveLocalCache('luckyDraws', updated);
+      pushCloudState('luckyDraws', updated);
+      return updated;
+    });
+  }, []);
+
+  const handleResetLuckyDraw = useCallback((eventId) => {
+    setLuckyDraws((prev) => {
+      const updated = prev.filter(ld => ld.eventId !== eventId);
+      saveLocalCache('luckyDraws', updated);
+      pushCloudState('luckyDraws', updated);
+      return updated;
+    });
+  }, []);
+
   // Brand Assets Lifecycle Handlers
   const handleAddBrandAsset = (newAsset) => {
     const now = new Date().toISOString();
@@ -1150,11 +1196,13 @@ export default function App() {
   // If currentTab is a public page that has been hidden, automatically fall back to the first visible page
   const effectiveTab = currentTab === 'admin'
     ? 'admin'
-    : (allPagesHidden
-        ? 'all-hidden'
-        : (isPageVisible(currentTab)
-            ? (currentTab === 'program' ? 'event' : currentTab === 'oprec' ? 'form' : currentTab)
-            : visiblePublicPages[0]));
+    : currentTab === 'event-stats'
+      ? 'event-stats'
+      : (allPagesHidden
+          ? 'all-hidden'
+          : (isPageVisible(currentTab)
+              ? (currentTab === 'program' ? 'event' : currentTab === 'oprec' ? 'form' : currentTab)
+              : visiblePublicPages[0]));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
@@ -1422,6 +1470,26 @@ export default function App() {
               onAddEventRsvp={handleAddEventRsvp}
               initialEventId={activeEventIdFromUrl}
               onSelectEventUrl={(eId) => setCurrentTab('event', null, eId, false)}
+              forms={forms}
+              onNavigateForm={(fId) => setCurrentTab('form', fId)}
+              onNavigateEventStats={(eId) => setCurrentTab('event-stats', null, eId)}
+            />
+          )}
+
+          {effectiveTab === 'event-stats' && (
+            <EventRegistrationStats
+              eventId={activeEventIdFromUrl}
+              events={events}
+              forms={forms}
+              submissions={submissions}
+              eventRsvps={eventRsvps}
+              luckyDraws={luckyDraws}
+              onAddLuckyDraw={handleAddLuckyDraw}
+              onDeleteLuckyDraw={handleDeleteLuckyDraw}
+              onResetLuckyDraw={handleResetLuckyDraw}
+              onBack={() => setCurrentTab('event')}
+              onNavigateForm={(fId) => setCurrentTab('form', fId)}
+              theme={theme}
             />
           )}
 
@@ -1543,6 +1611,7 @@ export default function App() {
               onResetDefault={handleResetDefault}
               onRestoreBackup={handleRestoreBackup}
               theme={theme}
+              luckyDraws={luckyDraws}
             />
           )}
           </ErrorBoundary>

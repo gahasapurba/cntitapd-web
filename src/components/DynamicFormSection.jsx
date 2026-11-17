@@ -18,11 +18,15 @@ import {
   Share2,
   Check,
   Search,
-  MessageCircle
+  MessageCircle,
+  QrCode,
+  Download,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { getDeadlineStatus, formatDeadlineWib, formatWibDateTime, formatWibTimestamp } from '../utils/dateUtils';
+import { generateFormQrPoster } from '../utils/qrPosterGenerator';
 
 export default function DynamicFormSection({ 
   forms = [], 
@@ -60,6 +64,8 @@ export default function DynamicFormSection({
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedSubId, setCopiedSubId] = useState(false);
   const [uploadingFieldId, setUploadingFieldId] = useState(null);
+  const [generatingPoster, setGeneratingPoster] = useState(false);
+  const [posterPreview, setPosterPreview] = useState(null);
 
   useEffect(() => {
     if (initialFormId && activeForms.some(f => f.id === initialFormId)) {
@@ -106,6 +112,63 @@ export default function DynamicFormSection({
     const deadlineText = dl.isExpired ? 'Pendaftaran Ditutup' : (dl.formatted || 'Sesuai jadwal');
     const text = `📋 *Formulir Registrasi CNT IT APD*\n*${targetForm.title}*\n⏳ Batas Pengisian: ${deadlineText}\n\nSilakan isi formulir melalui tautan resmi berikut:\n${shareUrl}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleDownloadQrPoster = async (targetForm = currentForm) => {
+    if (!targetForm) return;
+    setGeneratingPoster(true);
+    try {
+      const shareUrl = getFormDirectUrl(targetForm.id);
+      const poster = await generateFormQrPoster({
+        title: targetForm.title,
+        description: targetForm.description || targetForm.subtitle,
+        formUrl: shareUrl,
+        category: targetForm.category,
+        deadline: targetForm.deadline,
+        tenureText: targetForm.tenure ? `Periode ${targetForm.tenure}` : undefined
+      });
+
+      // Check if Web Share API with file support is available (e.g. mobile Safari / Chrome)
+      if (navigator.canShare && navigator.canShare({ files: [new File([poster.blob], poster.filename, { type: 'image/png' })] })) {
+        try {
+          await navigator.share({
+            files: [new File([poster.blob], poster.filename, { type: 'image/png' })],
+            title: `Poster QR ${targetForm.title}`,
+            text: `Scan QR Code untuk mendaftar: ${targetForm.title}`
+          });
+          setGeneratingPoster(false);
+          return;
+        } catch (shareErr) {
+          if (shareErr.name === 'AbortError') {
+            setGeneratingPoster(false);
+            return;
+          }
+        }
+      }
+
+      // Check if touch device / mobile (iPhone / Android) where a.download may be blocked
+      const isMobileDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 768;
+      if (isMobileDevice) {
+        setPosterPreview({
+          url: poster.dataUrl,
+          filename: poster.filename,
+          title: targetForm.title
+        });
+      } else {
+        // Desktop direct download
+        const a = document.createElement('a');
+        a.href = poster.dataUrl;
+        a.download = poster.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (err) {
+      console.error('Failed to generate QR poster:', err);
+      alert('Gagal membuat poster QR: ' + (err.message || 'Error'));
+    } finally {
+      setGeneratingPoster(false);
+    }
   };
 
   const handleCopySubId = (subId) => {
@@ -944,6 +1007,29 @@ export default function DynamicFormSection({
                     >
                       <MessageCircle size={13} />
                       <span>Bagikan ke WhatsApp</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadQrPoster(currentForm)}
+                      disabled={generatingPoster}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(255, 184, 0, 0.12)',
+                        border: '1px solid rgba(255, 184, 0, 0.4)',
+                        color: 'var(--mandiri-gold)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: generatingPoster ? 'wait' : 'pointer'
+                      }}
+                      title="Unduh Poster QR Resolusi Tinggi (PNG) untuk Dibagikan atau Dicetak"
+                    >
+                      {generatingPoster ? <Loader2 size={13} className="spin" /> : <QrCode size={13} />}
+                      <span>{generatingPoster ? 'Menyiapkan Poster...' : 'Unduh Poster QR (PNG)'}</span>
                     </button>
                   </div>
                 </div>
@@ -1810,6 +1896,137 @@ export default function DynamicFormSection({
           </section>
         );
       })()}
+
+      {/* MODAL PREVIEW POSTER QR UNTUK MOBILE / IPHONE */}
+      {posterPreview && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.82)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={() => setPosterPreview(null)}
+        >
+          <div
+            className="glass-panel"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '440px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              padding: '24px',
+              borderRadius: 'var(--radius-lg)',
+              border: '1.5px solid var(--mandiri-gold)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <QrCode size={20} color="var(--mandiri-gold)" />
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Poster QR Formulir (HD)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPosterPreview(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <img
+              src={posterPreview.url}
+              alt={posterPreview.title}
+              style={{
+                width: '100%',
+                maxHeight: '52vh',
+                objectFit: 'contain',
+                borderRadius: '12px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+                border: '1px solid var(--border-card)'
+              }}
+            />
+
+            <div style={{
+              fontSize: '0.78rem',
+              color: 'var(--text-muted)',
+              textAlign: 'center',
+              lineHeight: 1.5,
+              background: 'var(--input-bg)',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              width: '100%'
+            }}>
+              💡 <strong>Tips Mobile (iPhone 17 Pro Max / Android):</strong> Tekan & tahan gambar poster di atas lalu pilih <em>"Save to Photos" / "Simpan Gambar"</em>, atau gunakan tombol di bawah.
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
+              <a
+                href={posterPreview.url}
+                download={posterPreview.filename}
+                style={{
+                  flex: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '12px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'linear-gradient(135deg, var(--mandiri-gold) 0%, #d99b00 100%)',
+                  color: '#0b132b',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 14px rgba(255,184,0,0.35)',
+                  minWidth: '150px'
+                }}
+              >
+                <Download size={16} />
+                <span>Simpan / Unduh PNG</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setPosterPreview(null)}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontWeight: 700,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

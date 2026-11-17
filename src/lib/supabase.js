@@ -130,6 +130,32 @@ let isFormsLimitedColSupported = false;
 let isFormsMaxQuotaColChecked = false;
 let isFormsMaxQuotaColSupported = false;
 
+let isFormsEventConnectedColChecked = false;
+let isFormsEventConnectedColSupported = false;
+let isFormsEventIdColChecked = false;
+let isFormsEventIdColSupported = false;
+
+export async function checkFormsEventColumns() {
+  if (isFormsEventConnectedColChecked && isFormsEventIdColChecked) {
+    return { isEventConnectedSupported: isFormsEventConnectedColSupported, isEventIdSupported: isFormsEventIdColSupported };
+  }
+  try {
+    const { error: err1 } = await supabase.from('forms').select('is_event_connected').limit(1);
+    isFormsEventConnectedColSupported = !err1;
+    isFormsEventConnectedColChecked = true;
+  } catch (e) {
+    isFormsEventConnectedColSupported = false;
+  }
+  try {
+    const { error: err2 } = await supabase.from('forms').select('event_id').limit(1);
+    isFormsEventIdColSupported = !err2;
+    isFormsEventIdColChecked = true;
+  } catch (e) {
+    isFormsEventIdColSupported = false;
+  }
+  return { isEventConnectedSupported: isFormsEventConnectedColSupported, isEventIdSupported: isFormsEventIdColSupported };
+}
+
 export async function checkFormsQuotaColumns() {
   if (isFormsLimitedColChecked && isFormsMaxQuotaColChecked) {
     return { isLimitedSupported: isFormsLimitedColSupported, isMaxQuotaSupported: isFormsMaxQuotaColSupported };
@@ -684,8 +710,10 @@ export const rowMappers = {
       const showAnnouncementVal = item.showAnnouncement === true;
       const isLimitedVal = item.isLimited === true;
       const maxQuotaVal = Math.max(0, parseInt(item.maxQuota, 10) || 0);
+      const isEventConnectedVal = item.isEventConnected === true;
+      const eventIdVal = String(item.eventId || item.event_id || '');
 
-      // Persist requiresTracking, tenureId, showAnnouncement, isLimited & maxQuota inside fields[0] as resilient fallback if database column does not exist yet
+      // Persist requiresTracking, tenureId, showAnnouncement, isLimited, maxQuota, isEventConnected & eventId inside fields[0] as resilient fallback if database column does not exist yet
       if (rawFields.length > 0) {
         rawFields[0] = {
           ...rawFields[0],
@@ -694,7 +722,9 @@ export const rowMappers = {
           _showAnnouncement: showAnnouncementVal,
           _isShowAccepted: showAnnouncementVal,
           _isLimited: isLimitedVal,
-          _maxQuota: maxQuotaVal
+          _maxQuota: maxQuotaVal,
+          _isEventConnected: isEventConnectedVal,
+          _eventId: eventIdVal
         };
       }
 
@@ -722,6 +752,12 @@ export const rowMappers = {
       }
       if (isFormsMaxQuotaColSupported) {
         row.max_quota = maxQuotaVal;
+      }
+      if (isFormsEventConnectedColSupported) {
+        row.is_event_connected = isEventConnectedVal;
+      }
+      if (isFormsEventIdColSupported) {
+        row.event_id = eventIdVal || null;
       }
       return row;
     },
@@ -757,6 +793,20 @@ export const rowMappers = {
         maxQuota = Math.max(0, parseInt(rawFields[0]._maxQuota, 10) || 0);
       }
 
+      let isEventConnected = false;
+      if (row.is_event_connected !== undefined && row.is_event_connected !== null) {
+        isEventConnected = row.is_event_connected === true;
+      } else if (rawFields.length > 0 && rawFields[0]?._isEventConnected !== undefined) {
+        isEventConnected = rawFields[0]._isEventConnected === true;
+      }
+
+      let eventId = '';
+      if (row.event_id !== undefined && row.event_id !== null) {
+        eventId = String(row.event_id);
+      } else if (rawFields.length > 0 && rawFields[0]?._eventId) {
+        eventId = String(rawFields[0]._eventId);
+      }
+
       const tenureIdVal = row.tenure_id || (rawFields.length > 0 && rawFields[0]?._tenureId) || '';
 
       return {
@@ -770,6 +820,8 @@ export const rowMappers = {
         showAnnouncement: showAnnouncement,
         isLimited: isLimited,
         maxQuota: maxQuota,
+        isEventConnected: isEventConnected,
+        eventId: eventId,
         tenureId: tenureIdVal,
         fields: rawFields,
         createdAt: row.created_at || null,
@@ -899,6 +951,7 @@ export async function fetchAllCloudState() {
       checkFormsTenureColumn(),
       checkFormsAnnouncementColumn(),
       checkFormsQuotaColumns(),
+      checkFormsEventColumns(),
       checkRsvpsDepartmentColumn(),
       checkDivisionsSchema(),
       checkDepartmentsTable(),
@@ -1023,6 +1076,10 @@ export async function fetchAllCloudState() {
         if (row.key === 'role_quotas' && row.value) {
           result.roleQuotas = row.value;
           saveLocalCache('roleQuotas', row.value);
+        }
+        if (row.key === 'lucky_draws' && row.value && Array.isArray(row.value)) {
+          result.luckyDraws = row.value;
+          saveLocalCache('luckyDraws', row.value);
         }
       }
     }
@@ -1153,6 +1210,15 @@ export async function pushCloudState(key, value) {
       return true;
     }
 
+    if (key === 'luckyDraws') {
+      await supabase.from('page_settings').upsert({
+        key: 'lucky_draws',
+        value: Array.isArray(value) ? value : [],
+        updated_at: new Date().toISOString()
+      });
+      return true;
+    }
+
     const tableName = TABLE_MAP[key];
     const mapper = rowMappers[key];
     if (!tableName || !mapper || !Array.isArray(value)) {
@@ -1177,6 +1243,7 @@ export async function pushCloudState(key, value) {
       await checkFormsTenureColumn();
       await checkFormsAnnouncementColumn();
       await checkFormsQuotaColumns();
+      await checkFormsEventColumns();
     }
     if (key === 'eventRsvps') {
       await checkRsvpsDepartmentColumn();
