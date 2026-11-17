@@ -2237,7 +2237,7 @@ export default function EventRegistrationStats({
                 >
                   {isRolling ? (
                     <>
-                      <Loader2 size={18} className="animate-spin" />
+                      <Loader2 size={18} className="spin animate-spin" style={{ animation: 'spin 0.8s linear infinite' }} />
                       <span>Mengundi ({countdown}s)...</span>
                     </>
                   ) : (
