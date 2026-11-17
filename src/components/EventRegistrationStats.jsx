@@ -1983,13 +1983,25 @@ export default function EventRegistrationStats({
                   <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>TOTAL PENDAFTAR FORM</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)' }}>{allCandidates.length}</div>
                 </div>
-                <div style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.4)', padding: '6px 14px', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.68rem', color: '#c084fc' }}>SUDAH MENANG</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#c084fc' }}>{eventWinners.length}</div>
+                <div style={{
+                  background: isDark ? 'rgba(168, 85, 247, 0.12)' : 'rgba(147, 51, 234, 0.08)',
+                  border: isDark ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(147, 51, 234, 0.3)',
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.68rem', color: isDark ? '#c084fc' : '#7e22ce', fontWeight: 700 }}>SUDAH MENANG</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: isDark ? '#c084fc' : '#6b21a8' }}>{eventWinners.length}</div>
                 </div>
-                <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '6px 14px', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.68rem', color: '#10b981' }}>SIAP DIUNDI</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#10b981' }}>{eligiblePool.length}</div>
+                <div style={{
+                  background: isDark ? 'rgba(16, 185, 129, 0.12)' : 'rgba(16, 185, 129, 0.08)',
+                  border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(16, 185, 129, 0.3)',
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.68rem', color: isDark ? '#10b981' : '#047857', fontWeight: 700 }}>SIAP DIUNDI</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: isDark ? '#10b981' : '#047857' }}>{eligiblePool.length}</div>
                 </div>
               </div>
             </div>
@@ -2085,12 +2097,18 @@ export default function EventRegistrationStats({
 
             {/* ROLLING STAGE (SLOT MACHINE / SPINNER CARD) */}
             <div style={{
-              background: 'radial-gradient(ellipse at center, #0b1a3d 0%, #030814 100%)',
-              border: isRolling ? '2px solid var(--mandiri-gold)' : '2px dashed var(--mandiri-blue)',
+              background: isDark
+                ? 'radial-gradient(ellipse at center, #0b1a3d 0%, #030814 100%)'
+                : 'radial-gradient(ellipse at center, #0d1e47 0%, #050d22 100%)',
+              border: isRolling
+                ? '2px solid var(--mandiri-gold)'
+                : (isDark ? '2px dashed rgba(255, 184, 0, 0.4)' : '2px dashed rgba(255, 184, 0, 0.65)'),
               borderRadius: 'var(--radius-lg)',
               padding: '36px 20px',
               textAlign: 'center',
-              boxShadow: isRolling ? '0 0 45px rgba(255, 184, 0, 0.45)' : 'none',
+              boxShadow: isRolling
+                ? '0 0 45px rgba(255, 184, 0, 0.45)'
+                : (isDark ? 'none' : '0 10px 30px rgba(10, 25, 61, 0.15)'),
               transition: 'all 0.3s ease',
               position: 'relative'
             }}>
@@ -2115,19 +2133,19 @@ export default function EventRegistrationStats({
                 </div>
               )}
 
-              <div style={{ fontSize: '0.85rem', color: isRolling ? 'var(--mandiri-gold)' : 'var(--text-dim)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '0.85rem', color: isRolling ? 'var(--mandiri-gold)' : '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
                 {isRolling ? `🎰 MENGACAK PENDAFTAR (${countdown} DETIK)...` : `SESI UNDIAN: ${prizeName.toUpperCase()}`}
               </div>
 
               <div style={{
                 fontSize: 'clamp(1.4rem, 4vw, 2.6rem)',
                 fontWeight: 900,
-                color: isRolling ? '#FFB800' : 'var(--text-main)',
+                color: isRolling ? '#FFB800' : '#ffffff',
                 minHeight: '70px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                textShadow: isRolling ? '0 0 25px rgba(255, 184, 0, 0.6)' : 'none',
+                textShadow: isRolling ? '0 0 25px rgba(255, 184, 0, 0.6)' : '0 2px 10px rgba(0, 0, 0, 0.5)',
                 wordBreak: 'break-word',
                 padding: '0 10px'
               }}>
@@ -2136,7 +2154,7 @@ export default function EventRegistrationStats({
                 )}
               </div>
 
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#cbd5e1', marginTop: '8px' }}>
                 {eligiblePool.length} kandidat dari pendaftar formulir siap diundi
               </div>
 
@@ -2240,7 +2258,7 @@ export default function EventRegistrationStats({
                         const formattedTime = formatWibTimestamp(rawTime).shortDate || formatWibTimestamp(rawTime).exact || '-';
 
                         return (
-                          <tr key={winner.id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <tr key={winner.id || idx} style={{ borderBottom: '1px solid var(--border-card)' }}>
                             <td style={{ padding: '10px 10px', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
                               #{winner.drawNumber || idx + 1}
                             </td>
@@ -2380,11 +2398,12 @@ export default function EventRegistrationStats({
                   <div
                     key={w.id || idx}
                     style={{
-                      background: 'rgba(255, 184, 0, 0.08)',
-                      border: '1.5px solid rgba(255, 184, 0, 0.45)',
+                      background: isDark ? 'rgba(255, 184, 0, 0.08)' : 'rgba(255, 184, 0, 0.06)',
+                      border: isDark ? '1.5px solid rgba(255, 184, 0, 0.45)' : '1.5px solid rgba(255, 184, 0, 0.45)',
                       padding: '16px',
                       borderRadius: 'var(--radius-md)',
-                      textAlign: 'left'
+                      textAlign: 'left',
+                      boxShadow: isDark ? 'none' : '0 2px 8px rgba(255, 184, 0, 0.06)'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid rgba(255, 184, 0, 0.2)', paddingBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
@@ -2412,11 +2431,27 @@ export default function EventRegistrationStats({
                       {(connectedForm?.fields || []).map(f => {
                         const val = subData[f.label] ?? subData[f.id] ?? (f.label.toLowerCase().includes('nama') ? w.winnerName : '-');
                         return (
-                          <div key={f.id} style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
+                          <div
+                            key={f.id}
+                            style={{
+                              background: isDark ? 'rgba(0, 0, 0, 0.35)' : '#ffffff',
+                              padding: '10px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(255, 184, 0, 0.28)',
+                              boxShadow: isDark ? 'none' : '0 1px 4px rgba(0, 0, 0, 0.04)'
+                            }}
+                          >
+                            <div style={{
+                              fontSize: '0.68rem',
+                              color: isDark ? 'var(--text-dim)' : '#64748b',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px',
+                              marginBottom: '3px'
+                            }}>
                               {f.label}
                             </div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 800, wordBreak: 'break-word' }}>
+                            <div style={{ fontSize: '0.86rem', color: 'var(--text-main)', fontWeight: 800, wordBreak: 'break-word' }}>
                               {String(val || '-')}
                             </div>
                           </div>
