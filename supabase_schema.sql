@@ -268,10 +268,7 @@ CREATE TABLE IF NOT EXISTS public.lucky_draws (
     event_id TEXT NOT NULL REFERENCES public.events(id) ON DELETE RESTRICT,
     submission_id TEXT NOT NULL REFERENCES public.submissions(id) ON DELETE RESTRICT,
     form_id TEXT REFERENCES public.forms(id) ON DELETE SET NULL,
-    winner_name TEXT NOT NULL,
-    winner_unit TEXT,
-    winner_phone TEXT,
-    prize_name TEXT NOT NULL DEFAULT 'Doorprize',
+    prize_name TEXT NOT NULL DEFAULT 'Doorprize Utama',
     drawn_at TIMESTAMPTZ DEFAULT now(),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
@@ -343,5 +340,12 @@ BEGIN
         ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
     END IF;
 END $$;
+
+-- MIGRATION: Hapus kolom redundan winner_name, winner_unit, winner_phone dari lucky_draws
+-- Karena semua data pemenang dinormalisasi dan diambil langsung dari relasi submission_id
+ALTER TABLE public.lucky_draws DROP COLUMN IF EXISTS winner_name CASCADE;
+ALTER TABLE public.lucky_draws DROP COLUMN IF EXISTS winner_unit CASCADE;
+ALTER TABLE public.lucky_draws DROP COLUMN IF EXISTS winner_phone CASCADE;
+
 NOTIFY pgrst, 'reload schema';
 

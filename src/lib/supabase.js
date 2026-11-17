@@ -280,6 +280,21 @@ export async function checkLuckyDrawsTable() {
   return isLuckyDrawsTableSupported;
 }
 
+let isLuckyDrawsLegacyColsChecked = false;
+let isLuckyDrawsLegacyColsSupported = true;
+
+export async function checkLuckyDrawsLegacyColumns() {
+  if (isLuckyDrawsLegacyColsChecked) return isLuckyDrawsLegacyColsSupported;
+  try {
+    const { error } = await supabase.from('lucky_draws').select('winner_name').limit(1);
+    isLuckyDrawsLegacyColsSupported = !error;
+    isLuckyDrawsLegacyColsChecked = true;
+  } catch (e) {
+    isLuckyDrawsLegacyColsSupported = false;
+  }
+  return isLuckyDrawsLegacyColsSupported;
+}
+
 const supportedUpdatedAtTables = new Set(['brand_assets', 'event_rsvps', 'faqs', 'tenure_roles', 'lucky_draws']);
 
 export async function checkTableUpdatedAtColumn(tableName) {
@@ -1001,18 +1016,24 @@ export const rowMappers = {
   },
 
   luckyDraws: {
-    toDb: (item, idx = 0) => ({
-      id: String(item.id),
-      event_id: item.eventId || '',
-      submission_id: item.submissionId || '',
-      form_id: item.formId || '',
-      winner_name: item.winnerName || '',
-      winner_unit: item.winnerDepartment || item.winnerUnit || '',
-      winner_phone: item.winnerIdentifier || item.winnerPhone || '',
-      prize_name: item.prizeTitle || item.prizeName || 'Doorprize Utama',
-      drawn_at: item.drawnAt || new Date().toISOString(),
-      sort_order: idx
-    }),
+    toDb: (item, idx = 0) => {
+      const row = {
+        id: String(item.id),
+        event_id: item.eventId || '',
+        submission_id: item.submissionId || '',
+        form_id: item.formId || '',
+        prize_name: item.prizeTitle || item.prizeName || 'Doorprize Utama',
+        drawn_at: item.drawnAt || new Date().toISOString(),
+        sort_order: idx
+      };
+      // Only attach redundant legacy columns if they still exist in the database table
+      if (isLuckyDrawsLegacyColsSupported) {
+        row.winner_name = item.winnerName || '';
+        row.winner_unit = item.winnerDepartment || item.winnerUnit || '';
+        row.winner_phone = item.winnerIdentifier || item.winnerPhone || '';
+      }
+      return row;
+    },
     fromDb: (row) => ({
       id: row.id,
       eventId: row.event_id || '',
@@ -1050,6 +1071,7 @@ export async function fetchAllCloudState() {
       checkDepartmentsTable(),
       checkTenureRolesTable(),
       checkLuckyDrawsTable(),
+      checkLuckyDrawsLegacyColumns(),
       checkMembersRoleIdColumn(),
       checkLegacyMemberColumns()
     ]);
@@ -1309,6 +1331,7 @@ export async function pushCloudState(key, value) {
     if (key === 'luckyDraws') {
       const isTableOk = await checkLuckyDrawsTable();
       if (!isTableOk) return false;
+      await checkLuckyDrawsLegacyColumns();
       const rows = (Array.isArray(value) ? value : []).map(rowMappers.luckyDraws.toDb);
       if (rows.length === 0) {
         await supabase.from('lucky_draws').delete().neq('id', '___dummy___');
