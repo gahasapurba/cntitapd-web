@@ -1644,6 +1644,62 @@ export default function DynamicFormSection({
                   <span style={{ flexShrink: 0, marginTop: '1px' }}>🔒</span>
                   <span><strong>Privasi Terjamin:</strong> Sistem menggunakan pencarian eksak (Exact Match) pada {hasConfiguredIndex ? `Indeks Pencarian (${dynamicSearchKeysString}) & ID Unik pendaftaran` : 'ID Pendaftaran (sub-...)'}. Pencarian parsial atau Nama Umum sengaja diblokir demi melindungi privasi seluruh pelamar.</span>
                 </div>
+
+                {/* Section: Berlaku Untuk & Indeks Pencarian Form */}
+                {trackingActiveForms.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    marginTop: '10px',
+                    padding: '12px 16px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: isDark ? 'rgba(255, 184, 0, 0.06)' : 'rgba(255, 184, 0, 0.08)',
+                    border: '1px solid rgba(255, 184, 0, 0.3)',
+                    fontSize: '0.78rem',
+                    lineHeight: 1.5,
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}>
+                    <div style={{
+                      fontWeight: 800,
+                      color: 'var(--mandiri-gold)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      <span>📋 Berlaku Untuk :</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '4px' }}>
+                      {trackingActiveForms.map((f) => {
+                        const searchIndexFields = (f.fields || []).filter(fld => Boolean(fld.isSearchIndex));
+                        const indexLabels = searchIndexFields.map(fld => fld.label || 'Indeks Pencarian');
+
+                        return (
+                          <div key={f.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <span style={{ color: 'var(--mandiri-gold)', fontWeight: 800 }}>•</span>
+                            <div style={{ color: 'var(--text-main)' }}>
+                              <strong>Form {f.title}</strong>
+                              {' — '}
+                              <span style={{ color: 'var(--text-muted)' }}>Indeks Pencarian : </span>
+                              <span style={{
+                                color: indexLabels.length > 0 ? 'var(--neon-cyan)' : 'var(--mandiri-gold)',
+                                fontWeight: 700
+                              }}>
+                                {indexLabels.length > 0
+                                  ? `${indexLabels.join(', ')} atau ID Pendaftaran (sub-...)`
+                                  : 'ID Pendaftaran (sub-...)'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
