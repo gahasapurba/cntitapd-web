@@ -7576,17 +7576,17 @@ export default function AdminPortal({
                 isEventConnected: newFormIsEventConnected,
                 eventId: newFormIsEventConnected ? newFormEventId : '',
                 fields: newFormRequiresTracking ? [
-                  { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false },
-                  { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true },
-                  { id: 'f-squad', label: 'Departemen', type: 'select', source: 'departments', required: true, isSearchIndex: false },
-                  { id: 'f-wa', label: 'Nomor WhatsApp Aktif', type: 'text', placeholder: '0812xxxxxxxx', required: true, isSearchIndex: false },
-                  { id: 'f-divisi', label: 'Pilihan Divisi Terkait', type: 'select', source: 'divisions', required: true, isSearchIndex: false },
-                  { id: 'f-notes', label: 'Catatan / Alasan Pendaftaran', type: 'textarea', placeholder: 'Tuliskan keterangan pendukung...', required: true, isSearchIndex: false },
-                  { id: 'f-doc', label: 'Upload Dokumen / File Pendukung', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false, isSearchIndex: false }
+                  { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false, isUnique: false },
+                  { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true, isUnique: true },
+                  { id: 'f-squad', label: 'Departemen', type: 'select', source: 'departments', required: true, isSearchIndex: false, isUnique: false },
+                  { id: 'f-wa', label: 'Nomor WhatsApp Aktif', type: 'text', placeholder: '0812xxxxxxxx', required: true, isSearchIndex: false, isUnique: false },
+                  { id: 'f-divisi', label: 'Pilihan Divisi Terkait', type: 'select', source: 'divisions', required: true, isSearchIndex: false, isUnique: false },
+                  { id: 'f-notes', label: 'Catatan / Alasan Pendaftaran', type: 'textarea', placeholder: 'Tuliskan keterangan pendukung...', required: true, isSearchIndex: false, isUnique: false },
+                  { id: 'f-doc', label: 'Upload Dokumen / File Pendukung', type: 'file', accept: '.pdf,.png,.jpg,.jpeg', required: false, isSearchIndex: false, isUnique: false }
                 ] : [
-                  { id: 'f-name', label: 'Nama Lengkap', type: 'text', placeholder: 'Nama pengisi formulir', required: true, isSearchIndex: false },
-                  { id: 'f-unit', label: 'Departemen', type: 'select', source: 'departments', required: true, isSearchIndex: false },
-                  { id: 'f-feedback', label: 'Tanggapan / Isian', type: 'textarea', placeholder: 'Tuliskan respon Anda...', required: true, isSearchIndex: false }
+                  { id: 'f-name', label: 'Nama Lengkap', type: 'text', placeholder: 'Nama pengisi formulir', required: true, isSearchIndex: false, isUnique: false },
+                  { id: 'f-unit', label: 'Departemen', type: 'select', source: 'departments', required: true, isSearchIndex: false, isUnique: false },
+                  { id: 'f-feedback', label: 'Tanggapan / Isian', type: 'textarea', placeholder: 'Tuliskan respon Anda...', required: true, isSearchIndex: false, isUnique: false }
                 ]
               };
 
@@ -8066,6 +8066,28 @@ export default function AdminPortal({
                       ) : (
                         <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.08)', color: 'var(--text-muted)', padding: '2px 7px', borderRadius: '4px' }}>📋 Form Reguler</span>
                       )}
+                      {(() => {
+                        const uniqueCount = (f.fields || []).filter(fld => fld.isUnique).length;
+                        if (uniqueCount > 0) {
+                          return (
+                            <span
+                              style={{
+                                fontSize: '0.65rem',
+                                background: 'rgba(6, 182, 212, 0.14)',
+                                color: 'var(--neon-cyan)',
+                                border: '1px solid rgba(6, 182, 212, 0.4)',
+                                padding: '2px 7px',
+                                borderRadius: '4px',
+                                fontWeight: 700
+                              }}
+                              title={`Formulir ini memiliki ${uniqueCount} pertanyaan dengan validasi unik (anti-duplikat)`}
+                            >
+                              🛡️ {uniqueCount} Unik
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                       {f.showAnnouncement ? (
                         <span style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '2px 7px', borderRadius: '4px', fontWeight: 700 }}>
                           🎉 Pengumuman Aktif
@@ -12139,7 +12161,9 @@ export default function AdminPortal({
                             label: 'Pertanyaan Baru',
                             type: 'text',
                             placeholder: 'Masukkan jawaban...',
-                            required: false
+                            required: false,
+                            isSearchIndex: false,
+                            isUnique: false
                           }
                         ];
                         setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
@@ -12375,9 +12399,64 @@ export default function AdminPortal({
                                   setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
                                 }}
                               />
-                              <span>🔍 Jadikan Indeks Pencarian</span>
+                              <span>🔍 Indeks Pencarian</span>
                             </label>
                           )}
+
+                          {/* Unique Validation Toggle */}
+                          <label
+                            title="Validasi Unique: Centang jika nilai pada field ini harus unik dan tidak boleh ada pengisi lain yang mendaftarkan nilai yang sama (misal: NIP, No HP, Email)."
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              color: fld.isUnique ? 'var(--neon-cyan)' : 'var(--text-muted)',
+                              background: fld.isUnique ? 'rgba(6, 182, 212, 0.14)' : 'rgba(255, 255, 255, 0.04)',
+                              border: fld.isUnique ? '1px solid rgba(6, 182, 212, 0.45)' : '1px solid var(--border-card)',
+                              padding: '3px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              fontWeight: fld.isUnique ? 700 : 500,
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(fld.isUnique)}
+                              onChange={(e) => {
+                                const nextVal = e.target.checked;
+                                if (nextVal) {
+                                  // Check existing submissions for duplicate answers on this field
+                                  const formSubs = submissions.filter(s => s.formId === editingItem.item.id);
+                                  const valCounts = {};
+                                  formSubs.forEach(s => {
+                                    const rawVal = s.answers?.[fld.id];
+                                    if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
+                                      const normVal = String(rawVal).trim().toLowerCase();
+                                      valCounts[normVal] = (valCounts[normVal] || 0) + 1;
+                                    }
+                                  });
+                                  const duplicates = Object.entries(valCounts).filter(([_, count]) => count > 1);
+                                  if (duplicates.length > 0) {
+                                    const dupListStr = duplicates.map(([val, count]) => `• "${val}" (${count} responden)`).join('\n');
+                                    alert(
+                                      `⚠️ Tidak dapat mengaktifkan "Validasi Unique" pada field "${fld.label}"!\n\n` +
+                                      `Ditemukan ${duplicates.length} data duplikat pada pengisian responden sebelumnya:\n` +
+                                      dupListStr +
+                                      `\n\nUntuk menerapkan validasi unik, silakan buka tab Responden lalu hapus data duplikat hingga setiap nilai hanya tersisa 1 responden saja.`
+                                    );
+                                    return;
+                                  }
+                                }
+                                const nextFields = editingItem.item.fields.map((item, i) =>
+                                  i === idx ? { ...item, isUnique: nextVal } : item
+                                );
+                                setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
+                              }}
+                            />
+                            <span>🛡️ Validasi Unique</span>
+                          </label>
 
                           {/* Field Delete Button with Confirmation if data exists */}
                           {(() => {
@@ -13293,6 +13372,31 @@ export default function AdminPortal({
                       setEditModalError('Silakan pilih Acara / Event yang terhubung');
                       showToast('Silakan pilih Acara / Event yang terhubung', 'error');
                       return;
+                    }
+
+                    // Validasi Integritas Unik: Periksa apakah ada field isUnique yang memiliki data duplikat di riwayat pengisian responden
+                    const formFields = it.fields || [];
+                    const uniqueFields = formFields.filter(f => f.isUnique);
+                    if (uniqueFields.length > 0) {
+                      const formSubs = submissions.filter(s => s.formId === it.id);
+                      for (const uf of uniqueFields) {
+                        const valCounts = {};
+                        formSubs.forEach(s => {
+                          const rawVal = s.answers?.[uf.id];
+                          if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
+                            const normVal = String(rawVal).trim().toLowerCase();
+                            valCounts[normVal] = (valCounts[normVal] || 0) + 1;
+                          }
+                        });
+                        const duplicates = Object.entries(valCounts).filter(([_, count]) => count > 1);
+                        if (duplicates.length > 0) {
+                          const dupDetails = duplicates.map(([val, count]) => `"${val}" (${count}x)`).join(', ');
+                          const errMsg = `Field "${uf.label}" tidak dapat dijadikan Unik karena memiliki ${duplicates.length} data duplikat pada respon responden: ${dupDetails}. Hapus data duplikat di tab Responden terlebih dahulu.`;
+                          setEditModalError(errMsg);
+                          showToast(errMsg, 'error');
+                          return;
+                        }
+                      }
                     }
                   }
                   if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {

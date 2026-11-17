@@ -230,6 +230,21 @@ export default function DynamicFormSection({
           newErrors[field.id] = `${field.label} minimal 10 karakter`;
         }
       }
+
+      // Validasi Unique: Cek apakah nilai sudah pernah didaftarkan pada pengisian sebelumnya
+      if (!newErrors[field.id] && field.isUnique && val && String(val).trim()) {
+        const inputValNorm = String(val).trim().toLowerCase();
+        const duplicateSub = (submissions || []).find(s => {
+          if (s.formId !== currentForm.id) return false;
+          const ans = s.answers?.[field.id];
+          if (ans === undefined || ans === null) return false;
+          return String(ans).trim().toLowerCase() === inputValNorm;
+        });
+
+        if (duplicateSub) {
+          newErrors[field.id] = `${field.label} "${val}" sudah pernah terdaftar sebelumnya. Field ini bersifat unik dan tidak menerima data duplikat.`;
+        }
+      }
     });
 
     setErrors(newErrors);
@@ -271,6 +286,32 @@ export default function DynamicFormSection({
       alert('Maaf, pendaftaran formulir ini telah ditutup karena kuota responden telah terpenuhi.');
       return;
     }
+
+    // Re-verifikasi validasi unique sebelum commit data
+    for (const field of (currentForm?.fields || [])) {
+      if (field.isUnique) {
+        const val = formData[field.id];
+        if (val && String(val).trim()) {
+          const inputValNorm = String(val).trim().toLowerCase();
+          const duplicateSub = (submissions || []).find(s => {
+            if (s.formId !== currentForm.id) return false;
+            const ans = s.answers?.[field.id];
+            if (ans === undefined || ans === null) return false;
+            return String(ans).trim().toLowerCase() === inputValNorm;
+          });
+          if (duplicateSub) {
+            setIsConfirmOpen(false);
+            setErrors(prev => ({
+              ...prev,
+              [field.id]: `${field.label} "${val}" sudah pernah terdaftar sebelumnya. Field ini bersifat unik dan tidak menerima data duplikat.`
+            }));
+            alert(`⚠️ Pendaftaran Ditolak:\n\n${field.label} "${val}" sudah pernah didaftarkan pada formulir ini sebelumnya.\nHarap gunakan data yang belum pernah didaftarkan.`);
+            return;
+          }
+        }
+      }
+    }
+
     setIsSubmitting(true);
 
     const uploadedFiles = { ...fileData };
@@ -1071,6 +1112,26 @@ export default function DynamicFormSection({
                       <div key={field.id}>
                         <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
                           {field.label} {field.required && <span style={{ color: '#f43f5e' }}>*</span>}
+                          {field.isUnique && (
+                            <span 
+                              style={{ 
+                                marginLeft: '8px', 
+                                fontSize: '0.68rem', 
+                                fontWeight: 700, 
+                                color: 'var(--neon-cyan)',
+                                background: 'rgba(6, 182, 212, 0.1)',
+                                border: '1px solid rgba(6, 182, 212, 0.35)',
+                                padding: '1px 7px',
+                                borderRadius: 'var(--radius-full)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}
+                              title="Field ini wajib unik (tidak boleh ada data duplikat antar responden)"
+                            >
+                              🛡️ Unik / 1x Pendaftaran
+                            </span>
+                          )}
                         </label>
 
                         {/* TEXT / EMAIL / NUMBER */}
