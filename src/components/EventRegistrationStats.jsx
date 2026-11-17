@@ -2408,7 +2408,7 @@ export default function EventRegistrationStats({
                     </div>
 
                     {/* All Form Fields Submitted by the Winner */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '8px' }}>
                       {(connectedForm?.fields || []).map(f => {
                         const val = subData[f.label] ?? subData[f.id] ?? (f.label.toLowerCase().includes('nama') ? w.winnerName : '-');
                         return (

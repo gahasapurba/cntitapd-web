@@ -7931,7 +7931,8 @@ export default function AdminPortal({
                           border: '1px solid rgba(245, 158, 11, 0.35)',
                           color: '#fbbf24',
                           fontSize: '0.78rem',
-                          lineHeight: '1.45'
+                          lineHeight: '1.45',
+                          wordBreak: 'break-word'
                         }}
                       >
                         <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
@@ -12323,7 +12324,8 @@ export default function AdminPortal({
                               border: '1px solid rgba(245, 158, 11, 0.35)',
                               color: '#fbbf24',
                               fontSize: '0.78rem',
-                              lineHeight: '1.45'
+                              lineHeight: '1.45',
+                              wordBreak: 'break-word'
                             }}
                           >
                             <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
