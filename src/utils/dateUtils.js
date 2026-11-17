@@ -331,6 +331,7 @@ export function formatWibTimestamp(isoStr) {
   const minute = (partMap.minute || '00').padStart(2, '0');
 
   const exact = `${weekday}, ${day} ${month} ${year} - ${hour}:${minute} WIB`;
+  const shortDate = `${day} ${month.slice(0, 3)} ${year}, ${hour}:${minute} WIB`;
 
   // Relative time calculation
   const now = new Date();
@@ -359,6 +360,7 @@ export function formatWibTimestamp(isoStr) {
   return {
     relative,
     exact,
+    shortDate,
     full: `${relative} (${exact})`
   };
 }

@@ -1007,9 +1007,9 @@ export const rowMappers = {
       submission_id: item.submissionId || '',
       form_id: item.formId || '',
       winner_name: item.winnerName || '',
-      winner_unit: item.winnerUnit || '',
-      winner_phone: item.winnerPhone || '',
-      prize_name: item.prizeName || 'Doorprize',
+      winner_unit: item.winnerDepartment || item.winnerUnit || '',
+      winner_phone: item.winnerIdentifier || item.winnerPhone || '',
+      prize_name: item.prizeTitle || item.prizeName || 'Doorprize Utama',
       drawn_at: item.drawnAt || new Date().toISOString(),
       sort_order: idx
     }),
@@ -1020,8 +1020,11 @@ export const rowMappers = {
       formId: row.form_id || '',
       winnerName: row.winner_name || '',
       winnerUnit: row.winner_unit || '',
+      winnerDepartment: row.winner_unit || '',
       winnerPhone: row.winner_phone || '',
-      prizeName: row.prize_name || 'Doorprize',
+      winnerIdentifier: row.winner_phone || '',
+      prizeName: row.prize_name || 'Doorprize Utama',
+      prizeTitle: row.prize_name || 'Doorprize Utama',
       drawnAt: row.drawn_at || row.created_at || ''
     })
   }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   ArrowLeft,
   Calendar,
@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Search,
   CheckCircle2,
+  Loader2,
   AlertCircle,
   ExternalLink,
   QrCode,
@@ -348,12 +349,55 @@ export default function EventRegistrationStats({
   }, [activeChoiceField, formSubmissions, departments]);
 
   // =========================================================================
-  // TABLE FILTERING, MULTI-FILTER, SORTING & PAGINATION
+  // TABLE FILTERING, DYNAMIC MULTI-FILTER, SORTING & PAGINATION
   // =========================================================================
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [optionFilter, setOptionFilter] = useState('ALL');
+  const [dropdownFilters, setDropdownFilters] = useState({});
   const [winnerFilter, setWinnerFilter] = useState('ALL');
+
+  // Dynamic choice / dropdown fields from connected form
+  const dropdownFields = useMemo(() => {
+    if (!connectedForm?.fields || !Array.isArray(connectedForm.fields)) return [];
+    return connectedForm.fields.filter(f => {
+      const type = (f.type || '').toLowerCase();
+      return ['select', 'radio', 'dropdown', 'choice'].includes(type) ||
+        Array.isArray(f.options) ||
+        f.source === 'departments';
+    });
+  }, [connectedForm]);
+
+  // Extract distinct available options for any dropdown field
+  const getDropdownOptions = useCallback((df) => {
+    const opts = new Set();
+    if (Array.isArray(df.options)) {
+      df.options.forEach(o => {
+        const val = typeof o === 'object' ? (o.value || o.label || '') : String(o);
+        if (val.trim()) opts.add(val.trim());
+      });
+    } else if (df.source === 'departments' && Array.isArray(departments)) {
+      departments.forEach(d => {
+        const dName = typeof d === 'object' ? (d.name || d.label || '') : String(d);
+        if (dName.trim()) opts.add(dName.trim());
+      });
+    }
+    // Also include any value that appears in the submissions data
+    formSubmissions.forEach(sub => {
+      const val = sub.data?.[df.label] ?? sub.data?.[df.id];
+      if (val !== undefined && val !== null && String(val).trim()) {
+        opts.add(String(val).trim());
+      }
+    });
+    return Array.from(opts);
+  }, [departments, formSubmissions]);
+
+  // Dynamic search placeholder based on form fields
+  const searchPlaceholder = useMemo(() => {
+    if (connectedForm?.fields && connectedForm.fields.length > 0) {
+      const sample = connectedForm.fields.slice(0, 3).map(f => f.label).join(', ');
+      return `Cari ${sample}...`;
+    }
+    return 'Cari data pendaftar...';
+  }, [connectedForm]);
 
   // Multi-sorting: { key, direction: 'asc' | 'desc' }
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
@@ -382,63 +426,49 @@ export default function EventRegistrationStats({
   const filteredSubmissions = useMemo(() => {
     let result = [...formSubmissions];
 
-    // 1. Global Search
+    // 1. Global Search (Dynamic across all form submission field values)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter(sub => {
-        const info = getSubmissionInfo(sub);
-        const dataValues = Object.values(sub.data || {}).map(v => String(v || '')).join(' ').toLowerCase();
-        return info.name.toLowerCase().includes(q) ||
-          info.department.toLowerCase().includes(q) ||
-          info.identifier.toLowerCase().includes(q) ||
-          dataValues.includes(q);
+        const dataValues = Object.entries(sub.data || {}).map(([k, v]) => `${k} ${v}`).join(' ').toLowerCase();
+        const rawTime = sub.createdAt || sub.created_at || sub.submittedAt || '';
+        return dataValues.includes(q) || rawTime.toLowerCase().includes(q);
       });
     }
 
-    // 2. Status Filter
-    if (statusFilter !== 'ALL') {
-      result = result.filter(sub => {
-        const st = sub.status || 'Submitted';
-        return st === statusFilter;
-      });
+    // 2. Dynamic Dropdown Filters
+    Object.entries(dropdownFilters).forEach(([fieldId, selectedVal]) => {
+      if (selectedVal && selectedVal !== 'ALL') {
+        const fObj = connectedForm?.fields?.find(f => f.id === fieldId);
+        const fLabel = fObj?.label || fieldId;
+        result = result.filter(sub => {
+          const val = String(sub.data?.[fLabel] ?? sub.data?.[fieldId] ?? '').trim();
+          return val === selectedVal;
+        });
+      }
+    });
+
+    // 3. Winner Status Filter (only if Lucky Draw is enabled)
+    if (isLuckyDrawEnabled) {
+      if (winnerFilter === 'WINNERS') {
+        result = result.filter(sub => wonIdsSet.has(sub.id));
+      } else if (winnerFilter === 'NOT_WINNERS') {
+        result = result.filter(sub => !wonIdsSet.has(sub.id));
+      }
     }
 
-    // 3. Option Filter (for active choice field)
-    if (optionFilter !== 'ALL' && activeChoiceField) {
-      const fLabel = activeChoiceField.label;
-      const fId = activeChoiceField.id;
-      result = result.filter(sub => {
-        const val = String(sub.data?.[fLabel] ?? sub.data?.[fId] ?? '').trim();
-        return val === optionFilter;
-      });
-    }
-
-    // 4. Winner Status Filter
-    if (winnerFilter === 'WINNERS') {
-      result = result.filter(sub => wonIdsSet.has(sub.id));
-    } else if (winnerFilter === 'NOT_WINNERS') {
-      result = result.filter(sub => !wonIdsSet.has(sub.id));
-    }
-
-    // 5. Sorting
+    // 4. Sorting
     result.sort((a, b) => {
       let valA, valB;
       if (sortConfig.key === 'createdAt') {
-        valA = new Date(a.createdAt || a.created_at || 0).getTime();
-        valB = new Date(b.createdAt || b.created_at || 0).getTime();
-      } else if (sortConfig.key === 'status') {
-        valA = (a.status || 'Submitted').toLowerCase();
-        valB = (b.status || 'Submitted').toLowerCase();
-      } else if (sortConfig.key === 'name') {
-        valA = getSubmissionInfo(a).name.toLowerCase();
-        valB = getSubmissionInfo(b).name.toLowerCase();
-      } else if (sortConfig.key === 'department') {
-        valA = getSubmissionInfo(a).department.toLowerCase();
-        valB = getSubmissionInfo(b).department.toLowerCase();
+        valA = new Date(a.createdAt || a.created_at || a.submittedAt || 0).getTime();
+        valB = new Date(b.createdAt || b.created_at || b.submittedAt || 0).getTime();
       } else {
-        // Dynamic field key
-        valA = String(a.data?.[sortConfig.key] ?? '').toLowerCase();
-        valB = String(b.data?.[sortConfig.key] ?? '').toLowerCase();
+        const fObj = connectedForm?.fields?.find(f => f.id === sortConfig.key || f.label === sortConfig.key);
+        const fLabel = fObj?.label || sortConfig.key;
+        const fId = fObj?.id || sortConfig.key;
+        valA = String(a.data?.[fLabel] ?? a.data?.[fId] ?? '').toLowerCase();
+        valB = String(b.data?.[fLabel] ?? b.data?.[fId] ?? '').toLowerCase();
       }
 
       if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -447,12 +477,12 @@ export default function EventRegistrationStats({
     });
 
     return result;
-  }, [formSubmissions, searchQuery, statusFilter, optionFilter, winnerFilter, sortConfig, activeChoiceField, wonIdsSet]);
+  }, [formSubmissions, searchQuery, dropdownFilters, winnerFilter, isLuckyDrawEnabled, sortConfig, connectedForm, wonIdsSet]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, optionFilter, winnerFilter, pageSize]);
+  }, [searchQuery, dropdownFilters, winnerFilter, pageSize]);
 
   // Paginated Rows
   const totalFiltered = filteredSubmissions.length;
@@ -474,40 +504,47 @@ export default function EventRegistrationStats({
     });
   };
 
+  const hasActiveFilters = useMemo(() => {
+    if (searchQuery.trim() !== '') return true;
+    if (isLuckyDrawEnabled && winnerFilter !== 'ALL') return true;
+    for (const val of Object.values(dropdownFilters)) {
+      if (val && val !== 'ALL') return true;
+    }
+    return false;
+  }, [searchQuery, winnerFilter, dropdownFilters, isLuckyDrawEnabled]);
+
   const handleResetFilters = () => {
     setSearchQuery('');
-    setStatusFilter('ALL');
-    setOptionFilter('ALL');
+    setDropdownFilters({});
     setWinnerFilter('ALL');
     setSortConfig({ key: 'createdAt', direction: 'desc' });
   };
 
-  const hasActiveFilters = searchQuery.trim() !== '' || statusFilter !== 'ALL' || optionFilter !== 'ALL' || winnerFilter !== 'ALL';
-
-  // Export Table Data to CSV
+  // Export Table Data to CSV (100% dynamic based on actual form fields)
   const handleExportCsv = () => {
     if (formSubmissions.length === 0) return;
-    const baseHeaders = ['No', 'ID Pendaftar', 'Nama Lengkap', 'Departemen', 'Kontak / NIP', 'Status Pendaftaran', 'Pemenang Doorprize', 'Waktu Pengisian'];
-    const fieldHeaders = (connectedForm?.fields || []).map(f => f.label || 'Field');
-    const allHeaders = [...baseHeaders, ...fieldHeaders];
+    const formFields = connectedForm?.fields || [];
+    const fieldHeaders = formFields.map(f => f.label || 'Field');
+    const allHeaders = [
+      'No',
+      ...fieldHeaders,
+      ...(isLuckyDrawEnabled ? ['Status Undian'] : []),
+      'Waktu Pendaftaran'
+    ];
 
     const rows = filteredSubmissions.map((sub, idx) => {
-      const info = getSubmissionInfo(sub);
-      const isWinner = wonIdsSet.has(sub.id) ? 'Ya (Pemenang)' : 'Tidak';
-      const fieldVals = (connectedForm?.fields || []).map(f => {
+      const isWinner = wonIdsSet.has(sub.id) ? 'Pemenang Undian' : 'Belum Menang';
+      const fieldVals = formFields.map(f => {
         const val = sub.data?.[f.label] ?? sub.data?.[f.id] ?? '';
         return `"${String(val).replace(/"/g, '""')}"`;
       });
+      const rawDate = sub.createdAt || sub.created_at || sub.submittedAt;
+      const formattedDate = formatWibTimestamp(rawDate).shortDate || rawDate || '-';
       return [
         idx + 1,
-        `"${sub.id}"`,
-        `"${info.name.replace(/"/g, '""')}"`,
-        `"${info.department.replace(/"/g, '""')}"`,
-        `"${info.identifier.replace(/"/g, '""')}"`,
-        `"${sub.status || 'Submitted'}"`,
-        `"${isWinner}"`,
-        `"${info.submittedAt}"`,
-        ...fieldVals
+        ...fieldVals,
+        ...(isLuckyDrawEnabled ? [`"${isWinner}"`] : []),
+        `"${formattedDate}"`
       ].join(',');
     });
 
@@ -526,12 +563,34 @@ export default function EventRegistrationStats({
   // =========================================================================
   const [prizeName, setPrizeName] = useState('Doorprize Utama');
   const [drawCount, setDrawCount] = useState(1);
-  const [selectedDrawFieldId, setSelectedDrawFieldId] = useState('__name__'); // Field to draw/display
+  const [selectedDrawFieldId, setSelectedDrawFieldId] = useState('');
   const [isRolling, setIsRolling] = useState(false);
+  const [countdown, setCountdown] = useState(10);
   const [rollingName, setRollingName] = useState('Siap Mengundi...');
   const [latestWinners, setLatestWinners] = useState([]);
   const [showLatestWinnersModal, setShowLatestWinnersModal] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [winnerToDelete, setWinnerToDelete] = useState(null);
+
+  const rollIntervalRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
+
+  // Automatically keep selectedDrawFieldId bound to the first or available field
+  useEffect(() => {
+    if (connectedForm?.fields && connectedForm.fields.length > 0) {
+      if (!selectedDrawFieldId || !connectedForm.fields.some(f => f.id === selectedDrawFieldId)) {
+        setSelectedDrawFieldId(connectedForm.fields[0].id);
+      }
+    }
+  }, [connectedForm, selectedDrawFieldId]);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (rollIntervalRef.current) clearInterval(rollIntervalRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, []);
 
   // Candidates for Lucky Draw are STRICTLY from form submissions
   const allCandidates = useMemo(() => {
@@ -570,19 +629,17 @@ export default function EventRegistrationStats({
   }, [allCandidates, wonIdsSet]);
 
   // Helper to get candidate display value based on selectedDrawFieldId
-  const getCandidateDrawDisplay = (candidate) => {
+  const getCandidateDrawDisplay = useCallback((candidate) => {
     if (!candidate) return '';
-    if (selectedDrawFieldId === '__name__') {
-      return candidate.name;
-    }
-    const fObj = (connectedForm?.fields || []).find(f => f.id === selectedDrawFieldId);
-    const fLabel = fObj?.label || selectedDrawFieldId;
-    const customVal = candidate.raw?.data?.[selectedDrawFieldId] ?? candidate.raw?.data?.[fLabel] ?? candidate.raw?.[selectedDrawFieldId];
+    const fObj = (connectedForm?.fields || []).find(f => f.id === selectedDrawFieldId) || connectedForm?.fields?.[0];
+    const fLabel = fObj?.label || '';
+    const fId = fObj?.id || '';
+    const customVal = candidate.raw?.data?.[fLabel] ?? candidate.raw?.data?.[fId];
     if (customVal !== undefined && customVal !== null && String(customVal).trim() !== '') {
-      return `${String(customVal).trim()} — ${candidate.name}`;
+      return String(customVal).trim();
     }
-    return candidate.name;
-  };
+    return candidate.name || 'Kandidat';
+  }, [connectedForm, selectedDrawFieldId]);
 
   // Safe draw count clamping
   const handleDrawCountChange = (val) => {
@@ -599,38 +656,41 @@ export default function EventRegistrationStats({
     }
   };
 
-  // Run Lucky Draw Spin
+  // Run Lucky Draw Spin with 10-Second Countdown
   const handleRunLuckyDraw = () => {
     if (isRolling || eligiblePool.length === 0) return;
     const requestedCount = Math.min(Math.max(1, parseInt(drawCount, 10) || 1), eligiblePool.length);
 
     setIsRolling(true);
+    setCountdown(10);
     setLatestWinners([]);
 
-    let iterations = 0;
-    const maxIterations = 32;
-    const intervalTime = 75;
-
-    const rollTimer = setInterval(() => {
-      iterations++;
+    // Spin candidate names rapidly every 65ms
+    rollIntervalRef.current = setInterval(() => {
       const randomCandidate = eligiblePool[Math.floor(Math.random() * eligiblePool.length)];
       setRollingName(randomCandidate ? getCandidateDrawDisplay(randomCandidate) : 'Mengundi...');
+    }, 65);
 
-      if (iterations >= maxIterations) {
-        clearInterval(rollTimer);
+    let currentSec = 10;
+    countdownIntervalRef.current = setInterval(() => {
+      currentSec -= 1;
+      setCountdown(currentSec);
+
+      if (currentSec <= 0) {
+        clearInterval(countdownIntervalRef.current);
+        clearInterval(rollIntervalRef.current);
 
         // Pick winners randomly without replacement
         const shuffled = [...eligiblePool].sort(() => 0.5 - Math.random());
         const chosen = shuffled.slice(0, requestedCount);
 
         const nowIso = new Date().toISOString();
-        const fObj = (connectedForm?.fields || []).find(f => f.id === selectedDrawFieldId);
-        const fLabel = fObj?.label || 'Nama Lengkap';
+        const fObj = (connectedForm?.fields || []).find(f => f.id === selectedDrawFieldId) || connectedForm?.fields?.[0];
+        const fLabel = fObj?.label || 'Field Undian';
+        const fId = fObj?.id || '';
 
         const newWinners = chosen.map((c, idx) => {
-          const customFieldVal = selectedDrawFieldId !== '__name__'
-            ? String(c.raw?.data?.[selectedDrawFieldId] ?? c.raw?.data?.[fLabel] ?? '')
-            : '';
+          const customFieldVal = String(c.raw?.data?.[fLabel] ?? c.raw?.data?.[fId] ?? c.name ?? '');
 
           return {
             id: `draw-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
@@ -639,13 +699,17 @@ export default function EventRegistrationStats({
             submissionId: c.submissionId || c.id,
             winnerName: c.name,
             winnerIdentifier: c.identifier || '-',
-            winnerDepartment: c.department || 'Direktorat IT APD',
+            winnerPhone: c.identifier || '-',
+            winnerDepartment: c.department || '',
+            winnerUnit: c.department || '',
             prizeTitle: prizeName.trim() || 'Doorprize Utama',
+            prizeName: prizeName.trim() || 'Doorprize Utama',
             drawNumber: (eventWinners.length + idx + 1),
             source: c.source,
             drawnAt: nowIso,
             drawnFieldLabel: fLabel,
-            drawnFieldValue: customFieldVal
+            drawnFieldValue: customFieldVal,
+            submissionData: c.raw?.data || {}
           };
         });
 
@@ -655,17 +719,18 @@ export default function EventRegistrationStats({
 
         setLatestWinners(newWinners);
         setIsRolling(false);
+        setCountdown(10);
         setShowLatestWinnersModal(true);
 
         try {
           confetti({
-            particleCount: 140,
-            spread: 90,
+            particleCount: 160,
+            spread: 100,
             origin: { y: 0.6 }
           });
         } catch (e) {}
       }
-    }, intervalTime);
+    }, 1000);
   };
 
   if (!event) {
@@ -1528,12 +1593,12 @@ export default function EventRegistrationStats({
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-card)'
             }}>
-              {/* Search Input */}
+              {/* Dynamic Search Input */}
               <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '180px' }}>
                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                 <input
                   type="text"
-                  placeholder="Cari nama, NIP, jawaban..."
+                  placeholder={searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -1548,58 +1613,38 @@ export default function EventRegistrationStats({
                 />
               </div>
 
-              {/* Status Filter */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>Status:</span>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-card)',
-                    color: 'var(--text-main)',
-                    fontSize: '0.78rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="ALL">Semua Status</option>
-                  <option value="Accepted">Diterima</option>
-                  <option value="Submitted">Menunggu Review</option>
-                  <option value="Rejected">Ditolak</option>
-                </select>
-              </div>
+              {/* Dynamic Choice/Dropdown Filters from Form */}
+              {dropdownFields.map((df) => {
+                const options = getDropdownOptions(df);
+                return (
+                  <div key={df.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>{df.label}:</span>
+                    <select
+                      value={dropdownFilters[df.id] || 'ALL'}
+                      onChange={(e) => setDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                        maxWidth: '200px'
+                      }}
+                    >
+                      <option value="ALL">Semua {df.label}</option>
+                      {options.map((opt, i) => (
+                        <option key={i} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
 
-              {/* Option Filter (if choice field exists) */}
-              {activeChoiceField && diagramData.items.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>{activeChoiceField.label}:</span>
-                  <select
-                    value={optionFilter}
-                    onChange={(e) => setOptionFilter(e.target.value)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 'var(--radius-full)',
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-card)',
-                      color: 'var(--text-main)',
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      maxWidth: '180px'
-                    }}
-                  >
-                    <option value="ALL">Semua {activeChoiceField.label}</option>
-                    {diagramData.items.map((opt, i) => (
-                      <option key={i} value={opt.label}>
-                        {opt.label} ({opt.count})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Winner Status Filter (if Lucky Draw is enabled) */}
+              {/* Winner Status Filter (only if Lucky Draw is enabled) */}
               {isLuckyDrawEnabled && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>Undian:</span>
@@ -1655,46 +1700,16 @@ export default function EventRegistrationStats({
                   <tr style={{ borderBottom: '1px solid var(--border-card)', color: 'var(--text-dim)' }}>
                     <th style={{ padding: '10px', fontWeight: 700, width: '45px' }}>No</th>
 
-                    <th
-                      onClick={() => handleHeaderSort('name')}
-                      style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span>Nama Lengkap</span>
-                        {sortConfig.key === 'name' ? (
-                          sortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--mandiri-gold)" /> : <ChevronDown size={14} color="var(--mandiri-gold)" />
-                        ) : (
-                          <ChevronsUpDown size={13} color="var(--text-dim)" />
-                        )}
-                      </div>
-                    </th>
-
-                    <th
-                      onClick={() => handleHeaderSort('department')}
-                      style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span>Departemen / Unit</span>
-                        {sortConfig.key === 'department' ? (
-                          sortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--mandiri-gold)" /> : <ChevronDown size={14} color="var(--mandiri-gold)" />
-                        ) : (
-                          <ChevronsUpDown size={13} color="var(--text-dim)" />
-                        )}
-                      </div>
-                    </th>
-
-                    <th style={{ padding: '10px', fontWeight: 700 }}>Kontak / Identitas</th>
-
                     {/* Dynamic Form Custom Fields Columns */}
                     {(connectedForm?.fields || []).map(f => (
                       <th
                         key={f.id}
-                        onClick={() => handleHeaderSort(f.label || f.id)}
-                        style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}
+                        onClick={() => handleHeaderSort(f.id)}
+                        style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <span>{f.label}</span>
-                          {sortConfig.key === (f.label || f.id) ? (
+                          {sortConfig.key === f.id ? (
                             sortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--mandiri-gold)" /> : <ChevronDown size={14} color="var(--mandiri-gold)" />
                           ) : (
                             <ChevronsUpDown size={13} color="var(--text-dim)" />
@@ -1704,22 +1719,8 @@ export default function EventRegistrationStats({
                     ))}
 
                     <th
-                      onClick={() => handleHeaderSort('status')}
-                      style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span>Status</span>
-                        {sortConfig.key === 'status' ? (
-                          sortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--mandiri-gold)" /> : <ChevronDown size={14} color="var(--mandiri-gold)" />
-                        ) : (
-                          <ChevronsUpDown size={13} color="var(--text-dim)" />
-                        )}
-                      </div>
-                    </th>
-
-                    <th
                       onClick={() => handleHeaderSort('createdAt')}
-                      style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}
+                      style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                         <span>Waktu Pendaftaran</span>
@@ -1735,9 +1736,10 @@ export default function EventRegistrationStats({
                 <tbody>
                   {paginatedSubmissions.length > 0 ? (
                     paginatedSubmissions.map((sub, idx) => {
-                      const info = getSubmissionInfo(sub);
-                      const isWinner = wonIdsSet.has(sub.id) || wonIdsSet.has(info.name.toLowerCase().trim());
+                      const isWinner = wonIdsSet.has(sub.id);
                       const rowIndex = pageSize === 'all' ? idx + 1 : (currentPage - 1) * pageSize + idx + 1;
+                      const rawDate = sub.createdAt || sub.created_at || sub.submittedAt;
+                      const formattedTime = formatWibTimestamp(rawDate).shortDate || formatWibTimestamp(rawDate).exact || '-';
 
                       return (
                         <tr
@@ -1749,64 +1751,42 @@ export default function EventRegistrationStats({
                           }}
                         >
                           <td style={{ padding: '10px', color: 'var(--text-dim)' }}>{rowIndex}</td>
-                          <td style={{ padding: '10px', fontWeight: 800, color: 'var(--text-main)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span>{info.name}</span>
-                              {isWinner && (
-                                <span style={{
-                                  background: 'linear-gradient(135deg, #a855f7, #ec4899)',
-                                  color: '#fff',
-                                  fontSize: '0.62rem',
-                                  padding: '1px 7px',
-                                  borderRadius: 'var(--radius-full)',
-                                  fontWeight: 800,
-                                  boxShadow: '0 0 10px rgba(168,85,247,0.4)'
-                                }}>
-                                  🏆 Pemenang
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{info.department}</td>
-                          <td style={{ padding: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                            {info.identifier}
-                          </td>
 
                           {/* Dynamic Custom Fields Values */}
-                          {(connectedForm?.fields || []).map(f => {
+                          {(connectedForm?.fields || []).map((f, colIdx) => {
                             const val = sub.data?.[f.label] ?? sub.data?.[f.id] ?? '-';
                             return (
-                              <td key={f.id} style={{ padding: '10px', color: 'var(--text-main)' }}>
-                                {String(val)}
+                              <td key={f.id} style={{ padding: '10px', color: 'var(--text-main)', fontWeight: colIdx === 0 ? 800 : 500 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span>{String(val)}</span>
+                                  {colIdx === 0 && isWinner && isLuckyDrawEnabled && (
+                                    <span style={{
+                                      background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                                      color: '#fff',
+                                      fontSize: '0.62rem',
+                                      padding: '1px 7px',
+                                      borderRadius: 'var(--radius-full)',
+                                      fontWeight: 800,
+                                      boxShadow: '0 0 10px rgba(168,85,247,0.4)',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      🏆 Pemenang
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                             );
                           })}
 
-                          <td style={{ padding: '10px' }}>
-                            <span style={{
-                              padding: '3px 10px',
-                              borderRadius: 'var(--radius-full)',
-                              fontSize: '0.7rem',
-                              fontWeight: 700,
-                              background: sub.status === 'Accepted'
-                                ? 'rgba(16, 185, 129, 0.15)'
-                                : (sub.status === 'Rejected' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(255, 184, 0, 0.15)'),
-                              color: sub.status === 'Accepted'
-                                ? '#10b981'
-                                : (sub.status === 'Rejected' ? '#f43f5e' : 'var(--mandiri-gold)')
-                            }}>
-                              {sub.status === 'Accepted' ? 'Diterima' : (sub.status === 'Rejected' ? 'Ditolak' : 'Menunggu Review')}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.74rem' }}>
-                            {info.submittedAt ? formatWibTimestamp(info.submittedAt).shortDate : '-'}
+                          <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                            {formattedTime}
                           </td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={6 + (connectedForm?.fields?.length || 0)} style={{ padding: '36px 10px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <td colSpan={2 + (connectedForm?.fields?.length || 0)} style={{ padding: '36px 10px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         {hasActiveFilters
                           ? 'Tidak ada data pendaftar yang sesuai dengan filter pencarian.'
                           : 'Belum ada responden yang mendaftar pada formulir ini.'}
@@ -2091,7 +2071,6 @@ export default function EventRegistrationStats({
                     cursor: 'pointer'
                   }}
                 >
-                  <option value="__name__">Nama Lengkap Peserta (Default)</option>
                   {(connectedForm?.fields || []).map(f => (
                     <option key={f.id} value={f.id}>
                       {f.label} ({f.type || 'text'})
@@ -2109,24 +2088,48 @@ export default function EventRegistrationStats({
               background: 'radial-gradient(ellipse at center, #0b1a3d 0%, #030814 100%)',
               border: isRolling ? '2px solid var(--mandiri-gold)' : '2px dashed var(--mandiri-blue)',
               borderRadius: 'var(--radius-lg)',
-              padding: '42px 20px',
+              padding: '36px 20px',
               textAlign: 'center',
               boxShadow: isRolling ? '0 0 45px rgba(255, 184, 0, 0.45)' : 'none',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              position: 'relative'
             }}>
+              {isRolling && (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'rgba(255, 184, 0, 0.2)',
+                  border: '1.5px solid var(--mandiri-gold)',
+                  color: 'var(--mandiri-gold)',
+                  fontSize: '0.92rem',
+                  fontWeight: 900,
+                  marginBottom: '14px',
+                  boxShadow: '0 0 20px rgba(255, 184, 0, 0.3)'
+                }}>
+                  <Clock size={16} />
+                  <span>COUNTDOWN:</span>
+                  <span style={{ fontSize: '1.25rem', minWidth: '28px' }}>{countdown}s</span>
+                </div>
+              )}
+
               <div style={{ fontSize: '0.85rem', color: isRolling ? 'var(--mandiri-gold)' : 'var(--text-dim)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
-                {isRolling ? '🎰 MEMUTAR DATA PENDAFTAR FORMULIR...' : `SESI UNDIAN: ${prizeName.toUpperCase()}`}
+                {isRolling ? `🎰 MENGACAK PENDAFTAR (${countdown} DETIK)...` : `SESI UNDIAN: ${prizeName.toUpperCase()}`}
               </div>
 
               <div style={{
-                fontSize: 'clamp(1.5rem, 4vw, 2.8rem)',
+                fontSize: 'clamp(1.4rem, 4vw, 2.6rem)',
                 fontWeight: 900,
                 color: isRolling ? '#FFB800' : 'var(--text-main)',
                 minHeight: '70px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                textShadow: isRolling ? '0 0 25px rgba(255, 184, 0, 0.6)' : 'none'
+                textShadow: isRolling ? '0 0 25px rgba(255, 184, 0, 0.6)' : 'none',
+                wordBreak: 'break-word',
+                padding: '0 10px'
               }}>
                 {isRolling ? rollingName : (
                   eligiblePool.length === 0 ? 'Semua Pendaftar Form Sudah Menang!' : 'Siap Mengundi'
@@ -2144,6 +2147,10 @@ export default function EventRegistrationStats({
                   onClick={handleRunLuckyDraw}
                   disabled={isRolling || eligiblePool.length === 0}
                   style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
                     padding: '12px clamp(20px, 4vw, 44px)',
                     borderRadius: 'var(--radius-full)',
                     background: eligiblePool.length === 0 ? 'var(--input-bg)' : 'linear-gradient(135deg, #FFB800 0%, #e0a300 100%)',
@@ -2156,11 +2163,20 @@ export default function EventRegistrationStats({
                     transform: isRolling ? 'scale(0.96)' : 'scale(1)',
                     transition: 'all 0.2s ease',
                     maxWidth: '100%',
-                    whiteSpace: 'normal',
                     textAlign: 'center'
                   }}
                 >
-                  {isRolling ? 'Sedang Mengundi...' : `🎰 Putar & Undi (${drawCount} Pemenang)`}
+                  {isRolling ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Mengundi ({countdown}s)...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} />
+                      <span>Putar & Undi ({drawCount} Pemenang)</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -2200,76 +2216,83 @@ export default function EventRegistrationStats({
               </div>
 
               {eventWinners.length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-card)', color: 'var(--text-dim)' }}>
-                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>No</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Nama Pemenang</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Departemen</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Kontak / NIP</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Hadiah / Sesi</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Waktu Menang</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 700 }}>Aksi</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 700, width: '45px' }}>No</th>
+                        {(connectedForm?.fields || []).map(f => (
+                          <th key={f.id} style={{ padding: '8px 10px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            {f.label}
+                          </th>
+                        ))}
+                        <th style={{ padding: '8px 10px', fontWeight: 700, whiteSpace: 'nowrap' }}>Hadiah / Sesi</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 700, whiteSpace: 'nowrap' }}>Waktu Menang</th>
+                        <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center', width: '50px' }}>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {eventWinners.map((winner, idx) => (
-                        <tr key={winner.id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <td style={{ padding: '10px 10px', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
-                            #{winner.drawNumber || idx + 1}
-                          </td>
-                          <td style={{ padding: '10px 10px', fontWeight: 800, color: 'var(--text-main)' }}>
-                            <div>
-                              <span>{winner.winnerName}</span>
-                              {winner.drawnFieldValue && (
-                                <div style={{ fontSize: '0.72rem', color: 'var(--mandiri-gold)', fontWeight: 600 }}>
-                                  {winner.drawnFieldLabel || 'Field'}: {winner.drawnFieldValue}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td style={{ padding: '10px 10px', color: 'var(--text-muted)' }}>
-                            {winner.winnerDepartment}
-                          </td>
-                          <td style={{ padding: '10px 10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                            {winner.winnerIdentifier}
-                          </td>
-                          <td style={{ padding: '10px 10px' }}>
-                            <span style={{
-                              background: 'rgba(255, 184, 0, 0.15)',
-                              border: '1px solid var(--mandiri-gold)',
-                              color: 'var(--mandiri-gold)',
-                              padding: '2px 8px',
-                              borderRadius: 'var(--radius-full)',
-                              fontSize: '0.72rem',
-                              fontWeight: 700
-                            }}>
-                              {winner.prizeTitle}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px 10px', color: 'var(--text-dim)', fontSize: '0.72rem' }}>
-                            {winner.drawnAt ? formatWibTimestamp(winner.drawnAt).shortDate : '-'}
-                          </td>
-                          <td style={{ padding: '10px 10px' }}>
-                            <button
-                              type="button"
-                              onClick={() => onDeleteLuckyDraw && onDeleteLuckyDraw(winner.id)}
-                              title="Hapus pemenang ini (peserta dapat diundi kembali)"
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#f43f5e',
-                                cursor: 'pointer',
-                                padding: '4px',
-                                display: 'inline-flex'
-                              }}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {eventWinners.map((winner, idx) => {
+                        const sub = formSubmissions.find(s => s.id === winner.submissionId) ||
+                          formSubmissions.find(s => (s.name || '').toLowerCase() === (winner.winnerName || '').toLowerCase());
+                        const subData = winner.submissionData || sub?.data || {};
+                        const rawTime = winner.drawnAt || winner.created_at || winner.createdAt;
+                        const formattedTime = formatWibTimestamp(rawTime).shortDate || formatWibTimestamp(rawTime).exact || '-';
+
+                        return (
+                          <tr key={winner.id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <td style={{ padding: '10px 10px', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                              #{winner.drawNumber || idx + 1}
+                            </td>
+
+                            {/* Dynamic Custom Fields Values */}
+                            {(connectedForm?.fields || []).map((f, colIdx) => {
+                              const val = subData[f.label] ?? subData[f.id] ?? (colIdx === 0 ? winner.winnerName : '-');
+                              return (
+                                <td key={f.id} style={{ padding: '10px 10px', color: 'var(--text-main)', fontWeight: colIdx === 0 ? 800 : 500 }}>
+                                  {String(val || '-')}
+                                </td>
+                              );
+                            })}
+
+                            <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                background: 'rgba(255, 184, 0, 0.15)',
+                                border: '1px solid var(--mandiri-gold)',
+                                color: 'var(--mandiri-gold)',
+                                padding: '3px 10px',
+                                borderRadius: 'var(--radius-full)',
+                                fontSize: '0.74rem',
+                                fontWeight: 700
+                              }}>
+                                {winner.prizeTitle || winner.prizeName || 'Doorprize Utama'}
+                              </span>
+                            </td>
+
+                            <td style={{ padding: '10px 10px', color: 'var(--text-dim)', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                              {formattedTime}
+                            </td>
+
+                            <td style={{ padding: '10px 10px', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => setWinnerToDelete(winner)}
+                                title="Hapus pemenang ini (peserta dapat diundi kembali)"
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#f43f5e',
+                                  cursor: 'pointer',
+                                  padding: '4px',
+                                  display: 'inline-flex'
+                                }}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2291,7 +2314,7 @@ export default function EventRegistrationStats({
       )}
 
       {/* =========================================================================
-          MODAL 1: LATEST WINNERS POPUP CELEBRATION
+          MODAL 1: LATEST WINNERS POPUP CELEBRATION (DISPLAYS ALL SUBMITTED DATA)
           ========================================================================= */}
       {showLatestWinnersModal && latestWinners.length > 0 && (
         <div style={{
@@ -2310,11 +2333,11 @@ export default function EventRegistrationStats({
           padding: '16px'
         }}>
           <div className="glass-panel modal-container" style={{
-            maxWidth: '520px',
+            maxWidth: '580px',
             width: '100%',
             maxHeight: '90vh',
             overflowY: 'auto',
-            padding: '28px',
+            padding: '24px',
             border: '2px solid var(--mandiri-gold)',
             boxShadow: '0 25px 60px rgba(255, 184, 0, 0.35)',
             textAlign: 'center',
@@ -2323,8 +2346,8 @@ export default function EventRegistrationStats({
             gap: '16px'
           }}>
             <div style={{
-              width: '64px',
-              height: '64px',
+              width: '60px',
+              height: '60px',
               borderRadius: '50%',
               background: 'linear-gradient(135deg, #FFB800 0%, #e0a300 100%)',
               color: '#040914',
@@ -2334,52 +2357,75 @@ export default function EventRegistrationStats({
               margin: '0 auto',
               boxShadow: '0 0 25px rgba(255, 184, 0, 0.5)'
             }}>
-              <Trophy size={34} />
+              <Trophy size={32} />
             </div>
 
             <div>
               <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--mandiri-gold)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                 SELAMAT KEPADA PEMENANG!
               </div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: '4px 0 0 0' }}>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', margin: '4px 0 0 0' }}>
                 {prizeName}
               </h2>
             </div>
 
-            {/* List of Newly Drawn Winners */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-              {latestWinners.map((w, idx) => (
-                <div
-                  key={w.id || idx}
-                  style={{
-                    background: 'rgba(255, 184, 0, 0.1)',
-                    border: '1px solid rgba(255, 184, 0, 0.4)',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    textAlign: 'left'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-main)' }}>
-                      {w.winnerName}
-                    </div>
-                    {w.drawnFieldValue && (
-                      <div style={{ fontSize: '0.78rem', color: 'var(--mandiri-gold)', fontWeight: 700 }}>
-                        {w.drawnFieldLabel || 'Field'}: {w.drawnFieldValue}
+            {/* List of Newly Drawn Winners with ALL Submitted Form Fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+              {latestWinners.map((w, idx) => {
+                const sub = formSubmissions.find(s => s.id === w.submissionId) ||
+                  formSubmissions.find(s => (s.name || '').toLowerCase() === (w.winnerName || '').toLowerCase());
+                const subData = w.submissionData || sub?.data || {};
+
+                return (
+                  <div
+                    key={w.id || idx}
+                    style={{
+                      background: 'rgba(255, 184, 0, 0.08)',
+                      border: '1.5px solid rgba(255, 184, 0, 0.45)',
+                      padding: '16px',
+                      borderRadius: 'var(--radius-md)',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid rgba(255, 184, 0, 0.2)', paddingBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>🏆</span>
+                        <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--mandiri-gold)' }}>
+                          Pemenang #{w.drawNumber || idx + 1}
+                        </span>
                       </div>
-                    )}
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                      {w.winnerDepartment} • {w.winnerIdentifier}
+                      <span style={{
+                        background: 'rgba(255, 184, 0, 0.2)',
+                        border: '1px solid var(--mandiri-gold)',
+                        color: 'var(--mandiri-gold)',
+                        padding: '3px 10px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.74rem',
+                        fontWeight: 800
+                      }}>
+                        {w.prizeTitle || w.prizeName || 'Doorprize Utama'}
+                      </span>
+                    </div>
+
+                    {/* All Form Fields Submitted by the Winner */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
+                      {(connectedForm?.fields || []).map(f => {
+                        const val = subData[f.label] ?? subData[f.id] ?? (f.label.toLowerCase().includes('nama') ? w.winnerName : '-');
+                        return (
+                          <div key={f.id} style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>
+                              {f.label}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 800, wordBreak: 'break-word' }}>
+                              {String(val || '-')}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
-                    Pemenang #{w.drawNumber}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <button
@@ -2476,6 +2522,100 @@ export default function EventRegistrationStats({
                 }}
               >
                 Ya, Reset Pemenang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 3: DELETE SINGLE WINNER CONFIRMATION
+          ========================================================================= */}
+      {winnerToDelete && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div className="glass-panel modal-container" style={{
+            maxWidth: '440px',
+            width: '100%',
+            padding: '24px',
+            border: '1.5px solid rgba(244, 63, 94, 0.4)',
+            borderRadius: 'var(--radius-md)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)'
+          }}>
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              background: 'rgba(244, 63, 94, 0.15)',
+              color: '#f43f5e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              border: '1px solid rgba(244, 63, 94, 0.3)'
+            }}>
+              <Trash2 size={26} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 8px 0' }}>
+                Hapus Pemenang Undian?
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0 }}>
+                Apakah Anda yakin ingin membatalkan/menghapus pemenang <strong>"{winnerToDelete.winnerName || 'Peserta'}"</strong>? Setelah dihapus, peserta ini akan kembali berstatus belum menang dan dapat diundi lagi pada sesi berikutnya.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setWinnerToDelete(null)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'transparent',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDeleteLuckyDraw) onDeleteLuckyDraw(winnerToDelete.id);
+                  setWinnerToDelete(null);
+                }}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  background: '#f43f5e',
+                  border: 'none',
+                  color: '#fff',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                Ya, Hapus Pemenang
               </button>
             </div>
           </div>
