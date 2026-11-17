@@ -1126,10 +1126,6 @@ export async function fetchAllCloudState() {
           result.roleQuotas = row.value;
           saveLocalCache('roleQuotas', row.value);
         }
-        if (row.key === 'lucky_draws' && row.value && Array.isArray(row.value)) {
-          result.luckyDraws = row.value;
-          saveLocalCache('luckyDraws', row.value);
-        }
       }
     }
 
@@ -1261,25 +1257,15 @@ export async function pushCloudState(key, value) {
 
     if (key === 'luckyDraws') {
       const isTableOk = await checkLuckyDrawsTable();
-      if (isTableOk) {
-        try {
-          const rows = (Array.isArray(value) ? value : []).map(rowMappers.luckyDraws.toDb);
-          if (rows.length === 0) {
-            await supabase.from('lucky_draws').delete().neq('id', '___dummy___');
-          } else {
-            const ids = rows.map(r => r.id);
-            await supabase.from('lucky_draws').delete().not('id', 'in', `(${ids.map(id => `"${id}"`).join(',')})`);
-            await supabase.from('lucky_draws').upsert(rows);
-          }
-        } catch (tableErr) {
-          console.warn('Dedicated lucky_draws table write failed, falling back to page_settings', tableErr);
-        }
+      if (!isTableOk) return false;
+      const rows = (Array.isArray(value) ? value : []).map(rowMappers.luckyDraws.toDb);
+      if (rows.length === 0) {
+        await supabase.from('lucky_draws').delete().neq('id', '___dummy___');
+      } else {
+        const ids = rows.map(r => r.id);
+        await supabase.from('lucky_draws').delete().not('id', 'in', `(${ids.map(id => `"${id}"`).join(',')})`);
+        await supabase.from('lucky_draws').upsert(rows);
       }
-      await supabase.from('page_settings').upsert({
-        key: 'lucky_draws',
-        value: Array.isArray(value) ? value : [],
-        updated_at: new Date().toISOString()
-      });
       return true;
     }
 
