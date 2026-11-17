@@ -258,6 +258,45 @@ ON CONFLICT (id) DO UPDATE SET public = true, file_size_limit = 20971520;
 CREATE POLICY "Public Access cnt-media" ON storage.objects FOR ALL TO anon, authenticated USING (bucket_id = 'cnt-media') WITH CHECK (bucket_id = 'cnt-media');
 
 -- Reload PostgREST schema cache
+-- ==============================================================================
+-- TABEL: lucky_draws (Hasil Undian Doorprize Event)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.lucky_draws (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL,
+    submission_id TEXT NOT NULL,
+    form_id TEXT,
+    winner_name TEXT NOT NULL,
+    winner_unit TEXT,
+    winner_phone TEXT,
+    prize_name TEXT NOT NULL DEFAULT 'Doorprize',
+    drawn_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    sort_order INT DEFAULT 0
+);
+
+ALTER TABLE public.lucky_draws ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public select lucky_draws') THEN
+        CREATE POLICY "Allow public select lucky_draws" ON public.lucky_draws FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public insert lucky_draws') THEN
+        CREATE POLICY "Allow public insert lucky_draws" ON public.lucky_draws FOR INSERT WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public update lucky_draws') THEN
+        CREATE POLICY "Allow public update lucky_draws" ON public.lucky_draws FOR UPDATE USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public delete lucky_draws') THEN
+        CREATE POLICY "Allow public delete lucky_draws" ON public.lucky_draws FOR DELETE USING (true);
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_lucky_draws_event_id ON public.lucky_draws(event_id);
+CREATE INDEX IF NOT EXISTS idx_lucky_draws_submission_id ON public.lucky_draws(submission_id);
+
 NOTIFY pgrst, 'reload schema';
 
 -- ==============================================================================
@@ -291,5 +330,44 @@ BEGIN
         ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
     END IF;
 END $$;
+-- ==============================================================================
+-- TABEL: lucky_draws (Hasil Undian Doorprize Event)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.lucky_draws (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL,
+    submission_id TEXT NOT NULL,
+    form_id TEXT,
+    winner_name TEXT NOT NULL,
+    winner_unit TEXT,
+    winner_phone TEXT,
+    prize_name TEXT NOT NULL DEFAULT 'Doorprize',
+    drawn_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    sort_order INT DEFAULT 0
+);
+
+ALTER TABLE public.lucky_draws ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public select lucky_draws') THEN
+        CREATE POLICY "Allow public select lucky_draws" ON public.lucky_draws FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public insert lucky_draws') THEN
+        CREATE POLICY "Allow public insert lucky_draws" ON public.lucky_draws FOR INSERT WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public update lucky_draws') THEN
+        CREATE POLICY "Allow public update lucky_draws" ON public.lucky_draws FOR UPDATE USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public delete lucky_draws') THEN
+        CREATE POLICY "Allow public delete lucky_draws" ON public.lucky_draws FOR DELETE USING (true);
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_lucky_draws_event_id ON public.lucky_draws(event_id);
+CREATE INDEX IF NOT EXISTS idx_lucky_draws_submission_id ON public.lucky_draws(submission_id);
+
 NOTIFY pgrst, 'reload schema';
 

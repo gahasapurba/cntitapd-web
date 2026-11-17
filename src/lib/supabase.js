@@ -49,7 +49,8 @@ const TABLE_MAP = {
   brandAssets: 'brand_assets',
   eventRsvps: 'event_rsvps',
   faqs: 'faqs',
-  tenureRoles: 'tenure_roles'
+  tenureRoles: 'tenure_roles',
+  luckyDraws: 'lucky_draws'
 };
 
 let isGalleryDivisionIdChecked = false;
@@ -235,7 +236,22 @@ export async function checkTenureRolesTable() {
   return isTenureRolesTableSupported;
 }
 
-const supportedUpdatedAtTables = new Set(['brand_assets', 'event_rsvps', 'faqs', 'tenure_roles']);
+let isLuckyDrawsTableChecked = false;
+let isLuckyDrawsTableSupported = false;
+
+export async function checkLuckyDrawsTable() {
+  if (isLuckyDrawsTableChecked) return isLuckyDrawsTableSupported;
+  try {
+    const { error } = await supabase.from('lucky_draws').select('id').limit(1);
+    isLuckyDrawsTableSupported = !error;
+    isLuckyDrawsTableChecked = true;
+  } catch (e) {
+    isLuckyDrawsTableSupported = false;
+  }
+  return isLuckyDrawsTableSupported;
+}
+
+const supportedUpdatedAtTables = new Set(['brand_assets', 'event_rsvps', 'faqs', 'tenure_roles', 'lucky_draws']);
 
 export async function checkTableUpdatedAtColumn(tableName) {
   if (!tableName) return false;
@@ -936,6 +952,32 @@ export const rowMappers = {
       updatedAt: row.updated_at || row.created_at || null,
       isPublished: row.is_published !== false
     })
+  },
+
+  luckyDraws: {
+    toDb: (item, idx = 0) => ({
+      id: String(item.id),
+      event_id: item.eventId || '',
+      submission_id: item.submissionId || '',
+      form_id: item.formId || '',
+      winner_name: item.winnerName || '',
+      winner_unit: item.winnerUnit || '',
+      winner_phone: item.winnerPhone || '',
+      prize_name: item.prizeName || 'Doorprize',
+      drawn_at: item.drawnAt || new Date().toISOString(),
+      sort_order: idx
+    }),
+    fromDb: (row) => ({
+      id: row.id,
+      eventId: row.event_id || '',
+      submissionId: row.submission_id || '',
+      formId: row.form_id || '',
+      winnerName: row.winner_name || '',
+      winnerUnit: row.winner_unit || '',
+      winnerPhone: row.winner_phone || '',
+      prizeName: row.prize_name || 'Doorprize',
+      drawnAt: row.drawn_at || row.created_at || ''
+    })
   }
 };
 
@@ -956,6 +998,7 @@ export async function fetchAllCloudState() {
       checkDivisionsSchema(),
       checkDepartmentsTable(),
       checkTenureRolesTable(),
+      checkLuckyDrawsTable(),
       checkMembersRoleIdColumn(),
       checkLegacyMemberColumns()
     ]);
@@ -974,6 +1017,7 @@ export async function fetchAllCloudState() {
       faqsRes,
       departmentsRes,
       tenureRolesRes,
+      luckyDrawsRes,
       settingsRes
     ] = await Promise.all([
       supabase.from('tenures').select('*').order('sort_order', { ascending: true }),
@@ -990,6 +1034,7 @@ export async function fetchAllCloudState() {
       supabase.from('faqs').select('*').order('sort_order', { ascending: true }),
       isDepartmentsTableSupported ? supabase.from('departments').select('*').order('sort_order', { ascending: true }) : Promise.resolve({ data: null, error: null }),
       isTenureRolesTableSupported ? supabase.from('tenure_roles').select('*').order('sort_order', { ascending: true }) : Promise.resolve({ data: null, error: null }),
+      isLuckyDrawsTableSupported ? supabase.from('lucky_draws').select('*').order('drawn_at', { ascending: false }) : Promise.resolve({ data: null, error: null }),
       supabase.from('page_settings').select('*')
     ]);
 
@@ -1050,6 +1095,10 @@ export async function fetchAllCloudState() {
     if (tenureRolesRes && !tenureRolesRes.error && Array.isArray(tenureRolesRes.data) && tenureRolesRes.data.length > 0) {
       result.tenureRoles = tenureRolesRes.data.map(rowMappers.tenureRoles.fromDb);
       saveLocalCache('tenureRoles', result.tenureRoles);
+    }
+    if (luckyDrawsRes && !luckyDrawsRes.error && Array.isArray(luckyDrawsRes.data)) {
+      result.luckyDraws = luckyDrawsRes.data.map(rowMappers.luckyDraws.fromDb);
+      saveLocalCache('luckyDraws', result.luckyDraws);
     }
     if (!settingsRes.error && Array.isArray(settingsRes.data)) {
       for (const row of settingsRes.data) {
@@ -1211,6 +1260,21 @@ export async function pushCloudState(key, value) {
     }
 
     if (key === 'luckyDraws') {
+      const isTableOk = await checkLuckyDrawsTable();
+      if (isTableOk) {
+        try {
+          const rows = (Array.isArray(value) ? value : []).map(rowMappers.luckyDraws.toDb);
+          if (rows.length === 0) {
+            await supabase.from('lucky_draws').delete().neq('id', '___dummy___');
+          } else {
+            const ids = rows.map(r => r.id);
+            await supabase.from('lucky_draws').delete().not('id', 'in', `(${ids.map(id => `"${id}"`).join(',')})`);
+            await supabase.from('lucky_draws').upsert(rows);
+          }
+        } catch (tableErr) {
+          console.warn('Dedicated lucky_draws table write failed, falling back to page_settings', tableErr);
+        }
+      }
       await supabase.from('page_settings').upsert({
         key: 'lucky_draws',
         value: Array.isArray(value) ? value : [],
