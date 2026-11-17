@@ -409,6 +409,7 @@ export default function AdminPortal({
   const [newFormMaxQuota, setNewFormMaxQuota] = useState('');
   const [newFormIsEventConnected, setNewFormIsEventConnected] = useState(false);
   const [newFormEventId, setNewFormEventId] = useState('');
+  const [newFormIsLuckyDraw, setNewFormIsLuckyDraw] = useState(false);
   const [newFormTenureId, setNewFormTenureId] = useState(activeTenure?.id || '');
   const [selectedSubFilter, setSelectedSubFilter] = useState('all');
   const [draggedFieldIndex, setDraggedFieldIndex] = useState(null);
@@ -7583,6 +7584,7 @@ export default function AdminPortal({
                 tenureId: targetTenureId,
                 isEventConnected: newFormIsEventConnected,
                 eventId: newFormIsEventConnected ? newFormEventId : '',
+                isLuckyDraw: newFormIsEventConnected && newFormIsLuckyDraw,
                 fields: newFormRequiresTracking ? [
                   { id: 'f-name', label: 'Nama Lengkap (HCM Mandiri)', type: 'text', placeholder: 'Nama sesuai HCM Mandiri', required: true, isSearchIndex: false, isUnique: false },
                   { id: 'f-nip', label: 'NIP / Employee ID', type: 'text', placeholder: 'NIP Mandiri', required: true, isSearchIndex: true, isUnique: true },
@@ -7609,6 +7611,7 @@ export default function AdminPortal({
               setNewFormMaxQuota('');
               setNewFormIsEventConnected(false);
               setNewFormEventId('');
+              setNewFormIsLuckyDraw(false);
               showToast(`Formulir "${newForm.title}" berhasil dibuat & dipublikasikan!`);
             }}
             className="admin-form-two-col"
@@ -7903,6 +7906,23 @@ export default function AdminPortal({
                     })()}
                   </select>
                   {renderFieldError('newFormEventId')}
+
+                  {/* Option: Butuh Pengundian Doorprize */}
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--border-card)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.84rem', color: newFormIsLuckyDraw ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
+                      <input
+                        type="checkbox"
+                        checked={newFormIsLuckyDraw}
+                        onChange={(e) => setNewFormIsLuckyDraw(e.target.checked)}
+                      />
+                      <span>🎁 Butuh Pengundian Doorprize (Lucky Draw)</span>
+                    </label>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px', display: 'block', marginTop: '3px' }}>
+                      {newFormIsLuckyDraw
+                        ? 'Aktif: Tombol statistik di modal event akan memuat opsi Undian Doorprize, dan modul undian Lucky Draw akan ditampilkan pada halaman statistik acara.'
+                        : 'Nonaktif: Hanya menampilkan statistik & analitik pendaftar. Modul dan tombol undian doorprize disembunyikan.'}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -12241,6 +12261,31 @@ export default function AdminPortal({
                           ));
                         })()}
                       </select>
+
+                      {/* Option: Butuh Pengundian Doorprize */}
+                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--border-card)' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.84rem', color: editingItem.item.isLuckyDraw ? 'var(--mandiri-gold)' : 'var(--text-muted)' }}>
+                          <input
+                            type="checkbox"
+                            checked={editingItem.item.isLuckyDraw === true}
+                            onChange={(e) => {
+                              setEditingItem({
+                                ...editingItem,
+                                item: {
+                                  ...editingItem.item,
+                                  isLuckyDraw: e.target.checked
+                                }
+                              });
+                            }}
+                          />
+                          <span>🎁 Butuh Pengundian Doorprize (Lucky Draw)</span>
+                        </label>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginLeft: '24px', display: 'block', marginTop: '3px' }}>
+                          {editingItem.item.isLuckyDraw === true
+                            ? 'Aktif: Tombol statistik di modal event akan memuat opsi Undian Doorprize, dan modul undian Lucky Draw akan ditampilkan pada halaman statistik acara.'
+                            : 'Nonaktif: Hanya menampilkan statistik & analitik pendaftar. Modul dan tombol undian doorprize disembunyikan.'}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -13699,6 +13744,7 @@ export default function AdminPortal({
                       const maxQuotaVal = isLimitedVal ? (parseInt(editingItem.item.maxQuota, 10) || 0) : 0;
                       const isEventConnectedVal = editingItem.item.isEventConnected === true;
                       const eventIdVal = isEventConnectedVal ? (editingItem.item.eventId || '') : '';
+                      const isLuckyDrawVal = isEventConnectedVal && editingItem.item.isLuckyDraw === true;
                       onUpdateForm({
                         ...editingItem.item,
                         deadline: cleanDeadline,
@@ -13706,7 +13752,8 @@ export default function AdminPortal({
                         isLimited: isLimitedVal,
                         maxQuota: maxQuotaVal,
                         isEventConnected: isEventConnectedVal,
-                        eventId: eventIdVal
+                        eventId: eventIdVal,
+                        isLuckyDraw: isLuckyDrawVal
                       });
                     }
                   }

@@ -150,6 +150,20 @@ let isFormsEventConnectedColChecked = false;
 let isFormsEventConnectedColSupported = false;
 let isFormsEventIdColChecked = false;
 let isFormsEventIdColSupported = false;
+let isFormsLuckyDrawColChecked = false;
+let isFormsLuckyDrawColSupported = false;
+
+export async function checkFormsLuckyDrawColumn() {
+  if (isFormsLuckyDrawColChecked) return isFormsLuckyDrawColSupported;
+  try {
+    const { error } = await supabase.from('forms').select('is_lucky_draw').limit(1);
+    isFormsLuckyDrawColSupported = !error;
+    isFormsLuckyDrawColChecked = true;
+  } catch (e) {
+    isFormsLuckyDrawColSupported = false;
+  }
+  return isFormsLuckyDrawColSupported;
+}
 
 export async function checkFormsEventColumns() {
   if (isFormsEventConnectedColChecked && isFormsEventIdColChecked) {
@@ -747,8 +761,9 @@ export const rowMappers = {
       const maxQuotaVal = Math.max(0, parseInt(item.maxQuota, 10) || 0);
       const isEventConnectedVal = item.isEventConnected === true;
       const eventIdVal = String(item.eventId || item.event_id || '');
+      const isLuckyDrawVal = item.isLuckyDraw === true;
 
-      // Persist requiresTracking, tenureId, showAnnouncement, isLimited, maxQuota, isEventConnected & eventId inside fields[0] as resilient fallback if database column does not exist yet
+      // Persist requiresTracking, tenureId, showAnnouncement, isLimited, maxQuota, isEventConnected, eventId & isLuckyDraw inside fields[0] as resilient fallback if database column does not exist yet
       if (rawFields.length > 0) {
         rawFields[0] = {
           ...rawFields[0],
@@ -759,7 +774,8 @@ export const rowMappers = {
           _isLimited: isLimitedVal,
           _maxQuota: maxQuotaVal,
           _isEventConnected: isEventConnectedVal,
-          _eventId: eventIdVal
+          _eventId: eventIdVal,
+          _isLuckyDraw: isLuckyDrawVal
         };
       }
 
@@ -793,6 +809,9 @@ export const rowMappers = {
       }
       if (isFormsEventIdColSupported) {
         row.event_id = eventIdVal || null;
+      }
+      if (isFormsLuckyDrawColSupported) {
+        row.is_lucky_draw = isLuckyDrawVal;
       }
       return row;
     },
@@ -842,6 +861,13 @@ export const rowMappers = {
         eventId = String(rawFields[0]._eventId);
       }
 
+      let isLuckyDraw = false;
+      if (row.is_lucky_draw !== undefined && row.is_lucky_draw !== null) {
+        isLuckyDraw = row.is_lucky_draw === true;
+      } else if (rawFields.length > 0 && rawFields[0]?._isLuckyDraw !== undefined) {
+        isLuckyDraw = rawFields[0]._isLuckyDraw === true;
+      }
+
       const tenureIdVal = row.tenure_id || (rawFields.length > 0 && rawFields[0]?._tenureId) || '';
 
       return {
@@ -857,6 +883,7 @@ export const rowMappers = {
         maxQuota: maxQuota,
         isEventConnected: isEventConnected,
         eventId: eventId,
+        isLuckyDraw: isLuckyDraw,
         tenureId: tenureIdVal,
         fields: rawFields,
         createdAt: row.created_at || null,
@@ -1014,6 +1041,7 @@ export async function fetchAllCloudState() {
       checkFormsAnnouncementColumn(),
       checkFormsQuotaColumns(),
       checkFormsEventColumns(),
+      checkFormsLuckyDrawColumn(),
       checkRsvpsDepartmentColumn(),
       checkDivisionsSchema(),
       checkDepartmentsTable(),
@@ -1314,7 +1342,10 @@ export async function pushCloudState(key, value) {
       await checkFormsTenureColumn();
       await checkFormsAnnouncementColumn();
       await checkFormsQuotaColumns();
+    await checkFormsEventColumns();
+    await checkFormsLuckyDrawColumn();
       await checkFormsEventColumns();
+      await checkFormsLuckyDrawColumn();
     }
     if (key === 'eventRsvps') {
       await checkRsvpsDepartmentColumn();
@@ -1413,6 +1444,8 @@ export async function mergeAndPushCloudList(key, newItem, currentLocalList = [])
     await checkFormsTenureColumn();
     await checkFormsAnnouncementColumn();
     await checkFormsQuotaColumns();
+    await checkFormsEventColumns();
+    await checkFormsLuckyDrawColumn();
   }
 
   try {

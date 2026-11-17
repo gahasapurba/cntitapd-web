@@ -51,6 +51,8 @@ export default function EventRegistrationStats({
       forms.find(f => f.eventId === eventId);
   }, [forms, eventId]);
 
+  const isLuckyDrawEnabled = connectedForm ? Boolean(connectedForm.isLuckyDraw) : false;
+
   // View state: 'stats' | 'luckydraw'
   const [activeView, setActiveView] = useState('stats');
 
@@ -551,7 +553,7 @@ export default function EventRegistrationStats({
               <div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 184, 0, 0.15)', border: '1px solid var(--mandiri-gold)', color: 'var(--mandiri-gold)', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>
                   <Sparkles size={13} />
-                  <span>Dashboard Analitik & Undian Acara</span>
+                  <span>{isLuckyDrawEnabled ? 'Dashboard Analitik & Undian Acara' : 'Dashboard Analitik Acara'}</span>
                 </div>
                 <h1 style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.2rem)', fontWeight: 900, color: 'var(--text-main)', margin: '0 0 8px 0', lineHeight: 1.25 }}>
                   {event.title}
@@ -654,87 +656,91 @@ export default function EventRegistrationStats({
             </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #a855f7' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
-              Pemenang Undian
+          {isLuckyDrawEnabled && (
+            <div className="glass-panel" style={{ padding: '14px 16px', borderLeft: '4px solid #a855f7' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                Pemenang Undian
+              </div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#a855f7', margin: '2px 0' }}>
+                {eventWinners.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Pemenang</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {eligiblePool.length} kandidat siap diundi
+              </div>
             </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#a855f7', margin: '2px 0' }}>
-              {eventWinners.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)' }}>Pemenang</span>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              {eligiblePool.length} kandidat siap diundi
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* 4. SUB-PAGE TAB SWITCHER: 'stats' vs 'luckydraw' */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-        background: 'var(--input-bg)',
-        padding: '6px',
-        borderRadius: 'var(--radius-full)',
-        maxWidth: '460px',
-        margin: '0 auto',
-        width: '100%',
-        border: '1px solid var(--border-card)'
-      }}>
-        <button
-          onClick={() => setActiveView('stats')}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: '9px 18px',
-            borderRadius: 'var(--radius-full)',
-            border: 'none',
-            fontSize: '0.86rem',
-            fontWeight: 800,
-            cursor: 'pointer',
-            background: activeView === 'stats' ? 'var(--mandiri-gold)' : 'transparent',
-            color: activeView === 'stats' ? '#040914' : 'var(--text-muted)',
-            boxShadow: activeView === 'stats' ? '0 4px 12px rgba(255,184,0,0.35)' : 'none',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <FileSpreadsheet size={16} />
-          <span>Statistik & Responden</span>
-        </button>
+      {isLuckyDrawEnabled && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          background: 'var(--input-bg)',
+          padding: '6px',
+          borderRadius: 'var(--radius-full)',
+          maxWidth: '460px',
+          margin: '0 auto',
+          width: '100%',
+          border: '1px solid var(--border-card)'
+        }}>
+          <button
+            onClick={() => setActiveView('stats')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '9px 18px',
+              borderRadius: 'var(--radius-full)',
+              border: 'none',
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              background: activeView === 'stats' ? 'var(--mandiri-gold)' : 'transparent',
+              color: activeView === 'stats' ? '#040914' : 'var(--text-muted)',
+              boxShadow: activeView === 'stats' ? '0 4px 12px rgba(255,184,0,0.35)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <FileSpreadsheet size={16} />
+            <span>Statistik & Responden</span>
+          </button>
 
-        <button
-          onClick={() => setActiveView('luckydraw')}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: '9px 18px',
-            borderRadius: 'var(--radius-full)',
-            border: 'none',
-            fontSize: '0.86rem',
-            fontWeight: 800,
-            cursor: 'pointer',
-            background: activeView === 'luckydraw' ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' : 'transparent',
-            color: activeView === 'luckydraw' ? '#ffffff' : 'var(--text-muted)',
-            boxShadow: activeView === 'luckydraw' ? '0 4px 14px rgba(168,85,247,0.4)' : 'none',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          <Trophy size={16} />
-          <span>Undian Doorprize ({eventWinners.length})</span>
-        </button>
-      </div>
+          <button
+            onClick={() => setActiveView('luckydraw')}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '9px 18px',
+              borderRadius: 'var(--radius-full)',
+              border: 'none',
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              background: activeView === 'luckydraw' ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' : 'transparent',
+              color: activeView === 'luckydraw' ? '#ffffff' : 'var(--text-muted)',
+              boxShadow: activeView === 'luckydraw' ? '0 4px 14px rgba(168,85,247,0.4)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Trophy size={16} />
+            <span>Undian Doorprize ({eventWinners.length})</span>
+          </button>
+        </div>
+      )}
 
       {/* =========================================================================
           VIEW A: DYNAMIC FIELD STATS & RESPONDENT LIST
           ========================================================================= */}
-      {activeView === 'stats' && (
+      {(!isLuckyDrawEnabled || activeView === 'stats') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Initial RSVP Alert Banner */}
           {initialRsvps.length > 0 && (
@@ -983,7 +989,7 @@ export default function EventRegistrationStats({
       {/* =========================================================================
           VIEW B: LUCKY DRAW / DOORPRIZE SYSTEM
           ========================================================================= */}
-      {activeView === 'luckydraw' && (
+      {isLuckyDrawEnabled && activeView === 'luckydraw' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Lucky Draw Control Center */}
           <div className="glass-panel" style={{

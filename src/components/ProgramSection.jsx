@@ -1975,7 +1975,11 @@ export default function ProgramSection({
                           }}
                         >
                           <BarChart3 size={16} />
-                          <span>Lihat Statistik & Undian Doorprize Event 📊</span>
+                          <span>
+                            {connectedForm?.isLuckyDraw === true
+                              ? 'Lihat Statistik & Undian Doorprize Event 📊'
+                              : 'Lihat Statistik Pendaftaran Event 📊'}
+                          </span>
                         </button>
                       </div>
 
