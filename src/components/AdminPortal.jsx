@@ -43,7 +43,8 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Copy
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { soundFx } from '../utils/audio';
@@ -8416,6 +8417,7 @@ export default function AdminPortal({
           const dataString = JSON.stringify(s.data || {}).toLowerCase();
           const formTitleStr = resolveFormTitle(s).toLowerCase();
           const matchesSearch = !q ||
+            (s.id || '').toLowerCase().includes(q) ||
             dataString.includes(q) ||
             formTitleStr.includes(q) ||
             (s.adminNotes || '').toLowerCase().includes(q);
@@ -8462,7 +8464,7 @@ export default function AdminPortal({
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                   <input
                     type="text"
-                    placeholder="Cari nama, NIP, divisi..."
+                    placeholder="Cari nama, ID submission, NIP, divisi..."
                     value={subSearchQuery}
                     onChange={(e) => {
                       setSubSearchQuery(e.target.value);
@@ -8672,6 +8674,43 @@ export default function AdminPortal({
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>{formTitle}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard?.writeText(sub.id);
+                              showToast(`ID Submission "${sub.id}" berhasil disalin!`);
+                              soundFx.playPop?.();
+                            }}
+                            title="Klik untuk menyalin ID Submission pendaftar ini"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(255, 184, 0, 0.12)',
+                              border: '1px solid rgba(255, 184, 0, 0.35)',
+                              color: 'var(--mandiri-gold)',
+                              fontFamily: 'monospace',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              letterSpacing: '0.3px',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 184, 0, 0.22)';
+                              e.currentTarget.style.borderColor = 'var(--mandiri-gold)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 184, 0, 0.12)';
+                              e.currentTarget.style.borderColor = 'rgba(255, 184, 0, 0.35)';
+                            }}
+                          >
+                            <Copy size={11} />
+                            <span>ID: {sub.id}</span>
+                          </button>
                           <strong style={{ color: 'var(--text-main)', fontSize: '0.98rem' }}>
                             {applicantName}
                           </strong>
@@ -8809,7 +8848,16 @@ export default function AdminPortal({
                             ...dataKeys.filter(k => !schemaFields.some(f => f.id === k))
                           ];
 
-                          return orderedKeys.map((key) => {
+                          return [
+                            <div key="sub-id-meta" style={{ wordBreak: 'break-word', background: 'rgba(255, 184, 0, 0.05)', padding: '8px 12px', borderRadius: '6px', border: '1px dashed rgba(255, 184, 0, 0.3)' }}>
+                              <span style={{ color: 'var(--mandiri-gold)', display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: '3px' }}>
+                                🆔 ID SUBMISSION
+                              </span>
+                              <strong style={{ color: 'var(--mandiri-gold)', fontSize: '0.84rem', fontFamily: 'monospace', letterSpacing: '0.5px' }}>
+                                {sub.id}
+                              </strong>
+                            </div>,
+                            ...orderedKeys.map((key) => {
                             const val = sub.data?.[key];
                             if (val === undefined || val === null || val === '') return null;
                             const label = getLabel(key);
@@ -8823,7 +8871,7 @@ export default function AdminPortal({
                                 </strong>
                               </div>
                             );
-                          });
+                          })];
                         })()}
                         {/* Attached File Preview */}
                         {sub.files && Object.entries(sub.files).map(([key, fileObj]) => (
