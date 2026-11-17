@@ -406,11 +406,62 @@ export default function EventRegistrationStats({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10); // 10, 25, 50, 'all'
 
-  // Existing Lucky Draw Winners for this event
+  // Existing Lucky Draw Winners for this event (dynamically enriched from form submissions)
   const eventWinners = useMemo(() => {
     if (!eventId) return [];
-    return (luckyDraws || []).filter(ld => ld.eventId === eventId);
-  }, [luckyDraws, eventId]);
+    const rawList = (luckyDraws || []).filter(ld => ld.eventId === eventId);
+    return rawList.map((ld, idx) => {
+      const sub = formSubmissions.find(s => s.id === ld.submissionId) ||
+        formSubmissions.find(s => (s.name || '').toLowerCase() === (ld.winnerName || '').toLowerCase());
+      const subData = ld.submissionData || sub?.data || {};
+
+      let resolvedName = ld.winnerName || '';
+      if (!resolvedName && sub) {
+        if (sub.name && sub.name.trim()) {
+          resolvedName = sub.name.trim();
+        } else {
+          const nameEntry = Object.entries(subData).find(([k]) => k.toLowerCase().includes('nama'));
+          if (nameEntry && nameEntry[1]) {
+            resolvedName = String(nameEntry[1]).trim();
+          } else if (connectedForm?.fields?.[0]) {
+            const firstF = connectedForm.fields[0];
+            const val = subData[firstF.label] ?? subData[firstF.id];
+            if (val) resolvedName = String(val).trim();
+          } else {
+            const firstVal = Object.values(subData)[0];
+            if (firstVal) resolvedName = String(firstVal).trim();
+          }
+        }
+      }
+
+      return {
+        ...ld,
+        winnerName: resolvedName || ld.winnerName || 'Peserta',
+        submissionData: subData,
+        rawSubmission: sub || null
+      };
+    });
+  }, [luckyDraws, eventId, formSubmissions, connectedForm]);
+
+  const getWinnerDisplayName = (w) => {
+    if (!w) return 'Peserta';
+    if (w.winnerName && w.winnerName !== 'Peserta') return w.winnerName;
+    const sub = formSubmissions.find(s => s.id === (w.submissionId || w.submission_id));
+    if (sub) {
+      if (sub.name && sub.name.trim()) return sub.name.trim();
+      const data = w.submissionData || sub.data || {};
+      const nameKey = Object.keys(data).find(k => k.toLowerCase().includes('nama'));
+      if (nameKey && data[nameKey]) return String(data[nameKey]).trim();
+      if (connectedForm?.fields?.[0]) {
+        const firstField = connectedForm.fields[0];
+        const val = data[firstField.label] ?? data[firstField.id];
+        if (val) return String(val).trim();
+      }
+      const firstVal = Object.values(data)[0];
+      if (firstVal) return String(firstVal).trim();
+    }
+    return w.winnerName || 'Peserta';
+  };
 
   const wonIdsSet = useMemo(() => {
     const s = new Set();
@@ -2613,7 +2664,7 @@ export default function EventRegistrationStats({
                 Hapus Pemenang Undian?
               </h3>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0 }}>
-                Apakah Anda yakin ingin membatalkan/menghapus pemenang <strong>"{winnerToDelete.winnerName || 'Peserta'}"</strong>? Setelah dihapus, peserta ini akan kembali berstatus belum menang dan dapat diundi lagi pada sesi berikutnya.
+                Apakah Anda yakin ingin membatalkan/menghapus pemenang <strong>"{getWinnerDisplayName(winnerToDelete)}"</strong>? Setelah dihapus, peserta ini akan kembali berstatus belum menang dan dapat diundi lagi pada sesi berikutnya.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
