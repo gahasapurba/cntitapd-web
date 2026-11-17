@@ -6,12 +6,20 @@ import { getPublicBaseUrl } from './urlUtils';
  * Generate a high-resolution, professionally styled Printable Poster Card (PNG)
  * for a Form with QR Code, Mandiri & CNT branding, title, subtitle, and URL.
  */
-export async function generateFormQrPoster({
-  form,
-  event = null,
-  baseUrl = getPublicBaseUrl()
-}) {
-  if (!form) throw new Error('Form data is required');
+export async function generateFormQrPoster(options = {}) {
+  // Gracefully handle both { form, event, baseUrl } and direct { title, description, formUrl, ... }
+  const form = options.form || {
+    id: options.id || options.formId || '',
+    title: options.title || 'Formulir Pendaftaran',
+    subtitle: options.subtitle || options.description || '',
+    category: options.category || 'FORMULIR PENDAFTARAN RESMI',
+    deadline: options.deadline || '',
+    isEventConnected: Boolean(options.event || options.isEventConnected)
+  };
+
+  const event = options.event || null;
+  const baseUrl = options.baseUrl || getPublicBaseUrl();
+  const directUrl = options.formUrl || (form.id ? `${baseUrl.replace(/\/+$/, '')}/?form=${encodeURIComponent(form.id)}#form` : baseUrl);
 
   const canvas = document.createElement('canvas');
   const width = 1200;
@@ -187,7 +195,7 @@ export async function generateFormQrPoster({
   ctx.stroke();
 
   // Generate QR Code with high error correction
-  const formUrl = `${baseUrl.replace(/\/+$/, '')}/?form=${encodeURIComponent(form.id)}#form`;
+  const formUrl = directUrl;
   const qrDataUrl = await QRCode.toDataURL(formUrl, {
     width: 480,
     margin: 1,
@@ -270,6 +278,7 @@ export async function generateFormQrPoster({
     dataUrl,
     blob,
     fileName,
+    filename: fileName,
     formUrl
   };
 }

@@ -123,12 +123,14 @@ export default function DynamicFormSection({
     try {
       const shareUrl = getFormDirectUrl(targetForm.id);
       const poster = await generateFormQrPoster({
+        form: targetForm,
+        formUrl: shareUrl,
         title: targetForm.title,
         description: targetForm.description || targetForm.subtitle,
-        formUrl: shareUrl,
         category: targetForm.category,
         deadline: targetForm.deadline,
-        tenureText: targetForm.tenure ? `Periode ${targetForm.tenure}` : undefined
+        tenureText: targetForm.tenure ? `Periode ${targetForm.tenure}` : undefined,
+        baseUrl: getPublicBaseUrl()
       });
 
       // Check if Web Share API with file support is available (e.g. mobile Safari / Chrome)
