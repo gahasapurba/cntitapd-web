@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { generateFormQrPoster } from '../utils/qrPosterGenerator';
-import { formatWibTimestamp, formatDeadlineWib } from '../utils/dateUtils';
+import { formatWibTimestamp, formatDeadlineWib, formatToIndonesianDate, formatWibEventRange } from '../utils/dateUtils';
 import { getPublicBaseUrl } from '../utils/urlUtils';
 
 export default function EventRegistrationStats({
@@ -514,29 +514,67 @@ export default function EventRegistrationStats({
         gap: '16px'
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-          <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 184, 0, 0.15)', border: '1px solid var(--mandiri-gold)', color: 'var(--mandiri-gold)', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>
-              <Sparkles size={13} />
-              <span>Dashboard Analitik & Undian Acara</span>
-            </div>
-            <h1 style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.2rem)', fontWeight: 900, color: 'var(--text-main)', margin: '0 0 8px 0', lineHeight: 1.25 }}>
-              {event.title}
-            </h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Calendar size={14} color="var(--mandiri-gold)" />
-                <span>{event.startDate ? `${event.startDate} ${event.endDate ? `s/d ${event.endDate}` : ''}` : 'Tanggal Agenda'}</span>
+          {(() => {
+            const s = event?.startDate || event?.date || '';
+            const e = event?.endDate || s;
+            const sRawDate = s.slice(0, 10);
+            const eRawDate = e.slice(0, 10);
+
+            let eventDateDisplay = 'Tanggal Agenda';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(sRawDate) && /^\d{4}-\d{2}-\d{2}$/.test(eRawDate)) {
+              if (sRawDate === eRawDate) {
+                eventDateDisplay = formatToIndonesianDate(sRawDate);
+              } else {
+                eventDateDisplay = formatWibEventRange(sRawDate, eRawDate);
+              }
+            } else if (s || e) {
+              eventDateDisplay = formatWibEventRange(s, e, event?.date || 'Tanggal Agenda');
+            }
+
+            let eventTimeDisplay = null;
+            if (event?.time && event.time !== 'WIB') {
+              eventTimeDisplay = event.time;
+            } else {
+              const sHasTime = s.includes('T') || /\d{2}:\d{2}/.test(s);
+              if (sHasTime) {
+                const sTime = s.includes('T') ? s.split('T')[1]?.slice(0, 5) : s.match(/\d{2}:\d{2}/)?.[0];
+                const eTime = e.includes('T') ? e.split('T')[1]?.slice(0, 5) : e.match(/\d{2}:\d{2}/)?.[0];
+                if (sTime && eTime && sTime !== eTime) {
+                  eventTimeDisplay = `${sTime} - ${eTime} WIB`;
+                } else if (sTime) {
+                  eventTimeDisplay = `${sTime} WIB`;
+                }
+              }
+            }
+
+            return (
+              <div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 184, 0, 0.15)', border: '1px solid var(--mandiri-gold)', color: 'var(--mandiri-gold)', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>
+                  <Sparkles size={13} />
+                  <span>Dashboard Analitik & Undian Acara</span>
+                </div>
+                <h1 style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.2rem)', fontWeight: 900, color: 'var(--text-main)', margin: '0 0 8px 0', lineHeight: 1.25 }}>
+                  {event.title}
+                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Calendar size={14} color="var(--mandiri-gold)" />
+                    <span>{eventDateDisplay}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MapPin size={14} color="var(--neon-cyan)" />
+                    <span>{event.location || 'Direktorat IT Bank Mandiri'}</span>
+                  </div>
+                  {eventTimeDisplay && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Clock size={14} color="#10b981" />
+                      <span>{eventTimeDisplay}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin size={14} color="var(--neon-cyan)" />
-                <span>{event.location || 'Direktorat IT Bank Mandiri'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={14} color="#10b981" />
-                <span>{event.time || 'WIB'}</span>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Connected Form Badge */}
           {connectedForm ? (
