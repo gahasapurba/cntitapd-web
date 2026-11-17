@@ -7649,7 +7649,18 @@ export default function AdminPortal({
               </label>
               <select
                 value={newFormTenureId || activeTenure?.id || tenures[0]?.id || ''}
-                onChange={(e) => setNewFormTenureId(e.target.value)}
+                onChange={(e) => {
+                  const newT = e.target.value;
+                  setNewFormTenureId(newT);
+                  if (newFormEventId) {
+                    const ev = (events || []).find(x => x.id === newFormEventId);
+                    const evTenure = ev?.tenureId || divisions.find(d => d.id === ev?.divisionId)?.tenureId;
+                    if (evTenure && evTenure !== newT) {
+                      setNewFormEventId('');
+                      showToast('Periode form diubah. Pilihan acara di-reset agar sesuai periode baru.', 'info');
+                    }
+                  }
+                }}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
               >
                 {tenures.map((t) => (
@@ -12033,10 +12044,25 @@ export default function AdminPortal({
                   </label>
                   <select
                     value={editingItem.item.tenureId || activeTenure?.id || tenures[0]?.id || ''}
-                    onChange={(e) => setEditingItem({
-                      ...editingItem,
-                      item: { ...editingItem.item, tenureId: e.target.value }
-                    })}
+                    onChange={(e) => {
+                      const newTenure = e.target.value;
+                      const currentEvt = (events || []).find(ev => ev.id === editingItem.item.eventId);
+                      const currentEvtTenure = currentEvt ? (currentEvt.tenureId || divisions.find(d => d.id === currentEvt.divisionId)?.tenureId) : null;
+                      const isEventMatchNewTenure = currentEvtTenure === newTenure;
+
+                      setEditingItem({
+                        ...editingItem,
+                        item: {
+                          ...editingItem.item,
+                          tenureId: newTenure,
+                          eventId: isEventMatchNewTenure ? editingItem.item.eventId : '',
+                          isEventConnected: isEventMatchNewTenure ? Boolean(editingItem.item.isEventConnected) : false
+                        }
+                      });
+                      if (!isEventMatchNewTenure && editingItem.item.eventId) {
+                        showToast('Periode form diubah. Tautan acara lama dilepas otomatis agar sesuai periode baru.', 'info');
+                      }
+                    }}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   >
                     {tenures.map((t) => (

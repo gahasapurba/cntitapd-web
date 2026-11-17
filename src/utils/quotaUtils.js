@@ -162,3 +162,4 @@ export function getUnifiedFormQuota(form, events = [], forms = [], eventRsvps = 
     label: 'Formulir Mandiri'
   };
 }
+
