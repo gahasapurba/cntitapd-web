@@ -731,8 +731,20 @@ export default function EventRegistrationStats({
         clearInterval(countdownIntervalRef.current);
         clearInterval(rollIntervalRef.current);
 
-        // Pick winners randomly without replacement
-        const shuffled = [...eligiblePool].sort(() => 0.5 - Math.random());
+        // Pick winners using Fisher-Yates (Knuth) Shuffle with cryptographic randomness
+        const shuffled = [...eligiblePool];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          let rand;
+          if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+            const buf = new Uint32Array(1);
+            window.crypto.getRandomValues(buf);
+            rand = buf[0] / (0xffffffff + 1);
+          } else {
+            rand = Math.random();
+          }
+          const j = Math.floor(rand * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
         const chosen = shuffled.slice(0, requestedCount);
 
         const nowIso = new Date().toISOString();
