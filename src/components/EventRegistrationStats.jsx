@@ -610,6 +610,183 @@ export default function EventRegistrationStats({
   };
 
   // =========================================================================
+  // LUCKY DRAW WINNERS TABLE CONTROLS (SEARCH, FILTER, SORT, PAGINATION, CSV)
+  // =========================================================================
+  const [winnerSearchQuery, setWinnerSearchQuery] = useState('');
+  const [winnerPrizeFilter, setWinnerPrizeFilter] = useState('ALL');
+  const [winnerDropdownFilters, setWinnerDropdownFilters] = useState({});
+  const [winnerSortConfig, setWinnerSortConfig] = useState({ key: 'drawNumber', direction: 'asc' });
+  const [winnerCurrentPage, setWinnerCurrentPage] = useState(1);
+  const [winnerPageSize, setWinnerPageSize] = useState(10); // 10, 25, 50, 'all'
+
+  // Dynamic search placeholder for winners
+  const winnerSearchPlaceholder = useMemo(() => {
+    if (connectedForm?.fields && connectedForm.fields.length > 0) {
+      const sample = connectedForm.fields.slice(0, 2).map(f => f.label).join(', ');
+      return `Cari pemenang, ${sample}, hadiah...`;
+    }
+    return 'Cari nama, hadiah, atau data pemenang...';
+  }, [connectedForm]);
+
+  // Unique list of prize names among winners
+  const uniquePrizeNames = useMemo(() => {
+    const set = new Set();
+    eventWinners.forEach(w => {
+      const p = w.prizeTitle || w.prizeName;
+      if (p && p.trim()) set.add(p.trim());
+    });
+    return Array.from(set);
+  }, [eventWinners]);
+
+  const hasActiveWinnerFilters = useMemo(() => {
+    if (winnerSearchQuery.trim()) return true;
+    if (winnerPrizeFilter !== 'ALL') return true;
+    for (const val of Object.values(winnerDropdownFilters)) {
+      if (val && val !== 'ALL') return true;
+    }
+    return false;
+  }, [winnerSearchQuery, winnerPrizeFilter, winnerDropdownFilters]);
+
+  const handleResetWinnerFilters = () => {
+    setWinnerSearchQuery('');
+    setWinnerPrizeFilter('ALL');
+    setWinnerDropdownFilters({});
+    setWinnerSortConfig({ key: 'drawNumber', direction: 'asc' });
+    setWinnerCurrentPage(1);
+  };
+
+  // Filtered Winners
+  const filteredWinners = useMemo(() => {
+    let result = [...eventWinners];
+
+    // 1. Search Query
+    if (winnerSearchQuery.trim()) {
+      const q = winnerSearchQuery.toLowerCase().trim();
+      result = result.filter(w => {
+        const subData = w.submissionData || {};
+        const dataValues = Object.entries(subData).map(([k, v]) => `${k} ${v}`).join(' ').toLowerCase();
+        const pName = (w.prizeTitle || w.prizeName || '').toLowerCase();
+        const wName = (w.winnerName || '').toLowerCase();
+        const rawTime = w.drawnAt || w.created_at || w.createdAt || '';
+        const drawNum = String(w.drawNumber || '');
+        return dataValues.includes(q) || pName.includes(q) || wName.includes(q) || rawTime.toLowerCase().includes(q) || drawNum.includes(q);
+      });
+    }
+
+    // 2. Prize Filter
+    if (winnerPrizeFilter !== 'ALL') {
+      result = result.filter(w => (w.prizeTitle || w.prizeName || '').trim() === winnerPrizeFilter);
+    }
+
+    // 3. Form Dropdown Filters
+    Object.entries(winnerDropdownFilters).forEach(([fieldId, selectedVal]) => {
+      if (selectedVal && selectedVal !== 'ALL') {
+        const fObj = connectedForm?.fields?.find(f => f.id === fieldId);
+        const fLabel = fObj?.label || fieldId;
+        result = result.filter(w => {
+          const subData = w.submissionData || {};
+          const val = String(subData[fLabel] ?? subData[fieldId] ?? '').trim();
+          return val === selectedVal;
+        });
+      }
+    });
+
+    // 4. Sorting
+    result.sort((a, b) => {
+      let valA, valB;
+      if (winnerSortConfig.key === 'drawNumber') {
+        valA = a.drawNumber || 0;
+        valB = b.drawNumber || 0;
+      } else if (winnerSortConfig.key === 'prizeName') {
+        valA = (a.prizeTitle || a.prizeName || '').toLowerCase();
+        valB = (b.prizeTitle || b.prizeName || '').toLowerCase();
+      } else if (winnerSortConfig.key === 'drawnAt') {
+        valA = new Date(a.drawnAt || a.created_at || a.createdAt || 0).getTime();
+        valB = new Date(b.drawnAt || b.created_at || b.createdAt || 0).getTime();
+      } else {
+        const fObj = connectedForm?.fields?.find(f => f.id === winnerSortConfig.key || f.label === winnerSortConfig.key);
+        const fLabel = fObj?.label || winnerSortConfig.key;
+        const fId = fObj?.id || winnerSortConfig.key;
+        const subA = a.submissionData || {};
+        const subB = b.submissionData || {};
+        valA = String(subA[fLabel] ?? subA[fId] ?? (winnerSortConfig.key === connectedForm?.fields?.[0]?.id ? a.winnerName : '') ?? '').toLowerCase();
+        valB = String(subB[fLabel] ?? subB[fId] ?? (winnerSortConfig.key === connectedForm?.fields?.[0]?.id ? b.winnerName : '') ?? '').toLowerCase();
+      }
+
+      if (valA < valB) return winnerSortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return winnerSortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [eventWinners, winnerSearchQuery, winnerPrizeFilter, winnerDropdownFilters, winnerSortConfig, connectedForm]);
+
+  // Reset winner page when filters change
+  useEffect(() => {
+    setWinnerCurrentPage(1);
+  }, [winnerSearchQuery, winnerPrizeFilter, winnerDropdownFilters, winnerPageSize]);
+
+  // Pagination calculation for winners
+  const totalFilteredWinners = filteredWinners.length;
+  const totalWinnerPages = winnerPageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalFilteredWinners / winnerPageSize));
+  const paginatedWinners = useMemo(() => {
+    if (winnerPageSize === 'all') return filteredWinners;
+    const start = (winnerCurrentPage - 1) * winnerPageSize;
+    return filteredWinners.slice(start, start + winnerPageSize);
+  }, [filteredWinners, winnerCurrentPage, winnerPageSize]);
+
+  const handleWinnerHeaderSort = (key) => {
+    setWinnerSortConfig(prev => {
+      if (prev.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        if (prev.direction === 'desc') return { key: 'drawNumber', direction: 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  // Export Winners CSV
+  const handleExportWinnersCsv = () => {
+    if (eventWinners.length === 0) return;
+
+    const formFields = connectedForm?.fields || [];
+    const fieldHeaders = formFields.map(f => f.label || 'Field');
+    const allHeaders = [
+      'No Undian',
+      ...fieldHeaders,
+      'Hadiah / Sesi',
+      'Waktu Menang (WIB)'
+    ];
+
+    const rows = filteredWinners.map((w, idx) => {
+      const subData = w.submissionData || {};
+      const rawTime = w.drawnAt || w.created_at || w.createdAt;
+      const formattedTime = formatWibTimestamp(rawTime).exact || '-';
+
+      const fieldVals = formFields.map((f, colIdx) => {
+        const val = subData[f.label] ?? subData[f.id] ?? (colIdx === 0 ? w.winnerName : '-');
+        return `"${String(val).replace(/"/g, '""')}"`;
+      });
+
+      return [
+        `"#${w.drawNumber || idx + 1}"`,
+        ...fieldVals,
+        `"${String(w.prizeTitle || w.prizeName || 'Doorprize Utama').replace(/"/g, '""')}"`,
+        `"${formattedTime}"`
+      ].join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [allHeaders.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `pemenang-undian-${event?.title ? event.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'event'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // =========================================================================
   // LUCKY DRAW / DOORPRIZE LOGIC
   // =========================================================================
   const [prizeName, setPrizeName] = useState('Doorprize Utama');
@@ -2262,118 +2439,335 @@ export default function EventRegistrationStats({
               </div>
             </div>
 
-            {/* WINNERS LIST TABLE */}
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Award size={18} color="var(--mandiri-gold)" />
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    Daftar Pemenang Undian ({eventWinners.length})
-                  </h3>
+            {/* WINNERS LIST TABLE (FULL-FEATURED: SEARCH, PRIZE FILTER, FORM DROPDOWN FILTERS, SORTING, PAGINATION, CSV EXPORT) */}
+            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Header: Title, Total Badge, Export CSV, and Reset All */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Award size={20} color="var(--mandiri-gold)" />
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
+                      Daftar Pemenang Undian ({filteredWinners.length})
+                    </h3>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Daftar pemenang undian sah dilengkapi fitur pencarian, filter sesi hadiah, multi-sorting, dan pagination
+                  </span>
                 </div>
 
-                {eventWinners.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {/* Ekspor CSV Pemenang */}
                   <button
                     type="button"
-                    onClick={() => setResetConfirmOpen(true)}
+                    onClick={handleExportWinnersCsv}
+                    disabled={eventWinners.length === 0}
+                    title="Download rekap data seluruh pemenang dalam format CSV"
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
-                      background: 'rgba(244, 63, 94, 0.1)',
-                      border: '1px solid rgba(244, 63, 94, 0.35)',
-                      color: '#f43f5e',
-                      padding: '6px 14px',
+                      gap: '6px',
+                      padding: '8px 16px',
                       borderRadius: 'var(--radius-full)',
-                      fontSize: '0.76rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
+                      background: 'var(--mandiri-gold)',
+                      border: 'none',
+                      color: '#040914',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: eventWinners.length > 0 ? 'pointer' : 'not-allowed',
+                      opacity: eventWinners.length > 0 ? 1 : 0.6
                     }}
                   >
-                    <RotateCcw size={13} />
-                    <span>Reset Semua Pemenang</span>
+                    <Download size={14} />
+                    <span>Ekspor CSV Pemenang</span>
                   </button>
-                )}
+
+                  {/* Reset Semua Pemenang */}
+                  {eventWinners.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setResetConfirmOpen(true)}
+                      title="Reset seluruh pemenang undian pada acara ini"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: 'rgba(244, 63, 94, 0.1)',
+                        border: '1px solid rgba(244, 63, 94, 0.35)',
+                        color: '#f43f5e',
+                        padding: '8px 16px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <RotateCcw size={13} />
+                      <span>Reset Semua Pemenang</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
+              {/* Filter Controls Bar (Search + Prize Filter + Form Dropdown Filters) */}
+              {eventWinners.length > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  flexWrap: 'wrap',
+                  background: 'var(--input-bg)',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-card)'
+                }}>
+                  {/* Dynamic Search Input for Winners */}
+                  <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '180px' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                    <input
+                      type="text"
+                      placeholder={winnerSearchPlaceholder}
+                      value={winnerSearchQuery}
+                      onChange={(e) => setWinnerSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '7px 12px 7px 32px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-card)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.78rem'
+                      }}
+                    />
+                  </div>
+
+                  {/* Filter by Prize / Session Name */}
+                  {uniquePrizeNames.length > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>Hadiah:</span>
+                      <select
+                        value={winnerPrizeFilter}
+                        onChange={(e) => setWinnerPrizeFilter(e.target.value)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          maxWidth: '200px'
+                        }}
+                      >
+                        <option value="ALL">Semua Sesi Hadiah</option>
+                        {uniquePrizeNames.map((p, i) => (
+                          <option key={i} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Dynamic Form Dropdown Filters for Winners */}
+                  {dropdownFields.map((df) => {
+                    const options = getDropdownOptions(df);
+                    return (
+                      <div key={df.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>{df.label}:</span>
+                        <select
+                          value={winnerDropdownFilters[df.id] || 'ALL'}
+                          onChange={(e) => setWinnerDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 'var(--radius-full)',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-card)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            maxWidth: '200px'
+                          }}
+                        >
+                          <option value="ALL">Semua {df.label}</option>
+                          {options.map((opt, i) => (
+                            <option key={i} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+
+                  {/* Reset Filters Button */}
+                  {hasActiveWinnerFilters && (
+                    <button
+                      type="button"
+                      onClick={handleResetWinnerFilters}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'rgba(244, 63, 94, 0.12)',
+                        border: '1px solid rgba(244, 63, 94, 0.35)',
+                        color: '#f43f5e',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <RotateCcw size={12} />
+                      <span>Reset Filter</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Table Container */}
               {eventWinners.length > 0 ? (
                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-card)', color: 'var(--text-dim)' }}>
-                        <th style={{ padding: '8px 10px', fontWeight: 700, width: '45px' }}>No</th>
+                        <th
+                          onClick={() => handleWinnerHeaderSort('drawNumber')}
+                          style={{ padding: '10px', fontWeight: 700, width: '90px', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span>No Undian</span>
+                            {winnerSortConfig.key === 'drawNumber' ? (
+                              winnerSortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--mandiri-gold)" /> : <ChevronDown size={14} color="var(--mandiri-gold)" />
+                            ) : (
+                              <ChevronsUpDown size={13} color="var(--text-dim)" />
+                            )}
+                          </div>
+                        </th>
+
+                        {/* Dynamic Custom Fields Columns with Sorting */}
                         {(connectedForm?.fields || []).map(f => (
-                          <th key={f.id} style={{ padding: '8px 10px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                            {f.label}
+                          <th
+                            key={f.id}
+                            onClick={() => handleWinnerHeaderSort(f.id)}
+                            style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <span>{f.label}</span>
+                              {winnerSortConfig.key === f.id ? (
+                                winnerSortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--mandiri-gold)" /> : <ChevronDown size={14} color="var(--mandiri-gold)" />
+                              ) : (
+                                <ChevronsUpDown size={13} color="var(--text-dim)" />
+                              )}
+                            </div>
                           </th>
                         ))}
-                        <th style={{ padding: '8px 10px', fontWeight: 700, whiteSpace: 'nowrap' }}>Hadiah / Sesi</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 700, whiteSpace: 'nowrap' }}>Waktu Menang</th>
-                        <th style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'center', width: '50px' }}>Aksi</th>
+
+                        <th
+                          onClick={() => handleWinnerHeaderSort('prizeName')}
+                          style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span>Hadiah / Sesi</span>
+                            {winnerSortConfig.key === 'prizeName' ? (
+                              winnerSortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--mandiri-gold)" /> : <ChevronDown size={14} color="var(--mandiri-gold)" />
+                            ) : (
+                              <ChevronsUpDown size={13} color="var(--text-dim)" />
+                            )}
+                          </div>
+                        </th>
+
+                        <th
+                          onClick={() => handleWinnerHeaderSort('drawnAt')}
+                          style={{ padding: '10px', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span>Waktu Menang</span>
+                            {winnerSortConfig.key === 'drawnAt' ? (
+                              winnerSortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--mandiri-gold)" /> : <ChevronDown size={14} color="var(--mandiri-gold)" />
+                            ) : (
+                              <ChevronsUpDown size={13} color="var(--text-dim)" />
+                            )}
+                          </div>
+                        </th>
+
+                        <th style={{ padding: '10px', fontWeight: 700, textAlign: 'center', width: '60px' }}>
+                          Aksi
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {eventWinners.map((winner, idx) => {
-                        const sub = formSubmissions.find(s => s.id === winner.submissionId) ||
-                          formSubmissions.find(s => (s.name || '').toLowerCase() === (winner.winnerName || '').toLowerCase());
-                        const subData = winner.submissionData || sub?.data || {};
-                        const rawTime = winner.drawnAt || winner.created_at || winner.createdAt;
-                        const formattedTime = formatWibTimestamp(rawTime).shortDate || formatWibTimestamp(rawTime).exact || '-';
+                      {paginatedWinners.length > 0 ? (
+                        paginatedWinners.map((winner, idx) => {
+                          const subData = winner.submissionData || {};
+                          const rawTime = winner.drawnAt || winner.created_at || winner.createdAt;
+                          const formattedTime = formatWibTimestamp(rawTime).shortDate || formatWibTimestamp(rawTime).exact || '-';
 
-                        return (
-                          <tr key={winner.id || idx} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                            <td style={{ padding: '10px 10px', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
-                              #{winner.drawNumber || idx + 1}
-                            </td>
+                          return (
+                            <tr
+                              key={winner.id || idx}
+                              style={{
+                                borderBottom: '1px solid var(--border-card)',
+                                transition: 'background 0.2s ease'
+                              }}
+                            >
+                              <td style={{ padding: '10px', fontWeight: 800, color: 'var(--mandiri-gold)', whiteSpace: 'nowrap' }}>
+                                #{winner.drawNumber || idx + 1}
+                              </td>
 
-                            {/* Dynamic Custom Fields Values */}
-                            {(connectedForm?.fields || []).map((f, colIdx) => {
-                              const val = subData[f.label] ?? subData[f.id] ?? (colIdx === 0 ? winner.winnerName : '-');
-                              return (
-                                <td key={f.id} style={{ padding: '10px 10px', color: 'var(--text-main)', fontWeight: colIdx === 0 ? 800 : 500 }}>
-                                  {String(val || '-')}
-                                </td>
-                              );
-                            })}
+                              {/* Dynamic Custom Fields Values */}
+                              {(connectedForm?.fields || []).map((f, colIdx) => {
+                                const val = subData[f.label] ?? subData[f.id] ?? (colIdx === 0 ? winner.winnerName : '-');
+                                return (
+                                  <td key={f.id} style={{ padding: '10px', color: 'var(--text-main)', fontWeight: colIdx === 0 ? 800 : 500 }}>
+                                    {String(val || '-')}
+                                  </td>
+                                );
+                              })}
 
-                            <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
-                              <span style={{
-                                background: 'rgba(255, 184, 0, 0.15)',
-                                border: '1px solid var(--mandiri-gold)',
-                                color: 'var(--mandiri-gold)',
-                                padding: '3px 10px',
-                                borderRadius: 'var(--radius-full)',
-                                fontSize: '0.74rem',
-                                fontWeight: 700
-                              }}>
-                                {winner.prizeTitle || winner.prizeName || 'Doorprize Utama'}
-                              </span>
-                            </td>
+                              <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
+                                <span style={{
+                                  background: 'rgba(255, 184, 0, 0.15)',
+                                  border: '1px solid var(--mandiri-gold)',
+                                  color: 'var(--mandiri-gold)',
+                                  padding: '3px 10px',
+                                  borderRadius: 'var(--radius-full)',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700
+                                }}>
+                                  {winner.prizeTitle || winner.prizeName || 'Doorprize Utama'}
+                                </span>
+                              </td>
 
-                            <td style={{ padding: '10px 10px', color: 'var(--text-dim)', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
-                              {formattedTime}
-                            </td>
+                              <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                                {formattedTime}
+                              </td>
 
-                            <td style={{ padding: '10px 10px', textAlign: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => setWinnerToDelete(winner)}
-                                title="Hapus pemenang ini (peserta dapat diundi kembali)"
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: '#f43f5e',
-                                  cursor: 'pointer',
-                                  padding: '4px',
-                                  display: 'inline-flex'
-                                }}
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              <td style={{ padding: '10px', textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setWinnerToDelete(winner)}
+                                  title="Hapus pemenang ini (peserta dapat diundi kembali)"
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#f43f5e',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    display: 'inline-flex'
+                                  }}
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={3 + (connectedForm?.fields?.length || 0)} style={{ padding: '36px 10px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            {hasActiveWinnerFilters
+                              ? 'Tidak ada data pemenang undian yang sesuai dengan filter pencarian.'
+                              : 'Belum ada pemenang yang diundi untuk acara ini.'}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -2387,6 +2781,156 @@ export default function EventRegistrationStats({
                   fontSize: '0.84rem'
                 }}>
                   Belum ada pemenang yang diundi untuk acara ini. Tekan tombol <strong>Undi Pemenang</strong> di atas untuk memulai doorprize!
+                </div>
+              )}
+
+              {/* Pagination Controls for Winners Table */}
+              {eventWinners.length > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid var(--border-card)'
+                }}>
+                  {/* Left: Summary Count & Page Size Dropdown */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                      Menampilkan {totalFilteredWinners > 0 ? (winnerPageSize === 'all' ? 1 : (winnerCurrentPage - 1) * winnerPageSize + 1) : 0} - {winnerPageSize === 'all' ? totalFilteredWinners : Math.min(winnerCurrentPage * winnerPageSize, totalFilteredWinners)} dari {totalFilteredWinners} pemenang
+                    </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)' }}>Per Halaman:</span>
+                      <select
+                        value={winnerPageSize}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setWinnerPageSize(v === 'all' ? 'all' : parseInt(v, 10));
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.74rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value="all">Semua</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Right: Page Navigation Buttons */}
+                  {winnerPageSize !== 'all' && totalWinnerPages > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setWinnerCurrentPage(1)}
+                        disabled={winnerCurrentPage === 1}
+                        title="Halaman Pertama"
+                        style={{
+                          padding: '5px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: winnerCurrentPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                          cursor: winnerCurrentPage === 1 ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <ChevronsLeft size={14} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setWinnerCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={winnerCurrentPage === 1}
+                        title="Halaman Sebelumnya"
+                        style={{
+                          padding: '5px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: winnerCurrentPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                          cursor: winnerCurrentPage === 1 ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+
+                      {/* Numbered Page Buttons */}
+                      {Array.from({ length: totalWinnerPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalWinnerPages || Math.abs(p - winnerCurrentPage) <= 1)
+                        .map((pageNum, pIdx, arr) => {
+                          const prevPage = arr[pIdx - 1];
+                          const showEllipsis = prevPage && pageNum - prevPage > 1;
+
+                          return (
+                            <React.Fragment key={pageNum}>
+                              {showEllipsis && (
+                                <span style={{ padding: '0 4px', color: 'var(--text-dim)', fontSize: '0.74rem' }}>...</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setWinnerCurrentPage(pageNum)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  border: '1px solid var(--border-card)',
+                                  background: winnerCurrentPage === pageNum ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                                  color: winnerCurrentPage === pageNum ? '#040914' : 'var(--text-main)',
+                                  fontWeight: winnerCurrentPage === pageNum ? 800 : 500,
+                                  fontSize: '0.74rem',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {pageNum}
+                              </button>
+                            </React.Fragment>
+                          );
+                        })}
+
+                      <button
+                        type="button"
+                        onClick={() => setWinnerCurrentPage(p => Math.min(totalWinnerPages, p + 1))}
+                        disabled={winnerCurrentPage === totalWinnerPages}
+                        title="Halaman Berikutnya"
+                        style={{
+                          padding: '5px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: winnerCurrentPage === totalWinnerPages ? 'var(--text-dim)' : 'var(--text-main)',
+                          cursor: winnerCurrentPage === totalWinnerPages ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setWinnerCurrentPage(totalWinnerPages)}
+                        disabled={winnerCurrentPage === totalWinnerPages}
+                        title="Halaman Terakhir"
+                        style={{
+                          padding: '5px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: winnerCurrentPage === totalWinnerPages ? 'var(--text-dim)' : 'var(--text-main)',
+                          cursor: winnerCurrentPage === totalWinnerPages ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <ChevronsRight size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
