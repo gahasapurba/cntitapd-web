@@ -44,7 +44,9 @@ import {
   ArrowDown,
   ChevronLeft,
   ChevronRight,
-  Copy
+  Copy,
+  Sparkles,
+  Camera
 } from 'lucide-react';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { soundFx } from '../utils/audio';
@@ -14770,7 +14772,9 @@ export default function AdminPortal({
                                             ? 'Konfirmasi Hapus Event'
                                             : (deleteConfirm.type === 'form'
                                                 ? 'Konfirmasi Hapus Formulir'
-                                                : 'Konfirmasi Penghapusan Data')))))))))}
+                                                : (deleteConfirm.type === 'submission'
+                                                    ? 'Konfirmasi Hapus Berkas'
+                                                    : 'Konfirmasi Penghapusan Data'))))))))))}
             </h3>
 
             {/* TENURE BODY */}
@@ -15724,7 +15728,9 @@ export default function AdminPortal({
                                               ? 'Ya, Hapus Event'
                                               : (deleteConfirm.type === 'form'
                                                   ? 'Ya, Hapus Formulir'
-                                                  : 'Ya, Hapus Data'))))))))}
+                                                  : (deleteConfirm.type === 'submission'
+                                                      ? 'Ya, Hapus Berkas'
+                                                      : 'Ya, Hapus Data')))))))))}
                   </button>
                 </>
               )}
