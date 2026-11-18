@@ -1325,21 +1325,44 @@ export default function EventRegistrationStats({
           {/* Connected Form Pill Banner */}
           {connectedForm ? (
             <div style={{
-              background: 'rgba(56, 189, 248, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.35)',
+              background: isFormClosed
+                ? (isDark ? 'rgba(239, 68, 68, 0.08)' : '#fef2f2')
+                : 'rgba(56, 189, 248, 0.08)',
+              border: isFormClosed
+                ? '1px solid rgba(239, 68, 68, 0.35)'
+                : '1px solid rgba(56, 189, 248, 0.35)',
               padding: '10px 14px',
               borderRadius: 'var(--radius-md)',
               maxWidth: '340px',
               width: '100%'
             }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--neon-cyan)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '3px' }}>
+              <div style={{
+                fontSize: '0.7rem',
+                color: isFormClosed ? '#f87171' : 'var(--neon-cyan)',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                marginBottom: '3px'
+              }}>
                 🔗 Formulir Pendaftaran Terhubung
               </div>
               <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.3 }}>
                 {connectedForm.title}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px' }}>
-                {effectiveIsLimited && effectiveMaxQuota > 0 ? `Kuota Form: ${effectiveMaxQuota} Peserta` : 'Kuota Form: Tanpa Batas'} • {connectedForm.isOpen !== false ? '🟢 Pendaftaran Dibuka' : '🔴 Ditutup'}
+                {effectiveIsLimited && effectiveMaxQuota > 0 ? `Kuota Form: ${effectiveMaxQuota} Peserta` : 'Kuota Form: Tanpa Batas'} • {(() => {
+                  if (isFormClosed) {
+                    const dl = connectedForm.deadline ? getDeadlineStatus(connectedForm.deadline) : null;
+                    if (dl?.isExpired) {
+                      return <span style={{ color: '#f87171', fontWeight: 700 }}>🔴 Ditutup (Batas Waktu Berakhir)</span>;
+                    }
+                    return <span style={{ color: '#f87171', fontWeight: 700 }}>🔴 Formulir Ditutup</span>;
+                  }
+                  const isQuotaFull = effectiveIsLimited && effectiveMaxQuota > 0 && totalPendaftar >= effectiveMaxQuota;
+                  if (isQuotaFull) {
+                    return <span style={{ color: '#f87171', fontWeight: 700 }}>🔒 Kuota Penuh</span>;
+                  }
+                  return <span style={{ color: '#10b981', fontWeight: 700 }}>🟢 Pendaftaran Dibuka</span>;
+                })()}
               </div>
             </div>
           ) : (
