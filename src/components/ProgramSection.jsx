@@ -28,7 +28,7 @@ import {
   FileText,
   Camera
 } from 'lucide-react';
-import { formatWibEventRange, isEventPassed, formatDeadlineWib } from '../utils/dateUtils';
+import { formatWibEventRange, isEventPassed, formatDeadlineWib, getDeadlineStatus } from '../utils/dateUtils';
 import { getPublicBaseUrl } from '../utils/urlUtils';
 import { getUnifiedEventAttendees } from '../utils/quotaUtils';
 
@@ -154,6 +154,8 @@ export default function ProgramSection({
     if (onSelectEventUrl) onSelectEventUrl(null);
   }, [onSelectEventUrl]);
 
+  const [eventNotFound, setEventNotFound] = useState(false);
+
   // Handle initial event from direct deep link only once
   useEffect(() => {
     if (initialEventId && events.length > 0) {
@@ -162,14 +164,18 @@ export default function ProgramSection({
         const found = events.find(e => e.id === initialEventId);
         if (found) {
           setRsvpModalEvent(found);
+          setEventNotFound(false);
           if (activeTenure?.id && found.tenureId && found.tenureId !== activeTenure.id) {
             setTenureFilter('all');
           }
+        } else {
+          setEventNotFound(true);
         }
       }
     } else if (!initialEventId) {
       lastHandledInitialId.current = null;
       setRsvpModalEvent(null);
+      setEventNotFound(false);
     }
   }, [initialEventId, events, activeTenure]);
 
@@ -331,6 +337,86 @@ export default function ProgramSection({
           Rangkaian inisiatif terpadu untuk membangun keakraban tim, kesehatan mental & fisik, serta wadah ekspresi bakat seluruh insan IT APD.
         </p>
       </div>
+
+      {/* Event Not Found Banner */}
+      {eventNotFound && (
+        <div style={{ maxWidth: '680px', margin: '0 auto', width: '100%' }}>
+          <div className="glass-panel" style={{
+            padding: '36px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '16px',
+            border: '1.5px solid rgba(244, 63, 94, 0.4)',
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.08) 0%, rgba(14, 25, 55, 0.95) 100%)'
+              : 'linear-gradient(135deg, #fff1f2 0%, #ffffff 100%)'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(244, 63, 94, 0.15)',
+              color: '#f43f5e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <AlertCircle size={32} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0' }}>
+                Kegiatan / Event Tidak Ditemukan
+              </h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                Tautan agenda kegiatan yang Anda tuju tidak ditemukan atau telah dihapus oleh pengelola.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEventNotFound(false);
+                  if (onSelectEventUrl) onSelectEventUrl(null);
+                  window.location.href = '/#home';
+                }}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Kembali ke Beranda
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEventNotFound(false);
+                  if (onSelectEventUrl) onSelectEventUrl(null);
+                }}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Lihat Semua Kalender Event
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter & View Mode Bar */}
       <div className="glass-panel" style={{
@@ -1841,6 +1927,9 @@ export default function ProgramSection({
                 if (connectedForm) {
                   const attendeeInfo = getUnifiedEventAttendees(rsvpModalEvent, forms, eventRsvps, submissions);
                   const isQuotaFull = attendeeInfo.isFull;
+                  const isFormClosed = connectedForm.isOpen === false ||
+                    Boolean(connectedForm.isClosed) ||
+                    (connectedForm.deadline ? getDeadlineStatus(connectedForm.deadline).isExpired : false);
 
                   return (
                     <div style={{
@@ -1907,7 +1996,23 @@ export default function ProgramSection({
                         </div>
                       </div>
 
-                      {isQuotaFull && (
+                      {isFormClosed ? (
+                        <div style={{
+                          padding: '12px 16px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fee2e2',
+                          border: isDark ? '1.5px solid rgba(244, 63, 94, 0.4)' : '1.5px solid #fca5a5',
+                          color: isDark ? '#f87171' : '#b91c1c',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <Lock size={16} />
+                          <span>Formulir Telah Ditutup oleh Pengelola Acara. Pendaftaran tidak lagi menerima respon baru.</span>
+                        </div>
+                      ) : isQuotaFull ? (
                         <div style={{
                           padding: '12px 16px',
                           borderRadius: 'var(--radius-sm)',
@@ -1923,12 +2028,14 @@ export default function ProgramSection({
                           <Lock size={16} />
                           <span>Pendaftaran Acara Telah Ditutup (Kuota Penuh: {attendeeInfo.count}/{attendeeInfo.maxQuota} peserta terdaftar).</span>
                         </div>
-                      )}
+                      ) : null}
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <button
                           type="button"
+                          disabled={isFormClosed}
                           onClick={() => {
+                            if (isFormClosed) return;
                             handleCloseEventModal();
                             if (onNavigateForm) {
                               onNavigateForm(connectedForm.id);
@@ -1944,18 +2051,25 @@ export default function ProgramSection({
                             gap: '8px',
                             padding: '12px 18px',
                             borderRadius: 'var(--radius-full)',
-                            background: isQuotaFull ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, var(--mandiri-gold) 0%, #d99b00 100%)',
-                            color: isQuotaFull ? 'var(--text-muted)' : '#0b132b',
+                            background: isFormClosed
+                              ? 'rgba(255,255,255,0.06)'
+                              : (isQuotaFull ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, var(--mandiri-gold) 0%, #d99b00 100%)'),
+                            color: (isFormClosed || isQuotaFull) ? 'var(--text-muted)' : '#0b132b',
                             fontWeight: 800,
                             fontSize: '0.88rem',
-                            border: isQuotaFull ? '1px solid var(--border-card)' : 'none',
-                            cursor: 'pointer',
-                            boxShadow: isQuotaFull ? 'none' : '0 4px 14px rgba(255, 184, 0, 0.35)',
+                            border: (isFormClosed || isQuotaFull) ? '1px solid var(--border-card)' : 'none',
+                            cursor: isFormClosed ? 'not-allowed' : 'pointer',
+                            opacity: isFormClosed ? 0.65 : 1,
+                            boxShadow: (isFormClosed || isQuotaFull) ? 'none' : '0 4px 14px rgba(255, 184, 0, 0.35)',
                             transition: 'all 0.2s ease'
                           }}
                         >
-                          {isQuotaFull ? <Lock size={16} /> : <ExternalLink size={16} />}
-                          <span>{isQuotaFull ? 'Buka Formulir Pendaftaran (Kuota Penuh)' : 'Buka Formulir Pendaftaran Acara'}</span>
+                          {isFormClosed ? <Lock size={16} /> : (isQuotaFull ? <Lock size={16} /> : <ExternalLink size={16} />)}
+                          <span>
+                            {isFormClosed
+                              ? 'Formulir Telah Ditutup'
+                              : (isQuotaFull ? 'Buka Formulir Pendaftaran (Kuota Penuh)' : 'Buka Formulir Pendaftaran Acara')}
+                          </span>
                         </button>
 
                         <button

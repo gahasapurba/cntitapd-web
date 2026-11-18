@@ -36,12 +36,13 @@ import {
   Radio,
   Layers,
   Activity,
-  Info
+  Info,
+  Lock
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import confetti from 'canvas-confetti';
 import { generateFormQrPoster } from '../utils/qrPosterGenerator';
-import { formatWibTimestamp, formatDeadlineWib, formatToIndonesianDate, formatWibEventRange } from '../utils/dateUtils';
+import { formatWibTimestamp, formatDeadlineWib, formatToIndonesianDate, formatWibEventRange, getDeadlineStatus } from '../utils/dateUtils';
 import { getPublicBaseUrl } from '../utils/urlUtils';
 
 // Palette of 12 distinct vibrant colors for dynamic diagrams
@@ -88,6 +89,13 @@ export default function EventRegistrationStats({
 
   const isLuckyDrawEnabled = connectedForm ? Boolean(connectedForm.isLuckyDraw) : false;
 
+  const isFormClosed = useMemo(() => {
+    if (!connectedForm) return false;
+    if (connectedForm.isOpen === false || Boolean(connectedForm.isClosed)) return true;
+    if (connectedForm.deadline && getDeadlineStatus(connectedForm.deadline).isExpired) return true;
+    return false;
+  }, [connectedForm]);
+
   // View state: 'stats' | 'luckydraw'
   const [activeView, setActiveView] = useState('stats');
 
@@ -96,6 +104,106 @@ export default function EventRegistrationStats({
     if (!connectedForm) return [];
     return submissions.filter(s => String(s.formId) === String(connectedForm.id));
   }, [submissions, connectedForm]);
+
+  // Realtime Welcome Alert Queue state
+  const seenSubIdsRef = useRef(new Set());
+  const isFirstLoadRef = useRef(true);
+  const [welcomeQueue, setWelcomeQueue] = useState([]);
+  const [activeAlert, setActiveAlert] = useState(null);
+
+  // Helper to safely extract participant name for the toast alert
+  const extractParticipantName = useCallback((sub) => {
+    if (!sub) return 'Peserta Baru';
+    const d = sub.data || {};
+
+    // 1. Direct standard candidate keys
+    const directCandidate = d['f-fullName'] || d['f-name'] || d['fullName'] || d['namaLengkap'] || d['nama'] || d['name'] || sub.name || sub.fullName;
+    if (directCandidate && typeof directCandidate === 'string' && directCandidate.trim()) {
+      return directCandidate.trim();
+    }
+
+    // 2. Check connectedForm field definitions for label/id containing 'nama' or 'name'
+    if (connectedForm && Array.isArray(connectedForm.fields)) {
+      for (const f of connectedForm.fields) {
+        const idLower = (f.id || '').toLowerCase();
+        const lblLower = (f.label || '').toLowerCase();
+        if (lblLower.includes('nama') || lblLower.includes('name') || idLower.includes('nama') || idLower.includes('name')) {
+          const val = d[f.id] ?? d[`f-${f.id}`];
+          if (val && typeof val === 'string' && val.trim()) {
+            return val.trim();
+          }
+        }
+      }
+    }
+
+    // 3. Fallback: scan any key in data whose key name includes 'nama' or 'name'
+    for (const [key, val] of Object.entries(d)) {
+      const kLower = key.toLowerCase();
+      if ((kLower.includes('nama') || kLower.includes('name')) && val && typeof val === 'string' && val.trim()) {
+        return val.trim();
+      }
+    }
+
+    // 4. Default graceful fallback when no name field exists or was left empty
+    return 'Peserta Baru';
+  }, [connectedForm]);
+
+  // Realtime submission detector
+  useEffect(() => {
+    if (!formSubmissions || formSubmissions.length === 0) {
+      return;
+    }
+
+    // First mount: seed existing submissions so they don't flood alerts
+    if (isFirstLoadRef.current) {
+      formSubmissions.forEach(s => {
+        if (s.id) seenSubIdsRef.current.add(String(s.id));
+      });
+      isFirstLoadRef.current = false;
+      return;
+    }
+
+    // Detect truly newly arrived submissions
+    const newItems = formSubmissions.filter(s => s.id && !seenSubIdsRef.current.has(String(s.id)));
+    if (newItems.length > 0) {
+      newItems.forEach(s => seenSubIdsRef.current.add(String(s.id)));
+
+      // Sort chronological FIFO (earlier submission first)
+      const sortedNew = [...newItems].sort((a, b) => {
+        const tA = new Date(a.createdAt || 0).getTime();
+        const tB = new Date(b.createdAt || 0).getTime();
+        return tA - tB;
+      });
+
+      const alertsToAdd = sortedNew.map(s => ({
+        id: s.id || `alert-${Date.now()}-${Math.random()}`,
+        name: extractParticipantName(s)
+      }));
+
+      setWelcomeQueue(prev => [...prev, ...alertsToAdd]);
+    }
+  }, [formSubmissions, extractParticipantName]);
+
+  // FIFO Queue Consumer: display alerts one by one, no piling up
+  useEffect(() => {
+    if (activeAlert) return;
+    if (welcomeQueue.length === 0) return;
+
+    const nextAlert = welcomeQueue[0];
+    setActiveAlert(nextAlert);
+    setWelcomeQueue(prev => prev.slice(1));
+  }, [activeAlert, welcomeQueue]);
+
+  // Auto-dismiss active alert after 3.8 seconds
+  useEffect(() => {
+    if (!activeAlert) return;
+
+    const timer = setTimeout(() => {
+      setActiveAlert(null);
+    }, 3800);
+
+    return () => clearTimeout(timer);
+  }, [activeAlert]);
 
   // Initial event RSVPs (preserved in DB/state, but NOT counted into stats or draw while form is connected)
   const initialRsvps = useMemo(() => {
@@ -975,28 +1083,78 @@ export default function EventRegistrationStats({
 
   if (!event) {
     return (
-      <div style={{ maxWidth: '800px', margin: '40px auto', textAlign: 'center', padding: '24px' }}>
-        <AlertCircle size={48} color="#f43f5e" style={{ margin: '0 auto 16px' }} />
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)' }}>
-          Acara / Event Tidak Ditemukan
-        </h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
-          Data event yang Anda tuju mungkin telah dihapus atau dipindahkan.
-        </p>
-        <button
-          onClick={onBack}
-          style={{
-            padding: '10px 24px',
-            borderRadius: 'var(--radius-full)',
-            background: 'var(--mandiri-gold)',
-            color: '#040914',
-            fontWeight: 800,
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          Kembali ke Daftar Event
-        </button>
+      <div style={{ maxWidth: '680px', margin: '48px auto', textAlign: 'center', padding: '16px', width: '100%' }}>
+        <div className="glass-panel" style={{
+          padding: '44px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          border: '1.5px solid rgba(244, 63, 94, 0.4)',
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.08) 0%, rgba(14, 25, 55, 0.95) 100%)'
+            : 'linear-gradient(135deg, #fff1f2 0%, #ffffff 100%)'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'rgba(244, 63, 94, 0.15)',
+            color: '#f43f5e',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <AlertCircle size={34} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0' }}>
+              Halaman Statistik Acara Tidak Ditemukan
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+              Agenda kegiatan atau event yang Anda tuju mungkin telah dihapus, dipindahkan, atau tautan statistik tidak valid.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '6px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/#home';
+              }}
+              style={{
+                padding: '10px 24px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--mandiri-gold)',
+                color: '#040914',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Kembali ke Beranda
+            </button>
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Kembali ke Daftar Event
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -1064,23 +1222,29 @@ export default function EventRegistrationStats({
 
           {connectedForm && (
             <button
-              onClick={() => onNavigateForm && onNavigateForm(connectedForm.id)}
+              onClick={() => {
+                if (isFormClosed) return;
+                onNavigateForm && onNavigateForm(connectedForm.id);
+              }}
+              disabled={isFormClosed}
+              title={isFormClosed ? 'Formulir telah ditutup' : 'Buka formulir pendaftaran'}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: 'var(--input-bg)',
-                border: '1px solid var(--border-card)',
-                color: 'var(--text-main)',
+                background: isFormClosed ? 'rgba(239, 68, 68, 0.1)' : 'var(--input-bg)',
+                border: isFormClosed ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid var(--border-card)',
+                color: isFormClosed ? '#f87171' : 'var(--text-main)',
                 padding: '6px 14px',
                 borderRadius: 'var(--radius-full)',
                 fontWeight: 700,
                 fontSize: '0.78rem',
-                cursor: 'pointer'
+                cursor: isFormClosed ? 'not-allowed' : 'pointer',
+                opacity: isFormClosed ? 0.85 : 1
               }}
             >
-              <ExternalLink size={13} />
-              <span>Buka Form</span>
+              {isFormClosed ? <Lock size={13} /> : <ExternalLink size={13} />}
+              <span>{isFormClosed ? 'Formulir Telah Ditutup' : 'Buka Form'}</span>
             </button>
           )}
         </div>
@@ -1443,152 +1607,154 @@ export default function EventRegistrationStats({
             </div>
           )}
 
-          {/* 5. MIDDLE 2-COLUMN SECTION: QR CODE (LEFT) & DYNAMIC DIAGRAM (RIGHT) (IMAGE 3 STYLE) */}
+          {/* 5. MIDDLE SECTION: QR CODE (LEFT) & DYNAMIC DIAGRAM (RIGHT) */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+            gridTemplateColumns: isFormClosed ? '1fr' : 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
             gap: '18px',
             alignItems: 'stretch'
           }}>
-            {/* LEFT COLUMN: SCAN QR DI LAYAR */}
-            <div
-              className="glass-panel"
-              style={{
-                padding: '24px',
-                borderRadius: 'var(--radius-lg)',
-                border: '1.5px solid rgba(255, 184, 0, 0.35)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                justifyContent: 'space-between',
-                gap: '16px',
-                background: isDark
-                  ? 'radial-gradient(ellipse at top, rgba(255, 184, 0, 0.08) 0%, rgba(3, 8, 20, 0.95) 100%)'
-                  : 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)'
-              }}
-            >
-              <div style={{ width: '100%' }}>
-                {/* Gold Pill Badge */}
-                <div style={{
-                  display: 'inline-flex',
+            {/* LEFT COLUMN: SCAN QR DI LAYAR (Disembunyikan jika formulir ditutup) */}
+            {!isFormClosed && (
+              <div
+                className="glass-panel"
+                style={{
+                  padding: '24px',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1.5px solid rgba(255, 184, 0, 0.35)',
+                  display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(255, 184, 0, 0.12)',
-                  border: '1px solid var(--mandiri-gold)',
-                  color: 'var(--mandiri-gold)',
-                  padding: '3px 12px',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.6px',
-                  marginBottom: '10px'
-                }}>
-                  <QrCode size={13} />
-                  <span>SCAN UNTUK ABSENSI & PENDAFTARAN</span>
+                  textAlign: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  background: isDark
+                    ? 'radial-gradient(ellipse at top, rgba(255, 184, 0, 0.08) 0%, rgba(3, 8, 20, 0.95) 100%)'
+                    : 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)'
+                }}
+              >
+                <div style={{ width: '100%' }}>
+                  {/* Gold Pill Badge */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(255, 184, 0, 0.12)',
+                    border: '1px solid var(--mandiri-gold)',
+                    color: 'var(--mandiri-gold)',
+                    padding: '3px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.6px',
+                    marginBottom: '10px'
+                  }}>
+                    <QrCode size={13} />
+                    <span>SCAN UNTUK ABSENSI & PENDAFTARAN</span>
+                  </div>
+
+                  {/* Header Title */}
+                  <h3 style={{
+                    fontSize: '1.4rem',
+                    fontWeight: 900,
+                    color: 'var(--mandiri-gold)',
+                    margin: '0 0 4px 0',
+                    letterSpacing: '0.5px'
+                  }}>
+                    SCAN QR DI LAYAR
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Arahkan kamera smartphone ke QR Code di bawah
+                  </p>
                 </div>
 
-                {/* Header Title */}
-                <h3 style={{
-                  fontSize: '1.4rem',
-                  fontWeight: 900,
-                  color: 'var(--mandiri-gold)',
-                  margin: '0 0 4px 0',
-                  letterSpacing: '0.5px'
+                {/* QR Image Box with Yellow Glow */}
+                <div style={{
+                  background: '#ffffff',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  border: '2.5px solid var(--mandiri-gold)',
+                  boxShadow: '0 0 28px rgba(255, 184, 0, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  maxWidth: '240px',
+                  width: '100%',
+                  aspectRatio: '1/1'
                 }}>
-                  SCAN QR DI LAYAR
-                </h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Arahkan kamera smartphone ke QR Code di bawah
-                </p>
-              </div>
+                  {qrCodeDataUrl ? (
+                    <img
+                      src={qrCodeDataUrl}
+                      alt="QR Code Pendaftaran"
+                      style={{ width: '100%', height: '100%', display: 'block', borderRadius: '8px' }}
+                    />
+                  ) : (
+                    <div style={{ color: '#030814', fontSize: '0.75rem', fontWeight: 700 }}>
+                      Memuat QR...
+                    </div>
+                  )}
+                </div>
 
-              {/* QR Image Box with Yellow Glow */}
-              <div style={{
-                background: '#ffffff',
-                padding: '14px',
-                borderRadius: '16px',
-                border: '2.5px solid var(--mandiri-gold)',
-                boxShadow: '0 0 28px rgba(255, 184, 0, 0.35)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                maxWidth: '240px',
-                width: '100%',
-                aspectRatio: '1/1'
-              }}>
-                {qrCodeDataUrl ? (
-                  <img
-                    src={qrCodeDataUrl}
-                    alt="QR Code Pendaftaran"
-                    style={{ width: '100%', height: '100%', display: 'block', borderRadius: '8px' }}
-                  />
-                ) : (
-                  <div style={{ color: '#030814', fontSize: '0.75rem', fontWeight: 700 }}>
-                    Memuat QR...
-                  </div>
-                )}
-              </div>
+                {/* Subtitle / Location */}
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  * {event.location || 'Mandiri Digital Tower Jakarta'}
+                </div>
 
-              {/* Subtitle / Location */}
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                * {event.location || 'Mandiri Digital Tower Jakarta'}
-              </div>
+                {/* Quick Actions Buttons */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    style={{
+                      flex: 1,
+                      minWidth: '120px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      borderRadius: 'var(--radius-full)',
+                      background: copySuccess ? '#10b981' : 'var(--input-bg)',
+                      border: '1px solid var(--border-card)',
+                      color: copySuccess ? '#ffffff' : 'var(--text-main)',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {copySuccess ? <Check size={13} /> : <Copy size={13} />}
+                    <span>{copySuccess ? 'Tersalin!' : 'Salin Tautan'}</span>
+                  </button>
 
-              {/* Quick Actions Buttons */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  style={{
-                    flex: 1,
-                    minWidth: '120px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: 'var(--radius-full)',
-                    background: copySuccess ? '#10b981' : 'var(--input-bg)',
-                    border: '1px solid var(--border-card)',
-                    color: copySuccess ? '#ffffff' : 'var(--text-main)',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {copySuccess ? <Check size={13} /> : <Copy size={13} />}
-                  <span>{copySuccess ? 'Tersalin!' : 'Salin Tautan'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleGeneratePoster}
-                  disabled={isGeneratingPoster}
-                  style={{
-                    flex: 1,
-                    minWidth: '130px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--mandiri-gold)',
-                    border: 'none',
-                    color: '#040914',
-                    fontSize: '0.76rem',
-                    fontWeight: 800,
-                    cursor: isGeneratingPoster ? 'wait' : 'pointer'
-                  }}
-                >
-                  <Download size={13} />
-                  <span>{isGeneratingPoster ? 'Menyiapkan...' : 'Poster HD (PNG)'}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleGeneratePoster}
+                    disabled={isGeneratingPoster}
+                    style={{
+                      flex: 1,
+                      minWidth: '130px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 14px',
+                      borderRadius: 'var(--radius-full)',
+                      background: 'var(--mandiri-gold)',
+                      border: 'none',
+                      color: '#040914',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: isGeneratingPoster ? 'wait' : 'pointer'
+                    }}
+                  >
+                    <Download size={13} />
+                    <span>{isGeneratingPoster ? 'Menyiapkan...' : 'Poster HD (PNG)'}</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* RIGHT COLUMN: DYNAMIC DIAGRAM (IMAGE 3 STYLE) */}
             <div
@@ -3373,6 +3539,99 @@ export default function EventRegistrationStats({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          REALTIME WELCOME ALERT (BOTTOM-RIGHT SEQUENTIAL FIFO TOAST)
+          ========================================================================= */}
+      {activeAlert && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 99999,
+            maxWidth: '380px',
+            width: 'calc(100vw - 32px)',
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(14, 25, 55, 0.98) 0%, rgba(6, 78, 59, 0.95) 100%)'
+              : 'linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%)',
+            border: '1.5px solid #10b981',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: isDark
+              ? '0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(16, 185, 129, 0.35)'
+              : '0 10px 30px rgba(16, 185, 129, 0.25)',
+            padding: '14px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            animation: 'slideUpToast 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            background: 'rgba(16, 185, 129, 0.2)',
+            border: '1px solid #10b981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Sparkles size={20} color="#10b981" />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <CheckCircle2 size={12} />
+              <span>Pendaftar Baru Masuk</span>
+            </div>
+            <div style={{
+              fontSize: '0.92rem',
+              fontWeight: 800,
+              color: 'var(--text-main)',
+              marginTop: '2px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              Selamat Datang, {activeAlert.name}! 🎉
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveAlert(null)}
+            title="Tutup notifikasi"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
     </div>

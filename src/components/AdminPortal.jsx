@@ -499,8 +499,13 @@ export default function AdminPortal({
     const relatedRsvps = (eventRsvps || []).filter(r => r.eventId === evt.id);
     const rsvpCount = relatedRsvps.length;
 
-    // Check connected forms
-    const connectedForms = (forms || []).filter(f => (f.isEventConnected || f.fields?.[0]?._isEventConnected) && (f.eventId === evt.id || f.fields?.[0]?._eventId === evt.id));
+    // Check connected forms (both direct eventId, isEventConnected, or evt.formId)
+    const connectedForms = (forms || []).filter(f => 
+      (f.eventId && String(f.eventId) === String(evt.id)) ||
+      (f.fields?.[0]?._eventId && String(f.fields?.[0]?._eventId) === String(evt.id)) ||
+      (evt.formId && String(evt.formId) === String(f.id)) ||
+      ((f.isEventConnected || f.fields?.[0]?._isEventConnected) && (String(f.eventId) === String(evt.id) || String(f.fields?.[0]?._eventId) === String(evt.id)))
+    );
     const formCount = connectedForms.length;
     const connectedFormIds = connectedForms.map(f => f.id);
 
@@ -513,7 +518,10 @@ export default function AdminPortal({
     const luckyDrawCount = relatedLuckyDraws.length;
 
     // Check connected gallery albums
-    const connectedGals = (galleries || []).filter(g => g.eventId === evt.id);
+    const connectedGals = (galleries || []).filter(g => 
+      (g.eventId && String(g.eventId) === String(evt.id)) ||
+      (evt.galleryId && String(evt.galleryId) === String(g.id))
+    );
     const galCount = connectedGals.length;
 
     const isBlocked = rsvpCount > 0 || formCount > 0 || formSubCount > 0 || luckyDrawCount > 0 || galCount > 0;
@@ -533,16 +541,51 @@ export default function AdminPortal({
     });
   };
 
-  // Helper to initiate dynamic form deletion with submission dependency checks
+  // Helper to initiate dynamic form deletion with submission and connected event dependency checks
   const handleDeleteFormClick = (f) => {
     const subCount = (submissions || []).filter(s => s.formId === f.id).length;
+    
+    // Check if connected to any event
+    const connectedEvents = (events || []).filter(e => 
+      (e.formId && String(e.formId) === String(f.id)) ||
+      (f.eventId && String(f.eventId) === String(e.id)) ||
+      (f.fields?.[0]?._eventId && String(f.fields?.[0]?._eventId) === String(e.id)) ||
+      ((f.isEventConnected || f.fields?.[0]?._isEventConnected) && (String(f.eventId) === String(e.id) || String(f.fields?.[0]?._eventId) === String(e.id)))
+    );
+    const eventCount = connectedEvents.length;
+    const connectedEventTitles = connectedEvents.map(e => e.title).join(', ');
+
+    const isBlocked = subCount > 0 || eventCount > 0;
 
     setDeleteConfirm({
       type: 'form',
       id: f.id,
       name: f.title,
       submissionCount: subCount,
-      isBlocked: subCount > 0
+      eventCount,
+      connectedEventTitle: connectedEventTitles,
+      isBlocked
+    });
+  };
+
+  // Helper to initiate gallery album deletion with connected event dependency checks
+  const handleDeleteGalleryClick = (gal) => {
+    // Check if connected to an event
+    const connectedEvents = (events || []).filter(e => 
+      (gal.eventId && String(e.id) === String(gal.eventId)) ||
+      (e.galleryId && String(e.galleryId) === String(gal.id))
+    );
+    const eventCount = connectedEvents.length;
+    const connectedEventTitles = connectedEvents.map(e => e.title).join(', ');
+    const isBlocked = eventCount > 0;
+
+    setDeleteConfirm({
+      type: 'gallery',
+      id: gal.id,
+      name: gal.title,
+      eventCount,
+      connectedEventTitle: connectedEventTitles,
+      isBlocked
     });
   };
 
@@ -4106,6 +4149,9 @@ export default function AdminPortal({
                 }}
                 style={{
                   width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
@@ -4142,6 +4188,9 @@ export default function AdminPortal({
                 }}
                 style={{
                   width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
                   padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--input-bg)',
@@ -5291,18 +5340,18 @@ export default function AdminPortal({
                   type="date"
                   value={galDateVal}
                   onChange={(e) => setGalDateVal(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                  style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                 />
               )}
 
               {galDateMode === 'dates' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '100%' }}>
                   <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                     Pilih dua atau lebih tanggal pelaksanaan kegiatan (otomatis diurutkan secara kronologis):
                   </div>
                   {galDates.map((dVal, dIdx) => (
-                    <div key={dIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', minWidth: '65px' }}>
+                    <div key={dIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', maxWidth: '100%' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', minWidth: '65px', flexShrink: 0 }}>
                         Hari ke-{dIdx + 1}:
                       </span>
                       <input
@@ -5313,13 +5362,13 @@ export default function AdminPortal({
                           next[dIdx] = e.target.value;
                           setGalDates(next);
                         }}
-                        style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                        style={{ flex: 1, minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                       />
                       {galDates.length > 1 && (
                         <button
                           type="button"
                           onClick={() => setGalDates(galDates.filter((_, i) => i !== dIdx))}
-                          style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '6px' }}
+                          style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '6px', flexShrink: 0 }}
                           title="Hapus tanggal ini"
                         >
                           <Trash2 size={15} />
@@ -5360,7 +5409,7 @@ export default function AdminPortal({
                       type="date"
                       value={galStartDate}
                       onChange={(e) => setGalStartDate(e.target.value)}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                      style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                     />
                   </div>
                   <div>
@@ -5369,7 +5418,7 @@ export default function AdminPortal({
                       type="date"
                       value={galEndDate}
                       onChange={(e) => setGalEndDate(e.target.value)}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                      style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                     />
                   </div>
                 </div>
@@ -5380,7 +5429,7 @@ export default function AdminPortal({
                   type="month"
                   value={galMonth}
                   onChange={(e) => setGalMonth(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                  style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                 />
               )}
 
@@ -5960,7 +6009,7 @@ export default function AdminPortal({
 
                         <button
                           type="button"
-                          onClick={() => setDeleteConfirm({ type: 'gallery', id: gal.id, name: gal.title })}
+                          onClick={() => handleDeleteGalleryClick(gal)}
                           title="Hapus Galeri"
                           style={{
                             padding: '6px',
@@ -7700,8 +7749,8 @@ export default function AdminPortal({
               <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
                 📅 Batas Akhir / Deadline Pendaftaran (WIB) <span style={{ color: '#f43f5e' }}>*</span>
               </label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', maxWidth: '100%' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: 0, maxWidth: '100%' }}>
                   <input
                     type="datetime-local"
                     step="1"
@@ -7712,6 +7761,9 @@ export default function AdminPortal({
                     }}
                     style={{
                       width: '100%',
+                      maxWidth: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
                       padding: '9px 12px 9px 36px',
                       borderRadius: 'var(--radius-sm)',
                       background: 'var(--input-bg)',
@@ -8544,8 +8596,8 @@ export default function AdminPortal({
               </div>
 
               {/* Filter Dropdown & Export Button */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', minWidth: '200px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
+                <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 0, maxWidth: '100%' }}>
                   <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                   <input
                     type="text"
@@ -8557,6 +8609,8 @@ export default function AdminPortal({
                     }}
                     style={{
                       width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
                       padding: '8px 12px 8px 30px',
                       borderRadius: 'var(--radius-md)',
                       background: 'var(--input-bg)',
@@ -8575,13 +8629,18 @@ export default function AdminPortal({
                     setSubCurrentPage(1);
                   }}
                   style={{
+                    flex: '1 1 160px',
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
                     padding: '8px 14px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--input-bg)',
                     border: '1px solid var(--border-card)',
                     color: 'var(--text-main)',
                     fontSize: '0.82rem',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    textOverflow: 'ellipsis'
                   }}
                 >
                   <option value="all">Semua Periode ({submissions.length + applications.length})</option>
@@ -8599,13 +8658,18 @@ export default function AdminPortal({
                     setSubCurrentPage(1);
                   }}
                   style={{
+                    flex: '1 1 180px',
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
                     padding: '8px 14px',
                     borderRadius: 'var(--radius-md)',
                     background: 'var(--input-bg)',
                     border: '1px solid var(--border-card)',
                     color: 'var(--text-main)',
                     fontSize: '0.82rem',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    textOverflow: 'ellipsis'
                   }}
                 >
                   <option value="all">Semua Formulir</option>
@@ -11421,18 +11485,18 @@ export default function AdminPortal({
                               type="date"
                               value={editingItem.item._dateVal !== undefined ? editingItem.item._dateVal : currentParsed.date}
                               onChange={(e) => updateField('date', e.target.value)}
-                              style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                              style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                             />
                           )}
 
                           {activeMode === 'dates' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '100%' }}>
                               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                                 Pilih dua atau lebih tanggal pelaksanaan kegiatan (otomatis diurutkan secara kronologis):
                               </div>
                               {activeDates.map((dVal, dIdx) => (
-                                <div key={dIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', minWidth: '65px' }}>
+                                <div key={dIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', maxWidth: '100%' }}>
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', minWidth: '65px', flexShrink: 0 }}>
                                     Hari ke-{dIdx + 1}:
                                   </span>
                                   <input
@@ -11443,7 +11507,7 @@ export default function AdminPortal({
                                       next[dIdx] = e.target.value;
                                       updateField('dates', next);
                                     }}
-                                    style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                                    style={{ flex: 1, minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                                   />
                                   {activeDates.length > 1 && (
                                     <button
@@ -11452,7 +11516,7 @@ export default function AdminPortal({
                                         const next = activeDates.filter((_, i) => i !== dIdx);
                                         updateField('dates', next);
                                       }}
-                                      style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '6px' }}
+                                      style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', padding: '6px', flexShrink: 0 }}
                                       title="Hapus tanggal ini"
                                     >
                                       <Trash2 size={15} />
@@ -11496,7 +11560,7 @@ export default function AdminPortal({
                                   type="date"
                                   value={editingItem.item._startDate !== undefined ? editingItem.item._startDate : currentParsed.startDate}
                                   onChange={(e) => updateField('startDate', e.target.value)}
-                                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                                  style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                                 />
                               </div>
                               <div>
@@ -11505,7 +11569,7 @@ export default function AdminPortal({
                                   type="date"
                                   value={editingItem.item._endDate !== undefined ? editingItem.item._endDate : currentParsed.endDate}
                                   onChange={(e) => updateField('endDate', e.target.value)}
-                                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                                  style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                                 />
                               </div>
                             </div>
@@ -11516,7 +11580,7 @@ export default function AdminPortal({
                               type="month"
                               value={editingItem.item._month !== undefined ? editingItem.item._month : currentParsed.month}
                               onChange={(e) => updateField('month', e.target.value)}
-                              style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                              style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--border-card)', color: 'var(--text-main)', fontSize: '0.85rem' }}
                             />
                           )}
 
@@ -12026,8 +12090,8 @@ export default function AdminPortal({
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
                       📅 Batas Akhir / Deadline (WIB)
                     </label>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <div style={{ position: 'relative', flex: 1 }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', maxWidth: '100%' }}>
+                      <div style={{ position: 'relative', flex: 1, minWidth: 0, maxWidth: '100%' }}>
                         <input
                           type="datetime-local"
                           step="1"
@@ -12037,6 +12101,9 @@ export default function AdminPortal({
                           }}
                           style={{
                             width: '100%',
+                            maxWidth: '100%',
+                            minWidth: 0,
+                            boxSizing: 'border-box',
                             padding: '9px 12px 9px 36px',
                             borderRadius: 'var(--radius-sm)',
                             background: 'var(--input-bg)',
@@ -12458,11 +12525,12 @@ export default function AdminPortal({
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {/* Row 1: Grip, Index, Up/Down, Label Input */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', maxWidth: '100%' }}>
                           {/* Drag Handle & Item Position */}
                           <div 
                             title="Tahan & geser untuk mengubah urutan field"
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'grab', color: 'var(--text-dim)', userSelect: 'none' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'grab', color: 'var(--text-dim)', userSelect: 'none', flexShrink: 0 }}
                           >
                             <GripVertical size={16} />
                             <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--mandiri-gold)', minWidth: '18px' }}>
@@ -12471,7 +12539,7 @@ export default function AdminPortal({
                           </div>
 
                           {/* Quick Up/Down Buttons */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
                             <button
                               type="button"
                               disabled={idx === 0}
@@ -12522,8 +12590,12 @@ export default function AdminPortal({
                               );
                               setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
                             }}
-                            style={{ flex: '1 1 150px', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
+                            style={{ flex: 1, minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', padding: '6px 10px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.8rem' }}
                           />
+                        </div>
+
+                        {/* Row 2: Type Dropdown, Toggles, and Delete Button */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
                           <select
                             value={
                               fld.type === 'select' && fld.source === 'departments'
@@ -12568,7 +12640,7 @@ export default function AdminPortal({
                               });
                               setEditingItem({ ...editingItem, item: { ...editingItem.item, fields: nextFields } });
                             }}
-                            style={{ padding: '6px 8px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
+                            style={{ flex: '1 1 160px', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', padding: '6px 8px', borderRadius: '6px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.78rem' }}
                           >
                             <option value="text">Teks Singkat</option>
                             <option value="textarea">Paragraf</option>
@@ -12848,6 +12920,9 @@ export default function AdminPortal({
                       }}
                       style={{
                         width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                         padding: '9px 12px',
                         borderRadius: 'var(--radius-sm)',
                         background: 'var(--input-bg)',
@@ -12892,6 +12967,9 @@ export default function AdminPortal({
                       }}
                       style={{
                         width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                         padding: '9px 12px',
                         borderRadius: 'var(--radius-sm)',
                         background: 'var(--input-bg)',
@@ -15254,7 +15332,7 @@ export default function AdminPortal({
               deleteConfirm.isBlocked ? (
                 <>
                   <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-                    Formulir <strong>"{deleteConfirm.name}"</strong> belum dapat dihapus karena sudah memiliki <strong>{deleteConfirm.submissionCount} berkas/respon masuk</strong> dari peserta.
+                    Formulir <strong>"{deleteConfirm.name}"</strong> belum dapat dihapus karena masih memiliki ketergantungan aktif dalam sistem:
                   </p>
 
                   <div style={{
@@ -15262,25 +15340,50 @@ export default function AdminPortal({
                     border: '1px solid var(--border-card)',
                     borderRadius: '10px',
                     padding: '12px',
-                    textAlign: 'left'
+                    textAlign: 'left',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
                   }}>
-                    <div style={{
-                      background: 'rgba(244, 63, 94, 0.12)',
-                      border: '1px solid rgba(244, 63, 94, 0.3)',
-                      borderRadius: '8px',
-                      padding: '10px 12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px'
-                    }}>
-                      <FileCheck2 size={20} color="#f43f5e" />
-                      <div>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Data Pengisian Peserta</div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f43f5e' }}>
-                          {deleteConfirm.submissionCount} Respon Terkirim
+                    {deleteConfirm.submissionCount > 0 && (
+                      <div style={{
+                        background: 'rgba(244, 63, 94, 0.12)',
+                        border: '1px solid rgba(244, 63, 94, 0.3)',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <FileCheck2 size={20} color="#f43f5e" />
+                        <div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Data Pengisian Peserta</div>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f43f5e' }}>
+                            {deleteConfirm.submissionCount} Respon Terkirim
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
+
+                    {deleteConfirm.eventCount > 0 && (
+                      <div style={{
+                        background: 'rgba(255, 184, 0, 0.12)',
+                        border: '1px solid rgba(255, 184, 0, 0.35)',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <CalendarDays size={20} color="var(--mandiri-gold)" />
+                        <div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Terkoneksi ke Agenda Kegiatan / Event</div>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                            {deleteConfirm.connectedEventTitle}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{
@@ -15293,7 +15396,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    💡 <strong>Petunjuk:</strong> Buka tab <strong>Data Pengisian Form</strong> untuk meninjau, mengunduh lampiran, atau mengekspor data peserta sebelum membersihkan respon jika formulir ini hendak dihapus.
+                    💡 <strong>Petunjuk:</strong> {deleteConfirm.eventCount > 0 ? 'Harap putuskan koneksi acara ke formulir ini melalui menu Edit Acara atau Edit Formulir terlebih dahulu. ' : ''}{deleteConfirm.submissionCount > 0 ? 'Buka tab Data Pengisian Form untuk meninjau atau mengekspor respon sebelum membersihkan data pendaftar.' : ''}
                   </div>
                 </>
               ) : (
@@ -15311,7 +15414,7 @@ export default function AdminPortal({
                     textAlign: 'left',
                     lineHeight: 1.45
                   }}>
-                    ✓ <strong>Aman Dihapus:</strong> Formulir ini tidak memiliki kiriman berkas peserta (0 Berkas).
+                    ✓ <strong>Aman Dihapus:</strong> Formulir ini tidak memiliki kiriman berkas peserta dan tidak terhubung ke agenda kegiatan manapun.
                   </div>
                 </>
               )
@@ -15416,6 +15519,74 @@ export default function AdminPortal({
               )
             )}
 
+            {/* GALLERY ALBUM BODY */}
+            {deleteConfirm.type === 'gallery' && (
+              deleteConfirm.isBlocked ? (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Dokumentasi galeri <strong>"{deleteConfirm.name}"</strong> belum dapat dihapus karena masih terhubung ke agenda kegiatan / event:
+                  </p>
+
+                  <div style={{
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    textAlign: 'left'
+                  }}>
+                    <div style={{
+                      background: 'rgba(255, 184, 0, 0.12)',
+                      border: '1px solid rgba(255, 184, 0, 0.35)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}>
+                      <CalendarDays size={20} color="var(--mandiri-gold)" />
+                      <div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Terkoneksi ke Agenda Kegiatan / Event</div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--mandiri-gold)' }}>
+                          {deleteConfirm.connectedEventTitle}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: 'rgba(255, 184, 0, 0.1)',
+                    border: '1px solid rgba(255, 184, 0, 0.3)',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.78rem',
+                    color: 'var(--mandiri-gold)',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    💡 <strong>Petunjuk:</strong> Harap putuskan tautan agenda acara pada galeri ini melalui tombol <strong>Edit Galeri</strong> (pilih opsi <em>-- Tanpa Hubungan Event --</em>) terlebih dahulu sebelum menghapus album ini.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                    Apakah Anda yakin ingin menghapus album galeri kegiatan <strong>"{deleteConfirm.name}"</strong>? Dokumentasi foto di dalamnya akan dibersihkan.
+                  </p>
+                  <div style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    color: '#10b981',
+                    textAlign: 'left',
+                    lineHeight: 1.45
+                  }}>
+                    ✓ <strong>Aman Dihapus:</strong> Galeri ini tidak terhubung ke agenda event manapun.
+                  </div>
+                </>
+              )
+            )}
+
             {/* GALLERY PHOTO BODY */}
             {deleteConfirm.type === 'gallery_photo' && (
               <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
@@ -15424,7 +15595,7 @@ export default function AdminPortal({
             )}
 
             {/* DEFAULT BODY FOR OTHER TYPES */}
-            {deleteConfirm.type !== 'tenure' && deleteConfirm.type !== 'division' && deleteConfirm.type !== 'department' && deleteConfirm.type !== 'member' && deleteConfirm.type !== 'event' && deleteConfirm.type !== 'form' && deleteConfirm.type !== 'gallery_photo' && deleteConfirm.type !== 'submission' && (
+            {deleteConfirm.type !== 'tenure' && deleteConfirm.type !== 'division' && deleteConfirm.type !== 'department' && deleteConfirm.type !== 'member' && deleteConfirm.type !== 'event' && deleteConfirm.type !== 'form' && deleteConfirm.type !== 'gallery' && deleteConfirm.type !== 'gallery_photo' && deleteConfirm.type !== 'submission' && (
               <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                 {deleteConfirm.type === 'reset_all' ? (
                   <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>

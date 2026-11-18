@@ -15,7 +15,8 @@ import {
   X,
   Share2,
   Link2,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { formatWibDateTime } from '../utils/dateUtils';
 import { getPublicBaseUrl } from '../utils/urlUtils';
@@ -40,6 +41,7 @@ export default function GallerySection({
   const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [galleryPage, setGalleryPage] = useState(1);
+  const [galleryNotFound, setGalleryNotFound] = useState(false);
 
   const scopedGalleries = (tenureFilter === 'active' && activeTenure?.id)
     ? galleries.filter(g => g.tenureId === activeTenure.id)
@@ -127,18 +129,25 @@ export default function GallerySection({
   };
 
   useEffect(() => {
-    if (initialGalleryId && galleries.some(g => g.id === initialGalleryId)) {
-      setSelectedGalleryId(initialGalleryId);
-      setDivFilter('all');
-      setSearchQuery('');
-      const targetGal = galleries.find(g => g.id === initialGalleryId);
-      if (targetGal && activeTenure && targetGal.tenureId !== activeTenure.id) {
-        setTenureFilter('all');
+    if (initialGalleryId && galleries.length > 0) {
+      const found = galleries.find(g => g.id === initialGalleryId);
+      if (found) {
+        setSelectedGalleryId(initialGalleryId);
+        setGalleryNotFound(false);
+        setDivFilter('all');
+        setSearchQuery('');
+        if (activeTenure && found.tenureId !== activeTenure.id) {
+          setTenureFilter('all');
+        }
+        const targetIdx = galleries.findIndex(g => g.id === initialGalleryId);
+        if (targetIdx !== -1) {
+          setGalleryPage(Math.floor(targetIdx / 6) + 1);
+        }
+      } else {
+        setGalleryNotFound(true);
       }
-      const targetIdx = galleries.findIndex(g => g.id === initialGalleryId);
-      if (targetIdx !== -1) {
-        setGalleryPage(Math.floor(targetIdx / 6) + 1);
-      }
+    } else if (!initialGalleryId) {
+      setGalleryNotFound(false);
     }
   }, [initialGalleryId, galleries, activeTenure]);
 
@@ -199,6 +208,86 @@ export default function GallerySection({
           Merekam momen kebersamaan, semangat kolaborasi, dan keceriaan seluruh insan Group IT Application Delivery di setiap program budaya.
         </p>
       </div>
+
+      {/* Gallery Album Not Found Banner */}
+      {galleryNotFound && (
+        <div style={{ maxWidth: '680px', margin: '0 auto 28px', width: '100%' }}>
+          <div className="glass-panel" style={{
+            padding: '36px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '16px',
+            border: '1.5px solid rgba(244, 63, 94, 0.4)',
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.08) 0%, rgba(14, 25, 55, 0.95) 100%)'
+              : 'linear-gradient(135deg, #fff1f2 0%, #ffffff 100%)'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(244, 63, 94, 0.15)',
+              color: '#f43f5e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <AlertCircle size={32} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0' }}>
+                Dokumentasi Kegiatan Tidak Ditemukan
+              </h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                Tautan album dokumentasi kegiatan yang Anda tuju tidak ditemukan atau telah dihapus oleh pengelola.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setGalleryNotFound(false);
+                  if (onSelectGalleryUrl) onSelectGalleryUrl(null);
+                  window.location.href = '/#home';
+                }}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Kembali ke Beranda
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGalleryNotFound(false);
+                  if (onSelectGalleryUrl) onSelectGalleryUrl(null);
+                }}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--border-card)',
+                  color: 'var(--text-main)',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Lihat Semua Dokumentasi Galeri
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Interactive Carousel Showcase */}
       {!activeEvent || filteredGalleries.length === 0 ? (

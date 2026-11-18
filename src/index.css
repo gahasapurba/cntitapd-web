@@ -103,12 +103,37 @@ a {
 
 button, input, select, textarea {
   font-family: inherit;
+  box-sizing: border-box;
+}
+
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+input[type="date"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.25em;
+  padding: 0;
+  margin: 0;
 }
 
 select {
   background-color: var(--input-bg);
   color: var(--text-main);
   border-color: var(--input-border);
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 select option {
@@ -210,6 +235,17 @@ select option {
 }
 
 /* Animations */
+@keyframes slideUpToast {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes pulseGlow {
   0%, 100% {
     box-shadow: 0 0 15px rgba(255, 184, 0, 0.3);
@@ -389,8 +425,15 @@ select option {
 
 .admin-form-two-col {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.admin-form-two-col > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* TABLET & MOBILE NAVBAR BREAKPOINT (<= 1024px) */
@@ -453,12 +496,16 @@ select option {
   }
 
   .admin-form-two-col {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .admin-form-two-col > *,
   .mobile-two-col > * {
     grid-column: 1 / -1 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
 }
 
@@ -552,9 +599,20 @@ select option {
     padding: 20px 16px !important;
   }
 
-  /* Prevent iOS Safari auto-zoom when tapping inputs */
+  /* Prevent iOS Safari auto-zoom when tapping inputs and prevent overflowing */
   input, select, textarea {
     font-size: 16px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"] {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   /* Make sure modal fits screen comfortably with margins without being cut off */
