@@ -814,7 +814,7 @@ export default function GallerySection({
               </div>
             )}
 
-            <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 0, width: '100%' }}>
+            <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 0 }}>
               <Search size={14} color="var(--text-dim)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"

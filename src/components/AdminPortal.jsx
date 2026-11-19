@@ -3201,97 +3201,100 @@ export default function AdminPortal({
                       />
                     </div>
 
-                    <select
-                      value={adminMemTenureFilter}
-                      onChange={(e) => {
-                        setAdminMemTenureFilter(e.target.value);
-                        setAdminMemCatFilter('all');
-                        setAdminMemDivFilter('all');
-                        setAdminMemPage(1);
-                      }}
-                      style={{
-                        padding: '7px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--border-card)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.76rem',
-                        fontWeight: 600,
-                        minWidth: 0,
-                        maxWidth: 'min(100%, 200px)',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      <option value="all">Semua Periode ({members.length})</option>
-                      {tenures.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          Periode {t.code || t.title}
-                        </option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={adminMemCatFilter}
-                      onChange={(e) => {
-                        setAdminMemCatFilter(e.target.value);
-                        setAdminMemPage(1);
-                      }}
-                      style={{
-                        padding: '7px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--border-card)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.76rem',
-                        fontWeight: 600,
-                        minWidth: 0,
-                        maxWidth: 'min(100%, 200px)',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      <option value="all">Semua Role / Jabatan</option>
-                      {memberFilterRoles.map((r) => {
-                        const tObj = tenures.find(t => t.id === r.tenureId);
-                        const yearLabel = adminMemTenureFilter === 'all' && tObj ? ` (${tObj.code || tObj.title})` : '';
-                        return (
-                          <option key={r.id} value={r.id}>
-                            {r.name}{yearLabel}
+                    {/* Filter selects grouped right */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <select
+                        value={adminMemTenureFilter}
+                        onChange={(e) => {
+                          setAdminMemTenureFilter(e.target.value);
+                          setAdminMemCatFilter('all');
+                          setAdminMemDivFilter('all');
+                          setAdminMemPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          minWidth: 0,
+                          maxWidth: 'min(100%, 200px)',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        <option value="all">Semua Periode ({members.length})</option>
+                        {tenures.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            Periode {t.code || t.title}
                           </option>
-                        );
-                      })}
-                    </select>
+                        ))}
+                      </select>
 
-                    <select
-                      value={adminMemDivFilter}
-                      onChange={(e) => {
-                        setAdminMemDivFilter(e.target.value);
-                        setAdminMemPage(1);
-                      }}
-                      style={{
-                        padding: '7px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--border-card)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.76rem',
-                        fontWeight: 600,
-                        minWidth: 0,
-                        maxWidth: 'min(100%, 200px)',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      <option value="all">Semua Divisi</option>
-                      {(adminMemTenureFilter === 'all'
-                        ? divisions
-                        : divisions.filter(d => d.tenureId === adminMemTenureFilter)
-                      ).map(d => {
-                        const tObj = tenures.find(t => t.id === d.tenureId);
-                        const yearLabel = adminMemTenureFilter === 'all' && tObj ? ` (${tObj.code || tObj.title})` : '';
-                        return (
-                          <option key={d.id} value={d.id}>{d.name}{yearLabel}</option>
-                        );
-                      })}
-                    </select>
+                      <select
+                        value={adminMemCatFilter}
+                        onChange={(e) => {
+                          setAdminMemCatFilter(e.target.value);
+                          setAdminMemPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          minWidth: 0,
+                          maxWidth: 'min(100%, 200px)',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        <option value="all">Semua Role / Jabatan</option>
+                        {memberFilterRoles.map((r) => {
+                          const tObj = tenures.find(t => t.id === r.tenureId);
+                          const yearLabel = adminMemTenureFilter === 'all' && tObj ? ` (${tObj.code || tObj.title})` : '';
+                          return (
+                            <option key={r.id} value={r.id}>
+                              {r.name}{yearLabel}
+                            </option>
+                          );
+                        })}
+                      </select>
+
+                      <select
+                        value={adminMemDivFilter}
+                        onChange={(e) => {
+                          setAdminMemDivFilter(e.target.value);
+                          setAdminMemPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          minWidth: 0,
+                          maxWidth: 'min(100%, 200px)',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        <option value="all">Semua Divisi</option>
+                        {(adminMemTenureFilter === 'all'
+                          ? divisions
+                          : divisions.filter(d => d.tenureId === adminMemTenureFilter)
+                        ).map(d => {
+                          const tObj = tenures.find(t => t.id === d.tenureId);
+                          const yearLabel = adminMemTenureFilter === 'all' && tObj ? ` (${tObj.code || tObj.title})` : '';
+                          return (
+                            <option key={d.id} value={d.id}>{d.name}{yearLabel}</option>
+                          );
+                        })}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -9292,32 +9295,35 @@ export default function AdminPortal({
                       />
                     </div>
 
-                    <select
-                      value={kudosCatFilter}
-                      onChange={(e) => {
-                        setKudosCatFilter(e.target.value);
-                        setAdminKudosPage(1);
-                      }}
-                      style={{
-                        padding: '7px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--border-card)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.76rem',
-                        fontWeight: 600,
-                        minWidth: 0,
-                        maxWidth: 'min(100%, 220px)',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      <option value="all">Semua Kategori Nilai</option>
-                      <option value="Kolaboratif">Kolaboratif</option>
-                      <option value="Inovatif">Inovatif</option>
-                      <option value="Harmonis">Harmonis</option>
-                      <option value="Integritas">Integritas</option>
-                      <option value="Dedikasi">Dedikasi</option>
-                    </select>
+                    {/* Filter grouped right */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <select
+                        value={kudosCatFilter}
+                        onChange={(e) => {
+                          setKudosCatFilter(e.target.value);
+                          setAdminKudosPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          minWidth: 0,
+                          maxWidth: 'min(100%, 220px)',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        <option value="all">Semua Kategori Nilai</option>
+                        <option value="Kolaboratif">Kolaboratif</option>
+                        <option value="Inovatif">Inovatif</option>
+                        <option value="Harmonis">Harmonis</option>
+                        <option value="Integritas">Integritas</option>
+                        <option value="Dedikasi">Dedikasi</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 

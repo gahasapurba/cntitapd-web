@@ -238,45 +238,12 @@ export default function OrganizationSection({
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: '10px',
             border: '1px solid var(--border-card)'
           }}>
-            {/* Filter Periode / Tenure */}
-            {tenures.length > 0 && (
-              <select
-                value={selectedTenureId}
-                onChange={(e) => {
-                  const newId = e.target.value;
-                  setSelectedTenureId(newId);
-                  const found = tenures.find(t => t.id === newId);
-                  if (found && onSelectTenure) {
-                    onSelectTenure(found);
-                  }
-                }}
-                style={{
-                  padding: '9px 14px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--input-bg)',
-                  border: '1.5px solid var(--mandiri-gold)',
-                  color: 'var(--mandiri-gold)',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  flex: '0 1 auto',
-                  minWidth: 0,
-                  maxWidth: 'min(100%, 220px)',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                {tenures.map(t => (
-                  <option key={t.id} value={t.id}>
-                    📅 Periode {t.code || t.title}{t.isActive ? ' (Aktif)' : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            <div style={{ position: 'relative', flex: '1 1 220px' }}>
+            {/* Search - fills left */}
+            <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 'min(100%, 200px)' }}>
               <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
                 type="text"
@@ -291,93 +258,129 @@ export default function OrganizationSection({
                   border: '1px solid var(--border-card)',
                   color: 'var(--text-main)',
                   fontSize: '0.82rem',
-                  outline: 'none'
+                  outline: 'none',
+                  boxSizing: 'border-box'
                 }}
               />
             </div>
 
-            {currentTenureRoles.length > 0 && (
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                style={{
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  flex: '0 1 auto',
-                  minWidth: 0,
-                  maxWidth: 'min(100%, 220px)',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                <option value="all">Semua Posisi / Role ({activeMembers.length})</option>
-                {currentTenureRoles.map(r => {
-                  const count = activeMembers.filter(m => {
-                    const mr = findMatchingRole(m, currentTenureRoles);
-                    return m.roleId === r.id || mr?.id === r.id;
-                  }).length;
-                  return (
-                    <option key={r.id} value={r.id}>
-                      {r.name} ({count})
+            {/* Filters grouped right */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {/* Filter Periode / Tenure */}
+              {tenures.length > 0 && (
+                <select
+                  value={selectedTenureId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setSelectedTenureId(newId);
+                    const found = tenures.find(t => t.id === newId);
+                    if (found && onSelectTenure) {
+                      onSelectTenure(found);
+                    }
+                  }}
+                  style={{
+                    padding: '9px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--input-bg)',
+                    border: '1.5px solid var(--mandiri-gold)',
+                    color: 'var(--mandiri-gold)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    minWidth: 0,
+                    maxWidth: 'min(100%, 220px)',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {tenures.map(t => (
+                    <option key={t.id} value={t.id}>
+                      📅 Periode {t.code || t.title}{t.isActive ? ' (Aktif)' : ''}
                     </option>
-                  );
-                })}
-              </select>
-            )}
+                  ))}
+                </select>
+              )}
 
-            {activeDivisions.length > 0 && (
-              <select
-                value={divisionFilter}
-                onChange={(e) => setDivisionFilter(e.target.value)}
-                style={{
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--border-card)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  flex: '0 1 auto',
-                  minWidth: 0,
-                  maxWidth: 'min(100%, 220px)',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                <option value="all">Semua Divisi</option>
-                {(activeDivisions || []).map(div => (
-                  <option key={div.id} value={div.id}>{div.name}</option>
-                ))}
-              </select>
-            )}
+              {currentTenureRoles.length > 0 && (
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  style={{
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    minWidth: 0,
+                    maxWidth: 'min(100%, 220px)',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  <option value="all">Semua Posisi / Role ({activeMembers.length})</option>
+                  {currentTenureRoles.map(r => {
+                    const count = activeMembers.filter(m => {
+                      const mr = findMatchingRole(m, currentTenureRoles);
+                      return m.roleId === r.id || mr?.id === r.id;
+                    }).length;
+                    return (
+                      <option key={r.id} value={r.id}>
+                        {r.name} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
 
-            {isFiltering && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setRoleFilter('all');
-                  setDivisionFilter('all');
-                }}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'rgba(244, 63, 94, 0.14)',
-                  border: '1px solid rgba(244, 63, 94, 0.4)',
-                  color: '#f43f5e',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Reset Filter
-              </button>
-            )}
+              {activeDivisions.length > 0 && (
+                <select
+                  value={divisionFilter}
+                  onChange={(e) => setDivisionFilter(e.target.value)}
+                  style={{
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    minWidth: 0,
+                    maxWidth: 'min(100%, 220px)',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  <option value="all">Semua Divisi</option>
+                  {(activeDivisions || []).map(div => (
+                    <option key={div.id} value={div.id}>{div.name}</option>
+                  ))}
+                </select>
+              )}
+
+              {isFiltering && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setRoleFilter('all');
+                    setDivisionFilter('all');
+                  }}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(244, 63, 94, 0.14)',
+                    border: '1px solid rgba(244, 63, 94, 0.4)',
+                    color: '#f43f5e',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Reset Filter
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
