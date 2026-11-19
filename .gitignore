@@ -89,6 +89,8 @@ out
 # Production build & backups
 dist
 backups/*.json
+backups/*.zip
+backups/storage/
 
 # Gatsby files
 .cache/

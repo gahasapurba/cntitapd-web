@@ -9,7 +9,7 @@ on:
 
 jobs:
   backup:
-    name: Backup Supabase Database
+    name: Backup Supabase Database & Storage
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Run Backup Script
+      - name: Run Full Backup Script (DB + Storage)
         id: backup
         env:
           SUPABASE_MGMT_TOKEN: ${{ secrets.SUPABASE_MGMT_TOKEN }}
@@ -30,9 +30,11 @@ jobs:
           node scripts/backup-db.cjs
           echo "TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')" >> $GITHUB_OUTPUT
 
-      - name: Upload Backup as Secure Artifact
+      - name: Upload Full Backup Archive as Secure Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-backup-${{ steps.backup.outputs.TIMESTAMP }}
-          path: backups/*.json
+          name: supabase-full-backup-${{ steps.backup.outputs.TIMESTAMP }}
+          path: |
+            backups/*.zip
+            backups/*.json
           retention-days: 30
