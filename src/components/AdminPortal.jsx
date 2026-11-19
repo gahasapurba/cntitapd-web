@@ -4765,21 +4765,28 @@ export default function AdminPortal({
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
                     {paginatedAdminEvents.map((evt) => {
                       const divObj = divisions.find(d => d.id === evt.divisionId);
+                      const divColor = divObj?.color || 'var(--mandiri-gold)';
                       const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
+                      const isDraft = evt.isPublic !== true;
 
                       return (
                         <div
                           key={evt.id}
                           style={{
-                            background: 'rgba(255,255,255,0.02)',
+                            background: isDraft
+                              ? (isDark
+                                  ? `repeating-linear-gradient(135deg, ${divColor}08, ${divColor}08 8px, ${divColor}14 8px, ${divColor}14 16px)`
+                                  : `repeating-linear-gradient(135deg, ${divColor}12, ${divColor}12 8px, ${divColor}22 8px, ${divColor}22 16px)`)
+                              : 'rgba(255,255,255,0.02)',
                             padding: '16px',
                             borderRadius: 'var(--radius-md)',
-                            border: '1px solid var(--border-card)',
-                            borderLeft: `4px solid ${divObj?.color || 'var(--mandiri-gold)'}`,
+                            border: isDraft ? `2px dashed ${divColor}` : '1px solid var(--border-card)',
+                            borderLeft: isDraft ? `6px dashed ${divColor}` : `4px solid ${divColor}`,
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
-                            gap: '10px'
+                            gap: '10px',
+                            boxShadow: isDraft ? `0 2px 10px ${divColor}18` : 'none'
                           }}
                         >
                           <div>

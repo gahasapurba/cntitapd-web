@@ -59,7 +59,43 @@ Setiap kali melakukan perubahan, penambahan fitur, perbaikan bug, pembaruan skem
 
 ---
 
-## 4. Ambang Batas Kapasitas & Early Warning (Supabase Free Tier)
+## 4. Standar Pengujian Responsif Mobile (Mobile-First Responsiveness)
+
+Setiap perubahan antarmuka pengguna (UI) **WAJIB memastikan tampilan responsif di perangkat mobile**:
+- **Tidak Terpotong**: Elemen visual, badge, kalender, modal, dan tabel tidak boleh meluap (*overflow*) atau terpotong tanpa sengaja.
+- **Interaksi Sentuh**: Tombol, chip, dan link memiliki ukuran sentuh yang ramah jari (*touch-friendly*).
+- **Konsistensi Indikator**: Perbedaan gaya visual (seperti garis putus-putus pada event draft, badge publik/draft, dan warna divisi) harus terlihat tajam, kontras, dan konsisten di layar smartphone.
+- **Scroll yang Terkendali**: Komponen grid yang memerlukan scroll horizontal (seperti kalender bulanan penuh) wajib memiliki scroll container halus dan hint panduan yang jelas.
+
+---
+
+## 5. Standar 4 Screenshot Matrix Verifikasi UI
+
+Setiap kali menyelesaikan perubahan fitur visual, Antigravity **WAJIB menghasilkan dan menyajikan 4 Screenshot Matrix Verifikasi**:
+
+| No | Format Tampilan | Device / Ukuran Viewport | Kondisi Tema |
+| :---: | :--- | :--- | :---: |
+| **1** | **Web Desktop Light** | Safari MacBook Air 13 inch (`1440 x 900`) | ☀️ Light Theme |
+| **2** | **Web Desktop Dark** | Safari MacBook Air 13 inch (`1440 x 900`) | 🌙 Dark Theme |
+| **3** | **Mobile Light** | iPhone 17 Pro Max (`440 x 956`) | ☀️ Light Theme |
+| **4** | **Mobile Dark** | iPhone 17 Pro Max (`440 x 956`) | 🌙 Dark Theme |
+
+**Ketentuan Screenshot**:
+- Seluruh screenshot harus menangkap secara tepat komponen/fitur yang baru saja dimodifikasi.
+- Gambar screenshot disimpan ke direktori artifacts dan ditautkan dalam format carousels/markdown gambar.
+
+---
+
+## 6. Audit & Pengendalian Background Task
+
+Antigravity **WAJIB memastikan tidak ada background task yang tidak perlu berjalan**:
+- Hanya proses penunjang penting yang berstatus *daemon* (misalnya: Vite Dev Server `localhost:5173`) yang diperbolehkan tetap berjalan di latar belakang.
+- Task pengujian sementara, headless browser, print-to-pdf, atau proses CLI one-off **wajib segera dihentikan (*killed*) dan dibersihkan** begitu tugasnya selesai agar tidak membebani memori dan CPU pengguna.
+- Setiap laporan wajib mencantumkan status kesehatan background task yang aktif.
+
+---
+
+## 7. Ambang Batas Kapasitas & Early Warning (Supabase Free Tier)
 
 | Metrik | Batas Kuota Free | Warning Threshold | Critical Threshold | Tindakan Pencegahan |
 | :--- | :---: | :---: | :---: | :--- |
@@ -70,21 +106,17 @@ Script backup di GitHub Actions akan otomatis mengeluarkan notifikasi `::warning
 
 ---
 
-## 5. Standar Pelaporan Wajib Agen AI (Mandatory Reporting Protocol)
+## 8. Standar Pelaporan Wajib Agen AI (Mandatory Reporting Protocol)
 
-Setiap kali Antigravity menyelesaikan perubahan, pembaruan fitur, skema/seed, atau permintaan pengguna, Antigravity **WAJIB** menyertakan 3 bagian laporan berikut secara lengkap:
+Setiap kali Antigravity menyelesaikan perubahan, pembaruan fitur, skema/seed, atau permintaan pengguna, Antigravity **WAJIB** menyertakan 5 bagian laporan berikut secara lengkap:
 
 1. **Status Konektivitas ("Sekarang Kamu Terhubung ke Mana")**:
-   - Memetakan secara ringkas koneksi aktif saat ini (Local Dev, GitHub Cloud, Netlify, Supabase, dan Bitbucket Mandiri).
+   - Memetakan koneksi aktif (Local Dev, GitHub Cloud, Netlify, Supabase, dan Bitbucket Mandiri).
 2. **Tabel Rangkuman Status 5 Pilar Ekosistem**:
-   - **Local**: Kondisi branch, kebersihan working tree, dev server `localhost:5173`, dan jaminan disk bersih (0 MB file backup di lokal).
-   - **Netlify**: Status ketersediaan live web `https://cntitapd.netlify.app` dan sinkronisasi auto-deploy.
-   - **Supabase**: Status online database (PostgreSQL baris/MB) dan kapasitas media bucket `cnt-media` (MB / 1 GB limit).
-   - **GitHub**: Status sinkronisasi repositori `gahasapurba/cntitapd-web` dan artifact hasil backup GitHub Actions (label `SYSTEM` vs `ANTIGRAVITY`).
-   - **Bitbucket Mandiri**: Status jangkauan VPN Mandiri, selisih commit (*ahead/behind*), serta panduan langkah sinkronisasi ketika VPN aktif.
+   - Local, Netlify, Supabase, GitHub, dan Bitbucket Mandiri.
 3. **Status 3 Pilar Sinkronisasi (Schema, Seed, dan Backup Cloud)**:
-   - **`supabase_schema.sql`**: Status pembaruan skema DDL, tabel, kolom baru, dan RLS policies (apakah sinkron & idempotent).
-   - **`supabase_seed.sql`**: Status pembaruan data master (apakah seluruh baris master terbaru sudah tercatat).
-   - **Backup Otomatis di GitHub**: Status eksekusi backup di GitHub Actions, nama artifact terbaru (`ANTIGRAVITY` / `SYSTEM`), ukuran zip, dan jaminan 0 MB di disk lokal.
-
-
+   - `supabase_schema.sql`, `supabase_seed.sql`, dan status GitHub Actions Cloud Backup.
+4. **4 Screenshot Matrix Verifikasi UI**:
+   - Web Light (1440x900), Web Dark (1440x900), Mobile Light (440x956), Mobile Dark (440x956).
+5. **Audit Status Background Task**:
+   - Memastikan hanya task penting yang aktif dan tidak ada task sisa/tak perlu.

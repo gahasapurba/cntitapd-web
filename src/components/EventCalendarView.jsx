@@ -415,13 +415,15 @@ export default function EventCalendarView({
                               : `repeating-linear-gradient(135deg, ${tagColor}14, ${tagColor}14 6px, ${tagColor}24 6px, ${tagColor}24 12px)`)
                           : (isDark ? `${tagColor}22` : `${tagColor}15`))
                       : 'var(--bg-card)',
-                    border: hasEvents
+                    borderWidth: hasEvents ? '2px' : '1px',
+                    borderColor: hasEvents ? tagColor : 'var(--border-card)',
+                    borderStyle: hasEvents
                       ? (isAllDraft
-                          ? `2px dashed ${tagColor}`
+                          ? 'dashed'
                           : (isMixed
-                              ? `2px solid ${tagColor}`
-                              : `2px solid ${tagColor}`))
-                      : '1px solid var(--border-card)',
+                              ? 'solid dashed dashed solid'
+                              : 'solid'))
+                      : 'solid',
                     padding: '6px 7px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -532,16 +534,16 @@ export default function EventCalendarView({
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               borderLeft: isEvtDraft
-                                ? `3.5px dashed ${col}`
+                                ? `4px dashed ${col}`
                                 : `3.5px solid ${isEvtComp ? '#64748b' : col}`,
                               borderRight: isEvtDraft
-                                ? (isDark ? `1px dashed ${col}40` : `1px dashed ${col}60`)
+                                ? `1.5px dashed ${col}`
                                 : (isDark ? 'none' : '1px solid #e2e8f0'),
                               borderTop: isEvtDraft
-                                ? (isDark ? `1px dashed ${col}40` : `1px dashed ${col}60`)
+                                ? `1.5px dashed ${col}`
                                 : (isDark ? 'none' : '1px solid #e2e8f0'),
                               borderBottom: isEvtDraft
-                                ? (isDark ? `1px dashed ${col}40` : `1px dashed ${col}60`)
+                                ? `1.5px dashed ${col}`
                                 : (isDark ? 'none' : '1px solid #e2e8f0'),
                               boxShadow: isEvtDraft 
                                 ? 'none' 
@@ -828,7 +830,13 @@ export default function EventCalendarView({
                     style={{
                       padding: '18px',
                       borderRadius: 'var(--radius-md)',
-                      borderLeft: `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
+                      border: isDraft && isAdmin ? `1.5px dashed ${divInfo?.color || 'var(--mandiri-gold)'}` : '1px solid var(--border-card)',
+                      borderLeft: isDraft && isAdmin ? `6px dashed ${divInfo?.color || 'var(--mandiri-gold)'}` : `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
+                      background: isDraft && isAdmin
+                        ? (isDark
+                            ? `repeating-linear-gradient(135deg, ${divInfo?.color || 'var(--mandiri-gold)'}08, ${divInfo?.color || 'var(--mandiri-gold)'}08 8px, ${divInfo?.color || 'var(--mandiri-gold)'}14 8px, ${divInfo?.color || 'var(--mandiri-gold)'}14 16px)`
+                            : `repeating-linear-gradient(135deg, ${divInfo?.color || 'var(--mandiri-gold)'}12, ${divInfo?.color || 'var(--mandiri-gold)'}12 8px, ${divInfo?.color || 'var(--mandiri-gold)'}22 8px, ${divInfo?.color || 'var(--mandiri-gold)'}22 16px)`)
+                        : undefined,
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
