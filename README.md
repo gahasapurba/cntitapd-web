@@ -86,7 +86,8 @@ cnt-it-apd-web/
 ├── index.html                # Entry point HTML dengan tema default Light
 ├── netlify.toml              # Konfigurasi routing & header Netlify
 ├── package.json              # Dependency & script build
-├── supabase_schema.sql       # Skema tabel Supabase untuk migrasi cloud
+├── supabase_schema.sql       # Skema master 16 tabel Supabase, RLS, & bucket
+├── supabase_seed.sql         # Seed data master awal (periode, divisi, roles, unit kerja, form)
 ├── vite.config.js            # Konfigurasi bundler Vite
 │
 ├── public/                   # Asset statis publik
@@ -131,7 +132,12 @@ cnt-it-apd-web/
 
 ### 1. Kloning Repository
 ```bash
+# Dari GitHub:
+git clone https://github.com/gahasapurba/cntitapd-web.git cnt-it-apd-web
+
+# Atau dari Bitbucket Mandiri:
 git clone https://apdgit.bankmandiri.co.id/scm/~2402814297/cnt-it-apd.git cnt-it-apd-web
+
 cd cnt-it-apd-web
 ```
 
@@ -140,17 +146,29 @@ cd cnt-it-apd-web
 npm install
 ```
 
-### 3. Konfigurasi Lingkungan (Opsional)
-Jika ingin mengaktifkan sinkronisasi Supabase Cloud, buat file `.env` berdasarkan `.env.example`:
-```bash
-cp .env.example .env
-```
-Isi variabel dengan kredensial project Supabase Anda:
-```env
-VITE_SUPABASE_URL=https://<project-id>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon-key>
-```
-*(Jika tidak diisi, portal tetap berjalan penuh 100% menggunakan LocalStorage browser)*.
+### 3. Setup Database Supabase & Seed Data (Direkomendasikan)
+Untuk menghubungkan aplikasi ke backend Supabase sendiri dari nol:
+1. Buat project baru di [Supabase Dashboard](https://supabase.com/dashboard).
+2. Buka menu **SQL Editor** di dashboard Supabase.
+3. **Bangun Struktur Database:**
+   - Buka berkas `supabase_schema.sql` yang ada di root project.
+   - Salin seluruh kodenya dan jalankan (*Run*) di SQL Editor Supabase.
+   - Langkah ini akan membuat otomatis **16 tabel**, seluruh relasi foreign key, optimasi index, Row Level Security (RLS), dan storage bucket `cnt-media`.
+4. **Isi Master Data Awal (Seed Data):**
+   - Buka berkas `supabase_seed.sql` yang ada di root project.
+   - Salin kodenya dan jalankan (*Run*) di SQL Editor Supabase.
+   - Langkah ini akan mengisi data master: periode kepengurusan, divisi, role anggota, unit kerja IT APD, form oprec, FAQs, hingga aset logo resmi.
+5. **Konfigurasi Berkas `.env`:**
+   Salin `.env.example` menjadi `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Isi dengan URL dan Anon Key project Supabase Anda:
+   ```env
+   VITE_SUPABASE_URL=https://<project-id>.supabase.co
+   VITE_SUPABASE_ANON_KEY=<anon-key>
+   ```
+*(Catatan: Jika `.env` tidak diisi, portal tetap dapat berjalan dengan mode fallback LocalStorage browser).*
 
 ### 4. Menjalankan Server Pengembangan
 ```bash
