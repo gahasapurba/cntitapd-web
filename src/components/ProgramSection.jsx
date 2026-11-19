@@ -23,6 +23,7 @@ import {
   HelpCircle,
   Tag,
   Lock,
+  EyeOff,
   CalendarX,
   BarChart3,
   FileText,
@@ -156,6 +157,7 @@ export default function ProgramSection({
   }, [onSelectEventUrl]);
 
   const [eventNotFound, setEventNotFound] = useState(false);
+  const [eventDraftHidden, setEventDraftHidden] = useState(false);
 
   // Handle initial event from direct deep link only once
   useEffect(() => {
@@ -164,19 +166,29 @@ export default function ProgramSection({
         lastHandledInitialId.current = initialEventId;
         const found = events.find(e => e.id === initialEventId);
         if (found) {
-          setRsvpModalEvent(found);
-          setEventNotFound(false);
-          if (activeTenure?.id && found.tenureId && found.tenureId !== activeTenure.id) {
-            setTenureFilter('all');
+          if (found.isPublic === true) {
+            setRsvpModalEvent(found);
+            setEventNotFound(false);
+            setEventDraftHidden(false);
+            if (activeTenure?.id && found.tenureId && found.tenureId !== activeTenure.id) {
+              setTenureFilter('all');
+            }
+          } else {
+            // Event ini dalam status Draft (disembunyikan dari publik)
+            setRsvpModalEvent(null);
+            setEventNotFound(false);
+            setEventDraftHidden(true);
           }
         } else {
           setEventNotFound(true);
+          setEventDraftHidden(false);
         }
       }
     } else if (!initialEventId) {
       lastHandledInitialId.current = null;
       setRsvpModalEvent(null);
       setEventNotFound(false);
+      setEventDraftHidden(false);
     }
   }, [initialEventId, events, activeTenure]);
 
@@ -343,6 +355,82 @@ export default function ProgramSection({
           Rangkaian inisiatif terpadu untuk membangun keakraban tim, kesehatan mental & fisik, serta wadah ekspresi bakat seluruh insan IT APD.
         </p>
       </div>
+
+      {/* Event Draft Hidden Banner (Ketika Link Redirect Event Draft Dibuka Publik) */}
+      {eventDraftHidden && (
+        <div style={{ maxWidth: '680px', margin: '0 auto', width: '100%' }}>
+          <div className="glass-panel" style={{
+            padding: '36px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '16px',
+            border: '1.5px solid rgba(245, 158, 11, 0.4)',
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(14, 25, 55, 0.95) 100%)'
+              : 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(245, 158, 11, 0.15)',
+              color: '#f59e0b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <EyeOff size={32} />
+            </div>
+            <div>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(245, 158, 11, 0.2)',
+                color: '#f59e0b',
+                padding: '3px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                marginBottom: '10px',
+                border: '1px dashed rgba(245, 158, 11, 0.5)'
+              }}>
+                ○ Mode Draft / Disembunyikan
+              </div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 8px 0' }}>
+                Kegiatan Ini Belum Dipublikasikan
+              </h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0, maxWidth: '520px' }}>
+                Agenda kegiatan yang Anda tuju saat ini masih dalam tahap persiapan (Draft) oleh pengurus dan belum dirilis untuk pendaftaran publik. Silakan kembali lagi nanti atau pantau pengumuman resmi dari Culture Network Team IT APD.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEventDraftHidden(false);
+                  if (onSelectEventUrl) onSelectEventUrl(null);
+                  window.location.href = '/#event';
+                }}
+                style={{
+                  padding: '9px 24px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--mandiri-gold)',
+                  border: 'none',
+                  color: '#040914',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Lihat Agenda Event Lainnya
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Event Not Found Banner */}
       {eventNotFound && (
