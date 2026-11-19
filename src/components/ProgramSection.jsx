@@ -2366,10 +2366,19 @@ export default function ProgramSection({
                               borderRadius: 'var(--radius-full)',
                               background: 'var(--bg-card)',
                               border: '1px solid var(--border-card)',
-                              color: 'var(--text-main)'
+                              color: 'var(--text-main)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px'
                             }}
                           >
-                            ✓ <strong>{r.attendeeName}</strong>{displayDept ? <span style={{ color: 'var(--text-dim)' }}> ({displayDept})</span> : null}
+                            <span>✓</span>
+                            <strong>{r.attendeeName}</strong>
+                            {displayDept && (
+                              <span style={{ color: 'var(--text-dim)', marginLeft: '2px' }}>
+                                ({displayDept})
+                              </span>
+                            )}
                           </span>
                         );
                       })}
