@@ -1483,6 +1483,7 @@ export default function App() {
               setCurrentTab={setCurrentTab}
               forms={forms}
               eventRsvps={eventRsvps}
+              submissions={submissions}
               kudosList={kudosList}
               faqs={faqs}
               onSubmitFaqQuestion={handleSubmitPublicFaq}

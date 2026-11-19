@@ -30,6 +30,7 @@ import {
 import { soundFx } from '../utils/audio';
 import { getDivisionLead, getDivisionStructure, getMemberLevel } from '../utils/memberQuotaUtils';
 import { getDeadlineStatus, formatWibTimestamp, formatDeadlineWib } from '../utils/dateUtils';
+import { getUnifiedEventAttendees } from '../utils/quotaUtils';
 
 export default function HomeSection({ 
   activeTenure, 
@@ -40,6 +41,7 @@ export default function HomeSection({
   recruitmentInfo,
   forms = [],
   eventRsvps = [],
+  submissions = [],
   kudosList = [],
   faqs = [],
   onSubmitFaqQuestion,
@@ -1016,7 +1018,9 @@ export default function HomeSection({
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))', gap: '18px' }}>
                 {activeEvents.slice(0, 3).map((evt) => {
-                  const rsvpCount = eventRsvps.filter(r => r.eventId === evt.id).length;
+                  const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
+                  const attendeeCount = attendeeInfo.count;
+                  const attendeeLabel = attendeeInfo.isConnected ? `${attendeeCount} Peserta Terdaftar` : `${attendeeCount} Peserta RSVP`;
                   const statusColor = evt.status === 'Ongoing' ? '#10b981' : evt.status === 'Completed' ? '#64748b' : 'var(--mandiri-gold)';
                   const statusLabel = evt.status === 'Ongoing' ? 'Sedang Berjalan' : evt.status === 'Completed' ? 'Selesai' : 'Segera Hadir';
                   return (
@@ -1071,7 +1075,7 @@ export default function HomeSection({
                           fontWeight: 800,
                           fontSize: '0.7rem'
                         }}>
-                          ✋ {rsvpCount} Peserta RSVP
+                          ✋ {attendeeLabel}
                         </span>
                       </div>
                     </div>
