@@ -797,4 +797,61 @@ select option {
   }
 }
 
+/* Event Page Mobile Responsive Filter & Switch Layout */
+@media screen and (max-width: 768px) {
+  .event-filter-bar {
+    padding: 14px 12px !important;
+    gap: 12px !important;
+  }
+
+  .event-filter-left,
+  .event-filter-right {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .event-filter-divider {
+    display: none !important;
+  }
+
+  .event-pill-group {
+    width: 100% !important;
+    display: flex !important;
+    box-sizing: border-box !important;
+  }
+
+  .event-pill-group button {
+    flex: 1 1 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 8px 10px !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .event-select-wrapper {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .event-select-wrapper select {
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
 

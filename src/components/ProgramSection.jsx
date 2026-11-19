@@ -422,7 +422,7 @@ export default function ProgramSection({
       )}
 
       {/* Filter & View Mode Bar */}
-      <div className="glass-panel" style={{
+      <div className="glass-panel event-filter-bar" style={{
         padding: '16px 24px',
         display: 'flex',
         alignItems: 'center',
@@ -431,9 +431,9 @@ export default function ProgramSection({
         gap: '16px',
       }}>
         {/* Left: View Mode Toggle & Status Tab */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div className="event-filter-left" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           {/* View Mode (Grid vs Calendar) */}
-          <div style={{
+          <div className="event-pill-group" style={{
             display: 'inline-flex',
             background: 'var(--input-bg)',
             padding: '3px',
@@ -488,10 +488,10 @@ export default function ProgramSection({
             </button>
           </div>
 
-          <div style={{ height: '24px', width: '1px', background: 'var(--border-card)' }} />
+          <div className="event-filter-divider" style={{ height: '24px', width: '1px', background: 'var(--border-card)' }} />
 
           {/* Status Tab */}
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div className="event-pill-group" style={{ display: 'flex', gap: '6px' }}>
             <button
               onClick={() => {
                 setActiveTab('upcoming');
@@ -532,9 +532,9 @@ export default function ProgramSection({
         </div>
 
         {/* Right: Tenure Scope & Division Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="event-filter-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {activeTenure && (
-            <div style={{
+            <div className="event-pill-group" style={{
               display: 'inline-flex',
               background: 'var(--input-bg)',
               padding: '3px',
@@ -582,68 +582,70 @@ export default function ProgramSection({
             </div>
           )}
 
-          <Filter size={16} color="var(--text-dim)" />
-          <select
-            value={filterDiv}
-            onChange={(e) => {
-              setFilterDiv(e.target.value);
-              setEventPage(1);
-            }}
-            style={{
-              background: 'var(--input-bg)',
-              border: '1px solid var(--input-border)',
-              color: 'var(--text-main)',
-              padding: '7px 14px',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.85rem',
-              outline: 'none',
-              cursor: 'pointer',
-              minWidth: 0,
-              maxWidth: 'min(100%, 220px)',
-              textOverflow: 'ellipsis'
-            }}
-          >
-            <option value="all">Semua Divisi {scopedDivisions.length > 0 ? `(${scopedDivisions.length})` : ''}</option>
-            {(() => {
-              if (tenureFilter === 'active') {
-                return scopedDivisions.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ));
-              }
-              // Lintas tahun (Semua Periode): kelompokkan divisi per tahun/tenure
-              const renderedDivIds = new Set();
-              const groups = (tenures || []).map((t) => {
-                const divsInTenure = divisions.filter(d => d.tenureId === t.id);
-                divsInTenure.forEach(d => renderedDivIds.add(d.id));
-                if (divsInTenure.length === 0) return null;
-                return (
-                  <optgroup key={t.id} label={`Periode ${t.code} (${t.title || 'Kepengurusan'})`}>
-                    {divsInTenure.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} ({t.code})
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              }).filter(Boolean);
-
-              const remainingDivs = divisions.filter(d => !renderedDivIds.has(d.id));
-              return (
-                <>
-                  {groups}
-                  {remainingDivs.length > 0 && (
-                    <optgroup label="Divisi Lainnya">
-                      {remainingDivs.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
+          <div className="event-select-wrapper" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <Filter size={16} color="var(--text-dim)" />
+            <select
+              value={filterDiv}
+              onChange={(e) => {
+                setFilterDiv(e.target.value);
+                setEventPage(1);
+              }}
+              style={{
+                background: 'var(--input-bg)',
+                border: '1px solid var(--input-border)',
+                color: 'var(--text-main)',
+                padding: '7px 14px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.85rem',
+                outline: 'none',
+                cursor: 'pointer',
+                minWidth: 0,
+                maxWidth: 'min(100%, 220px)',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              <option value="all">Semua Divisi {scopedDivisions.length > 0 ? `(${scopedDivisions.length})` : ''}</option>
+              {(() => {
+                if (tenureFilter === 'active') {
+                  return scopedDivisions.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ));
+                }
+                // Lintas tahun (Semua Periode): kelompokkan divisi per tahun/tenure
+                const renderedDivIds = new Set();
+                const groups = (tenures || []).map((t) => {
+                  const divsInTenure = divisions.filter(d => d.tenureId === t.id);
+                  divsInTenure.forEach(d => renderedDivIds.add(d.id));
+                  if (divsInTenure.length === 0) return null;
+                  return (
+                    <optgroup key={t.id} label={`Periode ${t.code} (${t.title || 'Kepengurusan'})`}>
+                      {divsInTenure.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} ({t.code})
+                        </option>
                       ))}
                     </optgroup>
-                  )}
-                </>
-              );
-            })()}
-          </select>
+                  );
+                }).filter(Boolean);
+
+                const remainingDivs = divisions.filter(d => !renderedDivIds.has(d.id));
+                return (
+                  <>
+                    {groups}
+                    {remainingDivs.length > 0 && (
+                      <optgroup label="Divisi Lainnya">
+                        {remainingDivs.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </>
+                );
+              })()}
+            </select>
+          </div>
         </div>
       </div>
 
