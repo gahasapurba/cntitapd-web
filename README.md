@@ -91,8 +91,7 @@ cnt-it-apd-web/
 ├── vite.config.js            # Konfigurasi bundler Vite
 │
 ├── public/                   # Asset statis publik
-│   ├── assets/               # Logo master suite, zip asset pack, Danantara & Mandiri
-│   └── images/               # Foto pengurus BPH & Pembina
+│   └── assets/               # Logo master suite, zip asset pack, Danantara & Mandiri
 │
 └── src/                      # Source code aplikasi
     ├── components/           # Komponen modular UI

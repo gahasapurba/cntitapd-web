@@ -188,7 +188,7 @@ export default function AssetKitSection({ theme, brandAssets = [] }) {
               pointerEvents: logoPhase === 0 ? 'auto' : 'none'
             }}>
               <img
-                src="/images/cnt-logo.png"
+                src="https://xarcxbfgeoetyhpqsick.supabase.co/storage/v1/object/public/cnt-media/assets/1793748243148_cnt-logo.png"
                 alt="Logo CNT Ribbon Legacy"
                 style={{
                   maxHeight: '120px',
