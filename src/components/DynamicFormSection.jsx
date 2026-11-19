@@ -1250,7 +1250,7 @@ export default function DynamicFormSection({
                         ? departments.map(d => d.name)
                         : (field.options || []);
                     } else if (field.source === 'events') {
-                      options = (events || []).map(e => `${e.title} (${e.date})`);
+                      options = (events || []).filter(e => e.isPublic === true).map(e => `${e.title} (${e.date})`);
                     }
 
                     return (

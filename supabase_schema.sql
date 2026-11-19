@@ -88,6 +88,7 @@ CREATE TABLE public.events (
     description TEXT,
     total_rab NUMERIC DEFAULT 0,
     status TEXT DEFAULT 'Upcoming',
+    is_public BOOLEAN DEFAULT false,
     sort_order INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -306,6 +307,7 @@ ALTER TABLE public.members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAU
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_limited BOOLEAN DEFAULT false;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_quota INT DEFAULT 0;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
 ALTER TABLE public.galleries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE public.galleries ADD COLUMN IF NOT EXISTS event_id TEXT;
 DO $$

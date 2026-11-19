@@ -46,8 +46,10 @@ import {
   ChevronRight,
   Copy,
   Sparkles,
-  Camera
+  Camera,
+  Grid
 } from 'lucide-react';
+import EventCalendarView from './EventCalendarView';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { soundFx } from '../utils/audio';
 import { getPublicBaseUrl } from '../utils/urlUtils';
@@ -284,6 +286,8 @@ export default function AdminPortal({
   const [eventCatFilter, setEventCatFilter] = useState('all');
   const [eventDivFilter, setEventDivFilter] = useState('all');
   const [eventStatusFilter, setEventStatusFilter] = useState('all');
+  const [eventPublicFilter, setEventPublicFilter] = useState('all'); // 'all' | 'public' | 'draft'
+  const [adminEventViewMode, setAdminEventViewMode] = useState('list'); // 'list' | 'calendar'
   const [adminEventPage, setAdminEventPage] = useState(1);
   const [adminRsvpPage, setAdminRsvpPage] = useState(1);
   const [rsvpSearchQuery, setRsvpSearchQuery] = useState('');
@@ -635,6 +639,7 @@ export default function AdminPortal({
   const [eventDesc, setEventDesc] = useState('');
   const [eventRab, setEventRab] = useState('');
   const [eventStatus, setEventStatus] = useState('Upcoming');
+  const [eventIsPublic, setEventIsPublic] = useState(false);
   const [eventIsLimited, setEventIsLimited] = useState(false);
   const [eventMaxQuota, setEventMaxQuota] = useState('');
 
@@ -738,6 +743,7 @@ export default function AdminPortal({
         kpi: eventKpi.trim() || '',
         description: eventDesc.trim(),
         status: eventStatus,
+        isPublic: eventIsPublic,
         isLimited: eventIsLimited,
         maxQuota: eventIsLimited ? Number(eventMaxQuota || 0) : 0,
         totalRab: Number(eventRab)
@@ -753,6 +759,7 @@ export default function AdminPortal({
     setEventKpi('');
     setEventDesc('');
     setEventRab('');
+    setEventIsPublic(false);
     setEventIsLimited(false);
     setEventMaxQuota('');
     showToast(`Event "${savedTitle}" berhasil ditambahkan & disinkronkan!`);
@@ -4392,6 +4399,45 @@ export default function AdminPortal({
               )}
             </div>
 
+            <div style={{
+              gridColumn: 'span 2',
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'rgba(56, 189, 248, 0.06)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🌐 Status Publikasi di Web Publik</span>
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Default <strong>Draft / Privat</strong> agar tidak langsung muncul di web publik sebelum siap.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEventIsPublic(!eventIsPublic)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  border: 'none',
+                  background: eventIsPublic ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.18)',
+                  color: eventIsPublic ? '#10b981' : '#f43f5e',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {eventIsPublic ? '● Publik di Web' : '○ Draft / Privat (Hanya Admin)'}
+              </button>
+            </div>
+
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                 Deskripsi Event <span style={{ color: '#f43f5e' }}>*</span>
@@ -4457,7 +4503,10 @@ export default function AdminPortal({
                 const matchesCat = eventCatFilter === 'all' || (evt.category || evt.badge) === eventCatFilter;
                 const matchesDiv = eventDivFilter === 'all' || evt.divisionId === eventDivFilter;
                 const matchesStat = eventStatusFilter === 'all' || evt.status === eventStatusFilter;
-                return matchesSearch && matchesTenure && matchesCat && matchesDiv && matchesStat;
+                const matchesPublic = eventPublicFilter === 'all' ||
+                  (eventPublicFilter === 'public' && evt.isPublic === true) ||
+                  (eventPublicFilter === 'draft' && !evt.isPublic);
+                return matchesSearch && matchesTenure && matchesCat && matchesDiv && matchesStat && matchesPublic;
               });
 
               const totalAdminEventPages = Math.ceil(filteredAdminEvents.length / ADMIN_EVENTS_PER_PAGE) || 1;
@@ -4469,10 +4518,63 @@ export default function AdminPortal({
 
               return (
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                      Daftar Event ({filteredAdminEvents.length} dari {events.length}):
-                    </h4>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                        Daftar Event ({filteredAdminEvents.length} dari {events.length}):
+                      </h4>
+                      {/* View Mode Switcher: List Event vs Kalender Tahunan */}
+                      <div style={{
+                        display: 'inline-flex',
+                        background: 'var(--input-bg)',
+                        padding: '3px',
+                        borderRadius: 'var(--radius-full)',
+                        border: '1px solid var(--border-card)'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => setAdminEventViewMode('list')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 14px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            border: 'none',
+                            background: adminEventViewMode === 'list' ? 'var(--mandiri-blue)' : 'transparent',
+                            color: adminEventViewMode === 'list' ? '#ffffff' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Grid size={13} />
+                          <span>List Event</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAdminEventViewMode('calendar')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 14px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            border: 'none',
+                            background: adminEventViewMode === 'calendar' ? 'var(--mandiri-blue)' : 'transparent',
+                            color: adminEventViewMode === 'calendar' ? '#ffffff' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <CalendarDays size={13} />
+                          <span>Kalender Tahunan</span>
+                        </button>
+                      </div>
+                    </div>
 
                     {/* Search & Filter Controls */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '1 1 360px', justifyContent: 'flex-end' }}>
@@ -4497,6 +4599,27 @@ export default function AdminPortal({
                           }}
                         />
                       </div>
+
+                      <select
+                        value={eventPublicFilter}
+                        onChange={(e) => {
+                          setEventPublicFilter(e.target.value);
+                          setAdminEventPage(1);
+                        }}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.76rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="all">Semua Publikasi</option>
+                        <option value="public">● Publik ({events.filter(e => e.isPublic === true).length})</option>
+                        <option value="draft">○ Draft / Privat ({events.filter(e => !e.isPublic).length})</option>
+                      </select>
 
                       <select
                         value={eventTenureFilter}
@@ -4603,7 +4726,20 @@ export default function AdminPortal({
                     </div>
                   </div>
 
-                  {filteredAdminEvents.length === 0 ? (
+                  {adminEventViewMode === 'calendar' ? (
+                    <EventCalendarView
+                      events={filteredAdminEvents}
+                      divisions={divisions}
+                      forms={forms}
+                      eventRsvps={eventRsvps}
+                      submissions={submissions}
+                      theme={theme}
+                      activeTenure={eventTenureFilter !== 'all' ? tenures.find(t => t.id === eventTenureFilter) : activeTenure}
+                      onSelectEvent={(evt) => setEditingItem({ type: 'event', item: { ...evt } })}
+                      onEditEvent={(evt) => setEditingItem({ type: 'event', item: { ...evt } })}
+                      isAdmin={true}
+                    />
+                  ) : filteredAdminEvents.length === 0 ? (
                     <div style={{
                       padding: '36px 20px',
                       textAlign: 'center',
@@ -4652,6 +4788,30 @@ export default function AdminPortal({
                                 {evt.divisionName || divObj?.name}
                               </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (onUpdateEvent) {
+                                      const updated = { ...evt, isPublic: !evt.isPublic };
+                                      onUpdateEvent(updated);
+                                      showToast(`Status "${evt.title}" diubah menjadi ${!evt.isPublic ? 'Publik' : 'Draft / Privat'}`);
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '2px 8px',
+                                    borderRadius: 'var(--radius-full)',
+                                    fontSize: '0.64rem',
+                                    fontWeight: 800,
+                                    border: 'none',
+                                    background: evt.isPublic ? 'rgba(16, 185, 129, 0.18)' : 'rgba(244, 63, 94, 0.18)',
+                                    color: evt.isPublic ? '#10b981' : '#f43f5e',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  title="Klik untuk mengubah status publikasi event"
+                                >
+                                  {evt.isPublic ? '● Publik' : '○ Draft'}
+                                </button>
                                 {(evt.category || evt.badge) && (
                                   <span className="badge-cyan" style={{ fontSize: '0.64rem', padding: '2px 8px' }}>
                                     {evt.category || evt.badge}
@@ -13268,6 +13428,50 @@ export default function AdminPortal({
                     </div>
                   )}
                 </div>
+
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(56, 189, 248, 0.06)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🌐 Status Publikasi di Web Publik</span>
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Jika <strong>Draft / Privat</strong>, event hanya tampil di Admin Portal dan tidak terlihat oleh pengguna umum di web.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem({
+                      ...editingItem,
+                      item: {
+                        ...editingItem.item,
+                        isPublic: !editingItem.item.isPublic
+                      }
+                    })}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      border: 'none',
+                      background: editingItem.item.isPublic ? 'rgba(16, 185, 129, 0.2)' : 'rgba(244, 63, 94, 0.18)',
+                      color: editingItem.item.isPublic ? '#10b981' : '#f43f5e',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {editingItem.item.isPublic ? '● Publik di Web' : '○ Draft / Privat (Hanya Admin)'}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -13995,6 +14199,7 @@ export default function AdminPortal({
                       peserta: pesertaVal,
                       kpi: pesertaVal,
                       totalRab: Number(editingItem.item.totalRab),
+                      isPublic: Boolean(editingItem.item.isPublic),
                       isLimited: Boolean(editingItem.item.isLimited),
                       maxQuota: editingItem.item.isLimited ? Number(editingItem.item.maxQuota || 0) : 0,
                       date: calculatedDate || (editingItem.item.date || '').trim() || ''

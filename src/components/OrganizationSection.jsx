@@ -1117,6 +1117,7 @@ export default function OrganizationSection({
               if (!selectedMember.divisionId) return null;
 
               const relatedEvents = (events || []).filter(e => {
+                if (e.isPublic !== true) return false;
                 const matchTenure = !activeTenure?.id || e.tenureId === activeTenure.id;
                 const matchDiv = e.divisionId === selectedMember.divisionId ||
                   (selectedMember.division && (e.division === selectedMember.division || e.divisionName === selectedMember.division));

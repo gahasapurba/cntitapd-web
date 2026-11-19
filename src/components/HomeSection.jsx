@@ -111,7 +111,7 @@ export default function HomeSection({
   const primaryForm = activeForms[0] || recruitmentInfo || null;
   const activeDivisions = (divisions || []).filter(d => d.tenureId === activeTenure?.id);
   const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
-  const activeEvents = (events || []).filter(e => e.tenureId === activeTenure?.id);
+  const activeEvents = (events || []).filter(e => e.tenureId === activeTenure?.id && e.isPublic === true);
   const pembina = activeMembers.find(m => m.category === 'pembina');
   const ketua = activeMembers.find(m => m.role === 'Ketua');
   const wakil = activeMembers.find(m => m.role === 'Wakil Ketua');
