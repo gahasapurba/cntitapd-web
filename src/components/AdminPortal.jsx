@@ -9548,29 +9548,89 @@ export default function AdminPortal({
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '180px', maxWidth: '240px' }}>
-                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                        <input
-                          type="text"
-                          placeholder="Cari judul, isi, atau pengusul..."
-                          value={aspirasiSearchQuery}
-                          onChange={(e) => {
-                            setAspirasiSearchQuery(e.target.value);
-                            setAdminAspirasiPage(1);
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '7px 10px 7px 30px',
-                            borderRadius: 'var(--radius-full)',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--border-card)',
-                            color: 'var(--text-main)',
-                            fontSize: '0.78rem'
-                          }}
-                        />
-                      </div>
+                    {filteredAdminAspirasi.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+                          const header = ['ID', 'Pengusul', 'Kategori', 'Judul Usulan', 'Deskripsi', 'Status Tindak Lanjut', 'Tanggapan Pengurus', 'Publik', 'Waktu Kirim'].map(escapeCsv).join(',');
+                          const rows = filteredAdminAspirasi.map(a => [
+                            a.id,
+                            a.sender || 'Anonim',
+                            a.category || 'Usulan Budaya',
+                            a.title || a.text || '',
+                            a.description || a.text || '',
+                            a.status || 'Menunggu Review',
+                            a.adminReply || '',
+                            a.isPublic !== false ? 'Ya' : 'Tidak',
+                            formatWibTimestamp(a.createdAt || a.submittedAt).exact || a.submittedAt || a.createdAt || ''
+                          ].map(escapeCsv).join(','));
+                          const csvString = '\uFEFF' + [header, ...rows].join('\n');
+                          const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `laporan_aspirasi_cnt_it_apd_${Date.now()}.csv`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(url);
+                          showToast(`Berhasil mengunduh ${filteredAdminAspirasi.length} data Aspirasi ke CSV!`);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'rgba(16, 185, 129, 0.14)',
+                          border: '1px solid #10b981',
+                          color: '#10b981',
+                          padding: '7px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Download size={13} />
+                        <span>Export CSV Aspirasi</span>
+                      </button>
+                    )}
+                  </div>
 
+                  {/* Filter & Search Bar */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                    marginBottom: '14px'
+                  }}>
+                    <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '320px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                      <input
+                        type="text"
+                        placeholder="Cari judul, isi, atau pengusul..."
+                        value={aspirasiSearchQuery}
+                        onChange={(e) => {
+                          setAspirasiSearchQuery(e.target.value);
+                          setAdminAspirasiPage(1);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '7px 10px 7px 30px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--input-bg)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.78rem',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginLeft: 'auto' }}>
                       <select
                         value={aspirasiAdminCatFilter}
                         onChange={(e) => {
@@ -9584,7 +9644,9 @@ export default function AdminPortal({
                           border: '1px solid var(--border-card)',
                           color: 'var(--text-main)',
                           fontSize: '0.76rem',
-                          fontWeight: 600
+                          fontWeight: 600,
+                          maxWidth: '180px',
+                          textOverflow: 'ellipsis'
                         }}
                       >
                         <option value="all">Semua Kategori</option>
@@ -9608,7 +9670,9 @@ export default function AdminPortal({
                           border: '1px solid var(--border-card)',
                           color: 'var(--text-main)',
                           fontSize: '0.76rem',
-                          fontWeight: 600
+                          fontWeight: 600,
+                          maxWidth: '170px',
+                          textOverflow: 'ellipsis'
                         }}
                       >
                         <option value="all">Semua Status</option>
@@ -9616,54 +9680,6 @@ export default function AdminPortal({
                         <option value="Masuk Rencana Event">🚀 Masuk Rencana Event</option>
                         <option value="Sudah Direalisasikan">✓ Sudah Direalisasikan</option>
                       </select>
-
-                      {filteredAdminAspirasi.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-                            const header = ['ID', 'Pengusul', 'Kategori', 'Judul Usulan', 'Deskripsi', 'Status Tindak Lanjut', 'Tanggapan Pengurus', 'Publik', 'Waktu Kirim'].map(escapeCsv).join(',');
-                            const rows = filteredAdminAspirasi.map(a => [
-                              a.id,
-                              a.sender || 'Anonim',
-                              a.category || 'Usulan Budaya',
-                              a.title || a.text || '',
-                              a.description || a.text || '',
-                              a.status || 'Menunggu Review',
-                              a.adminReply || '',
-                              a.isPublic !== false ? 'Ya' : 'Tidak',
-                              formatWibTimestamp(a.createdAt || a.submittedAt).exact || a.submittedAt || a.createdAt || ''
-                            ].map(escapeCsv).join(','));
-                            const csvString = '\uFEFF' + [header, ...rows].join('\n');
-                            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-                            const url = URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            link.download = `laporan_aspirasi_cnt_it_apd_${Date.now()}.csv`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            URL.revokeObjectURL(url);
-                            showToast(`Berhasil mengunduh ${filteredAdminAspirasi.length} data Aspirasi ke CSV!`);
-                          }}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: 'rgba(16, 185, 129, 0.14)',
-                            border: '1px solid #10b981',
-                            color: '#10b981',
-                            padding: '7px 14px',
-                            borderRadius: 'var(--radius-md)',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <Download size={13} />
-                          <span>Export CSV Aspirasi</span>
-                        </button>
-                      )}
                     </div>
                   </div>
 
