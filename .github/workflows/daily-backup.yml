@@ -6,9 +6,6 @@ on:
     - cron: '0 19 * * *'
   # Memungkinkan trigger backup manual dari tab Actions di GitHub
   workflow_dispatch:
-  push:
-    paths:
-      - '.github/workflows/daily-backup.yml'
 
 jobs:
   backup:
