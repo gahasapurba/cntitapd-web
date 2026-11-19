@@ -564,7 +564,7 @@ export default function GallerySection({
                 Divisi: {activeEvent.divisionName || activeEvent.division || 'CNT IT APD'}
               </span>
               {activeEvent.eventId && (() => {
-                const connectedEvt = (events || []).find(e => String(e.id) === String(activeEvent.eventId));
+                const connectedEvt = (events || []).find(e => String(e.id) === String(activeEvent.eventId) && e.isPublic === true);
                 if (!connectedEvt) return null;
                 return (
                   <button
@@ -958,7 +958,7 @@ export default function GallerySection({
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                           {item.eventId && (() => {
-                            const connectedEvt = (events || []).find(e => String(e.id) === String(item.eventId));
+                            const connectedEvt = (events || []).find(e => String(e.id) === String(item.eventId) && e.isPublic === true);
                             if (!connectedEvt) return null;
                             return (
                               <button

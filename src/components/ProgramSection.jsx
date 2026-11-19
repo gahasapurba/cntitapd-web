@@ -84,6 +84,7 @@ export default function ProgramSection({
   submissions = []
 }) {
   const isDark = theme === 'dark';
+  const publicEvents = (events || []).filter((evt) => evt.isPublic === true);
   const [filterDiv, setFilterDiv] = useState('all');
   const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'all'
@@ -94,7 +95,7 @@ export default function ProgramSection({
   const [sameDayModalEvents, setSameDayModalEvents] = useState([]);
   const [copiedEventId, setCopiedEventId] = useState(null);
   const [currentYear, setCurrentYear] = useState(() => {
-    const firstWithDate = events.find(e => e.startDate && e.status !== 'Completed') || events.find(e => e.startDate);
+    const firstWithDate = publicEvents.find(e => e.startDate && e.status !== 'Completed') || publicEvents.find(e => e.startDate);
     if (firstWithDate?.startDate) {
       const yr = parseInt(firstWithDate.startDate.split('-')[0], 10);
       if (!isNaN(yr)) return yr;
@@ -104,13 +105,13 @@ export default function ProgramSection({
   const [currentMonth, setCurrentMonth] = useState(() => {
     const nowM = new Date().getMonth();
     const nowY = new Date().getFullYear();
-    const hasEventThisMonth = events.some(e => {
+    const hasEventThisMonth = publicEvents.some(e => {
       if (!e.startDate) return false;
       const parts = e.startDate.split('-');
       return parseInt(parts[0], 10) === nowY && (parseInt(parts[1], 10) - 1) === nowM;
     });
     if (hasEventThisMonth) return nowM;
-    const firstWithDate = events.find(e => e.startDate && e.status !== 'Completed') || events.find(e => e.startDate);
+    const firstWithDate = publicEvents.find(e => e.startDate && e.status !== 'Completed') || publicEvents.find(e => e.startDate);
     if (firstWithDate?.startDate) {
       const mo = parseInt(firstWithDate.startDate.split('-')[1], 10) - 1;
       if (!isNaN(mo) && mo >= 0 && mo <= 11) return mo;
@@ -122,7 +123,7 @@ export default function ProgramSection({
   // Auto-sync calendar view to active tenure's event dates when tenure changes
   useEffect(() => {
     if (!activeTenure?.id) return;
-    const tenureEvents = events.filter(e => e.tenureId === activeTenure.id && e.startDate);
+    const tenureEvents = publicEvents.filter(e => e.tenureId === activeTenure.id && e.startDate);
     if (tenureEvents.length > 0) {
       // Find earliest upcoming event, or first event of the tenure
       const targetEvt = tenureEvents.find(e => e.status !== 'Completed') || tenureEvents[0];
@@ -207,10 +208,10 @@ export default function ProgramSection({
   const handleOpenEventModal = (evt, dayEventsList = []) => {
     setRsvpModalEvent(evt);
     if (dayEventsList.length > 1) {
-      setSameDayModalEvents(dayEventsList);
+      setSameDayModalEvents(dayEventsList.filter(e => e.isPublic === true));
     } else if (evt?.startDate) {
       const dateKey = evt.startDate.slice(0, 10);
-      const matches = events.filter(e => {
+      const matches = publicEvents.filter(e => {
         const s = (e.startDate || '').slice(0, 10);
         const end = (e.endDate || e.startDate || '').slice(0, 10);
         return dateKey >= s && dateKey <= end;
@@ -303,8 +304,6 @@ export default function ProgramSection({
     setTimeout(() => setIsSubmittingRsvp(false), 500);
     setTimeout(() => setRsvpSuccess(false), 4000);
   };
-
-  const publicEvents = (events || []).filter((evt) => evt.isPublic === true);
 
   const scopedEvents = (tenureFilter === 'active' && activeTenure?.id)
     ?publicEvents.filter((evt) => evt.tenureId === activeTenure.id)
@@ -668,7 +667,7 @@ export default function ProgramSection({
                   cursor: 'pointer'
                 }}
               >
-                Lintas Tahun ({events.length})
+                Lintas Tahun ({publicEvents.length})
               </button>
             </div>
           )}
