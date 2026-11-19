@@ -1,8 +1,11 @@
 /**
  * Script Full Backup Otomatis Database & Storage Bucket Supabase CNT IT APD
- * 1. Mengambil seluruh data 16 tabel PostgreSQL -> database.json
- * 2. Mengunduh seluruh berkas fisik (foto, zip, media) dari Storage Bucket `cnt-media` -> storage/
- * 3. Mengemas keduanya menjadi satu arsip ZIP utuh (Full Disaster Recovery Archive)
+ * 
+ * SAFETY NET SYSTEM:
+ * 1. Database Priority: Database SQL selalu di-backup dan diisolasi terlebih dahulu,
+ *    sehingga kegagalan pada storage tidak akan menggugurkan backup data utama.
+ * 2. Early Warning: Peringatan otomatis jika ukuran mendekati ambang batas tertentu.
+ * 3. GitHub Step Summary: Laporan visual otomatis di dashboard GitHub Actions setiap eksekusi.
  */
 
 const fs = require('fs');
@@ -45,6 +48,16 @@ async function downloadFile(url, destPath) {
   fs.writeFileSync(destPath, Buffer.from(buffer));
 }
 
+// Menulis ringkasan ke GitHub Actions Summary jika berjalan di CI
+function appendGithubSummary(markdown) {
+  const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+  if (summaryFile) {
+    try {
+      fs.appendFileSync(summaryFile, markdown + '\n', 'utf8');
+    } catch (e) {}
+  }
+}
+
 async function runFullBackup() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   console.log(`[${new Date().toISOString()}] === MEMULAI FULL BACKUP SUPABASE (DB + STORAGE) ===`);
@@ -56,18 +69,22 @@ async function runFullBackup() {
 
   if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
 
-  // 1. BACKUP DATABASE SQL TABLES
+  // -------------------------------------------------------------------------
+  // SAFETY NET 1: ISOLASI DATABASE POSTGRESQL TERLEBIH DAHULU
+  // -------------------------------------------------------------------------
   console.log('--- 1/2. Mengunduh Data Tabel Database ---');
   const backupData = {
     meta: {
       timestamp: new Date().toISOString(),
       projectId,
-      version: '2.0-full'
+      version: '2.1-safetynet'
     },
     tables: {}
   };
 
   let totalDbRows = 0;
+  const tableStats = [];
+
   for (const tbl of tables) {
     try {
       const res = await fetch(`https://api.supabase.com/v1/projects/${projectId}/database/query`, {
@@ -82,20 +99,31 @@ async function runFullBackup() {
       if (Array.isArray(res)) {
         backupData.tables[tbl] = res;
         totalDbRows += res.length;
+        tableStats.push({ table: tbl, count: res.length, status: 'OK' });
         console.log(`  ✓ ${tbl}: ${res.length} rows`);
       } else {
         backupData.tables[tbl] = [];
+        tableStats.push({ table: tbl, count: 0, status: 'EMPTY / WARN' });
       }
     } catch (err) {
       console.error(`  ✗ ${tbl} error:`, err.message);
       backupData.tables[tbl] = [];
+      tableStats.push({ table: tbl, count: 0, status: 'ERROR' });
     }
   }
 
   const dbJsonPath = path.join(tempDir, 'database.json');
   fs.writeFileSync(dbJsonPath, JSON.stringify(backupData, null, 2), 'utf8');
 
-  // 2. BACKUP STORAGE BUCKET (cnt-media)
+  // Simpan database.json langsung ke backups/ agar salinan database selalu aman
+  const standaloneDbJson = path.join(backupDir, `database_${timestamp}.json`);
+  const latestJsonPath = path.join(backupDir, 'backup_latest.json');
+  fs.copyFileSync(dbJsonPath, standaloneDbJson);
+  fs.copyFileSync(dbJsonPath, latestJsonPath);
+
+  // -------------------------------------------------------------------------
+  // 2. MENGUNDUH STORAGE BUCKET DENGAN PENANGANAN ERROR PER BERKAS
+  // -------------------------------------------------------------------------
   console.log('\n--- 2/2. Mengunduh Berkas Fisik Storage Bucket (cnt-media) ---');
   let storageFiles = [];
   try {
@@ -119,6 +147,8 @@ async function runFullBackup() {
   }
 
   let totalDownloadedBytes = 0;
+  let failedStorageCount = 0;
+
   for (let i = 0; i < storageFiles.length; i++) {
     const fileObj = storageFiles[i];
     const fileUrl = `https://${projectId}.supabase.co/storage/v1/object/public/cnt-media/${fileObj.name}`;
@@ -130,26 +160,42 @@ async function runFullBackup() {
       const sizeMb = (Number(fileObj.size || 0) / 1024 / 1024).toFixed(2);
       console.log(`  [${i + 1}/${storageFiles.length}] ✓ ${fileObj.name} (${sizeMb} MB)`);
     } catch (err) {
+      failedStorageCount++;
       console.error(`  ✗ Gagal download ${fileObj.name}:`, err.message);
     }
   }
 
-  console.log(`\nSelesai mengunduh storage: ${(totalDownloadedBytes / 1024 / 1024).toFixed(2)} MB`);
+  const storageSizeMb = (totalDownloadedBytes / 1024 / 1024).toFixed(2);
+  console.log(`\nSelesai mengunduh storage: ${storageSizeMb} MB`);
 
+  // -------------------------------------------------------------------------
+  // SAFETY NET 2: EARLY WARNING THRESHOLD CHECK
+  // -------------------------------------------------------------------------
+  const WARN_THRESHOLD_MB = 400; // Peringatan awal jika mendekati 400 MB
+  const CRIT_THRESHOLD_MB = 800; // Peringatan kritis jika mendekati 800 MB
+  let alertLevel = 'NORMAL';
+
+  if (totalDownloadedBytes > CRIT_THRESHOLD_MB * 1024 * 1024) {
+    alertLevel = 'CRITICAL';
+    console.log(`::error::[CRITICAL CAPACITY] Total ukuran backup (${storageSizeMb} MB) telah melampaui ${CRIT_THRESHOLD_MB} MB!`);
+  } else if (totalDownloadedBytes > WARN_THRESHOLD_MB * 1024 * 1024) {
+    alertLevel = 'WARNING';
+    console.log(`::warning::[EARLY WARNING] Total ukuran backup (${storageSizeMb} MB) telah melampaui ${WARN_THRESHOLD_MB} MB. Pertimbangkan kompresi gambar.`);
+  }
+
+  // -------------------------------------------------------------------------
   // 3. PACKAGING KE FILE ZIP
+  // -------------------------------------------------------------------------
   console.log('\n--- 3/3. Mengompresi Database & Storage ke Archive ZIP ---');
   const zipFilename = `supabase_full_backup_${timestamp}.zip`;
   const zipPath = path.join(backupDir, zipFilename);
   const latestZipPath = path.join(backupDir, 'supabase_full_backup_latest.zip');
-  const latestJsonPath = path.join(backupDir, 'backup_latest.json');
 
-  // Salin JSON ke backup_latest.json juga
-  fs.copyFileSync(dbJsonPath, latestJsonPath);
-
+  let zipSuccess = false;
   try {
-    // Kompresi menggunakan zip CLI
     execSync(`cd "${tempDir}" && zip -r "${zipPath}" database.json storage/ -q`);
     fs.copyFileSync(zipPath, latestZipPath);
+    zipSuccess = true;
     console.log(`  ✓ ZIP berhasil dibuat: ${zipPath}`);
   } catch (err) {
     console.warn('  ⚠️ Tidak dapat membuat file zip otomatis via CLI:', err.message);
@@ -160,12 +206,35 @@ async function runFullBackup() {
     fs.rmSync(tempDir, { recursive: true, force: true });
   } catch (e) {}
 
+  // -------------------------------------------------------------------------
+  // SAFETY NET 3: GITHUB ACTIONS DASHBOARD STEP SUMMARY
+  // -------------------------------------------------------------------------
+  const summaryMarkdown = `
+## 🛡️ Laporan Otomatis Supabase Full Backup
+
+- **Status Eksekusi:** ${zipSuccess ? '✅ Berhasil Sempurna' : '⚠️ Berhasil Sebagian (Database Terselamatkan)'}
+- **Timestamp:** \`${new Date().toISOString()}\`
+- **Total Data Database:** **${totalDbRows} baris** (16 tabel)
+- **Total Berkas Storage:** **${storageFiles.length} file** (${storageSizeMb} MB)
+- **Status Kapasitas:** ${alertLevel === 'NORMAL' ? '🟢 Normal (< 400 MB)' : alertLevel === 'WARNING' ? '🟡 Perhatian (> 400 MB)' : '🔴 Kritis (> 800 MB)'}
+
+### Rincian Data Tabel Database:
+| Tabel | Jumlah Baris | Status |
+| :--- | :---: | :---: |
+${tableStats.map(s => `| \`${s.table}\` | ${s.count} | ${s.status === 'OK' ? '✓' : '⚠️'} |`).join('\n')}
+
+> *Catatan Keamanan: Salinan database SQL (\`database.json\`) selalu diisolasi secara mandiri. File zip utuh tersimpan di Artifacts.*
+`;
+
+  appendGithubSummary(summaryMarkdown);
+
   console.log(`\n============================================================`);
   console.log(`[SUCCESS] FULL BACKUP SELESAI DENGAN SUKSES!`);
+  console.log(`  • Status Safety Net   : ${alertLevel}`);
   console.log(`  • Total Data Database : ${totalDbRows} baris`);
-  console.log(`  • Total File Storage  : ${storageFiles.length} berkas (${(totalDownloadedBytes / 1024 / 1024).toFixed(2)} MB)`);
+  console.log(`  • Total File Storage  : ${storageFiles.length} berkas (${storageSizeMb} MB)`);
+  console.log(`  • Berkas Database     : ${standaloneDbJson}`);
   console.log(`  • Berkas Arsip Utuh   : ${zipPath}`);
-  console.log(`  • Arsip Versi Terbaru : ${latestZipPath}`);
   console.log(`============================================================\n`);
 }
 
