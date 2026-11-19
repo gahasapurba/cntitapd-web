@@ -211,8 +211,6 @@ export default function EventRegistrationStats({
     return eventRsvps.filter(r => String(r.eventId) === String(eventId));
   }, [eventRsvps, eventId]);
 
-  const [showArchivedRsvps, setShowArchivedRsvps] = useState(false);
-
   // Authoritative Quota & Limits:
   // When form is connected, follow form's limits. When not connected, follow event's limits.
   const effectiveIsLimited = connectedForm ? Boolean(connectedForm.isLimited) : Boolean(event?.isLimited);
@@ -1553,83 +1551,6 @@ export default function EventRegistrationStats({
           ========================================================================= */}
       {(!isLuckyDrawEnabled || activeView === 'stats') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Initial RSVP Archived Notice (Safe preservation, excluded from stats/draw while form active) */}
-          {initialRsvps.length > 0 && (
-            <div style={{
-              background: 'rgba(56, 189, 248, 0.08)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '12px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Info size={18} color="var(--neon-cyan)" />
-                <div>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                    Data RSVP Bawaan Awal ({initialRsvps.length} peserta) Tetap Tersimpan Aman
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                    Selama formulir pendaftaran ini terhubung, statistik dan kuota sepenuhnya mengacu ke data pendaftar formulir. Data RSVP lama tidak dihapus dan otomatis aktif kembali jika koneksi form dilepas.
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowArchivedRsvps(!showArchivedRsvps)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(56, 189, 248, 0.4)',
-                  color: 'var(--neon-cyan)',
-                  padding: '4px 12px',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                {showArchivedRsvps ? 'Sembunyikan Arsip RSVP' : `Lihat ${initialRsvps.length} RSVP Bawaan`}
-              </button>
-            </div>
-          )}
-
-          {/* Archived RSVPs Dropdown Table */}
-          {showArchivedRsvps && initialRsvps.length > 0 && (
-            <div className="glass-panel" style={{ padding: '16px', borderRadius: 'var(--radius-md)', border: '1px dashed rgba(56, 189, 248, 0.4)' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--neon-cyan)', marginBottom: '8px' }}>
-                Daftar RSVP Awal Bawaan Event (Diarsipkan)
-              </div>
-              <div style={{ overflowX: 'auto', maxHeight: '200px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-card)', color: 'var(--text-dim)' }}>
-                      <th style={{ padding: '6px' }}>No</th>
-                      <th style={{ padding: '6px' }}>Nama</th>
-                      <th style={{ padding: '6px' }}>Departemen</th>
-                      <th style={{ padding: '6px' }}>Kontak</th>
-                      <th style={{ padding: '6px' }}>Waktu RSVP</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {initialRsvps.map((r, i) => (
-                      <tr key={r.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        <td style={{ padding: '6px' }}>{i + 1}</td>
-                        <td style={{ padding: '6px', fontWeight: 700, color: 'var(--text-main)' }}>{r.name}</td>
-                        <td style={{ padding: '6px', color: 'var(--text-muted)' }}>{r.department || '-'}</td>
-                        <td style={{ padding: '6px', color: 'var(--text-muted)' }}>{r.phone || r.email || '-'}</td>
-                        <td style={{ padding: '6px', color: 'var(--text-dim)' }}>{r.createdAt ? formatWibTimestamp(r.createdAt).shortDate : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
           {/* 5. MIDDLE SECTION: QR CODE (LEFT) & DYNAMIC DIAGRAM (RIGHT) */}
           <div style={{
             display: 'grid',
