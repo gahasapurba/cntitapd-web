@@ -36,20 +36,26 @@ flowchart TD
 
 ---
 
-## 3. Aturan Ketat Skema & Master Data (The 3 Pillars)
+## 3. Kewajiban Pembaruan 3 Pilar Setiap Perubahan (Update Schema, Seed, dan Backup di GitHub)
 
-1. **`supabase_schema.sql` (Master Blueprint)**:
-   - Wajib selalu diperbarui jika ada penambahan tabel, kolom, constraint, indeks, atau RLS policies.
-   - Harus bersifat idempotent (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
-2. **`supabase_seed.sql` (Master Data)**:
-   - Wajib mencatat data referensi terbaru (`tenures`, `roles`, `departments`, `divisions`, `members`, `brand_assets`, `faqs`, `forms`).
-   - Menggunakan `ON CONFLICT DO NOTHING` agar aman dijalankan ulang.
-3. **Backup Cloud Otomatis (Tanpa Beban Lokal)**:
-   - **Dilarang keras menyimpan file arsip backup (.zip / .json) di penyimpanan lokal.**
-   - Backup otomatis berjalan di GitHub Actions dengan artifact labeling:
-     - `supabase-backup-SYSTEM-...` untuk backup terjadwal sistem jam 02:00 WIB.
-     - `supabase-backup-ANTIGRAVITY-...` untuk backup pasca push perubahan skema/seed.
-     - `supabase-backup-MANUAL-...` untuk eksekusi manual.
+Setiap kali melakukan perubahan, penambahan fitur, perbaikan bug, pembaruan skema, atau modifikasi data pada proyek CNT IT APD, Antigravity **WAJIB selalu memperbarui 3 hal berikut**:
+
+1. **Perbarui `supabase_schema.sql` (Master Blueprint DDL)**:
+   - Wajib selalu diperbarui dan diselaraskan setiap ada penambahan tabel baru, penambahan kolom baru (misal `is_public`), perubahan tipe data, constraint, relasi foreign key, indeks, maupun aturan RLS & Storage policies.
+   - Harus selalu idempotent (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) sehingga aman dijalankan kapan saja untuk recovery.
+
+2. **Perbarui `supabase_seed.sql` (Master Data Seed)**:
+   - Wajib disinkronkan dengan data master terbaru (`tenures`, `tenure_roles`, `departments`, `divisions`, `members`, `brand_assets`, `faqs`, `forms`).
+   - Seluruh baris data menggunakan klausa `ON CONFLICT DO NOTHING` agar idempotent saat proses restore.
+
+3. **Backup Otomatis di GitHub (Cloud Backup, Bebas Beban Disk Lokal)**:
+   - **DILARANG menyimpan berkas backup (.zip / .json) di penyimpanan komputer lokal** agar kapasitas disk lokal pengguna tetap bersih dan tidak berkurang.
+   - File backup dieksekusi dan disimpan secara aman di **GitHub Actions Cloud Artifacts**.
+   - Setiap kali `supabase_schema.sql` atau `supabase_seed.sql` di-commit & di-push ke GitHub, GitHub Actions otomatis memicu full backup database + storage fisik.
+   - Dilengkapi sistem penandaan otomatis (*labeling artifact*):
+     - **`supabase-backup-ANTIGRAVITY-...`**: Dijalankan otomatis oleh Antigravity AI pasca perubahan skema/seed.
+     - **`supabase-backup-SYSTEM-...`**: Dijalankan otomatis oleh sistem terjadwal setiap hari pukul 02:00 WIB.
+     - **`supabase-backup-MANUAL-...`**: Dijalankan manual oleh pengguna melalui menu Actions di GitHub.
 
 ---
 
