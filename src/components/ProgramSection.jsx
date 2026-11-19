@@ -41,8 +41,8 @@ function getBadgeTextColor(bgColor) {
   if (lower.includes('blue') || lower.includes('navy') || lower.includes('purple') || lower.includes('rose') || lower.includes('dark')) return '#ffffff';
   if (bgColor.startsWith('#')) {
     const hex = bgColor.replace('#', '');
-    const fullHex = hex.length === 3 
-      ? hex.split('').map(c => c + c).join('') 
+    const fullHex = hex.length === 3
+      ? hex.split('').map(c => c + c).join('')
       : hex;
     const r = parseInt(fullHex.substring(0, 2), 16) || 0;
     const g = parseInt(fullHex.substring(2, 4), 16) || 0;
@@ -295,7 +295,7 @@ export default function ProgramSection({
   const publicEvents = (events || []).filter((evt) => evt.isPublic === true);
 
   const scopedEvents = (tenureFilter === 'active' && activeTenure?.id)
-    ? publicEvents.filter((evt) => evt.tenureId === activeTenure.id)
+    ?publicEvents.filter((evt) => evt.tenureId === activeTenure.id)
     : publicEvents;
 
   const scopedDivisions = (tenureFilter === 'active' && activeTenure?.id)
@@ -686,8 +686,8 @@ export default function ProgramSection({
               {scopedEvents.length === 0
                 ? `Belum ada agenda kegiatan atau event budaya yang dipublikasikan untuk periode kepengurusan ini (${activeTenure?.title || activeTenure?.code || 'Tenure Aktif'}).`
                 : (filterDiv !== 'all' || activeTab !== 'all'
-                    ? 'Tidak ada agenda kegiatan yang cocok dengan pilihan filter divisi atau status saat ini. Coba pilih filter lain atau reset filter.'
-                    : 'Belum ada agenda kegiatan atau event budaya yang dipublikasikan. Pantau terus informasi terbaru dari pengurus CNT IT APD!')
+                  ? 'Tidak ada agenda kegiatan yang cocok dengan pilihan filter divisi atau status saat ini. Coba pilih filter lain atau reset filter.'
+                  : 'Belum ada agenda kegiatan atau event budaya yang dipublikasikan. Pantau terus informasi terbaru dari pengurus CNT IT APD!')
               }
             </p>
             {scopedEvents.length > 0 && (filterDiv !== 'all' || activeTab !== 'all') && (
@@ -732,304 +732,304 @@ export default function ProgramSection({
                 gap: '24px',
               }}>
                 {paginatedEvents.map((evt) => {
-              const divInfo = divisions.find(d => d.id === evt.divisionId);
-              const isCompleted = evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate);
+                  const divInfo = divisions.find(d => d.id === evt.divisionId);
+                  const isCompleted = evt.status === 'Completed' || isEventPassed(evt.startDate, evt.endDate);
 
-              return (
-                <div
-                  key={evt.id}
-                  className="glass-panel"
-                  style={{
-                    padding: '28px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '16px',
-                    borderLeft: `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
-                    opacity: isCompleted ? 0.75 : 1,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      color: divInfo?.color || 'var(--mandiri-gold)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em'
-                    }}>
-                      {evt.divisionName || divInfo?.name || 'CNT IT APD'}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="badge-gold" style={{ fontSize: '0.7rem' }}>
-                        {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
-                      </span>
-                      {(evt.category || evt.badge) && (
-                        <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                          {evt.category || evt.badge}
+                  return (
+                    <div
+                      key={evt.id}
+                      className="glass-panel"
+                      style={{
+                        padding: '28px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px',
+                        borderLeft: `5px solid ${divInfo?.color || 'var(--mandiri-gold)'}`,
+                        opacity: isCompleted ? 0.75 : 1,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: divInfo?.color || 'var(--mandiri-gold)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em'
+                        }}>
+                          {evt.divisionName || divInfo?.name || 'CNT IT APD'}
                         </span>
-                      )}
-                      {(() => {
-                        const connectedForm = (forms || []).find(f => (f.isEventConnected || f.fields?.[0]?._isEventConnected) && String(f.eventId || f.fields?.[0]?._eventId) === String(evt.id));
-                        if (!connectedForm) return null;
-                        const isLucky = connectedForm.isLuckyDraw === true || connectedForm.fields?.[0]?._isLuckyDraw === true;
-                        return (
-                          <span className="badge-gold" style={{ fontSize: '0.66rem', fontWeight: 800 }}>
-                            {isLucky ? '🎪 Form & Undian' : '📋 Form Terhubung'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="badge-gold" style={{ fontSize: '0.7rem' }}>
+                            {formatWibEventRange(evt.startDate, evt.endDate, evt.date)}
                           </span>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px', lineHeight: 1.3 }}>
-                      {evt.title}
-                    </h3>
-                    <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      {evt.description}
-                    </p>
-                  </div>
-
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid var(--border-card)',
-                    fontSize: '0.82rem'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
-                      <MapPin size={15} color="var(--mandiri-blue)" />
-                      <span>{evt.location}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
-                      <Users size={15} color="var(--mandiri-gold)" />
-                      <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Peserta: {evt.peserta || evt.kpi}</span>
-                    </div>
-                    {(() => {
-                      const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
-                      const isLimited = attendeeInfo.isLimited;
-                      const maxQ = attendeeInfo.maxQuota;
-                      const count = attendeeInfo.count;
-                      const isFull = attendeeInfo.isFull;
-
-                      if (isLimited && maxQ > 0) {
-                        const quotaColor = isFull ? (isDark ? '#f43f5e' : '#be123c') : (isDark ? 'var(--mandiri-gold)' : '#b45309');
-                        return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: quotaColor, fontWeight: 800 }}>
-                            <Users size={15} color={quotaColor} />
-                            <span>
-                              Kuota: {count}/{maxQ} {isFull ? '• (Penuh)' : `• (Sisa ${Math.max(0, maxQ - count)})`}
+                          {(evt.category || evt.badge) && (
+                            <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                              {evt.category || evt.badge}
                             </span>
-                          </div>
-                        );
-                      }
-                      return count > 0 ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isDark ? 'var(--neon-cyan)' : '#0284c7', fontWeight: 700 }}>
-                          <Users size={15} color={isDark ? 'var(--neon-cyan)' : '#0284c7'} />
-                          <span>
-                            {count} Insan IT APD telah terdaftar
-                          </span>
+                          )}
+                          {(() => {
+                            const connectedForm = (forms || []).find(f => (f.isEventConnected || f.fields?.[0]?._isEventConnected) && String(f.eventId || f.fields?.[0]?._eventId) === String(evt.id));
+                            if (!connectedForm) return null;
+                            const isLucky = connectedForm.isLuckyDraw === true || connectedForm.fields?.[0]?._isLuckyDraw === true;
+                            return (
+                              <span className="badge-gold" style={{ fontSize: '0.66rem', fontWeight: 800 }}>
+                                {isLucky ? '🎪 Form & Undian' : '📋 Form Terhubung'}
+                              </span>
+                            );
+                          })()}
                         </div>
-                      ) : null;
-                    })()}
-                  </div>
+                      </div>
 
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                    {(() => {
-                      const linkedGal = (galleries || []).find(g => String(g.eventId) === String(evt.id));
-                      if (!linkedGal) return null;
-                      return (
+                      <div>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px', lineHeight: 1.3 }}>
+                          {evt.title}
+                        </h3>
+                        <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                          {evt.description}
+                        </p>
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                        paddingTop: '12px',
+                        borderTop: '1px solid var(--border-card)',
+                        fontSize: '0.82rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                          <MapPin size={15} color="var(--mandiri-blue)" />
+                          <span>{evt.location}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                          <Users size={15} color="var(--mandiri-gold)" />
+                          <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Peserta: {evt.peserta || evt.kpi}</span>
+                        </div>
+                        {(() => {
+                          const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
+                          const isLimited = attendeeInfo.isLimited;
+                          const maxQ = attendeeInfo.maxQuota;
+                          const count = attendeeInfo.count;
+                          const isFull = attendeeInfo.isFull;
+
+                          if (isLimited && maxQ > 0) {
+                            const quotaColor = isFull ? (isDark ? '#f43f5e' : '#be123c') : (isDark ? 'var(--mandiri-gold)' : '#b45309');
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: quotaColor, fontWeight: 800 }}>
+                                <Users size={15} color={quotaColor} />
+                                <span>
+                                  Kuota: {count}/{maxQ} {isFull ? '• (Penuh)' : `• (Sisa ${Math.max(0, maxQ - count)})`}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return count > 0 ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isDark ? 'var(--neon-cyan)' : '#0284c7', fontWeight: 700 }}>
+                              <Users size={15} color={isDark ? 'var(--neon-cyan)' : '#0284c7'} />
+                              <span>
+                                {count} Insan IT APD telah terdaftar
+                              </span>
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                        {(() => {
+                          const linkedGal = (galleries || []).find(g => String(g.eventId) === String(evt.id));
+                          if (!linkedGal) return null;
+                          return (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onNavigateGallery) {
+                                  onNavigateGallery(linkedGal.id);
+                                } else {
+                                  window.location.href = `/?galeri=${encodeURIComponent(linkedGal.id)}#galeri`;
+                                }
+                              }}
+                              title={`Lihat Galeri Foto: ${linkedGal.title}`}
+                              style={{
+                                padding: '11px 13px',
+                                borderRadius: 'var(--radius-md)',
+                                background: 'rgba(168, 85, 247, 0.12)',
+                                border: '1.5px solid rgba(168, 85, 247, 0.45)',
+                                color: '#c084fc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                flexShrink: 0
+                              }}
+                            >
+                              <Camera size={16} />
+                            </button>
+                          );
+                        })()}
                         <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onNavigateGallery) {
-                              onNavigateGallery(linkedGal.id);
-                            } else {
-                              window.location.href = `/?galeri=${encodeURIComponent(linkedGal.id)}#galeri`;
-                            }
-                          }}
-                          title={`Lihat Galeri Foto: ${linkedGal.title}`}
+                          className="btn-rsvp-action"
                           style={{
-                            padding: '11px 13px',
-                            borderRadius: 'var(--radius-md)',
-                            background: 'rgba(168, 85, 247, 0.12)',
-                            border: '1.5px solid rgba(168, 85, 247, 0.45)',
-                            color: '#c084fc',
+                            flex: 1,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            gap: '8px',
+                            background: isCompleted ? 'rgba(255, 255, 255, 0.05)' : 'rgba(14, 165, 233, 0.12)',
+                            color: isCompleted ? 'var(--text-muted)' : 'var(--neon-cyan)',
+                            border: isCompleted ? '1.5px solid var(--border-card)' : '1.5px solid var(--neon-cyan)',
+                            padding: '11px 14px',
+                            borderRadius: 'var(--radius-md)',
+                            fontWeight: 800,
+                            fontSize: '0.84rem',
                             cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            flexShrink: 0
+                            transition: 'all 0.25s ease',
+                            boxShadow: isCompleted ? 'none' : '0 4px 15px rgba(14, 165, 233, 0.15)'
+                          }}
+                          onClick={() => handleOpenEventModal(evt)}
+                          onMouseEnter={(e) => {
+                            if (!isCompleted) {
+                              e.currentTarget.style.background = 'var(--neon-cyan)';
+                              e.currentTarget.style.color = '#040914';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(14, 165, 233, 0.4)';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isCompleted) {
+                              e.currentTarget.style.background = 'rgba(14, 165, 233, 0.12)';
+                              e.currentTarget.style.color = 'var(--neon-cyan)';
+                              e.currentTarget.style.boxShadow = '0 4px 15px rgba(14, 165, 233, 0.15)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                            }
                           }}
                         >
-                          <Camera size={16} />
+                          <span>{isCompleted ? 'Lihat Info & Daftar Hadir' : 'RSVP / Info Detail'}</span>
+                          <ChevronRight size={16} />
                         </button>
-                      );
-                    })()}
-                    <button
-                      className="btn-rsvp-action"
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        background: isCompleted ? 'rgba(255, 255, 255, 0.05)' : 'rgba(14, 165, 233, 0.12)',
-                        color: isCompleted ? 'var(--text-muted)' : 'var(--neon-cyan)',
-                        border: isCompleted ? '1.5px solid var(--border-card)' : '1.5px solid var(--neon-cyan)',
-                        padding: '11px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        fontWeight: 800,
-                        fontSize: '0.84rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.25s ease',
-                        boxShadow: isCompleted ? 'none' : '0 4px 15px rgba(14, 165, 233, 0.15)'
-                      }}
-                      onClick={() => handleOpenEventModal(evt)}
-                      onMouseEnter={(e) => {
-                        if (!isCompleted) {
-                          e.currentTarget.style.background = 'var(--neon-cyan)';
-                          e.currentTarget.style.color = '#040914';
-                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(14, 165, 233, 0.4)';
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isCompleted) {
-                          e.currentTarget.style.background = 'rgba(14, 165, 233, 0.12)';
-                          e.currentTarget.style.color = 'var(--neon-cyan)';
-                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(14, 165, 233, 0.15)';
-                          e.currentTarget.style.transform = 'translateY(0)';
-                        }
-                      }}
-                    >
-                      <span>{isCompleted ? 'Lihat Info & Daftar Hadir' : 'RSVP / Info Detail'}</span>
-                      <ChevronRight size={16} />
-                    </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleCopyEventLink(evt)}
-                        title="Salin Link Undangan Event"
-                        style={{
-                          padding: '10px 12px',
-                          borderRadius: 'var(--radius-md)',
-                          background: copiedEventId === evt.id ? 'rgba(16, 185, 129, 0.16)' : 'var(--input-bg)',
-                          border: `1px solid ${copiedEventId === evt.id ? '#10b981' : 'var(--border-card)'}`,
-                          color: copiedEventId === evt.id ? '#10b981' : 'var(--text-muted)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {copiedEventId === evt.id ? <CheckCircle2 size={15} /> : <Share2 size={15} />}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyEventLink(evt)}
+                          title="Salin Link Undangan Event"
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius-md)',
+                            background: copiedEventId === evt.id ? 'rgba(16, 185, 129, 0.16)' : 'var(--input-bg)',
+                            border: `1px solid ${copiedEventId === evt.id ? '#10b981' : 'var(--border-card)'}`,
+                            color: copiedEventId === evt.id ? '#10b981' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {copiedEventId === evt.id ? <CheckCircle2 size={15} /> : <Share2 size={15} />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-          </div>
-
-          {totalEventPages > 1 && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px',
-              padding: '14px 18px',
-              background: 'rgba(255, 255, 255, 0.02)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-card)'
-            }}>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Menampilkan <strong>{(safeEventPage - 1) * EVENTS_PER_PAGE + 1} - {Math.min(safeEventPage * EVENTS_PER_PAGE, filteredEvents.length)}</strong> dari <strong>{filteredEvents.length}</strong> event
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button
-                  type="button"
-                  disabled={safeEventPage === 1}
-                  onClick={() => setEventPage(p => Math.max(1, p - 1))}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '5px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--border-card)',
-                    color: safeEventPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: safeEventPage === 1 ? 'not-allowed' : 'pointer',
-                    opacity: safeEventPage === 1 ? 0.45 : 1
-                  }}
-                >
-                  <ChevronLeft size={14} />
-                  <span>Sebelumnya</span>
-                </button>
-                {Array.from({ length: totalEventPages }, (_, i) => i + 1).map((pg) => {
-                  if (totalEventPages > 7 && Math.abs(pg - safeEventPage) > 2 && pg !== 1 && pg !== totalEventPages) {
-                    if (pg === 2 || pg === totalEventPages - 1) {
-                      return <span key={pg} style={{ color: 'var(--text-dim)', padding: '0 4px', fontSize: '0.75rem' }}>...</span>;
-                    }
-                    return null;
-                  }
-                  const isActive = pg === safeEventPage;
-                  return (
-                    <button
-                      key={pg}
-                      type="button"
-                      onClick={() => setEventPage(pg)}
-                      style={{
-                        minWidth: '28px',
-                        height: '28px',
-                        padding: '0 6px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
-                        color: isActive ? '#040914' : 'var(--text-main)',
-                        border: isActive ? 'none' : '1px solid var(--border-card)',
-                        fontSize: '0.75rem',
-                        fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {pg}
-                    </button>
                   );
                 })}
-                <button
-                  type="button"
-                  disabled={safeEventPage === totalEventPages}
-                  onClick={() => setEventPage(p => Math.min(totalEventPages, p + 1))}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '5px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--border-card)',
-                    color: safeEventPage === totalEventPages ? 'var(--text-dim)' : 'var(--text-main)',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: safeEventPage === totalEventPages ? 'not-allowed' : 'pointer',
-                    opacity: safeEventPage === totalEventPages ? 0.45 : 1
-                  }}
-                >
-                  <span>Selanjutnya</span>
-                  <ChevronRight size={14} />
-                </button>
               </div>
+
+              {totalEventPages > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  padding: '14px 18px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-card)'
+                }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Menampilkan <strong>{(safeEventPage - 1) * EVENTS_PER_PAGE + 1} - {Math.min(safeEventPage * EVENTS_PER_PAGE, filteredEvents.length)}</strong> dari <strong>{filteredEvents.length}</strong> event
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      disabled={safeEventPage === 1}
+                      onClick={() => setEventPage(p => Math.max(1, p - 1))}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: safeEventPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: safeEventPage === 1 ? 'not-allowed' : 'pointer',
+                        opacity: safeEventPage === 1 ? 0.45 : 1
+                      }}
+                    >
+                      <ChevronLeft size={14} />
+                      <span>Sebelumnya</span>
+                    </button>
+                    {Array.from({ length: totalEventPages }, (_, i) => i + 1).map((pg) => {
+                      if (totalEventPages > 7 && Math.abs(pg - safeEventPage) > 2 && pg !== 1 && pg !== totalEventPages) {
+                        if (pg === 2 || pg === totalEventPages - 1) {
+                          return <span key={pg} style={{ color: 'var(--text-dim)', padding: '0 4px', fontSize: '0.75rem' }}>...</span>;
+                        }
+                        return null;
+                      }
+                      const isActive = pg === safeEventPage;
+                      return (
+                        <button
+                          key={pg}
+                          type="button"
+                          onClick={() => setEventPage(pg)}
+                          style={{
+                            minWidth: '28px',
+                            height: '28px',
+                            padding: '0 6px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isActive ? 'var(--mandiri-gold)' : 'var(--input-bg)',
+                            color: isActive ? '#040914' : 'var(--text-main)',
+                            border: isActive ? 'none' : '1px solid var(--border-card)',
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {pg}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      disabled={safeEventPage === totalEventPages}
+                      onClick={() => setEventPage(p => Math.min(totalEventPages, p + 1))}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--border-card)',
+                        color: safeEventPage === totalEventPages ? 'var(--text-dim)' : 'var(--text-main)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: safeEventPage === totalEventPages ? 'not-allowed' : 'pointer',
+                        opacity: safeEventPage === totalEventPages ? 0.45 : 1
+                      }}
+                    >
+                      <span>Selanjutnya</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      );
-    })()
-  )}
+          );
+        })()
+      )}
 
       {/* VIEW MODE 2: AUTHENTIC MONTHLY CALENDAR GRID WITH DATE RANGE MARKING & HOVER TOOLTIPS */}
       {viewMode === 'calendar' && (
@@ -1445,251 +1445,251 @@ export default function ProgramSection({
                     flexDirection: 'column',
                     gap: '12px'
                   }}>
-                {(() => {
-                  const isPassed = isEventPassed(rsvpModalEvent.startDate, rsvpModalEvent.endDate) || rsvpModalEvent.status === 'Completed';
-                  const isLimited = Boolean(rsvpModalEvent.isLimited);
-                  const maxQ = Number(rsvpModalEvent.maxQuota || 0);
-                  const isQuotaFull = isLimited && maxQ > 0 && currentEventRsvps.length >= maxQ;
+                    {(() => {
+                      const isPassed = isEventPassed(rsvpModalEvent.startDate, rsvpModalEvent.endDate) || rsvpModalEvent.status === 'Completed';
+                      const isLimited = Boolean(rsvpModalEvent.isLimited);
+                      const maxQ = Number(rsvpModalEvent.maxQuota || 0);
+                      const isQuotaFull = isLimited && maxQ > 0 && currentEventRsvps.length >= maxQ;
 
-                  if (isPassed) {
-                    return (
-                      <div style={{
-                        padding: '14px 16px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'rgba(239, 68, 68, 0.08)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f43f5e', fontWeight: 800, fontSize: '0.88rem' }}>
-                          <CalendarX size={17} />
-                          <span>Pendaftaran RSVP Telah Ditutup (Event Selesai)</span>
-                        </div>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                          Agenda kegiatan ini telah selesai diselenggarakan pada {formatWibEventRange(rsvpModalEvent.startDate, rsvpModalEvent.endDate, rsvpModalEvent.date)}. Form pendaftaran RSVP tidak lagi menerima respons.
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  if (isQuotaFull) {
-                    return (
-                      <div style={{
-                        padding: '14px 16px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'rgba(255, 184, 0, 0.08)',
-                        border: '1px solid rgba(255, 184, 0, 0.35)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--mandiri-gold)', fontWeight: 800, fontSize: '0.88rem' }}>
-                          <Lock size={17} />
-                          <span>Pendaftaran RSVP Telah Ditutup (Kuota Penuh)</span>
-                        </div>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                          Mohon maaf, kuota pendaftaran untuk kegiatan ini telah mencapai batas maksimal ({currentEventRsvps.length}/{maxQ} peserta). Pendaftaran RSVP baru telah resmi ditutup.
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                          ✋ Konfirmasi Kehadiran Instan (RSVP)
-                        </div>
-                        <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                          {currentEventRsvps.length}{isLimited && maxQ > 0 ? ` / ${maxQ}` : ''} Terdaftar Hadir
-                        </span>
-                      </div>
-
-                      {rsvpSuccess && (
-                        <div style={{
-                          padding: '10px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          border: '1px solid #10b981',
-                          color: '#10b981',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}>
-                          <CheckCircle2 size={15} />
-                          <span>Konfirmasi kehadiran Anda berhasil tercatat di daftar hadir kegiatan!</span>
-                        </div>
-                      )}
-
-                      <form onSubmit={handleOpenConfirmRsvp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <div>
-                            <input
-                              type="text"
-                              placeholder="Nama Lengkap Anda *"
-                              value={rsvpName}
-                              onChange={(e) => {
-                                setRsvpName(e.target.value);
-                                if (rsvpErrors.rsvpName) setRsvpErrors(prev => ({ ...prev, rsvpName: null }));
-                              }}
-                              style={{
-                                width: '100%',
-                                padding: '9px 12px',
-                                borderRadius: 'var(--radius-sm)',
-                                background: 'var(--bg-card)',
-                                border: `1.5px solid ${rsvpErrors.rsvpName ? '#f43f5e' : 'var(--border-card)'}`,
-                                color: 'var(--text-main)',
-                                fontSize: '0.82rem',
-                                outline: 'none'
-                              }}
-                            />
-                            {rsvpErrors.rsvpName && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
-                                <AlertCircle size={11} />
-                                <span>{rsvpErrors.rsvpName}</span>
-                              </div>
-                            )}
+                      if (isPassed) {
+                        return (
+                          <div style={{
+                            padding: '14px 16px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f43f5e', fontWeight: 800, fontSize: '0.88rem' }}>
+                              <CalendarX size={17} />
+                              <span>Pendaftaran RSVP Telah Ditutup (Event Selesai)</span>
+                            </div>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                              Agenda kegiatan ini telah selesai diselenggarakan pada {formatWibEventRange(rsvpModalEvent.startDate, rsvpModalEvent.endDate, rsvpModalEvent.date)}. Form pendaftaran RSVP tidak lagi menerima respons.
+                            </p>
                           </div>
-                          <div>
-                            <select
-                              value={rsvpDepartmentId}
-                              onChange={(e) => {
-                                setRsvpDepartmentId(e.target.value);
-                                if (rsvpErrors.rsvpDepartmentId) setRsvpErrors(prev => ({ ...prev, rsvpDepartmentId: null }));
-                              }}
+                        );
+                      }
+
+                      if (isQuotaFull) {
+                        return (
+                          <div style={{
+                            padding: '14px 16px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'rgba(255, 184, 0, 0.08)',
+                            border: '1px solid rgba(255, 184, 0, 0.35)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--mandiri-gold)', fontWeight: 800, fontSize: '0.88rem' }}>
+                              <Lock size={17} />
+                              <span>Pendaftaran RSVP Telah Ditutup (Kuota Penuh)</span>
+                            </div>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                              Mohon maaf, kuota pendaftaran untuk kegiatan ini telah mencapai batas maksimal ({currentEventRsvps.length}/{maxQ} peserta). Pendaftaran RSVP baru telah resmi ditutup.
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                              ✋ Konfirmasi Kehadiran Instan (RSVP)
+                            </div>
+                            <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
+                              {currentEventRsvps.length}{isLimited && maxQ > 0 ? ` / ${maxQ}` : ''} Terdaftar Hadir
+                            </span>
+                          </div>
+
+                          {rsvpSuccess && (
+                            <div style={{
+                              padding: '10px 12px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              border: '1px solid #10b981',
+                              color: '#10b981',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              <CheckCircle2 size={15} />
+                              <span>Konfirmasi kehadiran Anda berhasil tercatat di daftar hadir kegiatan!</span>
+                            </div>
+                          )}
+
+                          <form onSubmit={handleOpenConfirmRsvp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                              <div>
+                                <input
+                                  type="text"
+                                  placeholder="Nama Lengkap Anda *"
+                                  value={rsvpName}
+                                  onChange={(e) => {
+                                    setRsvpName(e.target.value);
+                                    if (rsvpErrors.rsvpName) setRsvpErrors(prev => ({ ...prev, rsvpName: null }));
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '9px 12px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    background: 'var(--bg-card)',
+                                    border: `1.5px solid ${rsvpErrors.rsvpName ? '#f43f5e' : 'var(--border-card)'}`,
+                                    color: 'var(--text-main)',
+                                    fontSize: '0.82rem',
+                                    outline: 'none'
+                                  }}
+                                />
+                                {rsvpErrors.rsvpName && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
+                                    <AlertCircle size={11} />
+                                    <span>{rsvpErrors.rsvpName}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <select
+                                  value={rsvpDepartmentId}
+                                  onChange={(e) => {
+                                    setRsvpDepartmentId(e.target.value);
+                                    if (rsvpErrors.rsvpDepartmentId) setRsvpErrors(prev => ({ ...prev, rsvpDepartmentId: null }));
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '9px 12px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    background: 'var(--bg-card)',
+                                    border: `1.5px solid ${rsvpErrors.rsvpDepartmentId ? '#f43f5e' : 'var(--border-card)'}`,
+                                    color: rsvpDepartmentId ? 'var(--text-main)' : 'var(--text-dim)',
+                                    fontSize: '0.82rem',
+                                    outline: 'none',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <option value="">-- Pilih Departemen Asal Kamu * --</option>
+                                  {departments.map((d) => (
+                                    <option key={d.id} value={d.id}>
+                                      {d.name} {d.code ? `(${d.code})` : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                                {rsvpErrors.rsvpDepartmentId && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
+                                    <AlertCircle size={11} />
+                                    <span>{rsvpErrors.rsvpDepartmentId}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '10px' }}>
+                              <select
+                                value={rsvpMode}
+                                onChange={(e) => setRsvpMode(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '9px 12px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: 'var(--bg-card)',
+                                  border: '1px solid var(--border-card)',
+                                  color: 'var(--text-main)',
+                                  fontSize: '0.82rem',
+                                  outline: 'none'
+                                }}
+                              >
+                                <option value="Hadir Onsite">📍 Hadir Onsite</option>
+                                <option value="Hadir Online">💻 Hadir Online / Teams</option>
+                              </select>
+                              <input
+                                type="text"
+                                placeholder="Catatan singkat (opsional)..."
+                                value={rsvpNotes}
+                                onChange={(e) => setRsvpNotes(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '9px 12px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: 'var(--bg-card)',
+                                  border: '1px solid var(--border-card)',
+                                  color: 'var(--text-main)',
+                                  fontSize: '0.82rem',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={isSubmittingRsvp}
                               style={{
-                                width: '100%',
-                                padding: '9px 12px',
-                                borderRadius: 'var(--radius-sm)',
-                                background: 'var(--bg-card)',
-                                border: `1.5px solid ${rsvpErrors.rsvpDepartmentId ? '#f43f5e' : 'var(--border-card)'}`,
-                                color: rsvpDepartmentId ? 'var(--text-main)' : 'var(--text-dim)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '10px 16px',
+                                borderRadius: 'var(--radius-full)',
+                                background: isSubmittingRsvp ? 'var(--input-bg)' : 'var(--mandiri-gold)',
+                                color: '#040914',
+                                border: 'none',
+                                fontWeight: 800,
                                 fontSize: '0.82rem',
-                                outline: 'none',
-                                cursor: 'pointer'
+                                cursor: isSubmittingRsvp ? 'not-allowed' : 'pointer'
                               }}
                             >
-                              <option value="">-- Pilih Departemen Asal Kamu * --</option>
-                              {departments.map((d) => (
-                                <option key={d.id} value={d.id}>
-                                  {d.name} {d.code ? `(${d.code})` : ''}
-                                </option>
-                              ))}
-                            </select>
-                            {rsvpErrors.rsvpDepartmentId && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.7rem', marginTop: '3px' }}>
-                                <AlertCircle size={11} />
-                                <span>{rsvpErrors.rsvpDepartmentId}</span>
-                              </div>
-                            )}
-                          </div>
+                              <Send size={14} />
+                              <span>{isSubmittingRsvp ? 'Menyimpan RSVP...' : 'Konfirmasi Kehadiran Saya'}</span>
+                            </button>
+                          </form>
+                        </>
+                      );
+                    })()}
+
+                    {currentEventRsvps.length > 0 && (
+                      <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+                          Rekan yang sudah konfirmasi hadir:
                         </div>
-
-                        <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '10px' }}>
-                          <select
-                            value={rsvpMode}
-                            onChange={(e) => setRsvpMode(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '9px 12px',
-                              borderRadius: 'var(--radius-sm)',
-                              background: 'var(--bg-card)',
-                              border: '1px solid var(--border-card)',
-                              color: 'var(--text-main)',
-                              fontSize: '0.82rem',
-                              outline: 'none'
-                            }}
-                          >
-                            <option value="Hadir Onsite">📍 Hadir Onsite</option>
-                            <option value="Hadir Online">💻 Hadir Online / Teams</option>
-                          </select>
-                          <input
-                            type="text"
-                            placeholder="Catatan singkat (opsional)..."
-                            value={rsvpNotes}
-                            onChange={(e) => setRsvpNotes(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '9px 12px',
-                              borderRadius: 'var(--radius-sm)',
-                              background: 'var(--bg-card)',
-                              border: '1px solid var(--border-card)',
-                              color: 'var(--text-main)',
-                              fontSize: '0.82rem',
-                              outline: 'none'
-                            }}
-                          />
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={isSubmittingRsvp}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            padding: '10px 16px',
-                            borderRadius: 'var(--radius-full)',
-                            background: isSubmittingRsvp ? 'var(--input-bg)' : 'var(--mandiri-gold)',
-                            color: '#040914',
-                            border: 'none',
-                            fontWeight: 800,
-                            fontSize: '0.82rem',
-                            cursor: isSubmittingRsvp ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          <Send size={14} />
-                          <span>{isSubmittingRsvp ? 'Menyimpan RSVP...' : 'Konfirmasi Kehadiran Saya'}</span>
-                        </button>
-                      </form>
-                    </>
-                  );
-                })()}
-
-                {currentEventRsvps.length > 0 && (
-                  <div style={{ borderTop: '1px solid var(--border-card)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-dim)' }}>
-                      Rekan yang sudah konfirmasi hadir:
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '85px', overflowY: 'auto' }}>
-                      {currentEventRsvps.slice(0, 12).map((r) => {
-                        const deptObj = departments.find(d => d.id === r.departmentId || d.id === r.department || d.id === r.squadUnit || d.name === r.department || d.name === r.squadUnit);
-                        const displayDept = deptObj ? deptObj.name : (r.department || r.squadUnit || '');
-                        return (
-                          <span
-                            key={r.id}
-                            style={{
-                              fontSize: '0.72rem',
-                              padding: '3px 9px',
-                              borderRadius: 'var(--radius-full)',
-                              background: 'var(--bg-card)',
-                              border: '1px solid var(--border-card)',
-                              color: 'var(--text-main)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px'
-                            }}
-                          >
-                            <span>✓</span>
-                            <strong>{r.attendeeName}</strong>
-                            {displayDept && (
-                              <span style={{ color: 'var(--text-dim)', marginLeft: '2px' }}>
-                                ({displayDept})
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '85px', overflowY: 'auto' }}>
+                          {currentEventRsvps.slice(0, 12).map((r) => {
+                            const deptObj = departments.find(d => d.id === r.departmentId || d.id === r.department || d.id === r.squadUnit || d.name === r.department || d.name === r.squadUnit);
+                            const displayDept = deptObj ? deptObj.name : (r.department || r.squadUnit || '');
+                            return (
+                              <span
+                                key={r.id}
+                                style={{
+                                  fontSize: '0.72rem',
+                                  padding: '3px 9px',
+                                  borderRadius: 'var(--radius-full)',
+                                  background: 'var(--bg-card)',
+                                  border: '1px solid var(--border-card)',
+                                  color: 'var(--text-main)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px'
+                                }}
+                              >
+                                <span>✓</span>
+                                <strong>{r.attendeeName}</strong>
+                                {displayDept && (
+                                  <span style={{ color: 'var(--text-dim)', marginLeft: '2px' }}>
+                                    ({displayDept})
+                                  </span>
+                                )}
                               </span>
-                            )}
-                          </span>
-                        );
-                      })}
-                    </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })()}
+                );
+              })()}
 
               {/* Add to Calendar Actions (Outlook .ics & Google Calendar) */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>

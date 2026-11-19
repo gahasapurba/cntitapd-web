@@ -879,3 +879,4 @@ export default function EventCalendarView({
     </div>
   );
 }
+

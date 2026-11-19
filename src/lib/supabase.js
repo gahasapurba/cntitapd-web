@@ -1376,8 +1376,8 @@ export async function pushCloudState(key, value) {
       await checkFormsTenureColumn();
       await checkFormsAnnouncementColumn();
       await checkFormsQuotaColumns();
-    await checkFormsEventColumns();
-    await checkFormsLuckyDrawColumn();
+      await checkFormsEventColumns();
+      await checkFormsLuckyDrawColumn();
       await checkFormsEventColumns();
       await checkFormsLuckyDrawColumn();
     }
