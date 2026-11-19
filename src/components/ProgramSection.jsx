@@ -264,6 +264,9 @@ export default function ProgramSection({
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const ts = `${days[now.getDay()]}, ${String(now.getDate()).padStart(2, '0')} ${months[now.getMonth()]} ${now.getFullYear()} • ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
 
+    const selectedDept = departments.find(d => d.id === rsvpDepartmentId);
+    const deptName = selectedDept ? selectedDept.name : rsvpDepartmentId;
+
     if (onAddEventRsvp) {
       onAddEventRsvp({
         id: 'rsvp-' + Date.now(),
@@ -271,8 +274,8 @@ export default function ProgramSection({
         eventTitle: rsvpModalEvent.title,
         attendeeName: rsvpName.trim(),
         departmentId: rsvpDepartmentId,
-        department: rsvpDepartmentId,
-        squadUnit: rsvpDepartmentId,
+        department: deptName,
+        squadUnit: deptName,
         attendanceMode: rsvpMode,
         notes: rsvpNotes.trim(),
         submittedAt: ts
@@ -2351,21 +2354,25 @@ export default function ProgramSection({
                       Rekan yang sudah konfirmasi hadir:
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '85px', overflowY: 'auto' }}>
-                      {currentEventRsvps.slice(0, 12).map((r) => (
-                        <span
-                          key={r.id}
-                          style={{
-                            fontSize: '0.72rem',
-                            padding: '3px 9px',
-                            borderRadius: 'var(--radius-full)',
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border-card)',
-                            color: 'var(--text-main)'
-                          }}
-                        >
-                          ✓ <strong>{r.attendeeName}</strong> <span style={{ color: 'var(--text-dim)' }}>({r.squadUnit})</span>
-                        </span>
-                      ))}
+                      {currentEventRsvps.slice(0, 12).map((r) => {
+                        const deptObj = departments.find(d => d.id === r.departmentId || d.id === r.department || d.id === r.squadUnit || d.name === r.department || d.name === r.squadUnit);
+                        const displayDept = deptObj ? deptObj.name : (r.department || r.squadUnit || '');
+                        return (
+                          <span
+                            key={r.id}
+                            style={{
+                              fontSize: '0.72rem',
+                              padding: '3px 9px',
+                              borderRadius: 'var(--radius-full)',
+                              background: 'var(--bg-card)',
+                              border: '1px solid var(--border-card)',
+                              color: 'var(--text-main)'
+                            }}
+                          >
+                            ✓ <strong>{r.attendeeName}</strong>{displayDept ? <span style={{ color: 'var(--text-dim)' }}> ({displayDept})</span> : null}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
