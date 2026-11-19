@@ -4681,12 +4681,7 @@ export default function AdminPortal({
                                   : (isDark ? 'var(--neon-cyan)' : '#0284c7'),
                                 fontWeight: 700
                               }}>
-                                👥 {attendeeInfo.isConnected ? 'Peserta (Form & RSVP)' : 'RSVP'}: {attendeeInfo.count}{evt.isLimited && Number(evt.maxQuota) > 0 ? ` / ${evt.maxQuota} ${attendeeInfo.isFull ? '(Penuh)' : '(Terbatas)'}` : ' (Bebas)'}
-                                {attendeeInfo.isConnected && attendeeInfo.rsvpCount > 0 && (
-                                  <span style={{ fontSize: '0.66rem', opacity: 0.85, marginLeft: '4px' }}>
-                                    ({attendeeInfo.formSubCount} Form + {attendeeInfo.rsvpCount} RSVP)
-                                  </span>
-                                )}
+                                👥 {attendeeInfo.isConnected ? 'Peserta Terdaftar' : 'RSVP'}: {attendeeInfo.count}{evt.isLimited && Number(evt.maxQuota) > 0 ? ` / ${evt.maxQuota} ${attendeeInfo.isFull ? '(Penuh)' : '(Terbatas)'}` : ' (Bebas)'}
                               </span>
                               <button
                                 type="button"

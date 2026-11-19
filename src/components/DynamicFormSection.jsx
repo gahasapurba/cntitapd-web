@@ -1065,11 +1065,6 @@ export default function DynamicFormSection({
                             }}>
                               👥 {formQuota.isConnected ? '🎪 Kuota Acara: ' : 'Kuota Pendaftaran: '}
                               {formQuota.count} / {formQuota.maxQuota} {isCurrentQuotaFull ? '(Kuota Penuh)' : `(Sisa ${formQuota.remaining})`}
-                              {formQuota.isConnected && formQuota.initialRsvpCount > 0 && (
-                                <span style={{ opacity: 0.85, fontSize: '0.68rem', marginLeft: '4px' }}>
-                                  ({formQuota.formSubCount} Form + {formQuota.initialRsvpCount} RSVP)
-                                </span>
-                              )}
                             </span>
                           )}
                           {dl.isToday && (

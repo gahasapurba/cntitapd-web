@@ -814,11 +814,6 @@ export default function ProgramSection({
                             <Users size={15} color={quotaColor} />
                             <span>
                               Kuota: {count}/{maxQ} {isFull ? '• (Penuh)' : `• (Sisa ${Math.max(0, maxQ - count)})`}
-                              {attendeeInfo.isConnected && attendeeInfo.rsvpCount > 0 && (
-                                <span style={{ fontSize: '0.68rem', opacity: 0.85, marginLeft: '4px' }}>
-                                  ({attendeeInfo.formSubCount} Form + {attendeeInfo.rsvpCount} RSVP)
-                                </span>
-                              )}
                             </span>
                           </div>
                         );
@@ -828,11 +823,6 @@ export default function ProgramSection({
                           <Users size={15} color={isDark ? 'var(--neon-cyan)' : '#0284c7'} />
                           <span>
                             {count} Insan IT APD telah terdaftar
-                            {attendeeInfo.isConnected && attendeeInfo.rsvpCount > 0 && (
-                              <span style={{ fontSize: '0.68rem', opacity: 0.85, marginLeft: '4px' }}>
-                                ({attendeeInfo.formSubCount} Form + {attendeeInfo.rsvpCount} RSVP)
-                              </span>
-                            )}
                           </span>
                         </div>
                       ) : null;
@@ -2125,8 +2115,7 @@ export default function ProgramSection({
                         gap: '6px'
                       }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          ℹ️ <strong>Sinkronisasi Kuota Terpadu:</strong> Terdaftar <strong>{attendeeInfo.formSubCount} peserta via Formulir</strong>
-                          {attendeeInfo.rsvpCount > 0 ? ` dan ${attendeeInfo.rsvpCount} RSVP awal bawaan.` : '.'} Total terdaftar saat ini: <strong>{attendeeInfo.count} peserta</strong>.
+                          ℹ️ <strong>Sinkronisasi Kuota Terpadu:</strong> Total terdaftar saat ini: <strong>{attendeeInfo.count} peserta via Formulir</strong>.
                         </div>
                       </div>
                     </div>
