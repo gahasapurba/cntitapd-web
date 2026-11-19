@@ -262,6 +262,52 @@ export default function EventCalendarView({
         </div>
       </div>
 
+      {/* Legend Khusus Admin: Perbedaan Kotak Tanggal Publik vs Draft */}
+      {isAdmin && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          padding: '10px 18px',
+          marginBottom: '16px',
+          borderRadius: 'var(--radius-md)',
+          background: isDark ? 'rgba(15, 23, 42, 0.7)' : '#f8fafc',
+          border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #e2e8f0',
+          fontSize: '0.8rem'
+        }}>
+          <span style={{ fontWeight: 800, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Sparkles size={14} color="var(--mandiri-gold)" /> Status Tanggal Kalender:
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              display: 'inline-block',
+              width: '18px',
+              height: '14px',
+              borderRadius: '3px',
+              border: '2px solid #10b981',
+              background: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)'
+            }} />
+            <span style={{ fontWeight: 700, color: '#10b981' }}>
+              ● Kotak Solid = Event Publik (Tayang di Web Umum)
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              display: 'inline-block',
+              width: '18px',
+              height: '14px',
+              borderRadius: '3px',
+              border: isDark ? '2px dashed #f59e0b' : '2px dashed #d97706',
+              background: isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)'
+            }} />
+            <span style={{ fontWeight: 700, color: isDark ? '#fbbf24' : '#b45309' }}>
+              ○ Kotak Garis Putus-putus = Event Draft (Hanya Terlihat di Admin)
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Calendar Authentic Grid Table */}
       <div className="glass-panel" style={{ padding: '24px', overflowX: 'auto' }}>
         <div style={{ minWidth: '640px' }}>
@@ -332,6 +378,13 @@ export default function EventCalendarView({
               const primaryDiv = divisions.find(d => d.id === dayEvents[0]?.divisionId);
               const tagColor = primaryDiv?.color || 'var(--mandiri-gold)';
 
+              // Status check khusus Admin untuk membedakan kotak tanggal event Publik vs Draft
+              const hasPublicEvents = dayEvents.some(evt => evt.isPublic === true);
+              const hasDraftEvents = dayEvents.some(evt => evt.isPublic !== true);
+              const isAllDraft = isAdmin && hasEvents && hasDraftEvents && !hasPublicEvents;
+              const isAllPublic = isAdmin && hasEvents && hasPublicEvents && !hasDraftEvents;
+              const isMixed = isAdmin && hasEvents && hasPublicEvents && hasDraftEvents;
+
               // Calculate grid row and col for smart popover alignment without clipping
               const slotIndex = startDayOffset + dayNum - 1;
               const rowIndex = Math.floor(slotIndex / 7);
@@ -356,10 +409,18 @@ export default function EventCalendarView({
                     boxSizing: 'border-box',
                     borderRadius: 'var(--radius-sm)',
                     background: hasEvents
-                      ? (isDark ? `${tagColor}22` : `${tagColor}15`)
+                      ? (isAllDraft
+                          ? (isDark 
+                              ? 'repeating-linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.05) 6px, rgba(245, 158, 11, 0.12) 6px, rgba(245, 158, 11, 0.12) 12px)'
+                              : 'repeating-linear-gradient(135deg, rgba(254, 243, 199, 0.6), rgba(254, 243, 199, 0.6) 6px, rgba(253, 230, 138, 0.45) 6px, rgba(253, 230, 138, 0.45) 12px)')
+                          : (isDark ? `${tagColor}22` : `${tagColor}15`))
                       : 'var(--bg-card)',
                     border: hasEvents
-                      ? `2px solid ${tagColor}`
+                      ? (isAllDraft
+                          ? (isDark ? '2px dashed #f59e0b' : '2px dashed #d97706')
+                          : (isMixed
+                              ? (isDark ? `2px solid ${tagColor}` : `2px solid ${tagColor}`)
+                              : `2px solid ${tagColor}`))
                       : '1px solid var(--border-card)',
                     padding: '6px 7px',
                     display: 'flex',
@@ -370,28 +431,75 @@ export default function EventCalendarView({
                     zIndex: hoveredDate === fullDateStr ? 70 : 1,
                     cursor: hasEvents ? 'pointer' : 'default',
                     transition: 'all 0.15s ease',
-                    boxShadow: hasEvents ? `0 2px 10px ${tagColor}25` : 'none',
+                    boxShadow: hasEvents 
+                      ? (isAllDraft 
+                          ? '0 2px 8px rgba(245, 158, 11, 0.2)' 
+                          : `0 2px 10px ${tagColor}25`)
+                      : 'none',
                     overflow: 'visible'
                   }}
                 >
                   {/* Date Number Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
                     <span style={{
                       fontSize: '0.82rem',
                       fontWeight: hasEvents ? 900 : 600,
-                      color: hasEvents ? (isDark ? tagColor : '#003d79') : 'var(--text-main)',
+                      color: hasEvents 
+                        ? (isAllDraft 
+                            ? (isDark ? '#fbbf24' : '#b45309') 
+                            : (isDark ? tagColor : '#003d79')) 
+                        : 'var(--text-main)',
                       borderRadius: '50%',
                       width: '22px',
                       height: '22px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      background: hasEvents ? (isDark ? '#040914' : '#ffffff') : 'transparent',
+                      background: hasEvents 
+                        ? (isAllDraft 
+                            ? (isDark ? 'rgba(245, 158, 11, 0.25)' : '#fef3c7') 
+                            : (isDark ? '#040914' : '#ffffff')) 
+                        : 'transparent',
                       boxShadow: hasEvents && !isDark ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
                     }}>
                       {dayNum}
                     </span>
-                    {hasEvents && dayEvents.length > 1 && (
+
+                    {/* Status Badge Khusus Admin di Kotak Tanggal */}
+                    {isAdmin && hasEvents && (
+                      <span 
+                        title={isAllDraft ? "Semua agenda di tanggal ini berstatus DRAFT (hanya admin)" : isAllPublic ? "Semua agenda di tanggal ini berstatus PUBLIK (live di web)" : "Agenda Campuran (Publik & Draft)"}
+                        style={{
+                          fontSize: '0.58rem',
+                          fontWeight: 800,
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          lineHeight: 1.2,
+                          background: isAllDraft
+                            ? (isDark ? 'rgba(245, 158, 11, 0.22)' : '#fef3c7')
+                            : isAllPublic
+                              ? (isDark ? 'rgba(16, 185, 129, 0.22)' : '#d1fae5')
+                              : (isDark ? 'rgba(56, 189, 248, 0.22)' : '#e0f2fe'),
+                          color: isAllDraft
+                            ? (isDark ? '#fbbf24' : '#b45309')
+                            : isAllPublic
+                              ? (isDark ? '#34d399' : '#047857')
+                              : (isDark ? 'var(--neon-cyan)' : '#0284c7'),
+                          border: isAllDraft
+                            ? (isDark ? '1px dashed #f59e0b' : '1px dashed #d97706')
+                            : isAllPublic
+                              ? (isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #10b981')
+                              : (isDark ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #0284c7'),
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        {isAllDraft ? '○ Draft' : isAllPublic ? '● Publik' : 'Pub+Draft'}
+                      </span>
+                    )}
+
+                    {hasEvents && dayEvents.length > 1 && !isAdmin && (
                       <span 
                         title={`${dayEvents.length} Event Terjadwal`}
                         style={{
@@ -429,18 +537,34 @@ export default function EventCalendarView({
                             style={{
                               fontSize: '0.63rem',
                               fontWeight: 700,
-                              background: isDark ? 'rgba(0,0,0,0.6)' : '#ffffff',
-                              color: isEvtComp ? 'var(--text-muted)' : (isDark ? col : '#0f172a'),
+                              background: isEvtDraft
+                                ? (isDark ? 'rgba(245, 158, 11, 0.16)' : '#fffbeb')
+                                : (isDark ? 'rgba(0,0,0,0.65)' : '#ffffff'),
+                              color: isEvtComp 
+                                ? 'var(--text-muted)' 
+                                : (isEvtDraft 
+                                    ? (isDark ? '#fbbf24' : '#b45309')
+                                    : (isDark ? col : '#0f172a')),
                               padding: '2px 5px',
                               borderRadius: '4px',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
-                              borderLeft: `2.5px solid ${isEvtComp ? '#64748b' : col}`,
-                              borderRight: isDark ? 'none' : '1px solid #e2e8f0',
-                              borderTop: isDark ? 'none' : '1px solid #e2e8f0',
-                              borderBottom: isDark ? 'none' : '1px solid #e2e8f0',
-                              boxShadow: isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
+                              borderLeft: isEvtDraft
+                                ? '3.5px dashed #f59e0b'
+                                : `3.5px solid ${isEvtComp ? '#64748b' : col}`,
+                              borderRight: isEvtDraft
+                                ? (isDark ? '1px dashed rgba(245, 158, 11, 0.4)' : '1px dashed #fcd34d')
+                                : (isDark ? 'none' : '1px solid #e2e8f0'),
+                              borderTop: isEvtDraft
+                                ? (isDark ? '1px dashed rgba(245, 158, 11, 0.4)' : '1px dashed #fcd34d')
+                                : (isDark ? 'none' : '1px solid #e2e8f0'),
+                              borderBottom: isEvtDraft
+                                ? (isDark ? '1px dashed rgba(245, 158, 11, 0.4)' : '1px dashed #fcd34d')
+                                : (isDark ? 'none' : '1px solid #e2e8f0'),
+                              boxShadow: isEvtDraft 
+                                ? 'none' 
+                                : (isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)'),
                               lineHeight: 1.25,
                               width: '100%',
                               cursor: 'pointer',
@@ -449,12 +573,34 @@ export default function EventCalendarView({
                               alignItems: 'center',
                               gap: '3px'
                             }}
-                            title={`${ev.title}${isEvtComp ? ' (Selesai)' : ''}${isAdmin ? (isEvtDraft ? ' [Draft/Privat]' : ' [Publik]') : ''}`}
+                            title={`${ev.title}${isEvtComp ? ' (Selesai)' : ''}${isAdmin ? (isEvtDraft ? ' [DRAFT / PRIVAT]' : ' [PUBLIK]') : ''}`}
                           >
-                            {isAdmin && isEvtDraft && (
-                              <span style={{ fontSize: '0.55rem', color: '#f43f5e', fontWeight: 800 }}>○</span>
+                            {isAdmin && isEvtDraft ? (
+                              <span style={{ 
+                                fontSize: '0.52rem', 
+                                fontWeight: 900, 
+                                background: isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a',
+                                color: isDark ? '#fbbf24' : '#92400e',
+                                padding: '0.5px 3.5px',
+                                borderRadius: '3px',
+                                letterSpacing: '0.3px',
+                                flexShrink: 0
+                              }}>
+                                DRAFT
+                              </span>
+                            ) : (
+                              isAdmin && (
+                                <span style={{ color: '#10b981', fontSize: '0.55rem', fontWeight: 900, flexShrink: 0 }} title="Event Publik">
+                                  ●
+                                </span>
+                              )
                             )}
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis', 
+                              whiteSpace: 'nowrap',
+                              fontStyle: isEvtDraft ? 'italic' : 'normal'
+                            }}>
                               {isEvtComp ? `✓ ${ev.title}` : ev.title}
                             </span>
                           </div>
