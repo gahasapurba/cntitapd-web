@@ -856,7 +856,10 @@ export default function GallerySection({
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   outline: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  minWidth: 0,
+                  maxWidth: 'min(100%, 220px)',
+                  textOverflow: 'ellipsis'
                 }}
               >
                 <option value="all">Semua Divisi {scopedDivisions.length > 0 ? `(${scopedDivisions.length})` : (uniqueDivisions.length > 0 ? `(${uniqueDivisions.length})` : '')}</option>

@@ -3216,7 +3216,10 @@ export default function AdminPortal({
                         border: '1px solid var(--border-card)',
                         color: 'var(--text-main)',
                         fontSize: '0.76rem',
-                        fontWeight: 600
+                        fontWeight: 600,
+                        minWidth: 0,
+                        maxWidth: 'min(100%, 200px)',
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       <option value="all">Semua Periode ({members.length})</option>
@@ -3240,7 +3243,10 @@ export default function AdminPortal({
                         border: '1px solid var(--border-card)',
                         color: 'var(--text-main)',
                         fontSize: '0.76rem',
-                        fontWeight: 600
+                        fontWeight: 600,
+                        minWidth: 0,
+                        maxWidth: 'min(100%, 200px)',
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       <option value="all">Semua Role / Jabatan</option>
@@ -3268,7 +3274,10 @@ export default function AdminPortal({
                         border: '1px solid var(--border-card)',
                         color: 'var(--text-main)',
                         fontSize: '0.76rem',
-                        fontWeight: 600
+                        fontWeight: 600,
+                        minWidth: 0,
+                        maxWidth: 'min(100%, 200px)',
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       <option value="all">Semua Divisi</option>
@@ -9296,7 +9305,10 @@ export default function AdminPortal({
                         border: '1px solid var(--border-card)',
                         color: 'var(--text-main)',
                         fontSize: '0.76rem',
-                        fontWeight: 600
+                        fontWeight: 600,
+                        minWidth: 0,
+                        maxWidth: 'min(100%, 220px)',
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       <option value="all">Semua Kategori Nilai</option>

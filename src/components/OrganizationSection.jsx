@@ -262,7 +262,10 @@ export default function OrganizationSection({
                   fontSize: '0.8rem',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  flex: '0 1 auto'
+                  flex: '0 1 auto',
+                  minWidth: 0,
+                  maxWidth: 'min(100%, 220px)',
+                  textOverflow: 'ellipsis'
                 }}
               >
                 {tenures.map(t => (
@@ -306,7 +309,10 @@ export default function OrganizationSection({
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  flex: '0 1 auto'
+                  flex: '0 1 auto',
+                  minWidth: 0,
+                  maxWidth: 'min(100%, 220px)',
+                  textOverflow: 'ellipsis'
                 }}
               >
                 <option value="all">Semua Posisi / Role ({activeMembers.length})</option>
@@ -337,7 +343,10 @@ export default function OrganizationSection({
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  flex: '0 1 auto'
+                  flex: '0 1 auto',
+                  minWidth: 0,
+                  maxWidth: 'min(100%, 220px)',
+                  textOverflow: 'ellipsis'
                 }}
               >
                 <option value="all">Semua Divisi</option>

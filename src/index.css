@@ -134,6 +134,7 @@ select {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  text-overflow: ellipsis; /* truncate long selected-option text in Chromium/Edge */
 }
 
 select option {

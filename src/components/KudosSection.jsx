@@ -792,7 +792,10 @@ export default function KudosSection({
                       fontSize: '0.8rem',
                       fontWeight: 600,
                       outline: 'none',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      minWidth: 0,
+                      maxWidth: 'min(100%, 220px)',
+                      textOverflow: 'ellipsis'
                     }}
                   >
                     <option value="all">Semua Kategori ({kudosList.length})</option>
@@ -1403,7 +1406,10 @@ export default function KudosSection({
                         fontSize: '0.78rem',
                         fontWeight: 600,
                         outline: 'none',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        minWidth: 0,
+                        maxWidth: 'min(100%, 240px)',
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       <option value="all">Semua Kategori</option>

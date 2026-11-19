@@ -594,7 +594,10 @@ export default function ProgramSection({
               borderRadius: 'var(--radius-md)',
               fontSize: '0.85rem',
               outline: 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              minWidth: 0,
+              maxWidth: 'min(100%, 220px)',
+              textOverflow: 'ellipsis'
             }}
           >
             <option value="all">Semua Divisi {scopedDivisions.length > 0 ? `(${scopedDivisions.length})` : ''}</option>
