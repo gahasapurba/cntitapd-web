@@ -72,7 +72,7 @@ Script backup di GitHub Actions akan otomatis mengeluarkan notifikasi `::warning
 
 ## 5. Standar Pelaporan Wajib Agen AI (Mandatory Reporting Protocol)
 
-Setiap kali Antigravity menyelesaikan perubahan, pembaruan fitur, skema/seed, atau permintaan pengguna, Antigravity **WAJIB** menyertakan di akhir laporannya:
+Setiap kali Antigravity menyelesaikan perubahan, pembaruan fitur, skema/seed, atau permintaan pengguna, Antigravity **WAJIB** menyertakan 3 bagian laporan berikut secara lengkap:
 
 1. **Status Konektivitas ("Sekarang Kamu Terhubung ke Mana")**:
    - Memetakan secara ringkas koneksi aktif saat ini (Local Dev, GitHub Cloud, Netlify, Supabase, dan Bitbucket Mandiri).
@@ -82,5 +82,9 @@ Setiap kali Antigravity menyelesaikan perubahan, pembaruan fitur, skema/seed, at
    - **Supabase**: Status online database (PostgreSQL baris/MB) dan kapasitas media bucket `cnt-media` (MB / 1 GB limit).
    - **GitHub**: Status sinkronisasi repositori `gahasapurba/cntitapd-web` dan artifact hasil backup GitHub Actions (label `SYSTEM` vs `ANTIGRAVITY`).
    - **Bitbucket Mandiri**: Status jangkauan VPN Mandiri, selisih commit (*ahead/behind*), serta panduan langkah sinkronisasi ketika VPN aktif.
+3. **Status 3 Pilar Sinkronisasi (Schema, Seed, dan Backup Cloud)**:
+   - **`supabase_schema.sql`**: Status pembaruan skema DDL, tabel, kolom baru, dan RLS policies (apakah sinkron & idempotent).
+   - **`supabase_seed.sql`**: Status pembaruan data master (apakah seluruh baris master terbaru sudah tercatat).
+   - **Backup Otomatis di GitHub**: Status eksekusi backup di GitHub Actions, nama artifact terbaru (`ANTIGRAVITY` / `SYSTEM`), ukuran zip, dan jaminan 0 MB di disk lokal.
 
 
