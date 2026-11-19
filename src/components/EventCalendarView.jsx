@@ -277,7 +277,7 @@ export default function EventCalendarView({
           fontSize: '0.8rem'
         }}>
           <span style={{ fontWeight: 800, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={14} color="var(--mandiri-gold)" /> Status Tanggal Kalender:
+            <Sparkles size={14} color="var(--mandiri-gold)" /> Status Tanggal Kalender (Warna Sesuai Divisi):
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{
@@ -285,11 +285,11 @@ export default function EventCalendarView({
               width: '18px',
               height: '14px',
               borderRadius: '3px',
-              border: '2px solid #10b981',
-              background: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)'
+              border: '2px solid var(--mandiri-gold)',
+              background: 'rgba(255, 184, 0, 0.2)'
             }} />
-            <span style={{ fontWeight: 700, color: '#10b981' }}>
-              ● Kotak Solid = Event Publik (Tayang di Web Umum)
+            <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+              ● Kotak Solid = Event Publik (Warna Divisi)
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -298,11 +298,11 @@ export default function EventCalendarView({
               width: '18px',
               height: '14px',
               borderRadius: '3px',
-              border: isDark ? '2px dashed #f59e0b' : '2px dashed #d97706',
-              background: isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)'
+              border: '2px dashed var(--mandiri-gold)',
+              background: 'rgba(255, 184, 0, 0.12)'
             }} />
-            <span style={{ fontWeight: 700, color: isDark ? '#fbbf24' : '#b45309' }}>
-              ○ Kotak Garis Putus-putus = Event Draft (Hanya Terlihat di Admin)
+            <span style={{ fontWeight: 700, color: 'var(--mandiri-gold)' }}>
+              ○ Kotak Putus-putus (Dashed) = Event Draft (Warna Divisi)
             </span>
           </div>
         </div>
@@ -411,15 +411,15 @@ export default function EventCalendarView({
                     background: hasEvents
                       ? (isAllDraft
                           ? (isDark 
-                              ? 'repeating-linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.05) 6px, rgba(245, 158, 11, 0.12) 6px, rgba(245, 158, 11, 0.12) 12px)'
-                              : 'repeating-linear-gradient(135deg, rgba(254, 243, 199, 0.6), rgba(254, 243, 199, 0.6) 6px, rgba(253, 230, 138, 0.45) 6px, rgba(253, 230, 138, 0.45) 12px)')
+                              ? `repeating-linear-gradient(135deg, ${tagColor}08, ${tagColor}08 6px, ${tagColor}16 6px, ${tagColor}16 12px)`
+                              : `repeating-linear-gradient(135deg, ${tagColor}14, ${tagColor}14 6px, ${tagColor}24 6px, ${tagColor}24 12px)`)
                           : (isDark ? `${tagColor}22` : `${tagColor}15`))
                       : 'var(--bg-card)',
                     border: hasEvents
                       ? (isAllDraft
-                          ? (isDark ? '2px dashed #f59e0b' : '2px dashed #d97706')
+                          ? `2px dashed ${tagColor}`
                           : (isMixed
-                              ? (isDark ? `2px solid ${tagColor}` : `2px solid ${tagColor}`)
+                              ? `2px solid ${tagColor}`
                               : `2px solid ${tagColor}`))
                       : '1px solid var(--border-card)',
                     padding: '6px 7px',
@@ -433,7 +433,7 @@ export default function EventCalendarView({
                     transition: 'all 0.15s ease',
                     boxShadow: hasEvents 
                       ? (isAllDraft 
-                          ? '0 2px 8px rgba(245, 158, 11, 0.2)' 
+                          ? `0 2px 8px ${tagColor}20` 
                           : `0 2px 10px ${tagColor}25`)
                       : 'none',
                     overflow: 'visible'
@@ -444,11 +444,7 @@ export default function EventCalendarView({
                     <span style={{
                       fontSize: '0.82rem',
                       fontWeight: hasEvents ? 900 : 600,
-                      color: hasEvents 
-                        ? (isAllDraft 
-                            ? (isDark ? '#fbbf24' : '#b45309') 
-                            : (isDark ? tagColor : '#003d79')) 
-                        : 'var(--text-main)',
+                      color: hasEvents ? (isDark ? tagColor : '#003d79') : 'var(--text-main)',
                       borderRadius: '50%',
                       width: '22px',
                       height: '22px',
@@ -456,10 +452,9 @@ export default function EventCalendarView({
                       alignItems: 'center',
                       justifyContent: 'center',
                       background: hasEvents 
-                        ? (isAllDraft 
-                            ? (isDark ? 'rgba(245, 158, 11, 0.25)' : '#fef3c7') 
-                            : (isDark ? '#040914' : '#ffffff')) 
+                        ? (isDark ? '#040914' : '#ffffff') 
                         : 'transparent',
+                      border: hasEvents && isAllDraft ? `1px dashed ${tagColor}` : 'none',
                       boxShadow: hasEvents && !isDark ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
                     }}>
                       {dayNum}
@@ -475,21 +470,9 @@ export default function EventCalendarView({
                           padding: '1px 5px',
                           borderRadius: '4px',
                           lineHeight: 1.2,
-                          background: isAllDraft
-                            ? (isDark ? 'rgba(245, 158, 11, 0.22)' : '#fef3c7')
-                            : isAllPublic
-                              ? (isDark ? 'rgba(16, 185, 129, 0.22)' : '#d1fae5')
-                              : (isDark ? 'rgba(56, 189, 248, 0.22)' : '#e0f2fe'),
-                          color: isAllDraft
-                            ? (isDark ? '#fbbf24' : '#b45309')
-                            : isAllPublic
-                              ? (isDark ? '#34d399' : '#047857')
-                              : (isDark ? 'var(--neon-cyan)' : '#0284c7'),
-                          border: isAllDraft
-                            ? (isDark ? '1px dashed #f59e0b' : '1px dashed #d97706')
-                            : isAllPublic
-                              ? (isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #10b981')
-                              : (isDark ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #0284c7'),
+                          background: isDark ? `${tagColor}25` : `${tagColor}20`,
+                          color: tagColor,
+                          border: isAllDraft ? `1px dashed ${tagColor}` : `1px solid ${tagColor}`,
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '2px'
@@ -538,29 +521,27 @@ export default function EventCalendarView({
                               fontSize: '0.63rem',
                               fontWeight: 700,
                               background: isEvtDraft
-                                ? (isDark ? 'rgba(245, 158, 11, 0.16)' : '#fffbeb')
+                                ? (isDark ? `${col}18` : `${col}12`)
                                 : (isDark ? 'rgba(0,0,0,0.65)' : '#ffffff'),
                               color: isEvtComp 
                                 ? 'var(--text-muted)' 
-                                : (isEvtDraft 
-                                    ? (isDark ? '#fbbf24' : '#b45309')
-                                    : (isDark ? col : '#0f172a')),
+                                : (isDark ? col : '#0f172a'),
                               padding: '2px 5px',
                               borderRadius: '4px',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               borderLeft: isEvtDraft
-                                ? '3.5px dashed #f59e0b'
+                                ? `3.5px dashed ${col}`
                                 : `3.5px solid ${isEvtComp ? '#64748b' : col}`,
                               borderRight: isEvtDraft
-                                ? (isDark ? '1px dashed rgba(245, 158, 11, 0.4)' : '1px dashed #fcd34d')
+                                ? (isDark ? `1px dashed ${col}40` : `1px dashed ${col}60`)
                                 : (isDark ? 'none' : '1px solid #e2e8f0'),
                               borderTop: isEvtDraft
-                                ? (isDark ? '1px dashed rgba(245, 158, 11, 0.4)' : '1px dashed #fcd34d')
+                                ? (isDark ? `1px dashed ${col}40` : `1px dashed ${col}60`)
                                 : (isDark ? 'none' : '1px solid #e2e8f0'),
                               borderBottom: isEvtDraft
-                                ? (isDark ? '1px dashed rgba(245, 158, 11, 0.4)' : '1px dashed #fcd34d')
+                                ? (isDark ? `1px dashed ${col}40` : `1px dashed ${col}60`)
                                 : (isDark ? 'none' : '1px solid #e2e8f0'),
                               boxShadow: isEvtDraft 
                                 ? 'none' 
@@ -579,8 +560,9 @@ export default function EventCalendarView({
                               <span style={{ 
                                 fontSize: '0.52rem', 
                                 fontWeight: 900, 
-                                background: isDark ? 'rgba(245, 158, 11, 0.35)' : '#fde68a',
-                                color: isDark ? '#fbbf24' : '#92400e',
+                                background: isDark ? `${col}30` : `${col}25`,
+                                color: col,
+                                border: `1px dashed ${col}`,
                                 padding: '0.5px 3.5px',
                                 borderRadius: '3px',
                                 letterSpacing: '0.3px',
@@ -590,7 +572,7 @@ export default function EventCalendarView({
                               </span>
                             ) : (
                               isAdmin && (
-                                <span style={{ color: '#10b981', fontSize: '0.55rem', fontWeight: 900, flexShrink: 0 }} title="Event Publik">
+                                <span style={{ color: col, fontSize: '0.55rem', fontWeight: 900, flexShrink: 0 }} title="Event Publik">
                                   ●
                                 </span>
                               )
