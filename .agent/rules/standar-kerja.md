@@ -61,3 +61,20 @@ flowchart TD
 | **Storage Bucket** | 1.000 MB (1 GB) | 400 MB | 800 MB | Kompresi WebP gambar gallery/member |
 
 Script backup di GitHub Actions akan otomatis mengeluarkan notifikasi `::warning::` atau `::error::` di Step Summary apabila ambang batas ini terlampaui.
+
+---
+
+## 5. Standar Pelaporan Wajib Agen AI (Mandatory Reporting Protocol)
+
+Setiap kali Antigravity menyelesaikan perubahan, pembaruan fitur, skema/seed, atau permintaan pengguna, Antigravity **WAJIB** menyertakan di akhir laporannya:
+
+1. **Status Konektivitas ("Sekarang Kamu Terhubung ke Mana")**:
+   - Memetakan secara ringkas koneksi aktif saat ini (Local Dev, GitHub Cloud, Netlify, Supabase, dan Bitbucket Mandiri).
+2. **Tabel Rangkuman Status 5 Pilar Ekosistem**:
+   - **Local**: Kondisi branch, kebersihan working tree, dev server `localhost:5173`, dan jaminan disk bersih (0 MB file backup di lokal).
+   - **Netlify**: Status ketersediaan live web `https://cntitapd.netlify.app` dan sinkronisasi auto-deploy.
+   - **Supabase**: Status online database (PostgreSQL baris/MB) dan kapasitas media bucket `cnt-media` (MB / 1 GB limit).
+   - **GitHub**: Status sinkronisasi repositori `gahasapurba/cntitapd-web` dan artifact hasil backup GitHub Actions (label `SYSTEM` vs `ANTIGRAVITY`).
+   - **Bitbucket Mandiri**: Status jangkauan VPN Mandiri, selisih commit (*ahead/behind*), serta panduan langkah sinkronisasi ketika VPN aktif.
+
+
