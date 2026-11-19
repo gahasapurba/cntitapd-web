@@ -603,7 +603,14 @@ select option {
   input, select, textarea {
     font-size: 16px !important;
     max-width: 100% !important;
+    min-width: 0 !important;
     box-sizing: border-box !important;
+  }
+
+  select {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    text-overflow: ellipsis;
   }
 
   input[type="date"],

@@ -2046,20 +2046,38 @@ export default function EventRegistrationStats({
               {dropdownFields.map((df) => {
                 const options = getDropdownOptions(df);
                 return (
-                  <div key={df.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>{df.label}:</span>
+                  <div
+                    key={df.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      minWidth: 0,
+                      maxWidth: '100%',
+                      flex: '1 1 auto'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                      {df.label}:
+                    </span>
                     <select
                       value={dropdownFilters[df.id] || 'ALL'}
                       onChange={(e) => setDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
                       style={{
-                        padding: '6px 12px',
+                        padding: '6px 26px 6px 12px',
                         borderRadius: 'var(--radius-full)',
                         background: 'var(--bg-card)',
                         border: '1px solid var(--border-card)',
                         color: 'var(--text-main)',
                         fontSize: '0.78rem',
                         cursor: 'pointer',
-                        maxWidth: '200px'
+                        minWidth: 0,
+                        maxWidth: 'min(100%, 190px)',
+                        flex: '1 1 auto',
+                        textOverflow: 'ellipsis',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        boxSizing: 'border-box'
                       }}
                     >
                       <option value="ALL">Semua {df.label}</option>
@@ -2075,19 +2093,35 @@ export default function EventRegistrationStats({
 
               {/* Winner Status Filter (only if Lucky Draw is enabled) */}
               {isLuckyDrawEnabled && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>Undian:</span>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  flex: '1 1 auto'
+                }}>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    Undian:
+                  </span>
                   <select
                     value={winnerFilter}
                     onChange={(e) => setWinnerFilter(e.target.value)}
                     style={{
-                      padding: '6px 12px',
+                      padding: '6px 26px 6px 12px',
                       borderRadius: 'var(--radius-full)',
                       background: 'var(--bg-card)',
                       border: '1px solid var(--border-card)',
                       color: 'var(--text-main)',
                       fontSize: '0.78rem',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      minWidth: 0,
+                      maxWidth: 'min(100%, 180px)',
+                      flex: '1 1 auto',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      boxSizing: 'border-box'
                     }}
                   >
                     <option value="ALL">Semua Peserta</option>
@@ -2731,20 +2765,35 @@ export default function EventRegistrationStats({
 
                   {/* Filter by Prize / Session Name */}
                   {uniquePrizeNames.length > 1 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>Hadiah:</span>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      minWidth: 0,
+                      maxWidth: '100%',
+                      flex: '1 1 auto'
+                    }}>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                        Hadiah:
+                      </span>
                       <select
                         value={winnerPrizeFilter}
                         onChange={(e) => setWinnerPrizeFilter(e.target.value)}
                         style={{
-                          padding: '6px 12px',
+                          padding: '6px 26px 6px 12px',
                           borderRadius: 'var(--radius-full)',
                           background: 'var(--bg-card)',
                           border: '1px solid var(--border-card)',
                           color: 'var(--text-main)',
                           fontSize: '0.78rem',
                           cursor: 'pointer',
-                          maxWidth: '200px'
+                          minWidth: 0,
+                          maxWidth: 'min(100%, 180px)',
+                          flex: '1 1 auto',
+                          textOverflow: 'ellipsis',
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box'
                         }}
                       >
                         <option value="ALL">Semua Sesi Hadiah</option>
@@ -2759,20 +2808,38 @@ export default function EventRegistrationStats({
                   {dropdownFields.map((df) => {
                     const options = getDropdownOptions(df);
                     return (
-                      <div key={df.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700 }}>{df.label}:</span>
+                      <div
+                        key={df.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          minWidth: 0,
+                          maxWidth: '100%',
+                          flex: '1 1 auto'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                          {df.label}:
+                        </span>
                         <select
                           value={winnerDropdownFilters[df.id] || 'ALL'}
                           onChange={(e) => setWinnerDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
                           style={{
-                            padding: '6px 12px',
+                            padding: '6px 26px 6px 12px',
                             borderRadius: 'var(--radius-full)',
                             background: 'var(--bg-card)',
                             border: '1px solid var(--border-card)',
                             color: 'var(--text-main)',
                             fontSize: '0.78rem',
                             cursor: 'pointer',
-                            maxWidth: '200px'
+                            minWidth: 0,
+                            maxWidth: 'min(100%, 190px)',
+                            flex: '1 1 auto',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            boxSizing: 'border-box'
                           }}
                         >
                           <option value="ALL">Semua {df.label}</option>
