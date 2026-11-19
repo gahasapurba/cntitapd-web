@@ -1,6 +1,7 @@
 -- ==============================================================================
 -- SEED DATA MASTER CNT IT APD (Default Initial & Master Data)
 -- Jalankan berkas ini setelah supabase_schema.sql untuk memulihkan seluruh data master
+-- Terakhir Diperbarui: 2026-11-19 (Oleh Antigravity AI - Status: Sinkron)
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------

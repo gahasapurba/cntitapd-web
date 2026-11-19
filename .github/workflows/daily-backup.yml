@@ -1,11 +1,21 @@
-name: Automated Daily Supabase Backup
+name: Automated Supabase Backup (DB & Storage)
 
 on:
   schedule:
-    # Berjalan setiap hari pukul 02:00 WIB (19:00 UTC)
+    # 1. Eksekusi terjadwal sistem setiap hari pukul 02:00 WIB (19:00 UTC)
     - cron: '0 19 * * *'
-  # Memungkinkan trigger backup manual dari tab Actions di GitHub
+  # 2. Eksekusi otomatis di cloud saat Antigravity mengupdate skema atau seed data
+  push:
+    paths:
+      - 'supabase_schema.sql'
+      - 'supabase_seed.sql'
+  # 3. Trigger manual kapan saja dari GitHub tab Actions
   workflow_dispatch:
+    inputs:
+      trigger_source:
+        description: 'Sumber pemicu eksekusi'
+        required: false
+        default: 'Manual User Run'
 
 jobs:
   backup:
@@ -21,19 +31,35 @@ jobs:
         with:
           node-version: 20
 
+      - name: Determine Trigger Source & Label
+        id: meta
+        run: |
+          TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "TAG=SYSTEM" >> $GITHUB_OUTPUT
+            echo "LABEL=⏰ Sistem (Jadwal Otomatis 02:00 WIB)" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "TAG=ANTIGRAVITY" >> $GITHUB_OUTPUT
+            echo "LABEL=🤖 Antigravity AI (Pasca Perubahan Skema/Seed)" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=MANUAL" >> $GITHUB_OUTPUT
+            echo "LABEL=${{ github.event.inputs.trigger_source || 'Manual User' }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run Full Backup Script (DB + Storage)
-        id: backup
         env:
           SUPABASE_MGMT_TOKEN: ${{ secrets.SUPABASE_MGMT_TOKEN }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || 'xarcxbfgeoetyhpqsick' }}
+          TRIGGER_TAG: ${{ steps.meta.outputs.TAG }}
+          TRIGGER_LABEL: ${{ steps.meta.outputs.LABEL }}
         run: |
           node scripts/backup-db.cjs
-          echo "TIMESTAMP=$(date +'%Y-%m-%d_%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Upload Full Backup Archive as Secure Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-full-backup-${{ steps.backup.outputs.TIMESTAMP }}
+          name: supabase-backup-${{ steps.meta.outputs.TAG }}-${{ steps.meta.outputs.TIMESTAMP }}
           path: |
             backups/*.zip
             backups/*.json

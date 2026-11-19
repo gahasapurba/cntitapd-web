@@ -5,7 +5,8 @@
  * 1. Database Priority: Database SQL selalu di-backup dan diisolasi terlebih dahulu,
  *    sehingga kegagalan pada storage tidak akan menggugurkan backup data utama.
  * 2. Early Warning: Peringatan otomatis jika ukuran mendekati ambang batas tertentu.
- * 3. GitHub Step Summary: Laporan visual otomatis di dashboard GitHub Actions setiap eksekusi.
+ * 3. GitHub Step Summary: Laporan visual otomatis di dashboard GitHub Actions setiap eksekusi
+ *    dengan penanda jelas apakah dijalankan oleh SISTEM (02:00 WIB) atau ANTIGRAVITY AI.
  */
 
 const fs = require('fs');
@@ -14,6 +15,9 @@ const { execSync } = require('child_process');
 
 let token = process.env.SUPABASE_MGMT_TOKEN;
 let projectId = process.env.SUPABASE_PROJECT_ID;
+
+const triggerTag = process.env.TRIGGER_TAG || 'LOCAL';
+const triggerLabel = process.env.TRIGGER_LABEL || (triggerTag === 'SYSTEM' ? '⏰ Sistem (Jadwal Otomatis 02:00 WIB)' : '🤖 Antigravity AI (Manual / Pasca Pembaruan)');
 
 if (!token || !projectId) {
   const envPath = path.join(__dirname, '..', '.env');
@@ -61,7 +65,8 @@ function appendGithubSummary(markdown) {
 async function runFullBackup() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   console.log(`[${new Date().toISOString()}] === MEMULAI FULL BACKUP SUPABASE (DB + STORAGE) ===`);
-  console.log(`Project ID: ${projectId}\n`);
+  console.log(`Dijalankan Oleh : ${triggerLabel} [${triggerTag}]`);
+  console.log(`Project ID      : ${projectId}\n`);
 
   const backupDir = path.join(__dirname, '..', 'backups');
   const tempDir = path.join(backupDir, `snapshot_${timestamp}`);
@@ -77,7 +82,9 @@ async function runFullBackup() {
     meta: {
       timestamp: new Date().toISOString(),
       projectId,
-      version: '2.1-safetynet'
+      triggerTag,
+      triggerLabel,
+      version: '2.2-cloud-labeled'
     },
     tables: {}
   };
@@ -116,7 +123,7 @@ async function runFullBackup() {
   fs.writeFileSync(dbJsonPath, JSON.stringify(backupData, null, 2), 'utf8');
 
   // Simpan database.json langsung ke backups/ agar salinan database selalu aman
-  const standaloneDbJson = path.join(backupDir, `database_${timestamp}.json`);
+  const standaloneDbJson = path.join(backupDir, `database_${triggerTag}_${timestamp}.json`);
   const latestJsonPath = path.join(backupDir, 'backup_latest.json');
   fs.copyFileSync(dbJsonPath, standaloneDbJson);
   fs.copyFileSync(dbJsonPath, latestJsonPath);
@@ -180,14 +187,14 @@ async function runFullBackup() {
     console.log(`::error::[CRITICAL CAPACITY] Total ukuran backup (${storageSizeMb} MB) telah melampaui ${CRIT_THRESHOLD_MB} MB!`);
   } else if (totalDownloadedBytes > WARN_THRESHOLD_MB * 1024 * 1024) {
     alertLevel = 'WARNING';
-    console.log(`::warning::[EARLY WARNING] Total ukuran backup (${storageSizeMb} MB) telah melampaui ${WARN_THRESHOLD_MB} MB. Pertimbangkan kompresi gambar.`);
+    console.log(`::warning::[EARLY WARNING] Total ukuran backup (${storageSizeMb} MB) telah melampaui ${WARN_THRESHOLD_MB} MB.`);
   }
 
   // -------------------------------------------------------------------------
-  // 3. PACKAGING KE FILE ZIP
+  // 3. PACKAGING KE FILE ZIP DENGAN LABEL JELAS
   // -------------------------------------------------------------------------
   console.log('\n--- 3/3. Mengompresi Database & Storage ke Archive ZIP ---');
-  const zipFilename = `supabase_full_backup_${timestamp}.zip`;
+  const zipFilename = `supabase_backup_${triggerTag}_${timestamp}.zip`;
   const zipPath = path.join(backupDir, zipFilename);
   const latestZipPath = path.join(backupDir, 'supabase_full_backup_latest.zip');
 
@@ -210,10 +217,11 @@ async function runFullBackup() {
   // SAFETY NET 3: GITHUB ACTIONS DASHBOARD STEP SUMMARY
   // -------------------------------------------------------------------------
   const summaryMarkdown = `
-## 🛡️ Laporan Otomatis Supabase Full Backup
+## 🛡️ Laporan Supabase Full Backup
 
+- **Dijalankan Oleh:** **${triggerLabel}** (\`${triggerTag}\`)
 - **Status Eksekusi:** ${zipSuccess ? '✅ Berhasil Sempurna' : '⚠️ Berhasil Sebagian (Database Terselamatkan)'}
-- **Timestamp:** \`${new Date().toISOString()}\`
+- **Waktu Eksekusi:** \`${new Date().toISOString()}\`
 - **Total Data Database:** **${totalDbRows} baris** (16 tabel)
 - **Total Berkas Storage:** **${storageFiles.length} file** (${storageSizeMb} MB)
 - **Status Kapasitas:** ${alertLevel === 'NORMAL' ? '🟢 Normal (< 400 MB)' : alertLevel === 'WARNING' ? '🟡 Perhatian (> 400 MB)' : '🔴 Kritis (> 800 MB)'}
@@ -223,13 +231,14 @@ async function runFullBackup() {
 | :--- | :---: | :---: |
 ${tableStats.map(s => `| \`${s.table}\` | ${s.count} | ${s.status === 'OK' ? '✓' : '⚠️'} |`).join('\n')}
 
-> *Catatan Keamanan: Salinan database SQL (\`database.json\`) selalu diisolasi secara mandiri. File zip utuh tersimpan di Artifacts.*
+> *Catatan: Backup disimpan secara aman di Cloud GitHub Actions Artifacts.*
 `;
 
   appendGithubSummary(summaryMarkdown);
 
   console.log(`\n============================================================`);
   console.log(`[SUCCESS] FULL BACKUP SELESAI DENGAN SUKSES!`);
+  console.log(`  • Dijalankan Oleh     : ${triggerLabel} [${triggerTag}]`);
   console.log(`  • Status Safety Net   : ${alertLevel}`);
   console.log(`  • Total Data Database : ${totalDbRows} baris`);
   console.log(`  • Total File Storage  : ${storageFiles.length} berkas (${storageSizeMb} MB)`);

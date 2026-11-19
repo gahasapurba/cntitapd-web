@@ -3,6 +3,7 @@
 -- Blueprint Lengkap 16 Tabel, Relasi Foreign Key, Index, RLS, & Storage Bucket
 -- File ini dapat dijalankan langsung di SQL Editor Supabase baru untuk membangun
 -- ulang 100% seluruh struktur database dari nol secara instan dan idempotent.
+-- Terakhir Diperbarui: 2026-11-19 (Oleh Antigravity AI - Status: Sinkron)
 -- ==============================================================================
 
 -- 1. Tabel Master Periode Kepengurusan (tenures)
