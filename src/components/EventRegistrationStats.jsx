@@ -2047,7 +2047,16 @@ export default function EventRegistrationStats({
               </div>
 
               {/* Right-aligned filters group: Dropdowns + Undian + Reset */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '8px',
+                flexWrap: 'wrap',
+                marginLeft: 'auto',
+                minWidth: 0,
+                maxWidth: '100%'
+              }}>
                 {/* Dynamic Choice/Dropdown Filters from Form */}
                 {dropdownFields.map((df) => {
                   const options = getDropdownOptions(df);
@@ -2058,6 +2067,7 @@ export default function EventRegistrationStats({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
+                        flex: '0 0 auto',
                         minWidth: 0,
                         maxWidth: '100%'
                       }}
@@ -2101,6 +2111,7 @@ export default function EventRegistrationStats({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
+                    flex: '0 0 auto',
                     minWidth: 0,
                     maxWidth: '100%'
                   }}>
@@ -2142,6 +2153,7 @@ export default function EventRegistrationStats({
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
+                      flex: '0 0 auto',
                       padding: '6px 12px',
                       borderRadius: 'var(--radius-full)',
                       background: 'rgba(244, 63, 94, 0.12)',
@@ -2772,13 +2784,23 @@ export default function EventRegistrationStats({
                   </div>
 
                   {/* Right-aligned filters group: Prize Filter + Dropdowns + Reset */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: '8px',
+                    flexWrap: 'wrap',
+                    marginLeft: 'auto',
+                    minWidth: 0,
+                    maxWidth: '100%'
+                  }}>
                     {/* Filter by Prize / Session Name */}
                     {uniquePrizeNames.length > 1 && (
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
+                        flex: '0 0 auto',
                         minWidth: 0,
                         maxWidth: '100%'
                       }}>
@@ -2822,6 +2844,7 @@ export default function EventRegistrationStats({
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
+                            flex: '0 0 auto',
                             minWidth: 0,
                             maxWidth: '100%'
                           }}
@@ -2866,6 +2889,7 @@ export default function EventRegistrationStats({
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
+                          flex: '0 0 auto',
                           padding: '6px 12px',
                           borderRadius: 'var(--radius-full)',
                           background: 'rgba(244, 63, 94, 0.12)',
