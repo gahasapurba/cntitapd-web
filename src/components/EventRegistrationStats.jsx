@@ -2079,6 +2079,7 @@ export default function EventRegistrationStats({
                         value={dropdownFilters[df.id] || 'ALL'}
                         onChange={(e) => setDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
                         style={{
+                          width: '180px',
                           padding: '6px 26px 6px 12px',
                           borderRadius: 'var(--radius-full)',
                           background: 'var(--bg-card)',
@@ -2087,7 +2088,7 @@ export default function EventRegistrationStats({
                           fontSize: '0.78rem',
                           cursor: 'pointer',
                           minWidth: 0,
-                          maxWidth: 'min(100%, 190px)',
+                          maxWidth: '100%',
                           textOverflow: 'ellipsis',
                           overflow: 'hidden',
                           whiteSpace: 'nowrap',
@@ -2122,6 +2123,7 @@ export default function EventRegistrationStats({
                       value={winnerFilter}
                       onChange={(e) => setWinnerFilter(e.target.value)}
                       style={{
+                        width: '150px',
                         padding: '6px 26px 6px 12px',
                         borderRadius: 'var(--radius-full)',
                         background: 'var(--bg-card)',
@@ -2130,7 +2132,7 @@ export default function EventRegistrationStats({
                         fontSize: '0.78rem',
                         cursor: 'pointer',
                         minWidth: 0,
-                        maxWidth: 'min(100%, 180px)',
+                        maxWidth: '100%',
                         textOverflow: 'ellipsis',
                         overflow: 'hidden',
                         whiteSpace: 'nowrap',
@@ -2811,6 +2813,7 @@ export default function EventRegistrationStats({
                           value={winnerPrizeFilter}
                           onChange={(e) => setWinnerPrizeFilter(e.target.value)}
                           style={{
+                            width: '170px',
                             padding: '6px 26px 6px 12px',
                             borderRadius: 'var(--radius-full)',
                             background: 'var(--bg-card)',
@@ -2819,7 +2822,7 @@ export default function EventRegistrationStats({
                             fontSize: '0.78rem',
                             cursor: 'pointer',
                             minWidth: 0,
-                            maxWidth: 'min(100%, 180px)',
+                            maxWidth: '100%',
                             textOverflow: 'ellipsis',
                             overflow: 'hidden',
                             whiteSpace: 'nowrap',
@@ -2856,6 +2859,7 @@ export default function EventRegistrationStats({
                             value={winnerDropdownFilters[df.id] || 'ALL'}
                             onChange={(e) => setWinnerDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
                             style={{
+                              width: '180px',
                               padding: '6px 26px 6px 12px',
                               borderRadius: 'var(--radius-full)',
                               background: 'var(--bg-card)',
@@ -2864,7 +2868,7 @@ export default function EventRegistrationStats({
                               fontSize: '0.78rem',
                               cursor: 'pointer',
                               minWidth: 0,
-                              maxWidth: 'min(100%, 190px)',
+                              maxWidth: '100%',
                               textOverflow: 'ellipsis',
                               overflow: 'hidden',
                               whiteSpace: 'nowrap',
