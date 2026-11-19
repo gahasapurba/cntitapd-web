@@ -97,3 +97,4 @@ restoreStorage().catch(err => {
   console.error('[FATAL] Restore gagal:', err);
   process.exit(1);
 });
+
