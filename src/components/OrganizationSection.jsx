@@ -236,14 +236,12 @@ export default function OrganizationSection({
             marginTop: '24px',
             padding: '14px 18px',
             display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            flexDirection: 'column',
             gap: '10px',
             border: '1px solid var(--border-card)'
           }}>
-            {/* Search - fills left */}
-            <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 'min(100%, 200px)' }}>
+            {/* Search - Full width on top */}
+            <div style={{ position: 'relative', width: '100%' }}>
               <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
               <input
                 type="text"
@@ -264,8 +262,15 @@ export default function OrganizationSection({
               />
             </div>
 
-            {/* Filters grouped right */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Filters - Filling full width evenly */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              width: '100%'
+            }}>
               {/* Filter Periode / Tenure */}
               {tenures.length > 0 && (
                 <select
@@ -279,6 +284,7 @@ export default function OrganizationSection({
                     }
                   }}
                   style={{
+                    flex: '1 1 180px',
                     padding: '9px 14px',
                     borderRadius: 'var(--radius-full)',
                     background: 'var(--input-bg)',
@@ -288,8 +294,9 @@ export default function OrganizationSection({
                     fontWeight: 700,
                     cursor: 'pointer',
                     minWidth: 0,
-                    maxWidth: 'min(100%, 220px)',
-                    textOverflow: 'ellipsis'
+                    maxWidth: '100%',
+                    textOverflow: 'ellipsis',
+                    boxSizing: 'border-box'
                   }}
                 >
                   {tenures.map(t => (
@@ -305,6 +312,7 @@ export default function OrganizationSection({
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                   style={{
+                    flex: '1 1 180px',
                     padding: '9px 12px',
                     borderRadius: 'var(--radius-full)',
                     background: 'var(--input-bg)',
@@ -314,8 +322,9 @@ export default function OrganizationSection({
                     fontWeight: 600,
                     cursor: 'pointer',
                     minWidth: 0,
-                    maxWidth: 'min(100%, 220px)',
-                    textOverflow: 'ellipsis'
+                    maxWidth: '100%',
+                    textOverflow: 'ellipsis',
+                    boxSizing: 'border-box'
                   }}
                 >
                   <option value="all">Semua Posisi / Role ({activeMembers.length})</option>
@@ -338,6 +347,7 @@ export default function OrganizationSection({
                   value={divisionFilter}
                   onChange={(e) => setDivisionFilter(e.target.value)}
                   style={{
+                    flex: '1 1 180px',
                     padding: '9px 12px',
                     borderRadius: 'var(--radius-full)',
                     background: 'var(--input-bg)',
@@ -347,8 +357,9 @@ export default function OrganizationSection({
                     fontWeight: 600,
                     cursor: 'pointer',
                     minWidth: 0,
-                    maxWidth: 'min(100%, 220px)',
-                    textOverflow: 'ellipsis'
+                    maxWidth: '100%',
+                    textOverflow: 'ellipsis',
+                    boxSizing: 'border-box'
                   }}
                 >
                   <option value="all">Semua Divisi</option>
@@ -367,14 +378,16 @@ export default function OrganizationSection({
                     setDivisionFilter('all');
                   }}
                   style={{
-                    padding: '8px 14px',
+                    padding: '8px 16px',
                     borderRadius: 'var(--radius-full)',
                     background: 'rgba(244, 63, 94, 0.14)',
                     border: '1px solid rgba(244, 63, 94, 0.4)',
                     color: '#f43f5e',
                     fontSize: '0.76rem',
                     fontWeight: 700,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flex: '0 0 auto'
                   }}
                 >
                   Reset Filter
