@@ -2015,15 +2015,18 @@ export default function EventRegistrationStats({
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
+              justifyContent: 'space-between',
+              gap: '12px',
               flexWrap: 'wrap',
               background: 'var(--input-bg)',
               padding: '12px 14px',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-card)'
+              border: '1px solid var(--border-card)',
+              maxWidth: '100%',
+              boxSizing: 'border-box'
             }}>
-              {/* Dynamic Search Input */}
-              <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '180px' }}>
+              {/* Dynamic Search Input (Fills left space) */}
+              <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 'min(100%, 180px)', maxWidth: '100%' }}>
                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                 <input
                   type="text"
@@ -2037,32 +2040,76 @@ export default function EventRegistrationStats({
                     background: 'var(--bg-card)',
                     border: '1px solid var(--border-card)',
                     color: 'var(--text-main)',
-                    fontSize: '0.78rem'
+                    fontSize: '0.78rem',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
 
-              {/* Dynamic Choice/Dropdown Filters from Form */}
-              {dropdownFields.map((df) => {
-                const options = getDropdownOptions(df);
-                return (
-                  <div
-                    key={df.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      minWidth: 0,
-                      maxWidth: '100%',
-                      flex: '1 1 auto'
-                    }}
-                  >
+              {/* Right-aligned filters group: Dropdowns + Undian + Reset */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
+                {/* Dynamic Choice/Dropdown Filters from Form */}
+                {dropdownFields.map((df) => {
+                  const options = getDropdownOptions(df);
+                  return (
+                    <div
+                      key={df.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        minWidth: 0,
+                        maxWidth: '100%'
+                      }}
+                    >
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                        {df.label}:
+                      </span>
+                      <select
+                        value={dropdownFilters[df.id] || 'ALL'}
+                        onChange={(e) => setDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
+                        style={{
+                          padding: '6px 26px 6px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--border-card)',
+                          color: 'var(--text-main)',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          minWidth: 0,
+                          maxWidth: 'min(100%, 190px)',
+                          textOverflow: 'ellipsis',
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        <option value="ALL">Semua {df.label}</option>
+                        {options.map((opt, i) => (
+                          <option key={i} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+
+                {/* Winner Status Filter (only if Lucky Draw is enabled) */}
+                {isLuckyDrawEnabled && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    minWidth: 0,
+                    maxWidth: '100%'
+                  }}>
                     <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                      {df.label}:
+                      Undian:
                     </span>
                     <select
-                      value={dropdownFilters[df.id] || 'ALL'}
-                      onChange={(e) => setDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
+                      value={winnerFilter}
+                      onChange={(e) => setWinnerFilter(e.target.value)}
                       style={{
                         padding: '6px 26px 6px 12px',
                         borderRadius: 'var(--radius-full)',
@@ -2072,88 +2119,44 @@ export default function EventRegistrationStats({
                         fontSize: '0.78rem',
                         cursor: 'pointer',
                         minWidth: 0,
-                        maxWidth: 'min(100%, 190px)',
-                        flex: '1 1 auto',
+                        maxWidth: 'min(100%, 180px)',
                         textOverflow: 'ellipsis',
                         overflow: 'hidden',
                         whiteSpace: 'nowrap',
                         boxSizing: 'border-box'
                       }}
                     >
-                      <option value="ALL">Semua {df.label}</option>
-                      {options.map((opt, i) => (
-                        <option key={i} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
+                      <option value="ALL">Semua Peserta</option>
+                      <option value="WINNERS">Hanya Pemenang Undian</option>
+                      <option value="NOT_WINNERS">Belum Menang</option>
                     </select>
                   </div>
-                );
-              })}
+                )}
 
-              {/* Winner Status Filter (only if Lucky Draw is enabled) */}
-              {isLuckyDrawEnabled && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  minWidth: 0,
-                  maxWidth: '100%',
-                  flex: '1 1 auto'
-                }}>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                    Undian:
-                  </span>
-                  <select
-                    value={winnerFilter}
-                    onChange={(e) => setWinnerFilter(e.target.value)}
+                {/* Reset Filters Button */}
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
                     style={{
-                      padding: '6px 26px 6px 12px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '6px 12px',
                       borderRadius: 'var(--radius-full)',
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-card)',
-                      color: 'var(--text-main)',
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      minWidth: 0,
-                      maxWidth: 'min(100%, 180px)',
-                      flex: '1 1 auto',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      boxSizing: 'border-box'
+                      background: 'rgba(244, 63, 94, 0.12)',
+                      border: '1px solid rgba(244, 63, 94, 0.35)',
+                      color: '#f43f5e',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
                     }}
                   >
-                    <option value="ALL">Semua Peserta</option>
-                    <option value="WINNERS">Hanya Pemenang Undian</option>
-                    <option value="NOT_WINNERS">Belum Menang</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Reset Filters Button */}
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'rgba(244, 63, 94, 0.12)',
-                    border: '1px solid rgba(244, 63, 94, 0.35)',
-                    color: '#f43f5e',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <RotateCcw size={12} />
-                  <span>Reset Filter</span>
-                </button>
-              )}
+                    <RotateCcw size={12} />
+                    <span>Reset Filter</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Table */}
@@ -2736,15 +2739,19 @@ export default function EventRegistrationStats({
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
+                  justifyContent: 'space-between',
+                  gap: '12px',
                   flexWrap: 'wrap',
+                  marginBottom: '16px',
                   background: 'var(--input-bg)',
                   padding: '12px 14px',
                   borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-card)'
+                  border: '1px solid var(--border-card)',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box'
                 }}>
-                  {/* Dynamic Search Input for Winners */}
-                  <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '180px' }}>
+                  {/* Dynamic Search Input for Winners (Fills left space) */}
+                  <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 'min(100%, 180px)', maxWidth: '100%' }}>
                     <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
                     <input
                       type="text"
@@ -2758,73 +2765,29 @@ export default function EventRegistrationStats({
                         background: 'var(--bg-card)',
                         border: '1px solid var(--border-card)',
                         color: 'var(--text-main)',
-                        fontSize: '0.78rem'
+                        fontSize: '0.78rem',
+                        boxSizing: 'border-box'
                       }}
                     />
                   </div>
 
-                  {/* Filter by Prize / Session Name */}
-                  {uniquePrizeNames.length > 1 && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      minWidth: 0,
-                      maxWidth: '100%',
-                      flex: '1 1 auto'
-                    }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        Hadiah:
-                      </span>
-                      <select
-                        value={winnerPrizeFilter}
-                        onChange={(e) => setWinnerPrizeFilter(e.target.value)}
-                        style={{
-                          padding: '6px 26px 6px 12px',
-                          borderRadius: 'var(--radius-full)',
-                          background: 'var(--bg-card)',
-                          border: '1px solid var(--border-card)',
-                          color: 'var(--text-main)',
-                          fontSize: '0.78rem',
-                          cursor: 'pointer',
-                          minWidth: 0,
-                          maxWidth: 'min(100%, 180px)',
-                          flex: '1 1 auto',
-                          textOverflow: 'ellipsis',
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        <option value="ALL">Semua Sesi Hadiah</option>
-                        {uniquePrizeNames.map((p, i) => (
-                          <option key={i} value={p}>{p}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Dynamic Form Dropdown Filters for Winners */}
-                  {dropdownFields.map((df) => {
-                    const options = getDropdownOptions(df);
-                    return (
-                      <div
-                        key={df.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          minWidth: 0,
-                          maxWidth: '100%',
-                          flex: '1 1 auto'
-                        }}
-                      >
+                  {/* Right-aligned filters group: Prize Filter + Dropdowns + Reset */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
+                    {/* Filter by Prize / Session Name */}
+                    {uniquePrizeNames.length > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        minWidth: 0,
+                        maxWidth: '100%'
+                      }}>
                         <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                          {df.label}:
+                          Hadiah:
                         </span>
                         <select
-                          value={winnerDropdownFilters[df.id] || 'ALL'}
-                          onChange={(e) => setWinnerDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
+                          value={winnerPrizeFilter}
+                          onChange={(e) => setWinnerPrizeFilter(e.target.value)}
                           style={{
                             padding: '6px 26px 6px 12px',
                             borderRadius: 'var(--radius-full)',
@@ -2834,46 +2797,90 @@ export default function EventRegistrationStats({
                             fontSize: '0.78rem',
                             cursor: 'pointer',
                             minWidth: 0,
-                            maxWidth: 'min(100%, 190px)',
-                            flex: '1 1 auto',
+                            maxWidth: 'min(100%, 180px)',
                             textOverflow: 'ellipsis',
                             overflow: 'hidden',
                             whiteSpace: 'nowrap',
                             boxSizing: 'border-box'
                           }}
                         >
-                          <option value="ALL">Semua {df.label}</option>
-                          {options.map((opt, i) => (
-                            <option key={i} value={opt}>{opt}</option>
+                          <option value="ALL">Semua Sesi Hadiah</option>
+                          {uniquePrizeNames.map((p, i) => (
+                            <option key={i} value={p}>{p}</option>
                           ))}
                         </select>
                       </div>
-                    );
-                  })}
+                    )}
 
-                  {/* Reset Filters Button */}
-                  {hasActiveWinnerFilters && (
-                    <button
-                      type="button"
-                      onClick={handleResetWinnerFilters}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '6px 12px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'rgba(244, 63, 94, 0.12)',
-                        border: '1px solid rgba(244, 63, 94, 0.35)',
-                        color: '#f43f5e',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <RotateCcw size={12} />
-                      <span>Reset Filter</span>
-                    </button>
-                  )}
+                    {/* Dynamic Form Dropdown Filters for Winners */}
+                    {dropdownFields.map((df) => {
+                      const options = getDropdownOptions(df);
+                      return (
+                        <div
+                          key={df.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            minWidth: 0,
+                            maxWidth: '100%'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                            {df.label}:
+                          </span>
+                          <select
+                            value={winnerDropdownFilters[df.id] || 'ALL'}
+                            onChange={(e) => setWinnerDropdownFilters(prev => ({ ...prev, [df.id]: e.target.value }))}
+                            style={{
+                              padding: '6px 26px 6px 12px',
+                              borderRadius: 'var(--radius-full)',
+                              background: 'var(--bg-card)',
+                              border: '1px solid var(--border-card)',
+                              color: 'var(--text-main)',
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              minWidth: 0,
+                              maxWidth: 'min(100%, 190px)',
+                              textOverflow: 'ellipsis',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap',
+                              boxSizing: 'border-box'
+                            }}
+                          >
+                            <option value="ALL">Semua {df.label}</option>
+                            {options.map((opt, i) => (
+                              <option key={i} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
+
+                    {/* Reset Filters Button */}
+                    {hasActiveWinnerFilters && (
+                      <button
+                        type="button"
+                        onClick={handleResetWinnerFilters}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '6px 12px',
+                          borderRadius: 'var(--radius-full)',
+                          background: 'rgba(244, 63, 94, 0.12)',
+                          border: '1px solid rgba(244, 63, 94, 0.35)',
+                          color: '#f43f5e',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <RotateCcw size={12} />
+                        <span>Reset Filter</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
