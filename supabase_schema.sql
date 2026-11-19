@@ -1,25 +1,12 @@
 -- ==============================================================================
--- SKEMA SUPABASE UNTUK CNT IT APD (CULTURE NETWORK TEAM GROUP IT APD)
--- Setiap fitur memiliki tabel terpisah sendiri dengan dukungan CRUD & Realtime Sync
+-- SKEMA MASTER SUPABASE UNTUK CNT IT APD (CULTURE NETWORK TEAM GROUP IT APD)
+-- Blueprint Lengkap 16 Tabel, Relasi Foreign Key, Index, RLS, & Storage Bucket
+-- File ini dapat dijalankan langsung di SQL Editor Supabase baru untuk membangun
+-- ulang 100% seluruh struktur database dari nol secara instan dan idempotent.
 -- ==============================================================================
 
--- Bersihkan tabel lama jika skema sebelumnya masih menggunakan UUID kosong
-DROP TABLE IF EXISTS public.recruitment_applications CASCADE;
-DROP TABLE IF EXISTS public.recruitment_campaigns CASCADE;
-DROP TABLE IF EXISTS public.suggestions CASCADE;
-DROP TABLE IF EXISTS public.kudos CASCADE;
-DROP TABLE IF EXISTS public.events CASCADE;
-DROP TABLE IF EXISTS public.members CASCADE;
-DROP TABLE IF EXISTS public.divisions CASCADE;
-DROP TABLE IF EXISTS public.tenures CASCADE;
-DROP TABLE IF EXISTS public.galleries CASCADE;
-DROP TABLE IF EXISTS public.forms CASCADE;
-DROP TABLE IF EXISTS public.submissions CASCADE;
-DROP TABLE IF EXISTS public.aspirasi CASCADE;
-DROP TABLE IF EXISTS public.page_settings CASCADE;
-
 -- 1. Tabel Master Periode Kepengurusan (tenures)
-CREATE TABLE public.tenures (
+CREATE TABLE IF NOT EXISTS public.tenures (
     id TEXT PRIMARY KEY,
     code TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -29,20 +16,40 @@ CREATE TABLE public.tenures (
     visi TEXT,
     misi JSONB DEFAULT '[]'::jsonb,
     is_active BOOLEAN DEFAULT false,
-    start_date TEXT,
-    end_date TEXT,
     sort_order INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. Tabel Divisi Organisasi (divisions)
-CREATE TABLE public.divisions (
+-- 2. Tabel Master Role Kepengurusan (tenure_roles)
+CREATE TABLE IF NOT EXISTS public.tenure_roles (
     id TEXT PRIMARY KEY,
-    tenure_id TEXT DEFAULT 'tenure-2026',
+    tenure_id TEXT REFERENCES public.tenures(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    slug TEXT,
-    lead_name TEXT,
+    level TEXT DEFAULT 'Staff',
+    max_quota INT DEFAULT 0,
+    requires_division BOOLEAN DEFAULT true,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. Tabel Master Departemen / Unit Kerja (departments)
+CREATE TABLE IF NOT EXISTS public.departments (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    code TEXT,
+    description TEXT,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 4. Tabel Divisi Organisasi (divisions)
+CREATE TABLE IF NOT EXISTS public.divisions (
+    id TEXT PRIMARY KEY,
+    tenure_id TEXT REFERENCES public.tenures(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
     color TEXT DEFAULT '#0284c7',
     motto TEXT,
     description TEXT,
@@ -53,15 +60,13 @@ CREATE TABLE public.divisions (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Tabel Struktur Pengurus & Anggota (members)
-CREATE TABLE public.members (
+-- 5. Tabel Struktur Pengurus & Anggota (members)
+CREATE TABLE IF NOT EXISTS public.members (
     id TEXT PRIMARY KEY,
-    tenure_id TEXT DEFAULT 'tenure-2026',
-    division_id TEXT,
-    category TEXT NOT NULL,
+    tenure_id TEXT REFERENCES public.tenures(id) ON DELETE SET NULL,
+    division_id TEXT REFERENCES public.divisions(id) ON DELETE SET NULL,
+    role_id TEXT REFERENCES public.tenure_roles(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
-    role TEXT NOT NULL,
-    title TEXT,
     image TEXT,
     color TEXT,
     whatsapp TEXT,
@@ -72,37 +77,36 @@ CREATE TABLE public.members (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Tabel Program Kerja & Kalender Budaya (events)
-CREATE TABLE public.events (
+-- 6. Tabel Program Kerja & Kalender Budaya (events)
+CREATE TABLE IF NOT EXISTS public.events (
     id TEXT PRIMARY KEY,
-    tenure_id TEXT DEFAULT 'tenure-2026',
-    division_id TEXT,
-    division_name TEXT,
+    tenure_id TEXT REFERENCES public.tenures(id) ON DELETE SET NULL,
+    division_id TEXT REFERENCES public.divisions(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
-    date TEXT,
+    category TEXT,
     start_date TEXT,
     end_date TEXT,
-    badge TEXT,
     location TEXT,
-    kpi TEXT,
+    peserta TEXT,
     description TEXT,
     total_rab NUMERIC DEFAULT 0,
     status TEXT DEFAULT 'Upcoming',
     is_public BOOLEAN DEFAULT false,
+    is_limited BOOLEAN DEFAULT false,
+    max_quota INT DEFAULT 0,
     sort_order INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. Tabel Galeri Dokumentasi Kegiatan (galleries)
-CREATE TABLE public.galleries (
+-- 7. Tabel Galeri Dokumentasi Kegiatan (galleries)
+CREATE TABLE IF NOT EXISTS public.galleries (
     id TEXT PRIMARY KEY,
-    tenure_id TEXT DEFAULT 'tenure-2026',
+    tenure_id TEXT REFERENCES public.tenures(id) ON DELETE SET NULL,
     division_id TEXT REFERENCES public.divisions(id) ON DELETE SET NULL,
     event_id TEXT REFERENCES public.events(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
     date TEXT,
-    division TEXT,
     description TEXT,
     photos JSONB DEFAULT '[]'::jsonb,
     doc_links JSONB DEFAULT '[]'::jsonb,
@@ -111,29 +115,26 @@ CREATE TABLE public.galleries (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 6. Tabel Wall of Kudos / Apresiasi (kudos)
-CREATE TABLE public.kudos (
+-- 8. Tabel Wall of Kudos / Apresiasi (kudos)
+CREATE TABLE IF NOT EXISTS public.kudos (
     id TEXT PRIMARY KEY,
     sender TEXT NOT NULL,
     recipient TEXT NOT NULL,
     category TEXT DEFAULT 'Kolaboratif',
     message TEXT NOT NULL,
     likes INT DEFAULT 1,
-    date TEXT,
-    exact_timestamp TEXT,
     sort_order INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 7. Tabel Kotak Ide & Aspirasi Budaya (aspirasi)
-CREATE TABLE public.aspirasi (
+-- 9. Tabel Kotak Ide & Aspirasi Budaya (aspirasi)
+CREATE TABLE IF NOT EXISTS public.aspirasi (
     id TEXT PRIMARY KEY,
     sender TEXT DEFAULT 'Anonim',
     title TEXT DEFAULT '',
     category TEXT DEFAULT 'Kegiatan & Event',
     description TEXT NOT NULL DEFAULT '',
-    submitted_at TEXT,
     status TEXT NOT NULL DEFAULT 'Menunggu Review',
     admin_reply TEXT DEFAULT '',
     is_public BOOLEAN DEFAULT true,
@@ -142,44 +143,82 @@ CREATE TABLE public.aspirasi (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 8. Tabel Formulir Pendaftaran Dinamis (forms)
-CREATE TABLE public.forms (
+-- 10. Tabel Formulir Pendaftaran Dinamis (forms)
+CREATE TABLE IF NOT EXISTS public.forms (
     id TEXT PRIMARY KEY,
+    tenure_id TEXT REFERENCES public.tenures(id) ON DELETE SET NULL,
+    event_id TEXT REFERENCES public.events(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
     subtitle TEXT,
     category TEXT,
     deadline TEXT,
-    is_open BOOLEAN DEFAULT true,
     description TEXT,
     fields JSONB DEFAULT '[]'::jsonb,
+    is_open BOOLEAN DEFAULT true,
+    requires_tracking BOOLEAN DEFAULT true,
+    is_show_accepted BOOLEAN DEFAULT false,
+    is_limited BOOLEAN DEFAULT false,
+    max_quota INT DEFAULT 0,
+    is_event_connected BOOLEAN DEFAULT false,
+    is_lucky_draw BOOLEAN DEFAULT false,
     sort_order INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 9. Tabel Berkas Pendaftaran Masuk (submissions)
-CREATE TABLE public.submissions (
+-- 11. Tabel Berkas Pendaftaran Masuk (submissions)
+CREATE TABLE IF NOT EXISTS public.submissions (
     id TEXT PRIMARY KEY,
-    form_id TEXT,
-    form_title TEXT,
-    submitted_at TEXT,
-    status TEXT NOT NULL DEFAULT 'Submitted',
-    admin_notes TEXT DEFAULT '',
+    form_id TEXT REFERENCES public.forms(id) ON DELETE CASCADE,
     data JSONB DEFAULT '{}'::jsonb,
     files JSONB DEFAULT '{}'::jsonb,
+    status TEXT NOT NULL DEFAULT 'Submitted',
+    admin_notes TEXT DEFAULT '',
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 10. Tabel Pengaturan Visibilitas Halaman & Konfigurasi Global (page_settings)
-CREATE TABLE public.page_settings (
-    key TEXT PRIMARY KEY,
-    value JSONB NOT NULL,
+-- 12. Tabel Pengundian Doorprize / Lucky Draw (lucky_draws)
+CREATE TABLE IF NOT EXISTS public.lucky_draws (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+    submission_id TEXT NOT NULL REFERENCES public.submissions(id) ON DELETE CASCADE,
+    form_id TEXT REFERENCES public.forms(id) ON DELETE SET NULL,
+    prize_name TEXT NOT NULL DEFAULT 'Doorprize Utama',
+    drawn_at TIMESTAMPTZ DEFAULT now(),
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 11. Tabel Katalog Asset Logo & Template Resmi (brand_assets)
-CREATE TABLE public.brand_assets (
+-- 13. Tabel Daftar Hadir & Konfirmasi RSVP Kegiatan (event_rsvps)
+CREATE TABLE IF NOT EXISTS public.event_rsvps (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+    department_id TEXT REFERENCES public.departments(id) ON DELETE SET NULL,
+    attendee_name TEXT NOT NULL,
+    attendance_mode TEXT NOT NULL DEFAULT 'Hadir Onsite',
+    notes TEXT DEFAULT '',
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 14. Tabel Pusat Panduan & Tanya Jawab (faqs)
+CREATE TABLE IF NOT EXISTS public.faqs (
+    id TEXT PRIMARY KEY,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    category TEXT DEFAULT 'Umum',
+    asked_by TEXT DEFAULT 'Admin CNT',
+    is_published BOOLEAN DEFAULT true,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 15. Tabel Katalog Asset Logo & Template Resmi (brand_assets)
+CREATE TABLE IF NOT EXISTS public.brand_assets (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     category TEXT NOT NULL DEFAULT 'Logo & Brand',
@@ -194,37 +233,33 @@ CREATE TABLE public.brand_assets (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 12. Tabel Daftar Hadir & Konfirmasi RSVP Kegiatan (event_rsvps)
-CREATE TABLE public.event_rsvps (
-    id TEXT PRIMARY KEY,
-    event_id TEXT NOT NULL,
-    event_title TEXT NOT NULL,
-    attendee_name TEXT NOT NULL,
-    squad_unit TEXT NOT NULL,
-    attendance_mode TEXT NOT NULL DEFAULT 'Hadir Onsite',
-    notes TEXT DEFAULT '',
-    submitted_at TEXT,
-    sort_order INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now(),
+-- 16. Tabel Pengaturan Visibilitas Halaman & Konfigurasi Global (page_settings)
+CREATE TABLE IF NOT EXISTS public.page_settings (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 13. Tabel Pusat Panduan & Tanya Jawab (faqs)
-CREATE TABLE public.faqs (
-    id TEXT PRIMARY KEY,
-    question TEXT NOT NULL,
-    answer TEXT NOT NULL,
-    category TEXT DEFAULT 'Umum',
-    asked_by TEXT DEFAULT 'Admin CNT',
-    submitted_at TEXT DEFAULT '',
-    sort_order INT DEFAULT 0,
-    is_published BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
+-- ==============================================================================
+-- INDEXING UNTUK OPTIMASI PERFORMA QUERY
+-- ==============================================================================
+CREATE INDEX IF NOT EXISTS idx_members_tenure_id ON public.members(tenure_id);
+CREATE INDEX IF NOT EXISTS idx_members_division_id ON public.members(division_id);
+CREATE INDEX IF NOT EXISTS idx_events_tenure_id ON public.events(tenure_id);
+CREATE INDEX IF NOT EXISTS idx_events_is_public ON public.events(is_public);
+CREATE INDEX IF NOT EXISTS idx_galleries_event_id ON public.galleries(event_id);
+CREATE INDEX IF NOT EXISTS idx_forms_tenure_id ON public.forms(tenure_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_form_id ON public.submissions(form_id);
+CREATE INDEX IF NOT EXISTS idx_lucky_draws_event_id ON public.lucky_draws(event_id);
+CREATE INDEX IF NOT EXISTS idx_lucky_draws_submission_id ON public.lucky_draws(submission_id);
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_id ON public.event_rsvps(event_id);
 
--- Enable Row Level Security (RLS)
+-- ==============================================================================
+-- ROW LEVEL SECURITY (RLS) & AKSES KEBIJAKAN
+-- ==============================================================================
 ALTER TABLE public.tenures ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tenure_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.divisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
@@ -233,121 +268,38 @@ ALTER TABLE public.kudos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.aspirasi ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.page_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.brand_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lucky_draws ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_rsvps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.brand_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.page_settings ENABLE ROW LEVEL SECURITY;
 
--- Policies for full client-side sync across devices
-CREATE POLICY "Public full access tenures" ON public.tenures FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access divisions" ON public.divisions FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access members" ON public.members FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access events" ON public.events FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access galleries" ON public.galleries FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access kudos" ON public.kudos FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access aspirasi" ON public.aspirasi FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access forms" ON public.forms FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access submissions" ON public.submissions FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access page_settings" ON public.page_settings FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access brand_assets" ON public.brand_assets FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access event_rsvps" ON public.event_rsvps FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public full access faqs" ON public.faqs FOR ALL USING (true) WITH CHECK (true);
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOR tbl IN 
+        SELECT tablename FROM pg_tables WHERE schemaname = 'public' 
+        AND tablename IN (
+            'tenures', 'tenure_roles', 'departments', 'divisions', 'members', 
+            'events', 'galleries', 'kudos', 'aspirasi', 'forms', 'submissions', 
+            'lucky_draws', 'event_rsvps', 'faqs', 'brand_assets', 'page_settings'
+        )
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS "Public full access %I" ON public.%I;', tbl, tbl);
+        EXECUTE format('CREATE POLICY "Public full access %I" ON public.%I FOR ALL USING (true) WITH CHECK (true);', tbl, tbl);
+    END LOOP;
+END $$;
 
--- Storage Bucket for Media & Document Uploads (cnt-media)
+-- ==============================================================================
+-- STORAGE BUCKET UNTUK UPLOAD MEDIA & DOKUMEN (cnt-media)
+-- ==============================================================================
 INSERT INTO storage.buckets (id, name, public, file_size_limit)
 VALUES ('cnt-media', 'cnt-media', true, 20971520)
 ON CONFLICT (id) DO UPDATE SET public = true, file_size_limit = 20971520;
 
+DROP POLICY IF EXISTS "Public Access cnt-media" ON storage.objects;
 CREATE POLICY "Public Access cnt-media" ON storage.objects FOR ALL TO anon, authenticated USING (bucket_id = 'cnt-media') WITH CHECK (bucket_id = 'cnt-media');
 
--- Reload PostgREST schema cache
--- ==============================================================================
--- TABEL: lucky_draws (Hasil Undian Doorprize Event dengan Relasi Foreign Key)
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS public.lucky_draws (
-    id TEXT PRIMARY KEY,
-    event_id TEXT NOT NULL REFERENCES public.events(id) ON DELETE RESTRICT,
-    submission_id TEXT NOT NULL REFERENCES public.submissions(id) ON DELETE RESTRICT,
-    form_id TEXT REFERENCES public.forms(id) ON DELETE SET NULL,
-    prize_name TEXT NOT NULL DEFAULT 'Doorprize Utama',
-    drawn_at TIMESTAMPTZ DEFAULT now(),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now(),
-    sort_order INT DEFAULT 0
-);
-
-ALTER TABLE public.lucky_draws ENABLE ROW LEVEL SECURITY;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public select lucky_draws') THEN
-        CREATE POLICY "Allow public select lucky_draws" ON public.lucky_draws FOR SELECT USING (true);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public insert lucky_draws') THEN
-        CREATE POLICY "Allow public insert lucky_draws" ON public.lucky_draws FOR INSERT WITH CHECK (true);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public update lucky_draws') THEN
-        CREATE POLICY "Allow public update lucky_draws" ON public.lucky_draws FOR UPDATE USING (true);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lucky_draws' AND policyname = 'Allow public delete lucky_draws') THEN
-        CREATE POLICY "Allow public delete lucky_draws" ON public.lucky_draws FOR DELETE USING (true);
-    END IF;
-END $$;
-
-CREATE INDEX IF NOT EXISTS idx_lucky_draws_event_id ON public.lucky_draws(event_id);
-CREATE INDEX IF NOT EXISTS idx_lucky_draws_submission_id ON public.lucky_draws(submission_id);
-
--- ==============================================================================
--- MIGRATION SCRIPT: Tambahkan updated_at ke semua tabel yang sudah ada
--- Jalankan blok di bawah ini di SQL Editor Supabase untuk tabel yang sudah live
--- ==============================================================================
-ALTER TABLE public.tenures ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.divisions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_limited BOOLEAN DEFAULT false;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS max_quota INT DEFAULT 0;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
-ALTER TABLE public.galleries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.galleries ADD COLUMN IF NOT EXISTS event_id TEXT;
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints 
-    WHERE constraint_name = 'fk_galleries_event' AND table_name = 'galleries'
-  ) THEN
-    ALTER TABLE public.galleries 
-    ADD CONSTRAINT fk_galleries_event 
-    FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE SET NULL;
-  END IF;
-END $$;
-CREATE INDEX IF NOT EXISTS idx_galleries_event_id ON public.galleries(event_id);
-ALTER TABLE public.kudos ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.aspirasi ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS requires_tracking BOOLEAN DEFAULT true;
-ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS tenure_id TEXT;
-ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS is_show_accepted BOOLEAN DEFAULT false;
-ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS is_limited BOOLEAN DEFAULT false;
-ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS max_quota INT DEFAULT 0;
-ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS is_event_connected BOOLEAN DEFAULT false;
-ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS event_id TEXT REFERENCES public.events(id) ON DELETE SET NULL;
-ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.brand_assets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.event_rsvps ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.faqs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'departments') THEN
-        ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-    END IF;
-END $$;
-
--- MIGRATION: Hapus kolom redundan winner_name, winner_unit, winner_phone dari lucky_draws
--- Karena semua data pemenang dinormalisasi dan diambil langsung dari relasi submission_id
-ALTER TABLE public.lucky_draws DROP COLUMN IF EXISTS winner_name CASCADE;
-ALTER TABLE public.lucky_draws DROP COLUMN IF EXISTS winner_unit CASCADE;
-ALTER TABLE public.lucky_draws DROP COLUMN IF EXISTS winner_phone CASCADE;
-
+-- Reload PostgREST schema cache agar perubahan langsung terbaca di REST API
 NOTIFY pgrst, 'reload schema';
-
