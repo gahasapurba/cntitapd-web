@@ -508,7 +508,7 @@ export default function ProgramSection({
                 cursor: 'pointer'
               }}
             >
-              Akan Datang
+              Upcoming / Ongoing
             </button>
             <button
               onClick={() => {
