@@ -10686,7 +10686,6 @@ export default function AdminPortal({
             <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                   Pertanyaan (Question) <span style={{ color: '#f43f5e' }}>*</span>
                 </label>
                 <input
