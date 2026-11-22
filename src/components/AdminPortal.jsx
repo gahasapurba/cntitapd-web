@@ -409,6 +409,7 @@ export default function AdminPortal({
   const [newFormCategory, setNewFormCategory] = useState('');
   const [newFormDeadline, setNewFormDeadline] = useState('');
   const [newFormSubtitle, setNewFormSubtitle] = useState('');
+  const [newFormNotes, setNewFormNotes] = useState('');
   const [newFormRequiresTracking, setNewFormRequiresTracking] = useState(true);
   const [newFormShowAnnouncement, setNewFormShowAnnouncement] = useState(false);
   const [newFormIsLimited, setNewFormIsLimited] = useState(false);
@@ -7799,6 +7800,7 @@ export default function AdminPortal({
                 id: 'form-' + Date.now(),
                 title: newFormTitle.trim(),
                 subtitle: newFormSubtitle.trim() || '',
+                notes: newFormNotes.trim() || '',
                 category: newFormCategory.trim(),
                 deadline: toDatetimeLocalSecondsValue(newFormDeadline.trim()) || '',
                 isOpen: true,
@@ -7828,6 +7830,7 @@ export default function AdminPortal({
               if (onAddForm) onAddForm(newForm);
               setNewFormTitle('');
               setNewFormSubtitle('');
+              setNewFormNotes('');
               setNewFormDeadline('');
               setNewFormCategory('');
               setNewFormRequiresTracking(true);
@@ -8003,6 +8006,22 @@ export default function AdminPortal({
                 onChange={(e) => setNewFormSubtitle(e.target.value)}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem' }}
               />
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                📝 Catatan / Pesan Pasca Pengisian Formulir (Opsional)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Contoh: Terima kasih sudah mendaftar! Harap bergabung ke WhatsApp Group koordinasi melalui tautan berikut: https://chat.whatsapp.com/xxx"
+                value={newFormNotes}
+                onChange={(e) => setNewFormNotes(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.85rem', resize: 'vertical' }}
+              />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '3px', display: 'block' }}>
+                💡 Catatan ini akan ditampilkan khusus kepada peserta setelah mereka berhasil mengirimkan formulir (misalnya link WhatsApp Group, arahan teknis, atau info langkah selanjutnya). Tautan URL otomatis dapat diklik dan disalin oleh peserta.
+              </span>
             </div>
 
             <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '4px', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
@@ -10667,35 +10686,6 @@ export default function AdminPortal({
             <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Kategori Topik <span style={{ color: '#f43f5e' }}>*</span>
-                </label>
-                <select
-                  value={faqCategory}
-                  onChange={(e) => {
-                    setFaqCategory(e.target.value);
-                    clearFieldError('faqCategory');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--input-bg)',
-                    border: `1.5px solid ${formErrors.faqCategory ? '#f43f5e' : 'var(--border-card)'}`,
-                    color: 'var(--text-main)',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  <option value="">-- Pilih Kategori Topik (Wajib) --</option>
-                  <option value="Tentang CNT">Tentang CNT</option>
-                  <option value="Kegiatan & Event">Kegiatan & Event</option>
-                  <option value="Operasional & Sekben">Operasional & Sekben</option>
-                  <option value="Aspirasi & Usulan">Aspirasi & Usulan</option>
-                  <option value="Pendaftaran & Oprec">Pendaftaran & Oprec</option>
-                  <option value="Umum">Umum</option>
-                </select>
-                {renderFieldError('faqCategory')}
-              </div>
-              <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                   Pertanyaan (Question) <span style={{ color: '#f43f5e' }}>*</span>
                 </label>
@@ -12356,6 +12346,22 @@ export default function AdminPortal({
                     onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, subtitle: e.target.value } })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
                   />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    📝 Catatan / Pesan Pasca Pengisian (Opsional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Contoh: Terima kasih sudah mendaftar! Harap bergabung ke WhatsApp Group peserta melalui link berikut: https://chat.whatsapp.com/xxx"
+                    value={editingItem.item.notes || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, notes: e.target.value } })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem', resize: 'vertical' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '3px', display: 'block' }}>
+                    💡 Catatan ini akan ditampilkan khusus kepada peserta sesaat setelah berhasil submit formulir (misal: link WhatsApp Group, arahan teknis, atau langkah selanjutnya). Tautan URL otomatis dapat diklik dan disalin oleh peserta.
+                  </span>
                 </div>
 
                 {/* Option: Tenure Relation */}

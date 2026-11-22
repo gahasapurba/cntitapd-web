@@ -64,7 +64,7 @@ export default function DynamicFormSection({
     return (forms || []).find(f => f.id === initialFormId) || null;
   }, [initialFormId, forms]);
 
-  const isInitialFormMissing = Boolean(initialFormId) && !requestedForm;
+  const isInitialFormMissing = Boolean(initialFormId) && (forms || []).length > 0 && !requestedForm;
   const isInitialFormDisabled = Boolean(requestedForm) && (requestedForm.isOpen === false || Boolean(requestedForm.isClosed));
 
   const [selectedFormId, setSelectedFormId] = useState(() => {
@@ -75,6 +75,7 @@ export default function DynamicFormSection({
   });
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedSubId, setCopiedSubId] = useState(false);
+  const [copiedWagLink, setCopiedWagLink] = useState(false);
   const [uploadingFieldId, setUploadingFieldId] = useState(null);
   const [generatingPoster, setGeneratingPoster] = useState(false);
   const [posterPreview, setPosterPreview] = useState(null);
@@ -103,8 +104,22 @@ export default function DynamicFormSection({
   const [fileData, setFileData] = useState({}); // { [fieldId]: { name, size, type, dataUrl } }
   const [pendingFiles, setPendingFiles] = useState({}); // { [fieldId]: File }
   const [errors, setErrors] = useState({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [lastSubmittedId, setLastSubmittedId] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      return sp.get('submitted') === 'true';
+    }
+    return false;
+  });
+  const [lastSubmittedId, setLastSubmittedId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get('submitted') === 'true') {
+        return sp.get('subId') || 'REG-OPREC-88204';
+      }
+    }
+    return '';
+  });
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [honeypotVal, setHoneypotVal] = useState('');
@@ -205,6 +220,119 @@ export default function DynamicFormSection({
     navigator.clipboard?.writeText(subId);
     setCopiedSubId(true);
     setTimeout(() => setCopiedSubId(false), 2500);
+  };
+
+  const renderPostSubmissionNotes = () => {
+    if (!currentForm?.notes || !currentForm.notes.trim()) return null;
+
+    const notesText = currentForm.notes.trim();
+    // Check if there is a WhatsApp group / chat link
+    const waMatch = notesText.match(/(https?:\/\/(?:chat\.whatsapp\.com|wa\.me)\/[^\s]+)/i);
+    const waUrl = waMatch ? waMatch[0] : null;
+
+    return (
+      <div style={{
+        maxWidth: '540px',
+        margin: '0 auto 24px auto',
+        padding: '16px 20px',
+        borderRadius: 'var(--radius-md, 12px)',
+        background: isDark ? 'rgba(37, 211, 102, 0.08)' : 'rgba(37, 211, 102, 0.06)',
+        border: '1.5px solid rgba(37, 211, 102, 0.35)',
+        textAlign: 'left',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: '#25D366',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            flexShrink: 0
+          }}>
+            <MessageCircle size={18} />
+          </div>
+          <div>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              Informasi & Petunjuk Pasca Pendaftaran
+            </h4>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Harap perhatikan catatan penting berikut dari panitia
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          fontSize: '0.85rem',
+          color: 'var(--text-main)',
+          lineHeight: 1.6,
+          whiteSpace: 'pre-line',
+          padding: '12px 14px',
+          background: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.7)',
+          borderRadius: '8px',
+          border: '1px solid rgba(37, 211, 102, 0.2)',
+          marginBottom: waUrl ? '14px' : '0',
+          wordBreak: 'break-word'
+        }}>
+          {notesText}
+        </div>
+
+        {waUrl && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '9px 18px',
+                borderRadius: 'var(--radius-full, 9999px)',
+                background: '#25D366',
+                color: '#ffffff',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                boxShadow: '0 3px 12px rgba(37, 211, 102, 0.35)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <MessageCircle size={16} />
+              <span>Gabung WhatsApp Group Peserta</span>
+              <ExternalLink size={14} />
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard?.writeText(waUrl);
+                setCopiedWagLink(true);
+                setTimeout(() => setCopiedWagLink(false), 2500);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-full, 9999px)',
+                background: 'rgba(255, 255, 255, 0.08)',
+                color: 'var(--text-main)',
+                border: '1px solid var(--border-card)',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+            >
+              {copiedWagLink ? <Check size={14} color="#25D366" /> : <Share2 size={14} />}
+              <span>{copiedWagLink ? 'Link Tersalin!' : 'Salin Link WA'}</span>
+            </button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Handle Input Changes
@@ -928,6 +1056,9 @@ export default function DynamicFormSection({
                       </div>
                     </div>
 
+                    {/* Post-Submission Notes Card (e.g. WhatsApp Group link) */}
+                    {renderPostSubmissionNotes()}
+
                     {/* Action Buttons */}
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
                       <button
@@ -1000,6 +1131,9 @@ export default function DynamicFormSection({
                     }}>
                       Formulir ini tidak memerlukan pelacakan status mandiri. Tim kami akan memproses tanggapan Anda sesuai ketentuan yang berlaku.
                     </div>
+
+                    {/* Post-Submission Notes Card (e.g. WhatsApp Group link) */}
+                    {renderPostSubmissionNotes()}
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <button
                         onClick={() => {

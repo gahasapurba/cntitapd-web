@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS public.forms (
     category TEXT,
     deadline TEXT,
     description TEXT,
+    notes TEXT,
     fields JSONB DEFAULT '[]'::jsonb,
     is_open BOOLEAN DEFAULT true,
     requires_tracking BOOLEAN DEFAULT true,
@@ -166,6 +167,9 @@ CREATE TABLE IF NOT EXISTS public.forms (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Idempotent column check for notes
+ALTER TABLE public.forms ADD COLUMN IF NOT EXISTS notes TEXT;
 
 -- 11. Tabel Berkas Pendaftaran Masuk (submissions)
 CREATE TABLE IF NOT EXISTS public.submissions (

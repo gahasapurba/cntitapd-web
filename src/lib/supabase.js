@@ -153,6 +153,21 @@ let isFormsEventIdColSupported = false;
 let isFormsLuckyDrawColChecked = false;
 let isFormsLuckyDrawColSupported = false;
 
+let isFormsNotesColChecked = false;
+let isFormsNotesColSupported = false;
+
+export async function checkFormsNotesColumn() {
+  if (isFormsNotesColChecked) return isFormsNotesColSupported;
+  try {
+    const { error } = await supabase.from('forms').select('notes').limit(1);
+    isFormsNotesColSupported = !error;
+    isFormsNotesColChecked = true;
+  } catch (e) {
+    isFormsNotesColSupported = false;
+  }
+  return isFormsNotesColSupported;
+}
+
 export async function checkFormsLuckyDrawColumn() {
   if (isFormsLuckyDrawColChecked) return isFormsLuckyDrawColSupported;
   try {
@@ -798,7 +813,8 @@ export const rowMappers = {
           _maxQuota: maxQuotaVal,
           _isEventConnected: isEventConnectedVal,
           _eventId: eventIdVal,
-          _isLuckyDraw: isLuckyDrawVal
+          _isLuckyDraw: isLuckyDrawVal,
+          _notes: item.notes || ''
         };
       }
 
@@ -835,6 +851,9 @@ export const rowMappers = {
       }
       if (isFormsLuckyDrawColSupported) {
         row.is_lucky_draw = isLuckyDrawVal;
+      }
+      if (isFormsNotesColSupported) {
+        row.notes = item.notes !== undefined && item.notes !== null ? item.notes : null;
       }
       return row;
     },
@@ -893,6 +912,13 @@ export const rowMappers = {
 
       const tenureIdVal = row.tenure_id || (rawFields.length > 0 && rawFields[0]?._tenureId) || '';
 
+      let notesVal = '';
+      if (row.notes !== undefined && row.notes !== null) {
+        notesVal = row.notes;
+      } else if (rawFields.length > 0 && rawFields[0]?._notes !== undefined && rawFields[0]?._notes !== null) {
+        notesVal = rawFields[0]._notes;
+      }
+
       return {
         id: row.id,
         title: row.title,
@@ -908,6 +934,7 @@ export const rowMappers = {
         eventId: eventId,
         isLuckyDraw: isLuckyDraw,
         tenureId: tenureIdVal,
+        notes: notesVal || '',
         fields: rawFields,
         createdAt: row.created_at || null,
         updatedAt: row.updated_at || row.created_at || null
@@ -1378,8 +1405,7 @@ export async function pushCloudState(key, value) {
       await checkFormsQuotaColumns();
       await checkFormsEventColumns();
       await checkFormsLuckyDrawColumn();
-      await checkFormsEventColumns();
-      await checkFormsLuckyDrawColumn();
+      await checkFormsNotesColumn();
     }
     if (key === 'eventRsvps') {
       await checkRsvpsDepartmentColumn();
@@ -1480,6 +1506,7 @@ export async function mergeAndPushCloudList(key, newItem, currentLocalList = [])
     await checkFormsQuotaColumns();
     await checkFormsEventColumns();
     await checkFormsLuckyDrawColumn();
+    await checkFormsNotesColumn();
   }
 
   try {
