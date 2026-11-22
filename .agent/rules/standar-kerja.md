@@ -8,9 +8,9 @@ Dokumen ini merupakan panduan standar operasional baku bagi pengembang dan agen 
 
 | Platform / Komponen | Peran & Sumber | Endpoint / URL | Status Terhubung |
 | :--- | :--- | :--- | :--- |
-| **Local Machine** | Lingkungan pengembangan & testing lokal | `http://localhost:5173` | Aktif (Vite Dev Server) |
+| **Local Machine** | Verifikasi build lokal (`npm run build`) | Workspace Lokal | Aktif (Offline/Lokal, Zero Background Task) |
 | **GitHub Cloud** | *Single Source of Truth* repositori publik & runner CI/CD | `https://github.com/gahasapurba/cntitapd-web.git` | Terhubung langsung (Remote: `github`) |
-| **Netlify** | Production Web Hosting & Edge Functions (Auto-deploy dari GitHub) | `https://cntitapd.netlify.app` | Otomatis sinkron dari GitHub `master` |
+| **Netlify (Production)** | Production Web Hosting & Edge Functions (Auto-deploy dari GitHub) | `https://cntitapd.netlify.app` | **Single Source of Truth untuk Peninjauan UI & Fitur Live** |
 | **Supabase Cloud** | Backend Database (PostgreSQL 16) & Media Storage Bucket (`cnt-media`) | `https://xarcxbfgeoetyhpqsick.supabase.co` | Terhubung aktif (REST & Management API) |
 | **Bitbucket Mandiri** | Repositori internal korporat Bank Mandiri | `https://apdgit.bankmandiri.co.id/scm/~2402814297/cnt-it-apd.git` | Remote: `origin` (Memerlukan VPN Mandiri) |
 
@@ -22,16 +22,18 @@ Setiap penambahan fitur, perbaikan bug, atau pembaruan konfigurasi wajib melalui
 
 ```mermaid
 flowchart TD
-    A["1. Modifikasi Kode / UI di Lokal"] --> B["2. Pengujian & Verifikasi Build (npm run build)"]
+    A["1. Modifikasi Kode di Lokal"] --> B["2. Pengujian & Verifikasi Build (npm run build)"]
     B --> C{"Ada perubahan Skema / Data DB?"}
     C -- Ya --> D["3. Perbarui supabase_schema.sql & supabase_seed.sql"]
-    C -- Tidak --> E["4. Commit & Push ke GitHub (git push github master)"]
+    C -- Tidak --> E["4. Matikan Seluruh Task (Zero Background Task)"]
     D --> E
-    E --> F["5. Netlify Auto-Deploy ke Live Web"]
-    E --> G["6. GitHub Actions Cloud Backup (Label: ANTIGRAVITY)"]
-    E --> H{"Terhubung VPN Mandiri?"}
-    H -- Ya --> I["7. Push Mirror ke Bitbucket (git push origin master)"]
-    H -- Tidak --> J["Ditunda sampai terhubung VPN Mandiri"]
+    E --> F["5. Commit & Push ke GitHub (git push github master)"]
+    F --> G["6. Netlify Auto-Deploy ke Live Production"]
+    F --> H["7. GitHub Actions Cloud Backup (Label: ANTIGRAVITY)"]
+    G --> I["8. Verifikasi Langsung di Link Production (cntitapd.netlify.app)"]
+    F --> J{"Terhubung VPN Mandiri?"}
+    J -- Ya --> K["9. Push Mirror ke Bitbucket (git push origin master)"]
+    J -- Tidak --> L["Ditunda sampai terhubung VPN Mandiri"]
 ```
 
 ---
@@ -59,43 +61,26 @@ Setiap kali melakukan perubahan, penambahan fitur, perbaikan bug, pembaruan skem
 
 ---
 
-## 4. Standar Pengujian Responsif Mobile (Mobile-First Responsiveness)
+## 4. Kebijakan Zero Background Task (Wajib Mati Semua Setelah Digunakan)
 
-Setiap perubahan antarmuka pengguna (UI) **WAJIB memastikan tampilan responsif di perangkat mobile**:
-- **Tidak Terpotong**: Elemen visual, badge, kalender, modal, dan tabel tidak boleh meluap (*overflow*) atau terpotong tanpa sengaja.
-- **Interaksi Sentuh**: Tombol, chip, dan link memiliki ukuran sentuh yang ramah jari (*touch-friendly*).
-- **Konsistensi Indikator**: Perbedaan gaya visual (seperti garis putus-putus pada event draft, badge publik/draft, dan warna divisi) harus terlihat tajam, kontras, dan konsisten di layar smartphone.
-- **Scroll yang Terkendali**: Komponen grid yang memerlukan scroll horizontal (seperti kalender bulanan penuh) wajib memiliki scroll container halus dan hint panduan yang jelas.
-
----
-
-## 5. Standar 4 Screenshot Matrix Verifikasi UI
-
-Setiap kali menyelesaikan perubahan fitur visual, Antigravity **WAJIB menghasilkan dan menyajikan 4 Screenshot Matrix Verifikasi**:
-
-| No | Format Tampilan | Device / Ukuran Viewport | Kondisi Tema |
-| :---: | :--- | :--- | :---: |
-| **1** | **Web Desktop Light** | Safari MacBook Air 13 inch (`1440 x 900`) | ☀️ Light Theme |
-| **2** | **Web Desktop Dark** | Safari MacBook Air 13 inch (`1440 x 900`) | 🌙 Dark Theme |
-| **3** | **Mobile Light** | iPhone 17 Pro Max (`440 x 956`) | ☀️ Light Theme |
-| **4** | **Mobile Dark** | iPhone 17 Pro Max (`440 x 956`) | 🌙 Dark Theme |
-
-**Ketentuan Screenshot**:
-- Seluruh screenshot harus menangkap secara tepat komponen/fitur yang baru saja dimodifikasi.
-- Gambar screenshot disimpan ke direktori artifacts dan ditautkan dalam format carousels/markdown gambar.
+Antigravity **WAJIB memastikan seluruh background task MATI TOTAL setelah digunakan**:
+- **Tidak Boleh Ada Task Menggantung**: Tidak ada dev server lokal (`npm run dev`), compiler, watcher, ataupun daemon process yang dibiarkan tetap berjalan di background setelah respon selesai.
+- **Segera Dihentikan (*Killed*)**: Segala task pengujian sementara, print-to-pdf, build check, atau CLI process **wajib segera di-kill** begitu tugasnya selesai.
+- **Beban Memori & CPU Bersih**: Kondisi akhir di setiap akhir giliran harus selalu menunjukkan status background task aktif: **0 (Nol)**.
 
 ---
 
-## 6. Audit & Pengendalian Background Task
+## 5. Standar Verifikasi Langsung di Link Production (Live Web Review)
 
-Antigravity **WAJIB memastikan tidak ada background task yang tidak perlu berjalan**:
-- Hanya proses penunjang penting yang berstatus *daemon* (misalnya: Vite Dev Server `localhost:5173`) yang diperbolehkan tetap berjalan di latar belakang.
-- Task pengujian sementara, headless browser, print-to-pdf, atau proses CLI one-off **wajib segera dihentikan (*killed*) dan dibersihkan** begitu tugasnya selesai agar tidak membebani memori dan CPU pengguna.
-- Setiap laporan wajib mencantumkan status kesehatan background task yang aktif.
+Untuk melihat dan memverifikasi setiap hasil perubahan kode, fitur, tampilan visual, maupun tata letak:
+- **Verifikasi Langsung di Link Prod**: Peninjauan hasil dilakukan langsung pada URL live production:
+  👉 **[https://cntitapd.netlify.app](https://cntitapd.netlify.app)**
+- **Auto-Deployment Netlify**: Setiap commit yang di-push ke branch `master` di GitHub otomatis memicu build & publish pada Netlify dalam ~1-2 menit.
+- **Pengecekan Responsivitas**: Pengguna dan agen meninjau tampilan desktop maupun tampilan mobile langsung melalui browser pada link production tersebut. Tidak memerlukan dev server lokal atau pembuatan screenshot lokal secara berkala.
 
 ---
 
-## 7. Ambang Batas Kapasitas & Early Warning (Supabase Free Tier)
+## 6. Ambang Batas Kapasitas & Early Warning (Supabase Free Tier)
 
 | Metrik | Batas Kuota Free | Warning Threshold | Critical Threshold | Tindakan Pencegahan |
 | :--- | :---: | :---: | :---: | :--- |
@@ -106,17 +91,17 @@ Script backup di GitHub Actions akan otomatis mengeluarkan notifikasi `::warning
 
 ---
 
-## 8. Standar Pelaporan Wajib Agen AI (Mandatory Reporting Protocol)
+## 7. Standar Pelaporan Wajib Agen AI (Mandatory Reporting Protocol)
 
 Setiap kali Antigravity menyelesaikan perubahan, pembaruan fitur, skema/seed, atau permintaan pengguna, Antigravity **WAJIB** menyertakan 5 bagian laporan berikut secara lengkap:
 
 1. **Status Konektivitas ("Sekarang Kamu Terhubung ke Mana")**:
-   - Memetakan koneksi aktif (Local Dev, GitHub Cloud, Netlify, Supabase, dan Bitbucket Mandiri).
+   - Memetakan koneksi aktif (GitHub Cloud, Netlify Production, Supabase Cloud, dan Bitbucket Mandiri).
 2. **Tabel Rangkuman Status 5 Pilar Ekosistem**:
-   - Local, Netlify, Supabase, GitHub, dan Bitbucket Mandiri.
+   - Local Machine, Netlify Production, Supabase, GitHub, dan Bitbucket Mandiri.
 3. **Status 3 Pilar Sinkronisasi (Schema, Seed, dan Backup Cloud)**:
    - `supabase_schema.sql`, `supabase_seed.sql`, dan status GitHub Actions Cloud Backup.
-4. **4 Screenshot Matrix Verifikasi UI**:
-   - Web Light (1440x900), Web Dark (1440x900), Mobile Light (440x956), Mobile Dark (440x956).
-5. **Audit Status Background Task**:
-   - Memastikan hanya task penting yang aktif dan tidak ada task sisa/tak perlu.
+4. **Tautan Verifikasi Live Production**:
+   - Tautan langsung ke `https://cntitapd.netlify.app` beserta ringkasan apa saja yang dapat langsung dicek di halaman produksi.
+5. **Audit Status Background Task (Zero Running Tasks)**:
+   - Konfirmasi bahwa seluruh background task telah **mati total (0 task aktif)** dan beban sistem telah bersih.
