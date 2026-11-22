@@ -73,7 +73,7 @@ Terbagi ke dalam 4 divisi budaya utama dengan status progres (*Upcoming*, *In Pr
 | **Database & Backend** | [Supabase](https://supabase.com/) *(Opsional)* + `localStorage` Fallback | Operasional offline-first atau tersinkronisasi cloud |
 | **Dokumen / Report Export**| `jspdf` & `jspdf-autotable` | Ekspor data pendaftar & kudos ke dokumen PDF formal |
 | **Hosting & CI/CD** | [Netlify](https://www.netlify.com/) | Auto-deploy dengan edge caching & custom headers |
-| **Version Control** | Git (`master` branch) | Repository internal Bank Mandiri Bitbucket |
+| **Version Control** | Git (`master` branch) | GitHub Repository (`https://github.com/gahasapurba/cntitapd-web.git`) |
 
 ---
 
@@ -131,12 +131,7 @@ cnt-it-apd-web/
 
 ### 1. Kloning Repository
 ```bash
-# Dari GitHub:
 git clone https://github.com/gahasapurba/cntitapd-web.git cnt-it-apd-web
-
-# Atau dari Bitbucket Mandiri:
-git clone https://apdgit.bankmandiri.co.id/scm/~2402814297/cnt-it-apd.git cnt-it-apd-web
-
 cd cnt-it-apd-web
 ```
 

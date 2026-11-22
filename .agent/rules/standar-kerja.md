@@ -9,10 +9,9 @@ Dokumen ini merupakan panduan standar operasional baku bagi pengembang dan agen 
 | Platform / Komponen | Peran & Sumber | Endpoint / URL | Status Terhubung |
 | :--- | :--- | :--- | :--- |
 | **Local Machine** | Verifikasi build lokal (`npm run build`) | Workspace Lokal | Aktif (Offline/Lokal, Zero Background Task) |
-| **GitHub Cloud** | *Single Source of Truth* repositori publik & runner CI/CD | `https://github.com/gahasapurba/cntitapd-web.git` | Terhubung langsung (Remote: `github`) |
+| **GitHub Cloud** | *Single Source of Truth* repositori publik & runner CI/CD | `https://github.com/gahasapurba/cntitapd-web.git` | Terhubung langsung (Remote: `origin`) |
 | **Netlify (Production)** | Production Web Hosting & Edge Functions (Auto-deploy dari GitHub) | `https://cntitapd.netlify.app` | **Single Source of Truth untuk Peninjauan UI & Fitur Live** |
 | **Supabase Cloud** | Backend Database (PostgreSQL 16) & Media Storage Bucket (`cnt-media`) | `https://xarcxbfgeoetyhpqsick.supabase.co` | Terhubung aktif (REST & Management API) |
-| **Bitbucket Mandiri** | Repositori internal korporat Bank Mandiri | `https://apdgit.bankmandiri.co.id/scm/~2402814297/cnt-it-apd.git` | Remote: `origin` (Memerlukan VPN Mandiri) |
 
 ---
 
@@ -27,13 +26,10 @@ flowchart TD
     C -- Ya --> D["3. Perbarui supabase_schema.sql & supabase_seed.sql"]
     C -- Tidak --> E["4. Matikan Seluruh Task (Zero Background Task)"]
     D --> E
-    E --> F["5. Commit & Push ke GitHub (git push github master)"]
+    E --> F["5. Commit & Push ke GitHub (git push origin master)"]
     F --> G["6. Netlify Auto-Deploy ke Live Production"]
     F --> H["7. GitHub Actions Cloud Backup (Label: ANTIGRAVITY)"]
     G --> I["8. Verifikasi Langsung di Link Production (cntitapd.netlify.app)"]
-    F --> J{"Terhubung VPN Mandiri?"}
-    J -- Ya --> K["9. Push Mirror ke Bitbucket (git push origin master)"]
-    J -- Tidak --> L["Ditunda sampai terhubung VPN Mandiri"]
 ```
 
 ---
@@ -96,9 +92,9 @@ Script backup di GitHub Actions akan otomatis mengeluarkan notifikasi `::warning
 Setiap kali Antigravity menyelesaikan perubahan, pembaruan fitur, skema/seed, atau permintaan pengguna, Antigravity **WAJIB** menyertakan 5 bagian laporan berikut secara lengkap:
 
 1. **Status Konektivitas ("Sekarang Kamu Terhubung ke Mana")**:
-   - Memetakan koneksi aktif (GitHub Cloud, Netlify Production, Supabase Cloud, dan Bitbucket Mandiri).
-2. **Tabel Rangkuman Status 5 Pilar Ekosistem**:
-   - Local Machine, Netlify Production, Supabase, GitHub, dan Bitbucket Mandiri.
+   - Memetakan koneksi aktif (GitHub Cloud `origin`, Netlify Production, dan Supabase Cloud).
+2. **Tabel Rangkuman Status 4 Pilar Ekosistem**:
+   - Local Machine, GitHub Cloud, Netlify Production, dan Supabase Cloud.
 3. **Status 3 Pilar Sinkronisasi (Schema, Seed, dan Backup Cloud)**:
    - `supabase_schema.sql`, `supabase_seed.sql`, dan status GitHub Actions Cloud Backup.
 4. **Tautan Verifikasi Live Production**:
