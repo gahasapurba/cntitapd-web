@@ -15,22 +15,28 @@ Dokumen ini merupakan panduan standar operasional baku bagi pengembang dan agen 
 
 ---
 
-## 2. Standar Siklus Pengembangan (Development Lifecycle)
+## 2. Standar Siklus Pengembangan (Development Lifecycle) & Sinkronisasi Multi-Device
 
-Setiap penambahan fitur, perbaikan bug, atau pembaruan konfigurasi wajib melalui tahapan berikut:
+Proyek ini dikembangkan secara fleksibel lintas perangkat (misal: laptop kerja dan laptop pribadi) dengan **GitHub (`origin/master`) sebagai Single Source of Truth**. Oleh karena itu, siklus pengembangan wajib mengikuti alur sinkronisasi berikut:
 
 ```mermaid
 flowchart TD
-    A["1. Modifikasi Kode di Lokal"] --> B["2. Pengujian & Verifikasi Build (npm run build)"]
-    B --> C{"Ada perubahan Skema / Data DB?"}
-    C -- Ya --> D["3. Perbarui supabase_schema.sql & supabase_seed.sql"]
-    C -- Tidak --> E["4. Matikan Seluruh Task (Zero Background Task)"]
-    D --> E
-    E --> F["5. Commit & Push ke GitHub (git push origin master)"]
-    F --> G["6. Netlify Auto-Deploy ke Live Production"]
-    F --> H["7. GitHub Actions Cloud Backup (Label: ANTIGRAVITY)"]
-    G --> I["8. Verifikasi Langsung di Link Production (cntitapd.netlify.app)"]
+    A["0. Tarik Pembaruan Terbaru (git pull origin master)"] --> B["1. Modifikasi Kode di Lokal"]
+    B --> C["2. Pengujian & Verifikasi Build (npm run build)"]
+    C --> D{"Ada perubahan Skema / Data DB?"}
+    D -- Ya --> E["3. Perbarui supabase_schema.sql & supabase_seed.sql"]
+    D -- Tidak --> F["4. Matikan Seluruh Task (Zero Background Task)"]
+    E --> F
+    F --> G["5. Commit & Push ke GitHub (git push origin master)"]
+    G --> H["6. Netlify Auto-Deploy ke Live Production"]
+    G --> I["7. GitHub Actions Cloud Backup (Label: ANTIGRAVITY)"]
+    H --> J["8. Verifikasi Langsung di Link Production (cntitapd.netlify.app)"]
 ```
+
+> [!IMPORTANT]
+> **Aturan Wajib Multi-Device (Selalu Pull Sebelum Mulai)**:
+> - **Sebelum memulai pekerjaan/sesi baru**: Agen dan pengembang **WAJIB selalu mengeksekusi `git pull origin master`** terlebih dahulu. Hal ini menjamin pekerjaan selalu berbasis commit terbaru yang mungkin baru saja di-push dari perangkat/laptop lain.
+> - **Kondisi Branch Bersih**: Selalu pastikan branch lokal `master` telah up-to-date dengan `origin/master` sebelum melakukan perubahan kode apa pun.
 
 ---
 
