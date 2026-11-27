@@ -8,3 +8,4 @@ export { Skeleton } from './Skeleton';
 export { EmptyState } from './EmptyState';
 export { Dialog } from './Dialog';
 export { Segmented, type SegmentedOption } from './Segmented';
+export { DIVISION_ACCENTS, ACCENT_TEXT, ACCENT_BORDER, ACCENT_BG, divisionAccent, type DivisionAccent } from './accents';

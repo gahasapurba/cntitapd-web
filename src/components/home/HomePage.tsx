@@ -2,7 +2,7 @@ import { ArrowRight, CalendarDays, ClipboardList, Lightbulb, MapPin, Users } fro
 import { getDeadlineStatus, isEventPassed, formatDeadlineWib } from '../../utils/dateUtils';
 import { getMemberLevel, getDivisionLead } from '../../utils/memberQuotaUtils';
 import { AKHLAK_VALUES } from '../../utils/akhlak';
-import { AkhlakBand, Button, Card, Chip, Container, Eyebrow, SectionHeader, akhlakTone, cn } from '../../ui';
+import { ACCENT_BORDER, ACCENT_TEXT, AkhlakBand, Button, Card, Chip, Container, DIVISION_ACCENTS, Eyebrow, SectionHeader, akhlakTone, cn } from '../../ui';
 
 type AppItem = Record<string, any>;
 
@@ -20,16 +20,6 @@ interface HomePageProps {
 }
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
-const DIVISION_ACCENTS = ['amanah', 'loyal', 'adaptif', 'harmonis', 'kompeten', 'kolaboratif'] as const;
-const ACCENT_TEXT: Record<string, string> = {
-  amanah: 'text-amanah-ink', loyal: 'text-loyal-ink', adaptif: 'text-adaptif-ink',
-  harmonis: 'text-harmonis-ink', kompeten: 'text-kompeten-ink', kolaboratif: 'text-kolaboratif-ink'
-};
-const ACCENT_BORDER: Record<string, string> = {
-  amanah: 'border-t-amanah', loyal: 'border-t-loyal', adaptif: 'border-t-adaptif',
-  harmonis: 'border-t-harmonis', kompeten: 'border-t-kompeten', kolaboratif: 'border-t-kolaboratif'
-};
-
 /** "COMMITTED TO CULTIVATE" -> "Committed to cultivate" (all-caps copy reads as shouting). */
 function sentenceCase(text: string, capitalize: boolean): string {
   const t = String(text || '').trim();

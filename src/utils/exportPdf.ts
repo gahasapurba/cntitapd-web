@@ -18,9 +18,9 @@ export async function exportPresentationToPdf(
   // Ensure element is visible in viewport coordinate space
   targetElement.scrollIntoView({ behavior: 'instant', block: 'start' });
 
-  // Adapt background to active theme
+  // Background = the page colour of the active theme (tokens are hex, which html2canvas can read)
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const bgColor = isDark ? '#070d1e' : '#f8fafc';
+  const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-page').trim() || (isDark ? '#0a101c' : '#f3f5f9');
 
   try {
     const canvas = await html2canvas(targetElement, {
@@ -32,47 +32,27 @@ export async function exportPresentationToPdf(
       scrollY: 0,
       logging: false,
       onclone: (clonedDoc, clonedElement) => {
-        // Guarantee cloned iframe document inherits the exact data-theme
+        // The clone must keep the same theme so the card and text tokens resolve identically
         clonedDoc.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-
-        if (isDark) {
-          clonedDoc.documentElement.style.backgroundColor = '#070d1e';
-          clonedElement.style.backgroundColor = '#070d1e';
-          // Ensure all cards and text have solid, high-contrast colors in canvas
-          clonedElement.querySelectorAll<HTMLElement>('.glass-panel, .crew-member-card, .org-anggota-box').forEach(el => {
-            el.style.backgroundColor = '#0e1937';
-            el.style.borderColor = 'rgba(56, 189, 248, 0.35)';
-          });
-          clonedElement.querySelectorAll<HTMLElement>('h1, h2, h3, h4').forEach(el => {
-            el.style.color = '#f8fafc';
-          });
-        } else {
-          clonedDoc.documentElement.style.backgroundColor = '#f8fafc';
-          clonedElement.style.backgroundColor = '#f8fafc';
-          clonedElement.querySelectorAll<HTMLElement>('.glass-panel, .crew-member-card, .org-anggota-box').forEach(el => {
-            el.style.backgroundColor = '#ffffff';
-            el.style.borderColor = '#e2e8f0';
-          });
-          clonedElement.querySelectorAll<HTMLElement>('h1, h2, h3, h4').forEach(el => {
-            el.style.color = '#0a1128';
-          });
-        }
+        clonedDoc.documentElement.style.backgroundColor = bgColor;
+        clonedElement.style.backgroundColor = bgColor;
       }
     });
 
-    // Create 1-page Landscape A4 PDF (297 mm x 210 mm)
+    // One A4 page; orientation follows the chart's shape so a tall chart is not shrunk into landscape
+    const portrait = canvas.height > canvas.width;
     const pdf = new jsPDF({
-      orientation: 'landscape',
+      orientation: portrait ? 'portrait' : 'landscape',
       unit: 'mm',
       format: 'a4',
       compress: true,
     });
 
-    const pageWidth = 297;
-    const pageHeight = 210;
+    const pageWidth = portrait ? 210 : 297;
+    const pageHeight = portrait ? 297 : 210;
     const margin = 8; // 8mm margin
-    const maxW = pageWidth - margin * 2; // 281mm
-    const maxH = pageHeight - margin * 2; // 194mm
+    const maxW = pageWidth - margin * 2;
+    const maxH = pageHeight - margin * 2;
 
     // Scale canvas image proportionally to fit completely on EXACTLY 1 page
     let renderW = maxW;

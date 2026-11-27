@@ -7,7 +7,7 @@ import SiteFooter from './components/layout/SiteFooter';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminOnlyNotice from './components/AdminOnlyNotice';
 
-const OrganizationSection = lazy(() => import('./components/OrganizationSection'));
+const OrganizationPage = lazy(() => import('./components/organization/OrganizationPage'));
 const EventsPage = lazy(() => import('./components/events/EventsPage'));
 const GallerySection = lazy(() => import('./components/GallerySection'));
 const KudosSection = lazy(() => import('./components/KudosSection'));
@@ -129,7 +129,7 @@ const DEFAULT_PAGE_VISIBILITY = {
 };
 
 // Pages already redesigned in Fase 3 set their own width (Container) instead of the legacy .container.
-const FULL_BLEED_TABS = new Set(['home', 'faq', 'event', 'program', 'form', 'oprec']);
+const FULL_BLEED_TABS = new Set(['home', 'faq', 'event', 'program', 'form', 'oprec', 'organisasi']);
 
 // Helper to consistently sort tenures descending by year (e.g. 2028 -> 2027 -> 2026)
 const sortTenuresDesc = (list = []) => {
@@ -1294,7 +1294,7 @@ export default function App() {
         >
           <ErrorBoundary onResetTab={() => setCurrentTab('home')}>
             {effectiveTab === 'organisasi' && (
-            <OrganizationSection
+            <OrganizationPage
               activeTenure={activeTenure}
               tenures={tenures}
               divisions={divisions}

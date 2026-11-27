@@ -307,43 +307,6 @@ select option {
   justify-content: center;
 }
 
-.org-level-2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  position: relative;
-  z-index: 10;
-}
-
-.org-level-3 {
-  display: grid;
-  grid-template-columns: repeat(var(--level3-cols, 2), minmax(0, 1fr));
-  gap: 24px;
-}
-
-.org-pimpro-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--pimpro-cols, 4), minmax(0, 1fr));
-  gap: 16px;
-  width: 100%;
-  position: relative;
-  z-index: 10;
-}
-
-@media (max-width: 960px) {
-  .org-pimpro-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 16px;
-  }
-  .org-tree-line {
-    display: none !important;
-  }
-}
-
-.org-tree-line {
-  display: block;
-}
-
 .admin-form-two-col {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
@@ -378,10 +341,6 @@ select option {
 
 /* TABLET & MOBILE CONTENT (< 868px) */
 @media screen and (max-width: 868px) {
-  .org-tree-line {
-    display: none !important;
-  }
-
   .navbar-brand-logo {
     height: 28px !important;
     max-width: 85px !important;
@@ -453,45 +412,6 @@ select option {
 
   footer {
     padding-bottom: max(24px, calc(16px + env(safe-area-inset-bottom))) !important;
-  }
-
-  /* Organigram Hierarchy tree adjustments on mobile */
-  .org-section-wrapper {
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-    gap: 36px !important;
-  }
-
-  .org-tree-wrapper {
-    gap: 24px !important;
-    padding: 0 6px !important;
-  }
-
-  .org-level-2, .org-level-3 {
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
-  }
-
-  .org-pimpro-grid {
-    grid-template-columns: 1fr !important;
-    gap: 28px !important;
-  }
-
-  .org-anggota-wrapper {
-    margin-top: 14px !important;
-  }
-
-  .org-anggota-box {
-    padding: 16px !important;
-    gap: 10px !important;
-  }
-
-  .crew-member-card {
-    padding: 20px 18px !important;
-  }
-
-  .org-tree-line {
-    display: none !important;
   }
 
   /* Form two-column inputs stack gracefully */
