@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useAppNavigate } from '../lib/appNavigation';
 import {
   ArrowLeft,
   Calendar,
@@ -77,6 +78,7 @@ export default function EventRegistrationStats({
   onNavigateForm,
   theme = 'dark'
 }) {
+  const navigateTo = useAppNavigate();
   const isDark = theme === 'dark';
 
   // 1. Target Event & Connected Form
@@ -1118,7 +1120,7 @@ export default function EventRegistrationStats({
             <button
               type="button"
               onClick={() => {
-                window.location.href = '/#home';
+                navigateTo('/#home');
               }}
               style={{
                 padding: '10px 24px',

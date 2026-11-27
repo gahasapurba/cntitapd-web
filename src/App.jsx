@@ -44,6 +44,14 @@ import {
   signOutAdmin,
   deleteMediaFromCloud
 } from './lib/supabase';
+import { useLocation } from 'react-router';
+import {
+  AppNavigationContext,
+  PUBLIC_PAGE_IDS,
+  buildTabUrl,
+  parseLocationRoute,
+  useQueuedNavigation
+} from './lib/appNavigation';
 import { formatDeadlineWib, isEventPassed } from './utils/dateUtils';
 import { getDivisionLead } from './utils/memberQuotaUtils';
 import { deriveRegistrationCounts, EMPTY_REGISTRATION_COUNTS } from './utils/quotaUtils';
@@ -97,48 +105,6 @@ function detachFormsFromEvent(forms, eventId, exceptFormId, updatedAt) {
     }));
 }
 
-const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'assets', 'form'];
-const VALID_TABS = [...PUBLIC_PAGE_IDS, 'program', 'oprec', 'admin', 'event-stats'];
-
-function parseLocationRoute() {
-  const rawHash = (window.location.hash || '').replace(/^#/, '');
-  const [hashTab, hashQuery] = rawHash.split('?');
-  const params = new URLSearchParams(hashQuery || window.location.search || '');
-  const formId = params.get('form') || params.get('formId') || null;
-  const eventId = params.get('eventId') || params.get('event') || null;
-  const galleryId = params.get('gallery') || params.get('galleryId') || null;
-  const statsParam = params.get('stats') || params.get('statsEventId') || null;
-  const pathname = (window.location.pathname || '').replace(/\/+$/, '');
-
-  if (pathname === '/admin' || hashTab === 'admin') {
-    return { tab: 'admin', formId, eventId, galleryId };
-  }
-  if (statsParam || hashTab === 'event-stats') {
-    return { tab: 'event-stats', formId: null, eventId: statsParam || eventId, galleryId: null };
-  }
-  if (formId) {
-    return { tab: 'form', formId, eventId: null, galleryId: null };
-  }
-  if (eventId) {
-    return { tab: 'event', formId: null, eventId, galleryId: null };
-  }
-  if (galleryId) {
-    return { tab: 'galeri', formId: null, eventId: null, galleryId };
-  }
-  if (hashTab) {
-    if (hashTab === 'program' || hashTab === 'event') {
-      return { tab: 'event', formId, eventId, galleryId };
-    }
-    if (hashTab === 'oprec' || hashTab === 'form') {
-      return { tab: 'form', formId, eventId, galleryId };
-    }
-    if (VALID_TABS.includes(hashTab)) {
-      return { tab: hashTab, formId, eventId, galleryId };
-    }
-  }
-  return { tab: 'home', formId: null, eventId: null, galleryId: null };
-}
-
 const DEFAULT_PAGE_VISIBILITY = {
   navbar: true,
   home: true,
@@ -163,58 +129,28 @@ const sortTenuresDesc = (list = []) => {
 };
 
 export default function App() {
-  // Navigation: 'home' | 'organisasi' | 'event' | 'galeri' | 'kudos' | 'assets' | 'form' | 'admin'
-  const [currentTab, setCurrentTabState] = useState(() => parseLocationRoute().tab);
-  const [activeFormIdFromUrl, setActiveFormIdFromUrl] = useState(() => parseLocationRoute().formId);
-  const [activeEventIdFromUrl, setActiveEventIdFromUrl] = useState(() => parseLocationRoute().eventId);
-  const [activeGalleryIdFromUrl, setActiveGalleryIdFromUrl] = useState(() => parseLocationRoute().galleryId);
+  // Navigation state lives in the URL (React Router); see src/lib/appNavigation.tsx for the scheme.
+  const location = useLocation();
+  const navigateTo = useQueuedNavigation();
+  const route = useMemo(
+    () => parseLocationRoute(location),
+    [location.pathname, location.search, location.hash]
+  );
+  const currentTab = route.tab;
+  const activeFormIdFromUrl = route.formId;
+  const activeEventIdFromUrl = route.eventId;
+  const activeGalleryIdFromUrl = route.galleryId;
+
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
 
   const setCurrentTab = useCallback((nextTab, formIdParam = null, eventIdParam = null, shouldScroll = true, galleryIdParam = null) => {
-    let targetTab = nextTab;
-    if (targetTab === 'program') targetTab = 'event';
-    if (targetTab === 'oprec') targetTab = 'form';
-    if (!VALID_TABS.includes(targetTab)) targetTab = 'home';
-
-    setCurrentTabState(targetTab);
-    const isPathAdmin = (window.location.pathname || '').replace(/\/+$/, '') === '/admin';
-    const basePrefix = isPathAdmin ? '/' : '';
-
-    if (formIdParam) {
-      setActiveFormIdFromUrl(formIdParam);
-      setActiveEventIdFromUrl(null);
-      setActiveGalleryIdFromUrl(null);
-      window.history.replaceState(null, '', `${basePrefix}?form=${encodeURIComponent(formIdParam)}#form`);
-    } else if (targetTab === 'event-stats' || eventIdParam) {
-      if (targetTab === 'event-stats') {
-        setActiveEventIdFromUrl(eventIdParam);
-        setActiveFormIdFromUrl(null);
-        setActiveGalleryIdFromUrl(null);
-        window.history.replaceState(null, '', `${basePrefix}?stats=${encodeURIComponent(eventIdParam || '')}#event-stats`);
-      } else {
-        setActiveEventIdFromUrl(eventIdParam);
-        setActiveFormIdFromUrl(null);
-        setActiveGalleryIdFromUrl(null);
-        window.history.replaceState(null, '', `${basePrefix}?event=${encodeURIComponent(eventIdParam)}#event`);
-      }
-    } else if (galleryIdParam) {
-      setActiveGalleryIdFromUrl(galleryIdParam);
-      setActiveFormIdFromUrl(null);
-      setActiveEventIdFromUrl(null);
-      window.history.replaceState(null, '', `${basePrefix}?gallery=${encodeURIComponent(galleryIdParam)}#galeri`);
-    } else {
-      setActiveFormIdFromUrl(null);
-      setActiveEventIdFromUrl(null);
-      setActiveGalleryIdFromUrl(null);
-      if (targetTab === 'admin') {
-        window.history.replaceState(null, '', isPathAdmin ? '/admin' : '#admin');
-      } else {
-        window.history.replaceState(null, '', `${basePrefix}#${targetTab}`);
-      }
-    }
-    if (shouldScroll) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, []);
+    const url = buildTabUrl(
+      { tab: nextTab, formId: formIdParam, eventId: eventIdParam, galleryId: galleryIdParam },
+      pathnameRef.current
+    );
+    navigateTo(url, { scroll: shouldScroll });
+  }, [navigateTo]);
 
   // Page & Navbar Visibility State (View / Hide per page & navbar)
   const [pageVisibility, setPageVisibilityState] = useState(() => {
@@ -240,21 +176,6 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('cnt_theme', theme);
   }, [theme]);
-
-  useEffect(() => {
-    const handleHash = () => {
-      const parsed = parseLocationRoute();
-      setCurrentTabState(parsed.tab);
-      setActiveFormIdFromUrl(parsed.formId);
-      setActiveEventIdFromUrl(parsed.eventId);
-    };
-    window.addEventListener('hashchange', handleHash);
-    window.addEventListener('popstate', handleHash);
-    return () => {
-      window.removeEventListener('hashchange', handleHash);
-      window.removeEventListener('popstate', handleHash);
-    };
-  }, []);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -1175,6 +1096,7 @@ export default function App() {
               : visiblePublicPages[0]));
 
   return (
+    <AppNavigationContext.Provider value={navigateTo}>
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
       {/* Background Canvas */}
       <StarfieldBackground theme={theme} />
@@ -1548,12 +1470,7 @@ export default function App() {
 
           {effectiveTab === 'admin' && (
             <AdminPortal
-              onBack={() => {
-                if ((window.location.pathname || '').replace(/\/+$/, '') === '/admin') {
-                  window.history.pushState(null, '', '/');
-                }
-                setCurrentTab(visiblePublicPages[0] || 'home');
-              }}
+              onBack={() => setCurrentTab(visiblePublicPages[0] || 'home')}
               tenures={tenures}
               activeTenure={activeTenure}
               roleQuotas={roleQuotas}
@@ -2106,5 +2023,6 @@ export default function App() {
       {/* Clean Footer */}
       <Footer theme={theme} />
     </div>
+    </AppNavigationContext.Provider>
   );
 }

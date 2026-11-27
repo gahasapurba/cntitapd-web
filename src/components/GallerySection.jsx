@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useAppNavigate } from '../lib/appNavigation';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -32,6 +33,7 @@ export default function GallerySection({
   onSelectGalleryUrl,
   onNavigateEvent
 }) {
+  const navigateTo = useAppNavigate();
   const isDark = theme === 'dark';
   const [selectedGalleryId, setSelectedGalleryId] = useState(null);
   const [copiedGalleryId, setCopiedGalleryId] = useState(null);
@@ -128,26 +130,40 @@ export default function GallerySection({
     return url;
   };
 
+  // Gallery id from the URL that has been applied to the view. Data refreshes re-run the effect,
+  // so filters and search are only reset when the URL points at a different gallery.
+  const appliedGalleryIdRef = useRef(null);
+
   useEffect(() => {
     if (initialGalleryId && galleries.length > 0) {
       const found = galleries.find(g => g.id === initialGalleryId);
       if (found) {
-        setSelectedGalleryId(initialGalleryId);
         setGalleryNotFound(false);
-        setDivFilter('all');
-        setSearchQuery('');
-        if (activeTenure && found.tenureId !== activeTenure.id) {
-          setTenureFilter('all');
-        }
-        const targetIdx = galleries.findIndex(g => g.id === initialGalleryId);
-        if (targetIdx !== -1) {
-          setGalleryPage(Math.floor(targetIdx / 6) + 1);
+        if (appliedGalleryIdRef.current !== initialGalleryId) {
+          appliedGalleryIdRef.current = initialGalleryId;
+          setSelectedGalleryId(initialGalleryId);
+          setCurrentPhotoIdx(0);
+          setDivFilter('all');
+          setSearchQuery('');
+          if (activeTenure && found.tenureId !== activeTenure.id) {
+            setTenureFilter('all');
+          }
+          const targetIdx = galleries.findIndex(g => g.id === initialGalleryId);
+          if (targetIdx !== -1) {
+            setGalleryPage(Math.floor(targetIdx / 6) + 1);
+          }
         }
       } else {
         setGalleryNotFound(true);
       }
     } else if (!initialGalleryId) {
       setGalleryNotFound(false);
+      // Back to the plain gallery page (e.g. browser Back): show the default selection again.
+      if (appliedGalleryIdRef.current !== null) {
+        appliedGalleryIdRef.current = null;
+        setSelectedGalleryId(null);
+        setCurrentPhotoIdx(0);
+      }
     }
   }, [initialGalleryId, galleries, activeTenure]);
 
@@ -250,7 +266,7 @@ export default function GallerySection({
                 onClick={() => {
                   setGalleryNotFound(false);
                   if (onSelectGalleryUrl) onSelectGalleryUrl(null);
-                  window.location.href = '/#home';
+                  navigateTo('/#home');
                 }}
                 style={{
                   padding: '9px 22px',
@@ -573,7 +589,7 @@ export default function GallerySection({
                       if (onNavigateEvent) {
                         onNavigateEvent(connectedEvt.id);
                       } else {
-                        window.location.href = `/?event=${encodeURIComponent(connectedEvt.id)}#event`;
+                        navigateTo(`/?event=${encodeURIComponent(connectedEvt.id)}#event`);
                       }
                     }}
                     title="Buka detail acara ini di Program Kerja"
@@ -968,7 +984,7 @@ export default function GallerySection({
                                   if (onNavigateEvent) {
                                     onNavigateEvent(connectedEvt.id);
                                   } else {
-                                    window.location.href = `/?event=${encodeURIComponent(connectedEvt.id)}#event`;
+                                    navigateTo(`/?event=${encodeURIComponent(connectedEvt.id)}#event`);
                                   }
                                 }}
                                 className="badge-cyan"

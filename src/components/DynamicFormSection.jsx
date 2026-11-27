@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAppNavigate } from '../lib/appNavigation';
 import { 
   FileText, 
   Clock, 
@@ -62,6 +63,7 @@ export default function DynamicFormSection({
   activeTenure = null,
   tenures = []
 }) {
+  const navigateTo = useAppNavigate();
   const isDark = theme === 'dark';
 
   const [tenureFilter, setTenureFilter] = useState('active'); // 'active' | 'all'
@@ -759,7 +761,7 @@ export default function DynamicFormSection({
                 type="button"
                 onClick={() => {
                   if (onSelectFormUrl) onSelectFormUrl(null);
-                  window.location.href = '/#home';
+                  navigateTo('/#home');
                 }}
                 style={{
                   padding: '9px 22px',

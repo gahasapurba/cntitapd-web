@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAppNavigate } from '../lib/appNavigation';
 import {
   Calendar as CalendarIcon,
   MapPin,
@@ -83,6 +84,7 @@ export default function ProgramSection({
   galleries = [],
   onNavigateGallery
 }) {
+  const navigateTo = useAppNavigate();
   const isDark = theme === 'dark';
   const publicEvents = (events || []).filter((evt) => evt.isPublic === true);
   const [filterDiv, setFilterDiv] = useState('all');
@@ -418,7 +420,7 @@ export default function ProgramSection({
                 onClick={() => {
                   setEventDraftHidden(false);
                   if (onSelectEventUrl) onSelectEventUrl(null);
-                  window.location.href = '/#event';
+                  navigateTo('/#event');
                 }}
                 style={{
                   padding: '9px 24px',
@@ -479,7 +481,7 @@ export default function ProgramSection({
                 onClick={() => {
                   setEventNotFound(false);
                   if (onSelectEventUrl) onSelectEventUrl(null);
-                  window.location.href = '/#home';
+                  navigateTo('/#home');
                 }}
                 style={{
                   padding: '9px 22px',
@@ -940,7 +942,7 @@ export default function ProgramSection({
                                 if (onNavigateGallery) {
                                   onNavigateGallery(linkedGal.id);
                                 } else {
-                                  window.location.href = `/?galeri=${encodeURIComponent(linkedGal.id)}#galeri`;
+                                  navigateTo(`/?gallery=${encodeURIComponent(linkedGal.id)}#galeri`);
                                 }
                               }}
                               title={`Lihat Galeri Foto: ${linkedGal.title}`}
@@ -1442,7 +1444,7 @@ export default function ProgramSection({
                             if (onNavigateForm) {
                               onNavigateForm(connectedForm.id);
                             } else {
-                              window.location.href = `/?form=${encodeURIComponent(connectedForm.id)}#form`;
+                              navigateTo(`/?form=${encodeURIComponent(connectedForm.id)}#form`);
                             }
                           }}
                           style={{
@@ -1481,7 +1483,7 @@ export default function ProgramSection({
                             if (onNavigateEventStats) {
                               onNavigateEventStats(rsvpModalEvent.id);
                             } else {
-                              window.location.href = `/?stats=${encodeURIComponent(rsvpModalEvent.id)}#event-stats`;
+                              navigateTo(`/?stats=${encodeURIComponent(rsvpModalEvent.id)}#event-stats`);
                             }
                           }}
                           style={{
@@ -1891,7 +1893,7 @@ export default function ProgramSection({
                       if (onNavigateGallery) {
                         onNavigateGallery(connectedGallery.id);
                       } else {
-                        window.location.href = `/?galeri=${encodeURIComponent(connectedGallery.id)}#galeri`;
+                        navigateTo(`/?gallery=${encodeURIComponent(connectedGallery.id)}#galeri`);
                       }
                     }}
                     style={{
