@@ -663,15 +663,19 @@ export const rowMappers: { [K in TableKey]: RowMapper<K> } = {
   }
 };
 // ============================================================================
-// DATA FETCHING
+// DATA FETCHING (dipakai oleh lapisan TanStack Query di src/lib/queries.ts)
 // ============================================================================
 
 // Data pribadi pendaftar & isi aspirasi: hanya dibaca admin berwenang dan tidak pernah
 // disimpan di cache browser.
-const PRIVATE_KEYS: readonly TableKey[] = ['submissions', 'eventRsvps', 'luckyDraws', 'aspirasiList'];
-PRIVATE_KEYS.forEach((key) => {
+export const PRIVATE_TABLE_KEYS: readonly TableKey[] = ['submissions', 'eventRsvps', 'luckyDraws', 'aspirasiList'];
+PRIVATE_TABLE_KEYS.forEach((key) => {
   try { localStorage.removeItem(LOCAL_PREFIX + key); } catch (e) { /* storage unavailable */ }
 });
+
+export function isPrivateTableKey(key: TableKey): boolean {
+  return PRIVATE_TABLE_KEYS.includes(key);
+}
 
 const FETCH_ORDER: Record<TableKey, string> = {
   tenures: 'sort_order',
@@ -692,6 +696,13 @@ const FETCH_ORDER: Record<TableKey, string> = {
 };
 const DESCENDING_ORDER = new Set(['created_at', 'drawn_at']);
 
+export const TABLE_KEYS = Object.keys(FETCH_ORDER) as TableKey[];
+
+/** Web-state key of a database table, for routing realtime change events. */
+export const TABLE_KEY_BY_DB_TABLE: Record<string, TableKey> = Object.fromEntries(
+  TABLE_KEYS.map((key) => [TABLE_MAP[key], key])
+);
+
 const SETTING_KEYS = {
   pageVisibility: 'page_visibility',
   activeTenureId: 'active_tenure_id',
@@ -706,162 +717,130 @@ export interface RegistrationCounts {
   events: Record<string, number>;
 }
 
-export type CloudState = Partial<Record<TableKey, AppItem[]>> & {
-  registrationCounts?: RegistrationCounts;
+export interface PageSettings {
   pageVisibility?: AppItem;
   activeTenureId?: string;
   announcementBar?: AppItem;
   roleQuotas?: AppItem;
-  failed: string[];
-};
+}
 
-function enrichMembersAndDivisions(result: CloudState): void {
-  // Lengkapi pengurus dengan kategori, jabatan & divisi dari tenure_roles
-  if (Array.isArray(result.members)) {
-    const rList = result.tenureRoles || [];
-    const dList = result.divisions || [];
-    result.members = result.members.map(m => {
-      const roleObj = rList.find(r => r.id === m.roleId) ||
-        rList.find(r => String(r.name || '').toLowerCase() === String(m.role || '').toLowerCase());
-      const divObj = dList.find(d => d.id === m.divisionId);
-      const level = roleObj ? Number(roleObj.level) : 5;
-      const cat = roleObj ? getCategoryFromLevel(level) : (m.category || 'anggota');
+const SETTING_STATE_KEYS = Object.keys(SETTING_KEYS) as SettingKey[];
 
-      let roleName = m.role || '';
-      let titleName = m.title || '';
+/**
+ * Melengkapi pengurus dengan kategori (pembina, inti, pimpro, anggota), nama jabatan & divisi
+ * dari tenure_roles. Dipanggil lewat useMemo agar selalu konsisten dengan tabel sumbernya.
+ */
+export function deriveMembers(members: AppItem[], tenureRoles: AppItem[], divisions: AppItem[]): AppItem[] {
+  return members.map(m => {
+    const roleObj = tenureRoles.find(r => r.id === m.roleId) ||
+      tenureRoles.find(r => String(r.name || '').toLowerCase() === String(m.role || '').toLowerCase());
+    const divObj = divisions.find(d => d.id === m.divisionId);
+    const level = roleObj ? Number(roleObj.level) : 5;
+    const cat = roleObj ? getCategoryFromLevel(level) : (m.category || 'anggota');
 
-      if (roleObj) {
-        const rName = roleObj.name || '';
-        const dName = divObj?.name || '';
-        if (roleObj.requiresDivision && divObj && dName) {
-          roleName = rName.toLowerCase().includes(dName.toLowerCase())
-            ? rName
-            : `${rName} ${dName}`;
-          titleName = dName;
-        } else {
-          roleName = roleName || rName;
-          titleName = divObj?.name || (titleName && titleName.toLowerCase() !== roleName.toLowerCase() ? titleName : '');
-        }
+    let roleName = m.role || '';
+    let titleName = m.title || '';
+
+    if (roleObj) {
+      const rName = roleObj.name || '';
+      const dName = divObj?.name || '';
+      if (roleObj.requiresDivision && divObj && dName) {
+        roleName = rName.toLowerCase().includes(dName.toLowerCase())
+          ? rName
+          : `${rName} ${dName}`;
+        titleName = dName;
+      } else {
+        roleName = roleName || rName;
+        titleName = divObj?.name || (titleName && titleName.toLowerCase() !== roleName.toLowerCase() ? titleName : '');
       }
+    }
 
-      return {
-        ...m,
-        roleId: roleObj?.id || m.roleId || '',
-        category: cat,
-        role: roleName || 'Anggota',
-        title: titleName || ''
-      };
-    });
-  }
-
-  // Ketua divisi ditentukan dari level jabatan pengurus di divisi tersebut
-  if (Array.isArray(result.divisions)) {
-    const memList = result.members || [];
-    const rList = result.tenureRoles || [];
-    result.divisions = result.divisions.map(d => {
-      const divMems = memList.filter(m => m.divisionId === d.id);
-      let bestLead = null;
-      if (divMems.length > 0) {
-        const mapped = divMems.map(m => {
-          const roleObj = rList.find(r => r.id === m.roleId) ||
-            rList.find(r => String(r.name || '').toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
-          const level = roleObj ? Number(roleObj.level) : 5;
-          const sortOrder = roleObj ? Number(roleObj.sortOrder ?? 0) : 999;
-          return { member: m, level, sortOrder };
-        });
-        mapped.sort((a, b) => (a.level - b.level) || (a.sortOrder - b.sortOrder));
-        bestLead = mapped[0]?.member || null;
-      }
-      return {
-        ...d,
-        memberId: bestLead ? bestLead.id : (d.memberId || null),
-        leadName: bestLead ? bestLead.name : (d.leadName || '')
-      };
-    });
-  }
+    return {
+      ...m,
+      roleId: roleObj?.id || m.roleId || '',
+      category: cat,
+      role: roleName || 'Anggota',
+      title: titleName || ''
+    };
+  });
 }
 
 /**
- * Memuat seluruh tabel publik, ditambah tabel pribadi bila admin sedang login.
- * Pengunjung menerima jumlah pendaftar (agregat) & aspirasi publik lewat RPC.
- * Hanya data yang berhasil dimuat yang ada di hasil, sehingga kegagalan request
- * tidak pernah disangka sebagai tabel kosong.
+ * Memuat satu tabel (bentuk state web). Melempar error bila gagal, sehingga pemanggil tetap
+ * memakai data yang sudah ada dan tidak mengira request gagal sebagai tabel kosong. Tabel publik
+ * juga disimpan di localStorage agar kunjungan berikutnya langsung tampil.
  */
-export async function fetchAllCloudState({ includePrivate = false } = {}): Promise<CloudState> {
-  const keys = (Object.keys(FETCH_ORDER) as TableKey[]).filter((key) => includePrivate || !PRIVATE_KEYS.includes(key));
-  const [settingsRes, countsRes, publicAspirasiRes, ...tableResults] = await Promise.all([
-    supabase.from('page_settings').select('*'),
-    includePrivate ? Promise.resolve(null) : supabase.rpc('get_registration_counts'),
-    supabase.rpc('get_public_aspirasi'),
-    ...keys.map((key) => {
-      const column = FETCH_ORDER[key];
-      let query = dynamicDb.from(TABLE_MAP[key]).select('*').order(column, { ascending: !DESCENDING_ORDER.has(column) });
-      if (column === 'sort_order') query = query.order('created_at', { ascending: true });
-      return query;
-    })
-  ]);
+export async function fetchTableRows(key: TableKey): Promise<AppItem[]> {
+  const column = FETCH_ORDER[key];
+  let query = dynamicDb.from(tableFor(key)).select('*').order(column, { ascending: !DESCENDING_ORDER.has(column) });
+  if (column === 'sort_order') query = query.order('created_at', { ascending: true });
+  const { data, error } = await query;
+  if (error || !Array.isArray(data)) {
+    throw new Error(`Gagal memuat data ${tableFor(key)}: ${error?.message || 'respons tidak valid'}`);
+  }
+  // Rows come from the table that `key` maps to, so they match that mapper's row type.
+  const fromDb = rowMappers[key].fromDb as (row: unknown) => AppItem;
+  const rows = data.map(fromDb);
+  if (!isPrivateTableKey(key)) saveLocalCache(key, rows);
+  return rows;
+}
 
-  const result: CloudState = { failed: [] };
-  const failed: string[] = result.failed;
+/** Aspirasi bertanda publik (beserta status & balasan admin), untuk pengunjung & admin divisi. */
+export async function fetchPublicAspirasi(): Promise<AppItem[]> {
+  const { data, error } = await supabase.rpc('get_public_aspirasi');
+  if (error || !Array.isArray(data)) {
+    throw new Error(`Gagal memuat aspirasi: ${error?.message || 'respons tidak valid'}`);
+  }
+  return data.map((row) => ({ ...rowMappers.aspirasiList.fromDb(row as DbRow<'aspirasiList'>), isPublic: true }));
+}
 
-  tableResults.forEach((res, idx) => {
-    const key = keys[idx];
-    if (res.error || !Array.isArray(res.data)) {
-      failed.push(key);
-      return;
+/** Pengaturan halaman terakhir yang tersimpan di browser ini, dipakai sampai server merespons. */
+export function loadCachedPageSettings(): PageSettings {
+  const cached: PageSettings = {};
+  for (const key of SETTING_STATE_KEYS) {
+    const value = loadLocalCache<unknown>(key, undefined);
+    if (value !== undefined && value !== null) (cached as Record<string, unknown>)[key] = value;
+  }
+  return cached;
+}
+
+export async function fetchPageSettings(): Promise<PageSettings> {
+  const { data, error } = await supabase.from('page_settings').select('*');
+  if (error || !Array.isArray(data)) {
+    throw new Error(`Gagal memuat pengaturan halaman: ${error?.message || 'respons tidak valid'}`);
+  }
+  const result: PageSettings = {};
+  for (const row of data) {
+    const value = row.value as AppItem | null;
+    if (!value) continue;
+    if (row.key === SETTING_KEYS.pageVisibility) {
+      result.pageVisibility = { ...value, _updatedAt: row.updated_at };
+    } else if (row.key === SETTING_KEYS.activeTenureId && value.id) {
+      result.activeTenureId = String(value.id);
+    } else if (row.key === SETTING_KEYS.announcementBar) {
+      result.announcementBar = { ...value, _updatedAt: row.updated_at };
+    } else if (row.key === SETTING_KEYS.roleQuotas) {
+      result.roleQuotas = value;
     }
-    result[key] = res.data.map((row: AppItem) => (rowMappers[key].fromDb as (r: AppItem) => AppItem)(row));
+  }
+  SETTING_STATE_KEYS.forEach((key) => {
+    if (result[key] !== undefined) saveLocalCache(key, result[key]);
   });
-
-  if (countsRes) {
-    if (countsRes.error || !Array.isArray(countsRes.data)) {
-      failed.push('registrationCounts');
-    } else {
-      const counts: RegistrationCounts = { forms: {}, events: {} };
-      countsRes.data.forEach(({ kind, ref_id: refId, total }) => {
-        if (kind === 'form') counts.forms[refId] = total;
-        if (kind === 'event') counts.events[refId] = total;
-      });
-      result.registrationCounts = counts;
-    }
-  }
-
-  // Super admin membaca seluruh aspirasi; pengunjung & admin divisi melihat aspirasi publik saja.
-  if (publicAspirasiRes.error || !Array.isArray(publicAspirasiRes.data)) {
-    if (!result.aspirasiList) failed.push('publicAspirasi');
-  } else if (!result.aspirasiList || result.aspirasiList.length === 0) {
-    result.aspirasiList = publicAspirasiRes.data.map((row) => ({ ...rowMappers.aspirasiList.fromDb(row as DbRow<'aspirasiList'>), isPublic: true }));
-  }
-
-  if (settingsRes.error || !Array.isArray(settingsRes.data)) {
-    failed.push('pageSettings');
-  } else {
-    for (const row of settingsRes.data) {
-      const value = row.value as AppItem | null;
-      if (!value) continue;
-      if (row.key === SETTING_KEYS.pageVisibility) {
-        result.pageVisibility = { ...value, _updatedAt: row.updated_at };
-      } else if (row.key === SETTING_KEYS.activeTenureId && value.id) {
-        result.activeTenureId = String(value.id);
-      } else if (row.key === SETTING_KEYS.announcementBar) {
-        result.announcementBar = { ...value, _updatedAt: row.updated_at };
-      } else if (row.key === SETTING_KEYS.roleQuotas) {
-        result.roleQuotas = value;
-      }
-    }
-  }
-
-  enrichMembersAndDivisions(result);
-
-  (Object.keys(result) as (keyof CloudState)[]).forEach((key) => {
-    if (key === 'failed' || key === 'registrationCounts') return;
-    if (!PRIVATE_KEYS.includes(key as TableKey)) saveLocalCache(key, result[key]);
-  });
-
-  if (failed.length > 0) {
-    console.error('Gagal memuat sebagian data dari Supabase:', failed.join(', '));
-  }
   return result;
+}
+
+/** Jumlah pendaftar (agregat) untuk pengunjung, yang tidak dapat membaca submissions/RSVP. */
+export async function fetchRegistrationCounts(): Promise<RegistrationCounts> {
+  const { data, error } = await supabase.rpc('get_registration_counts');
+  if (error || !Array.isArray(data)) {
+    throw new Error(`Gagal memuat jumlah pendaftar: ${error?.message || 'respons tidak valid'}`);
+  }
+  const counts: RegistrationCounts = { forms: {}, events: {} };
+  data.forEach(({ kind, ref_id: refId, total }) => {
+    if (kind === 'form') counts.forms[refId] = total;
+    if (kind === 'event') counts.events[refId] = total;
+  });
+  return counts;
 }
 
 // ============================================================================

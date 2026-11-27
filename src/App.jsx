@@ -25,9 +25,8 @@ const DEFAULT_ANNOUNCEMENT_BAR = {
 };
 import {
   supabase,
-  loadLocalCache,
-  fetchAllCloudState,
   nextSortOrder,
+  deriveMembers,
   saveRow,
   saveRows,
   deleteRow,
@@ -52,12 +51,21 @@ import {
   parseLocationRoute,
   useQueuedNavigation
 } from './lib/appNavigation';
+import {
+  refreshAllData,
+  removePrivateTableData,
+  usePageSettings,
+  usePublicAspirasi,
+  useRealtimeInvalidation,
+  useRegistrationCounts,
+  useSyncStatus,
+  useTableData
+} from './lib/queries';
 import { formatDeadlineWib, isEventPassed } from './utils/dateUtils';
 import { getDivisionLead } from './utils/memberQuotaUtils';
-import { deriveRegistrationCounts, EMPTY_REGISTRATION_COUNTS } from './utils/quotaUtils';
+import { deriveRegistrationCounts } from './utils/quotaUtils';
 
-const CLOUD_POLL_INTERVAL_MS = 60000;
-const REALTIME_DEBOUNCE_MS = 1000;
+const EMPTY_ROLE_QUOTAS = {};
 
 // Parents are restored before children so foreign keys always resolve.
 const RESTORE_ORDER = [
@@ -152,20 +160,23 @@ export default function App() {
     navigateTo(url, { scroll: shouldScroll });
   }, [navigateTo]);
 
-  // Page & Navbar Visibility State (View / Hide per page & navbar)
-  const [pageVisibility, setPageVisibilityState] = useState(() => {
-    const cached = loadLocalCache('pageVisibility', null);
-    if (cached && typeof cached === 'object') {
-      return { ...DEFAULT_PAGE_VISIBILITY, ...cached };
-    }
+  // Page & Navbar Visibility State (View / Hide per page & navbar), stored in page_settings
+  const [pageSettings, updatePageSettings] = usePageSettings();
+  const [legacyPageVisibility] = useState(() => {
     try {
       const legacy = localStorage.getItem('cnt_page_visibility');
-      if (legacy) {
-        return { ...DEFAULT_PAGE_VISIBILITY, ...JSON.parse(legacy) };
-      }
-    } catch (e) {}
-    return DEFAULT_PAGE_VISIBILITY;
+      return legacy ? JSON.parse(legacy) : null;
+    } catch (e) {
+      return null;
+    }
   });
+  const pageVisibility = useMemo(() => {
+    const stored = pageSettings?.pageVisibility;
+    if (stored && typeof stored === 'object') return { ...DEFAULT_PAGE_VISIBILITY, ...stored };
+    if (legacyPageVisibility) return { ...DEFAULT_PAGE_VISIBILITY, ...legacyPageVisibility };
+    return DEFAULT_PAGE_VISIBILITY;
+  }, [pageSettings?.pageVisibility, legacyPageVisibility]);
+  const setPageVisibilityState = (nextVisibility) => updatePageSettings({ pageVisibility: nextVisibility });
 
   // Default theme is LIGHT THEME as requested
   const [theme, setTheme] = useState(() => {
@@ -181,55 +192,98 @@ export default function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  // Master Dynamic States (Loaded from LocalCache immediately + Synced with Supabase Cloud)
-  const [tenures, setTenures] = useState(() => sortTenuresDesc(loadLocalCache('tenures', [])));
-  const [activeTenure, setActiveTenure] = useState(() => {
-    const savedTenures = sortTenuresDesc(loadLocalCache('tenures', []));
-    const savedActiveId = loadLocalCache('activeTenureId', null);
-    if (savedActiveId && Array.isArray(savedTenures)) {
-      const found = savedTenures.find(t => t.id === savedActiveId);
-      if (found) return found;
-    }
-    return (Array.isArray(savedTenures) ? savedTenures.find(t => t.isActive) || savedTenures[0] : null) || null;
-  });
-  const [divisions, setDivisions] = useState(() => {
-    const cachedDivs = loadLocalCache('divisions', []);
-    const cachedMems = loadLocalCache('members', []);
-    const cachedRoles = loadLocalCache('tenureRoles', []);
-    return (cachedDivs || []).map(d => {
-      const lead = getDivisionLead(d, cachedMems || [], cachedRoles || []);
-      return {
-        ...d,
-        memberId: lead.member ? lead.member.id : (d.memberId || null),
-        leadName: lead.name || (d.leadName || '')
-      };
-    });
-  });
-  const [departments, setDepartments] = useState(() => loadLocalCache('departments', []));
-  const [tenureRoles, setTenureRoles] = useState(() => {
-    const cached = loadLocalCache('tenureRoles', null);
-    if (Array.isArray(cached)) return cached;
-    return [];
-  });
-  const [members, setMembers] = useState(() => loadLocalCache('members', []));
-  const [events, setEvents] = useState(() => loadLocalCache('events', []));
-  const [galleries, setGalleries] = useState(() => loadLocalCache('galleries', []));
-  const [kudosList, setKudosList] = useState(() => loadLocalCache('kudosList', []));
-  const [forms, setForms] = useState(() => loadLocalCache('forms', []));
-  const [submissions, setSubmissions] = useState([]);
-  const [aspirasiList, setAspirasiList] = useState([]);
-  const [brandAssets, setBrandAssets] = useState(() => loadLocalCache('brandAssets', []));
-  const [eventRsvps, setEventRsvps] = useState([]);
-  const [faqs, setFaqs] = useState(() => loadLocalCache('faqs', []));
-  const [luckyDraws, setLuckyDraws] = useState([]);
-  const [announcementBar, setAnnouncementBar] = useState(() => loadLocalCache('announcementBar', DEFAULT_ANNOUNCEMENT_BAR));
-  const [roleQuotas, setRoleQuotas] = useState(() => loadLocalCache('roleQuotas', {}));
-  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
-  const [syncStatus, setSyncStatus] = useState('synced');
   // Supabase Auth session of an admin: 'loading' | 'signedOut' | 'admin'
   const [adminSession, setAdminSession] = useState({ status: 'loading', profile: null });
   const isAdmin = adminSession.status === 'admin';
-  const [publicRegistrationCounts, setPublicRegistrationCounts] = useState(EMPTY_REGISTRATION_COUNTS);
+  const isSuperAdmin = isAdmin && adminSession.profile?.role === 'super_admin';
+
+  // Server data lives in the TanStack Query cache (src/lib/queries.ts). Each table is used like
+  // useState: handlers apply optimistic `setX(prev => ...)` edits, and realtime events, polling and
+  // window focus refetch only what changed.
+  const [rawTenures, setTenures] = useTableData('tenures');
+  const [tenureRoles, setTenureRoles] = useTableData('tenureRoles');
+  const [rawMembers, setMembers] = useTableData('members');
+  const [rawDivisions, setDivisions] = useTableData('divisions');
+  const [departments, setDepartments] = useTableData('departments');
+  const [rawEvents, setEvents, eventsUpdatedAt] = useTableData('events');
+  const [rawGalleries, setGalleries] = useTableData('galleries');
+  const [kudosList, setKudosList] = useTableData('kudosList');
+  const [forms, setForms] = useTableData('forms');
+  const [brandAssets, setBrandAssets] = useTableData('brandAssets');
+  const [faqs, setFaqs] = useTableData('faqs');
+  // Registrants' personal data is loaded for signed-in admins only...
+  const [submissions, setSubmissions] = useTableData('submissions', { enabled: isAdmin });
+  const [eventRsvps, setEventRsvps] = useTableData('eventRsvps', { enabled: isAdmin });
+  const [luckyDraws, setLuckyDraws] = useTableData('luckyDraws', { enabled: isAdmin });
+  // ...visitors receive aggregated registration counts instead.
+  const [publicRegistrationCounts, setPublicRegistrationCounts] = useRegistrationCounts({
+    enabled: adminSession.status === 'signedOut'
+  });
+  // Aspirasi: super admins read the table, everyone else the public items (RPC).
+  const [aspirasiTable, setAspirasiTable] = useTableData('aspirasiList', { enabled: isSuperAdmin });
+  const [publicAspirasi, setPublicAspirasi] = usePublicAspirasi({
+    enabled: adminSession.status !== 'loading' && !isSuperAdmin
+  });
+  const aspirasiList = isSuperAdmin ? aspirasiTable : publicAspirasi;
+  const setAspirasiList = isSuperAdmin ? setAspirasiTable : setPublicAspirasi;
+  const syncStatus = useSyncStatus();
+  useRealtimeInvalidation();
+
+  // Derived views: cross-table fields are recomputed whenever their source tables change.
+  const members = useMemo(() => deriveMembers(rawMembers, tenureRoles, rawDivisions), [rawMembers, tenureRoles, rawDivisions]);
+  const divisions = useMemo(() => rawDivisions.map(d => {
+    const lead = getDivisionLead(d, members, tenureRoles);
+    return {
+      ...d,
+      memberId: lead.member ? lead.member.id : (d.memberId || null),
+      leadName: lead.name || (d.leadName || '')
+    };
+  }), [rawDivisions, members, tenureRoles]);
+  // eventsUpdatedAt re-evaluates the "Completed" display status on every refresh, even when the
+  // rows themselves did not change.
+  const events = useMemo(() => rawEvents.map(e => {
+    const divObj = rawDivisions.find(d => d.id === e.divisionId) || rawDivisions.find(d => d.name === e.divisionName);
+    return {
+      ...withDerivedEventStatus(e),
+      divisionId: e.divisionId || divObj?.id,
+      divisionName: divObj?.name || e.divisionName || 'Culture Network Team'
+    };
+  }), [rawEvents, rawDivisions, eventsUpdatedAt]);
+  const galleries = useMemo(() => rawGalleries.map(g => {
+    const matchedDiv = rawDivisions.find(d => d.id === g.divisionId) || rawDivisions.find(d => d.name === g.division);
+    const resolvedName = matchedDiv?.name || g.divisionName || g.division || 'Culture Network Team';
+    return { ...g, divisionId: g.divisionId || matchedDiv?.id, division: resolvedName, divisionName: resolvedName };
+  }), [rawGalleries, rawDivisions]);
+
+  // Tenures: exactly one is active, the one named by page_settings.active_tenure_id.
+  const officialTenureId = pageSettings?.activeTenureId || null;
+  const tenures = useMemo(() => {
+    const sorted = sortTenuresDesc(rawTenures);
+    const official = sorted.find(t => t.id === officialTenureId) || sorted.find(t => t.isActive) || sorted[0] || null;
+    return sorted.map(t => ({ ...t, isActive: Boolean(official) && t.id === official.id }));
+  }, [rawTenures, officialTenureId]);
+  // The tenure being browsed (a view filter that never changes the official one).
+  const [activeTenure, setActiveTenure] = useState(() => tenures.find(t => t.isActive) || null);
+  useEffect(() => {
+    // Keep the browsing selection when it still exists, otherwise fall back to the official tenure.
+    setActiveTenure(curr => {
+      const official = tenures.find(t => t.isActive) || null;
+      if (!official) return null;
+      return (curr && tenures.find(t => t.id === curr.id)) || official;
+    });
+  }, [tenures]);
+
+  const announcementBar = useMemo(
+    () => ({ ...DEFAULT_ANNOUNCEMENT_BAR, ...(pageSettings?.announcementBar || {}) }),
+    [pageSettings?.announcementBar]
+  );
+  const roleQuotas = pageSettings?.roleQuotas && typeof pageSettings.roleQuotas === 'object'
+    ? pageSettings.roleQuotas
+    : EMPTY_ROLE_QUOTAS;
+  const setAnnouncementBar = (bar) => updatePageSettings({ announcementBar: bar });
+  const setRoleQuotas = (quotas) => updatePageSettings({ roleQuotas: quotas });
+
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
   const [quickSearchQuery, setQuickSearchQuery] = useState('');
 
@@ -249,92 +303,6 @@ export default function App() {
 
   const [persistError, setPersistError] = useState(null);
 
-  // Latest values read by the stable sync callback (avoids stale closures).
-  const latestStateRef = useRef({ members, divisions, tenureRoles });
-  latestStateRef.current = { members, divisions, tenureRoles };
-  const syncSeqRef = useRef(0);
-  const isAdminRef = useRef(isAdmin);
-  isAdminRef.current = isAdmin;
-
-  // Pull & reconcile cloud state across devices. Never writes back to the database.
-  const syncFromCloud = useCallback(async () => {
-    const seq = ++syncSeqRef.current;
-    setSyncStatus('syncing');
-    const cloud = await fetchAllCloudState({ includePrivate: isAdminRef.current });
-    // A newer sync started meanwhile; its response supersedes this one.
-    if (seq !== syncSeqRef.current) return;
-
-    const latest = latestStateRef.current;
-    const currentRoles = cloud.tenureRoles || latest.tenureRoles;
-    const currentMembers = cloud.members || latest.members;
-    const currentDivs = cloud.divisions || latest.divisions;
-
-    if (cloud.tenures && cloud.tenures.length > 0) {
-      const sortedTenures = sortTenuresDesc(cloud.tenures);
-      const targetId = cloud.activeTenureId || loadLocalCache('activeTenureId', null);
-      const defaultActive = sortedTenures.find(t => t.id === targetId) || sortedTenures.find(t => t.isActive) || sortedTenures[0];
-      // Enforce strict single active tenure exclusivity
-      const normalizedTenures = sortedTenures.map(t => ({ ...t, isActive: t.id === defaultActive.id }));
-      setTenures(normalizedTenures);
-      // Preserve the user's current browsing selection if still valid, otherwise fall back to the official active tenure
-      setActiveTenure(curr => {
-        const stillExists = curr && normalizedTenures.find(t => t.id === curr.id);
-        return stillExists || { ...defaultActive, isActive: true };
-      });
-    }
-    if (cloud.members) setMembers(currentMembers);
-    if (cloud.divisions) {
-      setDivisions(cloud.divisions.map(d => {
-        const lead = getDivisionLead(d, currentMembers, currentRoles);
-        return {
-          ...d,
-          memberId: lead.member ? lead.member.id : (d.memberId || null),
-          leadName: lead.name || (d.leadName || '')
-        };
-      }));
-    }
-    if (cloud.events) {
-      setEvents(cloud.events.map(e => {
-        const divObj = currentDivs.find(d => d.id === e.divisionId) || currentDivs.find(d => d.name === e.divisionName);
-        return {
-          ...withDerivedEventStatus(e),
-          divisionId: e.divisionId || divObj?.id,
-          divisionName: divObj?.name || e.divisionName || 'Culture Network Team'
-        };
-      }));
-    }
-    if (cloud.galleries) {
-      setGalleries(cloud.galleries.map(g => {
-        const matchedDiv = currentDivs.find(d => d.id === g.divisionId) || currentDivs.find(d => d.name === g.division);
-        const resolvedName = matchedDiv?.name || g.divisionName || g.division || 'Culture Network Team';
-        return { ...g, divisionId: g.divisionId || matchedDiv?.id, division: resolvedName, divisionName: resolvedName };
-      }));
-    }
-    if (cloud.kudosList) setKudosList(cloud.kudosList);
-    if (cloud.aspirasiList) setAspirasiList(cloud.aspirasiList);
-    if (cloud.forms) setForms(cloud.forms);
-    if (cloud.submissions) setSubmissions(cloud.submissions);
-    if (cloud.brandAssets) setBrandAssets(cloud.brandAssets);
-    if (cloud.eventRsvps) setEventRsvps(cloud.eventRsvps);
-    if (cloud.departments) setDepartments(cloud.departments);
-    if (cloud.tenureRoles) setTenureRoles(cloud.tenureRoles);
-    if (cloud.faqs) setFaqs(cloud.faqs);
-    if (cloud.luckyDraws) setLuckyDraws(cloud.luckyDraws);
-    if (cloud.announcementBar && typeof cloud.announcementBar === 'object') {
-      setAnnouncementBar({ ...DEFAULT_ANNOUNCEMENT_BAR, ...cloud.announcementBar });
-    }
-    if (cloud.pageVisibility && typeof cloud.pageVisibility === 'object') {
-      const mergedVis = { ...DEFAULT_PAGE_VISIBILITY, ...cloud.pageVisibility };
-      setPageVisibilityState(mergedVis);
-      try { localStorage.setItem('cnt_page_visibility', JSON.stringify(mergedVis)); } catch (e) { /* storage unavailable */ }
-    }
-    if (cloud.roleQuotas && typeof cloud.roleQuotas === 'object') {
-      setRoleQuotas(cloud.roleQuotas);
-    }
-    if (cloud.registrationCounts) setPublicRegistrationCounts(cloud.registrationCounts);
-    setSyncStatus(cloud.failed.length > 0 ? 'error' : 'synced');
-  }, []);
-
   // Runs a database write for an optimistic UI change. On failure the user is informed
   // and local state is reloaded from the server so the screen never shows unsaved data.
   const persist = useCallback(async (label, task) => {
@@ -344,10 +312,10 @@ export default function App() {
     } catch (err) {
       console.error(err);
       setPersistError(`${label} gagal disimpan ke server (${err.message}). Data dimuat ulang dari server.`);
-      syncFromCloud();
+      refreshAllData();
       return false;
     }
-  }, [syncFromCloud]);
+  }, []);
 
   // Track the Supabase Auth session and the admin role attached to it.
   useEffect(() => {
@@ -376,16 +344,16 @@ export default function App() {
     };
   }, []);
 
-  // Private data is loaded only for admins and dropped as soon as the admin signs out.
+  // Private data is dropped as soon as the admin signs out. Switching between visitor and admin
+  // reloads everything, since which rows are visible (drafts, unpublished FAQs) depends on the role.
+  const previousAuthStatusRef = useRef(adminSession.status);
   useEffect(() => {
+    const previous = previousAuthStatusRef.current;
+    previousAuthStatusRef.current = adminSession.status;
     if (adminSession.status === 'loading') return;
-    if (!isAdmin) {
-      setSubmissions([]);
-      setEventRsvps([]);
-      setLuckyDraws([]);
-    }
-    syncFromCloud();
-  }, [isAdmin, adminSession.status, syncFromCloud]);
+    if (!isAdmin) removePrivateTableData();
+    if (previous !== 'loading' && previous !== adminSession.status) refreshAllData();
+  }, [isAdmin, adminSession.status]);
 
   const registrationCounts = useMemo(
     () => (isAdmin ? deriveRegistrationCounts(submissions, eventRsvps) : publicRegistrationCounts),
@@ -429,38 +397,6 @@ export default function App() {
     setRoleQuotas(updatedQuotas);
     await persist('Kuota jabatan', () => saveSetting('roleQuotas', updatedQuotas));
   };
-
-  useEffect(() => {
-    const onFocus = () => syncFromCloud();
-    window.addEventListener('focus', onFocus);
-
-    // Safety-net polling; realtime events below are the primary update signal.
-    const intervalId = setInterval(() => {
-      if (document.visibilityState === 'visible') syncFromCloud();
-    }, CLOUD_POLL_INTERVAL_MS);
-
-    // Debounced so a burst of row changes triggers a single reload.
-    let realtimeTimer;
-    let channel;
-    try {
-      channel = supabase
-        .channel('cnt-cloud-sync-live')
-        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-          clearTimeout(realtimeTimer);
-          realtimeTimer = setTimeout(syncFromCloud, REALTIME_DEBOUNCE_MS);
-        })
-        .subscribe();
-    } catch (e) {
-      console.error('Realtime subscription failed:', e);
-    }
-
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      clearInterval(intervalId);
-      clearTimeout(realtimeTimer);
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [syncFromCloud]);
 
   const setPageVisibility = (nextVis) => {
     const resolved = typeof nextVis === 'function' ? nextVis(pageVisibility) : nextVis;
@@ -508,14 +444,6 @@ export default function App() {
   const handleSelectTenure = (tenureObj) => {
     setActiveTenure(tenureObj);
   };
-
-  // Mark events whose schedule has passed as Completed for display only.
-  // The stored status is left untouched, so visitors never write to the database.
-  useEffect(() => {
-    if (events.some(e => e.status !== 'Completed' && isEventPassed(e.startDate, e.endDate))) {
-      setEvents(prev => prev.map(withDerivedEventStatus));
-    }
-  }, [events]);
 
   // Divisions
   const handleAddDivision = (newDiv) => {
@@ -602,7 +530,10 @@ export default function App() {
     const deactivated = isActivating ? tenures.filter(t => t.isActive).map(t => ({ ...t, isActive: false, updatedAt: now })) : [];
 
     setTenures(prev => sortTenuresDesc([...replaceById(prev, deactivated), stampedTenure]));
-    if (isActivating) setActiveTenure(stampedTenure);
+    if (isActivating) {
+      updatePageSettings({ activeTenureId: stampedTenure.id });
+      setActiveTenure(stampedTenure);
+    }
     persist('Periode kepengurusan', async () => {
       await saveRows('tenures', [stampedTenure, ...deactivated]);
       if (isActivating) await saveSetting('activeTenureId', stampedTenure.id);
@@ -618,6 +549,7 @@ export default function App() {
       : [];
 
     setTenures(prev => sortTenuresDesc(replaceById(prev, [stampedTenure, ...deactivated])));
+    if (isActivating) updatePageSettings({ activeTenureId: stampedTenure.id });
     if (isActivating || activeTenure?.id === stampedTenure.id) setActiveTenure(stampedTenure);
     persist('Periode kepengurusan', async () => {
       await saveRows('tenures', [stampedTenure, ...deactivated]);
@@ -1057,7 +989,7 @@ export default function App() {
         await saveSetting('roleQuotas', backupData.roleQuotas);
       }
     } finally {
-      await syncFromCloud();
+      await refreshAllData();
     }
   };
 
@@ -1068,7 +1000,7 @@ export default function App() {
         .filter(key => key.startsWith('cnt_it_apd_v2_'))
         .forEach(key => localStorage.removeItem(key));
     } catch (e) { /* storage unavailable */ }
-    await syncFromCloud();
+    await refreshAllData();
   };
 
   // Helper to check page visibility with alias support
@@ -1531,7 +1463,7 @@ export default function App() {
               pageVisibility={pageVisibility}
               onUpdatePageVisibility={setPageVisibility}
               syncStatus={syncStatus}
-              onForceSync={syncFromCloud}
+              onForceSync={refreshAllData}
               onResetDefault={handleResetDefault}
               onRestoreBackup={handleRestoreBackup}
               theme={theme}
