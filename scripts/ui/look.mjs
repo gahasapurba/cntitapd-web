@@ -6,7 +6,7 @@ const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Conte
 const require = createRequire(REPO + '/');
 const puppeteer = require('puppeteer-core');
 const [out, ...pages] = process.argv.slice(2);
-const vite = spawn('npx', ['vite', '--port', '5179', '--strictPort'], { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] });
+const vite = spawn('npx', ['vite', '--port', '5179', '--strictPort'], { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
 await new Promise(r => vite.stdout.on('data', d => { if (String(d).includes('Local')) r(); }));
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: true });
 const errors = [];
@@ -22,5 +22,5 @@ try {
     await p.screenshot({ path: `${out}/${name}.png`, fullPage: true });
     await p.close();
   }
-} finally { await browser.close(); vite.kill('SIGTERM'); }
+} finally { await browser.close(); try { process.kill(-vite.pid, 'SIGTERM'); } catch { vite.kill('SIGTERM'); } }
 console.log('page errors:', errors.length ? errors : 'none');

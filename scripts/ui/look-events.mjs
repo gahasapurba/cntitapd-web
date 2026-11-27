@@ -6,7 +6,7 @@ const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Conte
 const require = createRequire(REPO + '/');
 const puppeteer = require('puppeteer-core');
 const out = process.argv[2];
-const vite = spawn('npx', ['vite', '--port', '5179', '--strictPort'], { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] });
+const vite = spawn('npx', ['vite', '--port', '5179', '--strictPort'], { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
 await new Promise(r => vite.stdout.on('data', d => { if (String(d).includes('Local')) r(); }));
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: true });
 const errors = []; const checks = [];
@@ -39,6 +39,6 @@ try {
     checks.push([name, 'no horizontal scroll (calendar)', !hscroll, '']);
     await p.close();
   }
-} finally { await browser.close(); vite.kill('SIGTERM'); }
+} finally { await browser.close(); try { process.kill(-vite.pid, 'SIGTERM'); } catch { vite.kill('SIGTERM'); } }
 for (const c of checks) console.log(c[2] ? 'PASS' : 'FAIL', c[0], c[1], c[3]);
 console.log('errors:', errors.length ? errors : 'none');

@@ -13,8 +13,8 @@ const BASE = `http://localhost:${PORT}`;
 let pass = 0, fail = 0;
 const ok = (name, cond, extra = '') => { cond ? pass++ : fail++; console.log(`${cond ? 'PASS' : 'FAIL'}  ${name} ${extra}`); };
 
-const vite = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
-const killVite = () => { try { vite.kill('SIGTERM'); } catch (e) { /* already stopped */ } };
+const vite = spawn('npx', ['vite', '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+const killVite = () => { try { try { process.kill(-vite.pid, 'SIGTERM'); } catch { vite.kill('SIGTERM'); } } catch (e) { /* already stopped */ } };
 process.on('exit', killVite);
 await new Promise((resolve, reject) => {
   const t = setTimeout(() => reject(new Error('vite did not start in 30s')), 30000);
