@@ -1,7 +1,11 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-export async function exportPresentationToPdf(elementId, filename = null, activeTenure = null) {
+export async function exportPresentationToPdf(
+  elementId: string,
+  filename: string | null = null,
+  activeTenure: { code?: string } | null = null
+): Promise<void> {
   const finalFilename = filename || (activeTenure?.code ? `Bagan_Organisasi_CNT_IT_APD_${activeTenure.code}.pdf` : 'Bagan_Organisasi_CNT_IT_APD.pdf');
   const targetElement = document.getElementById(elementId);
   
@@ -35,21 +39,21 @@ export async function exportPresentationToPdf(elementId, filename = null, active
           clonedDoc.documentElement.style.backgroundColor = '#070d1e';
           clonedElement.style.backgroundColor = '#070d1e';
           // Ensure all cards and text have solid, high-contrast colors in canvas
-          clonedElement.querySelectorAll('.glass-panel, .crew-member-card, .org-anggota-box').forEach(el => {
+          clonedElement.querySelectorAll<HTMLElement>('.glass-panel, .crew-member-card, .org-anggota-box').forEach(el => {
             el.style.backgroundColor = '#0e1937';
             el.style.borderColor = 'rgba(56, 189, 248, 0.35)';
           });
-          clonedElement.querySelectorAll('h1, h2, h3, h4').forEach(el => {
+          clonedElement.querySelectorAll<HTMLElement>('h1, h2, h3, h4').forEach(el => {
             el.style.color = '#f8fafc';
           });
         } else {
           clonedDoc.documentElement.style.backgroundColor = '#f8fafc';
           clonedElement.style.backgroundColor = '#f8fafc';
-          clonedElement.querySelectorAll('.glass-panel, .crew-member-card, .org-anggota-box').forEach(el => {
+          clonedElement.querySelectorAll<HTMLElement>('.glass-panel, .crew-member-card, .org-anggota-box').forEach(el => {
             el.style.backgroundColor = '#ffffff';
             el.style.borderColor = '#e2e8f0';
           });
-          clonedElement.querySelectorAll('h1, h2, h3, h4').forEach(el => {
+          clonedElement.querySelectorAll<HTMLElement>('h1, h2, h3, h4').forEach(el => {
             el.style.color = '#0a1128';
           });
         }

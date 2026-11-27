@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { formatWibEventRange, toDatetimeLocalSecondsValue, toDatetimeLocalValue } from '../utils/dateUtils.js';
-import { getCategoryFromLevel } from '../utils/memberQuotaUtils.js';
+import { formatWibEventRange, toDatetimeLocalSecondsValue, toDatetimeLocalValue } from '../utils/dateUtils';
+import { getCategoryFromLevel } from '../utils/memberQuotaUtils';
 import type { Database, Json, Tables } from '../types/database';
 
 const supabaseUrl: string = import.meta.env?.VITE_SUPABASE_URL || 'https://xarcxbfgeoetyhpqsick.supabase.co';

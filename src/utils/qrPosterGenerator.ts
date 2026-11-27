@@ -6,9 +6,20 @@ import { getPublicBaseUrl } from './urlUtils';
  * Generate a high-resolution, professionally styled Printable Poster Card (PNG)
  * for a Form with QR Code, Mandiri & CNT branding, title, subtitle, and URL.
  */
-export async function generateFormQrPoster(options = {}) {
+import type { AppItem } from '../lib/supabase';
+
+export interface QrPoster {
+  dataUrl: string;
+  blob: Blob | null;
+  fileName: string;
+  filename: string;
+  formUrl: string;
+}
+
+/** Accepts either `{ form, event, baseUrl }` or the form fields directly (`title`, `formUrl`, ...). */
+export async function generateFormQrPoster(options: AppItem = {}): Promise<QrPoster> {
   // Gracefully handle both { form, event, baseUrl } and direct { title, description, formUrl, ... }
-  const form = options.form || {
+  const form: AppItem = options.form || {
     id: options.id || options.formId || '',
     title: options.title || 'Formulir Pendaftaran',
     subtitle: options.subtitle || options.description || '',
@@ -19,7 +30,7 @@ export async function generateFormQrPoster(options = {}) {
 
   const event = options.event || null;
   const baseUrl = options.baseUrl || getPublicBaseUrl();
-  const directUrl = options.formUrl || (form.id ? `${baseUrl.replace(/\/+$/, '')}/?form=${encodeURIComponent(form.id)}#form` : baseUrl);
+  const directUrl: string = options.formUrl || (form.id ? `${baseUrl.replace(/\/+$/, '')}/?form=${encodeURIComponent(form.id)}#form` : baseUrl);
 
   const canvas = document.createElement('canvas');
   const width = 1200;
@@ -62,7 +73,7 @@ export async function generateFormQrPoster(options = {}) {
 
   // Corner Accent Dots
   ctx.fillStyle = '#FFB800';
-  const corners = [
+  const corners: [number, number][] = [
     [36, 36], [width - 36, 36], [36, height - 36], [width - 36, height - 36]
   ];
   corners.forEach(([cx, cy]) => {
@@ -111,7 +122,7 @@ export async function generateFormQrPoster(options = {}) {
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 46px sans-serif';
   const titleWords = (form.title || 'Formulir Pendaftaran').split(' ');
-  const titleLines = [];
+  const titleLines: string[] = [];
   let currentTitleLine = '';
   for (const word of titleWords) {
     const testLine = currentTitleLine ? `${currentTitleLine} ${word}` : word;
@@ -134,7 +145,7 @@ export async function generateFormQrPoster(options = {}) {
   ctx.fillStyle = 'rgba(241, 245, 249, 0.85)';
   ctx.font = 'italic 22px sans-serif';
   const subWords = (form.subtitle || form.description || 'Silakan scan QR Code di bawah untuk mengakses dan melengkapi formulir.').split(' ');
-  const subLines = [];
+  const subLines: string[] = [];
   let curSubLine = '';
   for (const w of subWords) {
     const test = curSubLine ? `${curSubLine} ${w}` : w;
@@ -269,7 +280,7 @@ export async function generateFormQrPoster(options = {}) {
 
   // Return DataUrl & Blob
   const dataUrl = canvas.toDataURL('image/png');
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
   const safeTitle = (form.title || 'form')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')

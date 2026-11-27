@@ -4,7 +4,7 @@
  * resolves to the official production URL (https://cntitapd.netlify.app)
  * so that shared links and printed QR codes can be opened by anyone.
  */
-export function getPublicBaseUrl() {
+export function getPublicBaseUrl(): string {
   if (typeof window === 'undefined') return 'https://cntitapd.netlify.app';
   const hostname = window.location.hostname;
   if (

@@ -3,7 +3,69 @@
  * Synchronizes attendance and quota limits between Events and connected Registration Forms.
  */
 
-export function getConnectedFormForEvent(evt, forms = []) {
+import type { RegistrationCounts } from '../lib/supabase';
+
+type Id = string | number;
+
+/** Legacy forms stored the event link inside the first field instead of dedicated columns. */
+interface LegacyEventLinkField {
+  _isEventConnected?: boolean;
+  _eventId?: Id;
+}
+
+/** Fields of an event that quota calculations read. */
+export interface QuotaEvent {
+  id: Id;
+  title?: string;
+  isLimited?: boolean;
+  maxQuota?: number | string;
+}
+
+/** Fields of a form that quota calculations read. */
+export interface QuotaForm {
+  id: Id;
+  eventId?: Id | null;
+  isEventConnected?: boolean;
+  isLimited?: boolean;
+  maxQuota?: number | string;
+  fields?: LegacyEventLinkField[];
+}
+
+interface RegistrationRow {
+  formId?: Id | null;
+  eventId?: Id | null;
+  status?: string;
+}
+
+export interface EventAttendees<F extends QuotaForm> {
+  count: number;
+  rsvpCount: number;
+  formSubCount: number;
+  isConnected: boolean;
+  connectedForm: F | null;
+  isLimited: boolean;
+  maxQuota: number;
+  isFull: boolean;
+  remaining: number;
+}
+
+export interface FormQuota<E extends QuotaEvent> {
+  isConnected: boolean;
+  connectedEvent: E | null;
+  isLimited: boolean;
+  maxQuota: number;
+  count: number;
+  formSubCount: number;
+  initialRsvpCount: number;
+  isFull: boolean;
+  remaining: number;
+  label: string;
+}
+
+export function getConnectedFormForEvent<F extends QuotaForm>(
+  evt: QuotaEvent | null | undefined,
+  forms: F[] = []
+): F | null {
   if (!evt || !forms) return null;
   return forms.find(f => {
     const isConn = f.isEventConnected || f.fields?.[0]?._isEventConnected;
@@ -12,7 +74,10 @@ export function getConnectedFormForEvent(evt, forms = []) {
   }) || null;
 }
 
-export function getConnectedEventForForm(form, events = []) {
+export function getConnectedEventForForm<E extends QuotaEvent>(
+  form: QuotaForm | null | undefined,
+  events: E[] = []
+): E | null {
   if (!form || !events) return null;
   const isConn = form.isEventConnected || form.fields?.[0]?._isEventConnected;
   const evtId = form.eventId || form.fields?.[0]?._eventId;
@@ -22,16 +87,19 @@ export function getConnectedEventForForm(form, events = []) {
 
 const REJECTED_STATUSES = ['Rejected', 'Ditolak'];
 
-export const EMPTY_REGISTRATION_COUNTS = { forms: {}, events: {} };
+export const EMPTY_REGISTRATION_COUNTS: RegistrationCounts = { forms: {}, events: {} };
 
 /**
  * Builds registration counts from full lists (admin view). Rejected submissions free up their seat,
  * matching the server-side count returned by the get_registration_counts RPC.
  */
-export function deriveRegistrationCounts(submissions = [], eventRsvps = []) {
-  const counts = { forms: {}, events: {} };
+export function deriveRegistrationCounts(
+  submissions: RegistrationRow[] = [],
+  eventRsvps: RegistrationRow[] = []
+): RegistrationCounts {
+  const counts: RegistrationCounts = { forms: {}, events: {} };
   submissions.forEach((s) => {
-    if (!s.formId || REJECTED_STATUSES.includes(s.status)) return;
+    if (!s.formId || REJECTED_STATUSES.includes(s.status ?? '')) return;
     counts.forms[s.formId] = (counts.forms[s.formId] || 0) + 1;
   });
   eventRsvps.forEach((r) => {
@@ -41,11 +109,15 @@ export function deriveRegistrationCounts(submissions = [], eventRsvps = []) {
   return counts;
 }
 
-function countFor(map, id) {
+function countFor(map: Record<string, number> | undefined, id: Id): number {
   return Number(map?.[String(id)] || 0);
 }
 
-export function getUnifiedEventAttendees(evt, forms = [], counts = EMPTY_REGISTRATION_COUNTS) {
+export function getUnifiedEventAttendees<F extends QuotaForm>(
+  evt: QuotaEvent | null | undefined,
+  forms: F[] = [],
+  counts: RegistrationCounts = EMPTY_REGISTRATION_COUNTS
+): EventAttendees<F> {
   if (!evt) {
     return {
       count: 0,
@@ -100,7 +172,11 @@ export function getUnifiedEventAttendees(evt, forms = [], counts = EMPTY_REGISTR
   };
 }
 
-export function getUnifiedFormQuota(form, events = [], counts = EMPTY_REGISTRATION_COUNTS) {
+export function getUnifiedFormQuota<E extends QuotaEvent>(
+  form: QuotaForm | null | undefined,
+  events: E[] = [],
+  counts: RegistrationCounts = EMPTY_REGISTRATION_COUNTS
+): FormQuota<E> {
   if (!form) {
     return {
       isConnected: false,

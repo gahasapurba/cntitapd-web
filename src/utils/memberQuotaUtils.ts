@@ -9,7 +9,37 @@
  * 4. requiresDivision: Boolean (apakah memerlukan pilihan divisi penugasan)
  */
 
-export const LEVEL_OPTIONS = [
+import type { AppItem } from '../lib/supabase';
+
+export type MemberCategory = 'penasehat' | 'pembina' | 'inti' | 'pimpro' | 'anggota';
+
+/** A role normalized from tenure_roles rows or the legacy role_quotas setting. */
+export interface TenureRole {
+  id: string;
+  tenureId: string | null | undefined;
+  name: string;
+  level: number;
+  max: number;
+  maxQuota: number;
+  requiresDivision: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface MemberAssignment {
+  tenureId?: string | null;
+  roleId?: string | null;
+  role?: string;
+  divisionId?: string | null;
+  excludeMemberId?: string | null;
+}
+
+export type QuotaValidation =
+  | { isValid: true; error: null; roleObj: TenureRole }
+  | { isValid: false; field: 'memRole' | 'memDivisionId' | 'memSubDivisionId'; error: string };
+
+export const LEVEL_OPTIONS: { level: number; label: string; shortLabel: string; defaultCategory: MemberCategory }[] = [
   { level: 0, label: 'Level 0 (Tingkat Puncak Bagan)', shortLabel: 'Level 0', defaultCategory: 'penasehat' },
   { level: 1, label: 'Level 1 (Tingkat Pembina / Advisor)', shortLabel: 'Level 1', defaultCategory: 'pembina' },
   { level: 2, label: 'Level 2 (Tingkat Pimpinan)', shortLabel: 'Level 2', defaultCategory: 'inti' },
@@ -18,7 +48,7 @@ export const LEVEL_OPTIONS = [
   { level: 5, label: 'Level 5 (Tingkat Anggota Divisi)', shortLabel: 'Level 5', defaultCategory: 'anggota' }
 ];
 
-export function getCategoryFromLevel(level) {
+export function getCategoryFromLevel(level: unknown): MemberCategory {
   switch (Number(level)) {
     case 0: return 'penasehat';
     case 1: return 'pembina';
@@ -35,7 +65,12 @@ export function getCategoryFromLevel(level) {
  * Format label dropdown tingkatan organigram dengan menampilkan role database setelah tanda titik dua (:).
  * Jika di database belum ada role pada level tersebut, menampilkan "(Belum ada role)" - tanpa teks role bawaan.
  */
-export function formatLevelOptionLabel(lvl, tenureRoles = [], targetTenureId = null, short = false) {
+export function formatLevelOptionLabel(
+  lvl: number | string | { level: number },
+  tenureRoles: AppItem[] = [],
+  targetTenureId: string | null = null,
+  short = false
+): string {
   const levelNum = typeof lvl === 'object' ? lvl.level : Number(lvl);
 
   const rolesInTenure = targetTenureId
@@ -60,7 +95,11 @@ export function formatLevelOptionLabel(lvl, tenureRoles = [], targetTenureId = n
  * Mengambil daftar role resmi untuk tenure tertentu dari database (tenureRoles) atau konfigurasi cloud.
  * Jika belum ada role terdaftar untuk periode ini, TETAP KOSONG ([]) - TANPA FALLBACK DEFAULT.
  */
-export function getTenureRoles(tenureId, roleQuotas = {}, tenureRoles = []) {
+export function getTenureRoles(
+  tenureId: string | null | undefined,
+  roleQuotas: AppItem | AppItem[] | null = {},
+  tenureRoles: AppItem[] | null = []
+): TenureRole[] {
   // 1. Jika argumen roleQuotas berupa array langsung (daftar tenureRoles)
   if (Array.isArray(roleQuotas)) {
     const fromArray = roleQuotas.filter(r => !tenureId || r.tenureId === tenureId);
@@ -95,13 +134,13 @@ export function getTenureRoles(tenureId, roleQuotas = {}, tenureRoles = []) {
     }));
   }
 
-  const config = (roleQuotas && typeof roleQuotas === 'object' && roleQuotas[tenureId])
-    ? roleQuotas[tenureId]
+  const config = (roleQuotas && typeof roleQuotas === 'object' && (roleQuotas as AppItem)[String(tenureId)])
+    ? (roleQuotas as AppItem)[String(tenureId)]
     : null;
 
   // 3. Jika format array roles di roleQuotas
   if (config && Array.isArray(config.roles)) {
-    return config.roles.map((r, idx) => ({
+    return config.roles.map((r: AppItem, idx: number) => ({
       id: r.id || `role-${idx}-${Date.now()}`,
       tenureId: r.tenureId || tenureId,
       name: String(r.name || 'Jabatan').trim(),
@@ -122,7 +161,7 @@ export function getTenureRoles(tenureId, roleQuotas = {}, tenureRoles = []) {
 /**
  * Mencari kecocokan objek role dari identitas roleId atau teks nama role member.
  */
-export function findMatchingRole(member, tenureRoles = []) {
+export function findMatchingRole<R extends AppItem>(member: AppItem | null | undefined, tenureRoles: R[] = []): R | null {
   if (!member) return null;
   const roleId = member.roleId;
   const roleName = String(member.role || '').toLowerCase().trim();
@@ -162,7 +201,7 @@ export function findMatchingRole(member, tenureRoles = []) {
 /**
  * Mendapatkan tingkatan level organigram (0 s/d 5) untuk anggota tertentu.
  */
-export function getMemberLevel(member, tenureRoles = []) {
+export function getMemberLevel(member: AppItem | null | undefined, tenureRoles: AppItem[] = []): number {
   const matched = findMatchingRole(member, tenureRoles);
   if (matched) return matched.level;
 
@@ -182,7 +221,11 @@ export function getMemberLevel(member, tenureRoles = []) {
 /**
  * Validasi Hapus Role: Cek apakah masih ada member yang menggunakan role ini.
  */
-export function canDeleteRole(role, tenureId, members = []) {
+export function canDeleteRole(
+  role: AppItem | null | undefined,
+  tenureId: string | null | undefined,
+  members: AppItem[] = []
+): { canDelete: boolean; count: number; members: AppItem[]; reason?: string } {
   if (!role) return { canDelete: true, count: 0, members: [] };
   const targetMembers = (members || []).filter(m => (!tenureId || m.tenureId === tenureId));
   const roleNameLower = String(role.name || '').toLowerCase().trim();
@@ -213,12 +256,12 @@ export function canDeleteRole(role, tenureId, members = []) {
  * Validasi penugasan member terhadap daftar role resmi & kuota organisasi.
  */
 export function validateMemberQuota(
-  { tenureId, roleId, role = '', divisionId, excludeMemberId = null },
-  members = [],
-  divisions = [],
-  roleQuotas = {},
-  tenureRoles = []
-) {
+  { tenureId, roleId, role = '', divisionId, excludeMemberId = null }: MemberAssignment,
+  members: AppItem[] = [],
+  divisions: AppItem[] = [],
+  roleQuotas: AppItem | AppItem[] | null = {},
+  tenureRoles: AppItem[] | null = []
+): QuotaValidation {
   const targetTenureId = tenureId || '';
   const resolvedRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
 
@@ -296,7 +339,13 @@ export function validateMemberQuota(
 /**
  * Ringkasan status keterisian semua role dalam suatu kepengurusan.
  */
-export function getTenureQuotaSummary(tenureId, members = [], divisions = [], roleQuotas = {}, tenureRoles = []) {
+export function getTenureQuotaSummary(
+  tenureId: string | null | undefined,
+  members: AppItem[] = [],
+  divisions: AppItem[] = [],
+  roleQuotas: AppItem | AppItem[] | null = {},
+  tenureRoles: AppItem[] | null = []
+) {
   const roles = getTenureRoles(tenureId, roleQuotas, tenureRoles);
   const targetMembers = (members || []).filter(m => !tenureId || m.tenureId === tenureId);
   const targetDivisions = (divisions || []).filter(d => !tenureId || d.tenureId === tenureId);
@@ -326,7 +375,7 @@ export function getTenureQuotaSummary(tenureId, members = [], divisions = [], ro
 /**
  * Backward compatibility helper for legacy code
  */
-export function getMemberRoleType(category = '', role = '', title = '') {
+export function getMemberRoleType(category: string | null = '', role: string | null = '', title: string | null = ''): string {
   const cat = String(category || '').toLowerCase().trim();
   const text = `${role} ${title}`.toLowerCase();
 
@@ -351,7 +400,11 @@ export function getMemberRoleType(category = '', role = '', title = '') {
  * murni berdasarkan data relasional DB: role_id, level, requires_division, dan sort_order.
  * Tanpa hardcoded string/kata kunci teks.
  */
-export function getDivisionStructure(division, members = [], tenureRoles = []) {
+export function getDivisionStructure(
+  division: AppItem | null | undefined,
+  members: AppItem[] = [],
+  tenureRoles: AppItem[] = []
+): { leaders: AppItem[]; members: AppItem[] } {
   if (!division) return { leaders: [], members: [] };
   const divMembers = (members || []).filter(m => m.divisionId === division.id);
   if (divMembers.length === 0) return { leaders: [], members: [] };
@@ -396,7 +449,11 @@ export function getDivisionStructure(division, members = [], tenureRoles = []) {
  * Diambil dari pimpinan tertinggi (level terkecil) dengan sort_order pertama di DB.
  * Murni berbasis data DB tanpa pengecekan string manual.
  */
-export function getDivisionLead(division, members = [], tenureRoles = []) {
+export function getDivisionLead(
+  division: AppItem | null | undefined,
+  members: AppItem[] = [],
+  tenureRoles: AppItem[] = []
+): { member: AppItem | null; name: string; roleName: string } {
   if (!division) return { member: null, name: '', roleName: '' };
   const { leaders } = getDivisionStructure(division, members, tenureRoles);
   if (leaders.length > 0) {

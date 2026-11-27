@@ -1,14 +1,18 @@
 // Web Audio API Synthesizer for Space Sound Effects
 
-class SoundManager {
-  constructor() {
-    this.ctx = null;
-    this.isMuted = true;
-    this.droneOsc = null;
-    this.droneGain = null;
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
   }
+}
 
-  init() {
+class SoundManager {
+  ctx: AudioContext | null = null;
+  isMuted = true;
+  droneOsc: OscillatorNode | null = null;
+  droneGain: GainNode | null = null;
+
+  init(): void {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
@@ -20,7 +24,7 @@ class SoundManager {
     }
   }
 
-  playClick() {
+  playClick(): void {
     if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
@@ -46,7 +50,7 @@ class SoundManager {
     }
   }
 
-  playWarp() {
+  playWarp(): void {
     if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
@@ -72,7 +76,7 @@ class SoundManager {
     }
   }
 
-  playSuccess() {
+  playSuccess(): void {
     if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
@@ -80,8 +84,8 @@ class SoundManager {
     try {
       const now = this.ctx.currentTime;
       [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
 
         osc.type = 'sine';
         osc.frequency.value = freq;
@@ -90,7 +94,7 @@ class SoundManager {
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.2);
 
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.ctx!.destination);
 
         osc.start(now + idx * 0.06);
         osc.stop(now + idx * 0.06 + 0.2);
@@ -100,7 +104,7 @@ class SoundManager {
     }
   }
 
-  playError() {
+  playError(): void {
     if (this.isMuted) return;
     this.init();
     if (!this.ctx) return;
@@ -108,8 +112,8 @@ class SoundManager {
     try {
       const now = this.ctx.currentTime;
       [280, 200].forEach((freq, idx) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
 
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(freq, now + idx * 0.09);
@@ -118,7 +122,7 @@ class SoundManager {
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.15);
 
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.ctx!.destination);
 
         osc.start(now + idx * 0.09);
         osc.stop(now + idx * 0.09 + 0.15);
@@ -128,7 +132,7 @@ class SoundManager {
     }
   }
 
-  toggleMute() {
+  toggleMute(): boolean {
     this.isMuted = !this.isMuted;
     if (!this.isMuted) {
       this.init();
