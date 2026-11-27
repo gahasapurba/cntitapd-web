@@ -9,6 +9,7 @@ export default function FaqsTab() {
     adminFaqPage,
     clearFieldError,
     faqAnswer,
+    faqCategory,
     faqCatFilter,
     faqQuestion,
     faqSearchQuery,
@@ -21,6 +22,7 @@ export default function FaqsTab() {
     setDeleteConfirm,
     setEditingItem,
     setFaqAnswer,
+    setFaqCategory,
     setFaqCatFilter,
     setFaqQuestion,
     setFaqSearchQuery
@@ -49,6 +51,35 @@ export default function FaqsTab() {
             gap: '14px'
           }}>
             <div className="mobile-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+              <div>
+                <label htmlFor="admin-faq-category" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Kategori Topik <span style={{ color: '#f43f5e' }}>*</span>
+                </label>
+                <select
+                  id="admin-faq-category"
+                  value={faqCategory}
+                  onChange={(e) => {
+                    setFaqCategory(e.target.value);
+                    clearFieldError('faqCategory');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--input-bg)',
+                    border: `1.5px solid ${formErrors.faqCategory ? '#f43f5e' : 'var(--border-card)'}`,
+                    color: 'var(--text-main)',
+                    outline: 'none',
+                    fontSize: '0.88rem'
+                  }}
+                >
+                  <option value="">Pilih kategori…</option>
+                  {['Umum', 'Kegiatan & Event', 'Operasional & Sekben', 'Pendaftaran & Oprec', 'Aspirasi & Usulan', 'Tentang CNT'].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {renderFieldError('faqCategory')}
+              </div>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                   Pertanyaan (Question) <span style={{ color: '#f43f5e' }}>*</span>

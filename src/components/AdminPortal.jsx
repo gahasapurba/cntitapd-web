@@ -1636,6 +1636,8 @@ export default function AdminPortal({
 
   // IF AUTHENTICATED: SHOW ADMIN DASHBOARD
   const adminPortalContextValue = {
+    faqCategory,
+    setFaqCategory,
     activeTab,
     activeTenure,
     addDocLinkField,
