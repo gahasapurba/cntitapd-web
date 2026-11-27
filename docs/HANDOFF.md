@@ -2,7 +2,7 @@
 
 Dokumen ini merangkum status perombakan website **Culture Network Team (CNT) Group IT Application Delivery, Bank Mandiri** agar pekerjaan bisa dilanjutkan dari perangkat lain (atau sesi AI baru) tanpa kehilangan konteks. **Tidak berisi rahasia** — kredensial disimpan terpisah di luar repo (QuickDrop).
 
-Terakhir diperbarui: 27 November 2026 (Fase 0 selesai; Fase 1 berikutnya, dikerjakan di laptop kantor).
+Terakhir diperbarui: 27 November 2026 sore (Fase 0 selesai; Fase 1 diterapkan di produksi — tinggal akun super admin pertama, lihat bagian 6a).
 
 ---
 
@@ -12,7 +12,8 @@ Terakhir diperbarui: 27 November 2026 (Fase 0 selesai; Fase 1 berikutnya, dikerj
 2. Pastikan `.env` ada di root repo (tidak ikut Git) dengan empat variabel:
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_MGMT_TOKEN`, `BACKUP_PASSPHRASE`.
 3. `npm install` lalu `npm run build`.
-4. Untuk AI (Claude Code): baca dokumen ini dan `.agent/rules/standar-kerja.md`, lalu lanjutkan dari bagian **6. Fase 1**.
+4. Untuk AI (Claude Code): baca dokumen ini dan `.agent/rules/standar-kerja.md`, lalu lanjutkan dari bagian **6a. Status Fase 1** (sisa langkah), kemudian **7. Fase 2**.
+5. Uji aturan akses database secara lokal (tanpa menyentuh produksi): `npm run test:rls` (50 uji, Postgres WASM/PGlite).
 
 ---
 
@@ -74,7 +75,23 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 
 ---
 
-## 6. Fase 1 — Keamanan & integritas data (BERIKUTNYA)
+## 6a. Status Fase 1 (27 Nov 2026)
+
+**Diterapkan di produksi** (migration `20261127000000_secure_access_and_admin_roles.sql`, OK pemilik):
+- Backup manual sebelum migration diverifikasi (94 baris). Sesudah migration: **94 baris, identik per tabel** dengan baseline; storage 39 berkas; 0 policy lama tersisa; 34 policy & 20 fungsi identik dengan `supabase_schema.sql`.
+- Uji REST produksi sebagai anon: data pribadi, tabel aspirasi, admin_profiles & semua penulisan ditolak; RPC publik berjalan (tenggat Townhall terbaca WIB, kategori kudos lama ditolak, like/batal like bersih); upload anon ke `gallery/` & `.exe` ditolak.
+- Kode klien (commit `118dca7`): penulisan per baris, Supabase Auth + peran, RPC publik, tanpa cache data pribadi, 17 probe kolom dihapus, validasi input & berkas ≤ 20 MB, bug kartu "Sedang Dibuka", event terdekat, tahun footer, nama Culture Network Team.
+- Uji UI localhost (headless Chrome, 15 cek pengunjung) lulus: tanpa request gagal, tanpa request tabel pribadi, localStorage bersih.
+- Kudos: data lama hanya 1 baris berkategori "Harmonis" (sudah AKHLAK) → **tidak perlu pemetaan**.
+- `forms.deadline` di produksi bertipe TIMESTAMPTZ berisi digit jam WIB berlabel UTC; `form_deadline_wib()` menafsirkannya. `supabase_schema.sql` kini identik dengan kolom produksi.
+- Backup kini juga menyimpan `admin_profiles` & `kudos_likes` (backup 07:36 UTC diverifikasi, 94 baris).
+
+**Sisa langkah Fase 1:**
+1. Pemilik membuat user di Supabase → Authentication → Users, lalu memberi tahu emailnya. AI menetapkan `super_admin` (SQL di akhir file migration). **Sampai itu dilakukan, belum ada yang bisa login ke Admin Portal** (login SHA-256 lama sudah dihapus).
+2. Uji produksi sebagai super admin & admin divisi (login UI, simpan/hapus data uji, Kelola Admin). Uji REST dengan akun uji sementara via service_role ditolak oleh izin otomatis Claude Code di laptop kantor — minta izin pemilik atau uji lewat akun nyata.
+3. Hapus drop Quick Drop "LANGKAH LANJUT DI LAPTOP KANTOR" (berisi token Management API) bila pemilik setuju.
+
+## 6. Fase 1 — Keamanan & integritas data (rencana awal, untuk referensi)
 
 ### Temuan yang harus ditutup
 | # | Masalah | Lokasi |
