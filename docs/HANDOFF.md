@@ -2,7 +2,7 @@
 
 Dokumen ini merangkum status perombakan website **Culture Network Team (CNT) Group IT Application Delivery, Bank Mandiri** agar pekerjaan bisa dilanjutkan dari perangkat lain (atau sesi AI baru) tanpa kehilangan konteks. **Tidak berisi rahasia** — kredensial disimpan terpisah di luar repo (QuickDrop).
 
-Terakhir diperbarui: 27 November 2026 (Fase 0, 1 & 2 selesai; berikutnya Fase 3 — redesign).
+Terakhir diperbarui: 27 November 2026 malam (Fase 0, 1 & 2 selesai; Fase 3 — redesign — sedang berjalan, lihat 6c).
 
 ---
 
@@ -12,8 +12,9 @@ Terakhir diperbarui: 27 November 2026 (Fase 0, 1 & 2 selesai; berikutnya Fase 3 
 2. Pastikan `.env` ada di root repo (tidak ikut Git) dengan empat variabel:
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_MGMT_TOKEN`, `BACKUP_PASSPHRASE`.
 3. `npm install` lalu `npm run build`.
-4. Untuk AI (Claude Code): baca dokumen ini dan `.agent/rules/standar-kerja.md`, lalu lanjutkan dari bagian **7. Fase 3** (status Fase 1 & 2 di bagian 6a–6b).
+4. Untuk AI (Claude Code): baca dokumen ini dan `.agent/rules/standar-kerja.md`, lalu lanjutkan dari bagian **6c. Status Fase 3** (halaman berikutnya: Formulir). Status Fase 1 & 2 di 6a–6b.
 5. Uji aturan akses database secara lokal (tanpa menyentuh produksi): `npm run test:rls` (50 uji, Postgres WASM/PGlite).
+6. Uji UI lokal: `npm i --no-save puppeteer-core`, lalu `node scripts/ui/ui-smoke.mjs` dan `node scripts/ui/ui-router.mjs` (lihat `scripts/ui/README.md`).
 
 ---
 
@@ -145,6 +146,38 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 - **Insiden 27 Nov:** skrip uji awal mengklik tombol "Hapus" yang salah dan menghapus `faq-1`; dipulihkan persis dari backup terenkripsi 07:57 UTC dalam beberapa menit (isi seluruh tabel diverifikasi identik dengan backup). Aturan uji sejak itu: backup dulu, hapus hanya baris uji bertanda "UJI OTOMATIS …", konfirmasi hanya bila dialog menyebut baris uji itu, bandingkan jumlah baris sebelum/sesudah.
 - Catatan: CNT belum punya perbaikan zona waktu WIB untuk tenggat/“hari ini” di browser (bapekkris `f745aca`); layak dibawa di Fase 3/4.
 
+## 6c. Status Fase 3 — Redesign 🔄 SEDANG BERJALAN (27 Nov 2026)
+
+**Konsep disetujui pemilik: "B (Dashboard Modern) + aksen C"** — mockup di `docs/design/fase3/` (PNG web/mobile terang/gelap + `mockup-D-Gabungan.html`). Konsep A (editorial) ditolak karena terlalu mirip Bapekkris.
+- Font Plus Jakarta Sans; latar abu-biru dingin (`#f3f5f9`), kartu putih; hero navy + stat tile; aksen emas (kartu kudos kuning); pita 6 warna AKHLAK di header/footer; judul besar tebal; kartu divisi bernomor 01–04 berwarna AKHLAK.
+- Rilis **langsung ke master per halaman**; tiap halaman: build + typecheck + vitest + `scripts/ui/ui-smoke.mjs` + `ui-router.mjs` + screenshot terang/gelap/ponsel, commit, push, laporan 5 bagian.
+
+**Fondasi (selesai):**
+- Tailwind v4 (`@tailwindcss/vite`, tanpa preflight), cascade layer `@layer theme, legacy, utilities`. Token di `src/styles/tokens.css` (terang/gelap, tint/ink AKHLAK, hero); CSS lama di `src/styles/legacy.css`; pemetaan kelas di `src/index.css` (`@theme inline`: page, surface, subtle, line, ink, muted, dim, navy, hero*, gold*, field*, pill*, amanah…kolaboratif + `-tint`/`-ink`).
+- Warna hanya hex (tanpa oklch/color-mix) — ekspor PDF organigram memakai html2canvas.
+- Tema mengikuti OS sampai pengunjung memilih (`src/lib/theme.ts`, kunci `cnt_theme_choice`; skrip pre-paint di `index.html`).
+- Kit UI `src/ui/`: Button/ButtonLink, Card/Eyebrow, Chip (+akhlakTone), AkhlakBand, Container/SectionHeader, Skeleton, EmptyState, **Dialog** (portal, focus trap bertumpuk, Esc, fokus kembali, bottom sheet di ponsel).
+- `SiteHeader.tsx` / `SiteFooter.tsx` (ganti Navbar/Footer/Starfield). `FULL_BLEED_TABS` di `App.jsx` = tab yang sudah memakai `Container` sendiri.
+
+**Halaman:**
+| # | Halaman | Status |
+|---|---|---|
+| 1 | Beranda (`components/home/HomePage.tsx`) | ✅ |
+| 2 | FAQ halaman sendiri (`components/faq/FaqPage.tsx`) | ✅ |
+| 3 | Acara (`components/events/EventsPage.tsx` + hook `useProgram.jsx`) — commit `62b0f3e` | ✅ (kalender `EventCalendarView` masih gaya lama, label "COMPLETED" masih Inggris) |
+| 4 | **Formulir** (`dynamic-form/` hook + sections) | ⏭️ berikutnya |
+| 5 | Organisasi | ⏳ |
+| 6 | Galeri | ⏳ |
+| 7 | Kudos & Aspirasi — dipisah jadi dua halaman (ubah `NAV_ITEMS`) | ⏳ |
+| 8 | Aset | ⏳ |
+| 9 | Statistik pendaftaran / lucky draw | ⏳ |
+| 10 | Admin portal bergaya dashboard | ⏳ |
+| 11 | Audit aksesibilitas axe WCAG AA = 0 pelanggaran | ⏳ |
+
+**Cara kerja yang terbukti aman untuk memindah halaman:** pindahkan logika komponen lama apa adanya ke hook (`useXxx.jsx`, return semua nilai), lalu tulis markup baru `.tsx` yang memakai hook itu (`useXxx(props as any) as Record<string, any>`); daftar semua perilaku JSX lama dulu agar tidak ada yang hilang (tombol, banner, keadaan kosong/tutup/penuh, deep link). Hapus file lama setelah build lulus.
+
+**Catatan:** hanya ada 1 acara (Townhall 17 Nov, sudah lewat) sehingga filter bawaan "Mendatang & berjalan" kosong — perilaku sama dengan versi lama. Perbaikan zona waktu WIB (bapekkris `f745aca`) masih belum dibawa.
+
 ## 7. Fase berikutnya (ringkas)
 
 - **Fase 2 — Arsitektur:** TypeScript bertahap, React Router (tombol Back; format link `/?event=`, `/?form=`, `/?gallery=`, `/?stats=`, `/admin` dipertahankan), TanStack Query (ganti polling 12 dtk + realtime semua tabel yang memuat ulang total — ±80 request per 30 dtk per pengunjung), pecah `AdminPortal.jsx` (16.210 baris, 168 `useState`), zod + react-hook-form, Vitest.
@@ -165,4 +198,4 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
     -d '{"query":"select 1"}'
   ```
 - **Backup:** `gh workflow run daily-backup.yml` (manual), `gh run list` (status). Harian otomatis 02.00 WIB.
-- **Uji UI di laptop kantor:** `*.netlify.app` diblokir browser kantor (MDM) → uji ke `http://localhost:5173` (`npm run dev`), matikan dev server setelahnya (Zero Background Task).
+- **Uji UI di laptop kantor:** `*.netlify.app` dan `claude.ai` diblokir browser kantor (MDM) → uji ke `http://localhost:5173` (`npm run dev`), matikan dev server setelahnya (Zero Background Task). Gambar desain untuk pemilik ditampilkan sebagai PNG lokal, bukan Artifact.

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CNT · Konsep B + aksen C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F9; --surface:#FFFFFF; --surface-2:#F7F9FC; --line:#E2E7EF;
+  --ink:#0F1B2D; --muted:#4A5870; --link:#0A3E80;
+  --navy:#0A3E80; --navy-ink:#FFFFFF; --navy-muted:#D3DEF0; --navy-tile:rgba(255,255,255,.10);
+  --gold:#FFC83D; --gold-ink:#1A1300; --gold-muted:#4A3500;
+  --pill:#E8EEF8; --pill-ink:#0A3E80;
+  --a1:#2F6FD6; --a2:#14A38B; --a3:#F4B400; --a4:#E5484D; --a5:#8B5CF6; --a6:#22A55B;
+  --t1:#DBEAFE; --t1i:#1E3A8A; --t2:#CCFBF1; --t2i:#115E59; --t3:#FEF3C7; --t3i:#92400E;
+  --t4:#FEE2E2; --t4i:#991B1B; --t5:#EDE9FE; --t5i:#5B21B6; --t6:#DCFCE7; --t6i:#166534;
+  --logo-dark:block; --logo-light:none;
+}
+html.dark{
+  --bg:#0A101C; --surface:#121B2C; --surface-2:#172235; --line:#25324A;
+  --ink:#E9EEF6; --muted:#A6B2C6; --link:#8DB8FF;
+  --navy:#12315F; --navy-ink:#FFFFFF; --navy-muted:#C6D3E8; --navy-tile:rgba(255,255,255,.08);
+  --gold:#FFC83D; --gold-ink:#1A1300; --gold-muted:#4A3500;
+  --pill:#1C2A44; --pill-ink:#8DB8FF;
+  --t1:#172B4D; --t1i:#93C5FD; --t2:#0D3B36; --t2i:#5EEAD4; --t3:#3A2A08; --t3i:#FCD34D;
+  --t4:#3D1616; --t4i:#FCA5A5; --t5:#2A1F4D; --t5i:#C4B5FD; --t6:#123222; --t6i:#86EFAC;
+  --logo-dark:none; --logo-light:block;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,sans-serif}
+a{color:var(--link)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+.band{display:grid;grid-template-columns:repeat(6,1fr)}
+.band span:nth-child(1){background:var(--a1)}.band span:nth-child(2){background:var(--a2)}.band span:nth-child(3){background:var(--a3)}
+.band span:nth-child(4){background:var(--a4)}.band span:nth-child(5){background:var(--a5)}.band span:nth-child(6){background:var(--a6)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px}
+.eyebrow{margin:0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;min-height:46px;padding:0 20px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none}
+.chip{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;font-size:13px;font-weight:700}
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:20px}
+@media (max-width:720px){ .hero h1{font-size:44px !important} .hero{padding:28px !important} .nav-links{order:3;width:100%} }
+</style>
+</head>
+<body>
+
+<header style="background:var(--surface);border-bottom:1px solid var(--line)">
+  <div class="wrap" style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding-top:14px;padding-bottom:14px">
+    <a href="#" style="display:flex;align-items:center;gap:10px;text-decoration:none">
+      <img src="logo.png" alt="IT Application Delivery" style="height:32px;display:var(--logo-dark)">
+      <img src="logo-white.png" alt="IT Application Delivery" style="height:32px;display:var(--logo-light)">
+      <span style="font-size:13px;font-weight:700;color:var(--ink);border-left:1px solid var(--line);padding-left:10px">Culture Network Team</span>
+    </a>
+    <nav class="nav-links" aria-label="Menu utama" style="display:flex;flex-wrap:wrap;gap:4px;font-size:14px;font-weight:600;flex:1 1 auto">
+      <a href="#" style="background:var(--pill);color:var(--pill-ink);text-decoration:none;padding:10px 14px;border-radius:999px">Beranda</a>
+      <a href="#" style="color:var(--muted);text-decoration:none;padding:10px 14px">Organisasi</a>
+      <a href="#" style="color:var(--muted);text-decoration:none;padding:10px 14px">Acara</a>
+      <a href="#" style="color:var(--muted);text-decoration:none;padding:10px 14px">Galeri</a>
+      <a href="#" style="color:var(--muted);text-decoration:none;padding:10px 14px">Kudos</a>
+      <a href="#" style="color:var(--muted);text-decoration:none;padding:10px 14px">Aspirasi</a>
+      <a href="#" style="color:var(--muted);text-decoration:none;padding:10px 14px">FAQ</a>
+    </nav>
+    <label style="display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:0 12px;height:44px;min-width:200px;color:var(--muted);font-size:14px">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="search" aria-label="Cari" placeholder="Cari…" style="border:0;background:transparent;outline:none;font:inherit;color:var(--ink);width:100%">
+      <span style="font-size:12px;border:1px solid var(--line);border-radius:6px;padding:1px 6px">⌘K</span>
+    </label>
+  </div>
+  <div class="band" aria-hidden="true" style="height:4px"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+</header>
+
+<main class="wrap" style="padding-top:28px;padding-bottom:64px;display:flex;flex-direction:column;gap:20px">
+
+  <section class="hero" style="background:var(--navy);color:var(--navy-ink);border-radius:28px;padding:52px 48px 0;overflow:hidden">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:36px;align-items:end;padding-bottom:44px">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <p style="margin:0;font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--gold)">CULTURE NETWORK TEAM · KEPENGURUSAN 2027</p>
+        <h1 style="margin:0;font-size:72px;line-height:1;font-weight:800;letter-spacing:-.03em">Committed to cultivate <span style="color:var(--gold)">excellence &amp; synergy.</span></h1>
+        <p style="margin:0;font-size:17px;line-height:1.6;color:var(--navy-muted);max-width:560px">Penggerak budaya kerja Group IT Application Delivery, Direktorat IT Bank Mandiri: kebersamaan, kesejahteraan, cerita, dan bakat setiap insan.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <a href="#" class="btn" style="background:var(--gold);color:var(--gold-ink)">Lihat agenda</a>
+          <a href="#" class="btn" style="background:var(--navy-tile);color:var(--navy-ink)">Kirim kudos</a>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div style="background:var(--navy-tile);border-radius:16px;padding:20px"><p style="margin:0;font-size:36px;font-weight:800">30</p><p style="margin:4px 0 0;font-size:14px;color:var(--navy-muted)">Pengurus &amp; anggota</p></div>
+        <div style="background:var(--navy-tile);border-radius:16px;padding:20px"><p style="margin:0;font-size:36px;font-weight:800">4</p><p style="margin:4px 0 0;font-size:14px;color:var(--navy-muted)">Divisi</p></div>
+        <div style="background:var(--navy-tile);border-radius:16px;padding:20px"><p style="margin:0;font-size:36px;font-weight:800">13</p><p style="margin:4px 0 0;font-size:14px;color:var(--navy-muted)">Departemen IT APD</p></div>
+        <div style="background:var(--navy-tile);border-radius:16px;padding:20px"><p style="margin:0;font-size:36px;font-weight:800">6</p><p style="margin:4px 0 0;font-size:14px;color:var(--navy-muted)">Nilai AKHLAK</p></div>
+      </div>
+    </div>
+    <div class="band" aria-hidden="true" style="height:10px;margin:0 -48px"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  </section>
+
+  <div class="grid-auto">
+    <section class="card" style="display:flex;flex-direction:column;gap:14px">
+      <p class="eyebrow">Acara</p>
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="background:var(--pill);color:var(--pill-ink);border-radius:12px;width:60px;flex:none;text-align:center;padding:8px 0"><p style="margin:0;font-size:22px;font-weight:800">17</p><p style="margin:0;font-size:12px;font-weight:700">NOV</p></div>
+        <div><h3 style="margin:0;font-size:18px;font-weight:800">Townhall IT APD</h3><p style="margin:4px 0 0;font-size:14px;color:var(--muted);line-height:1.5">09.00–11.00 WIB · Mandiri Digital Tower, Auditorium Lt. 6</p></div>
+      </div>
+      <p style="margin:0;font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px">Belum ada acara mendatang. Pantau kalender untuk agenda berikutnya.</p>
+      <a href="#" style="font-size:14px;font-weight:700">Buka kalender →</a>
+    </section>
+
+    <section style="background:var(--gold);color:var(--gold-ink);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><p class="eyebrow" style="color:var(--gold-muted)">Kudos terbaru</p><span class="chip" style="background:rgba(26,19,0,.1);color:var(--gold-ink)">Harmonis</span></div>
+      <p style="margin:0;font-size:26px;font-weight:800;line-height:1.25">“Keep up the great work!”</p>
+      <p style="margin:0;font-size:14px;color:var(--gold-muted)">Untuk Team BPD · dari Anonim</p>
+      <a href="#" style="color:var(--gold-ink);font-size:14px;font-weight:700;margin-top:auto">Apresiasi rekanmu →</a>
+    </section>
+
+    <section class="card" style="display:flex;flex-direction:column;gap:12px">
+      <p class="eyebrow">Aspirasi</p>
+      <h3 style="margin:0;font-size:18px;font-weight:800">Fun Run</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><span class="chip" style="background:var(--t2);color:var(--t2i)">Olahraga &amp; Wellness</span><span class="chip" style="background:var(--surface-2);color:var(--muted);border:1px solid var(--line)">Menunggu tinjauan</span></div>
+      <p style="margin:0;font-size:14px;color:var(--muted);line-height:1.6">Punya ide kegiatan untuk insan IT APD? Sampaikan langsung ke pengurus.</p>
+      <a href="#" style="font-size:14px;font-weight:700;margin-top:auto">Sampaikan ide →</a>
+    </section>
+  </div>
+
+  <section style="display:flex;flex-direction:column;gap:16px;padding-top:20px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px">
+      <h2 style="margin:0;font-size:36px;font-weight:800;letter-spacing:-.02em">Empat divisi, satu semangat.</h2>
+      <a href="#" style="font-size:14px;font-weight:700">Struktur organisasi →</a>
+    </div>
+    <div class="grid-auto" style="gap:16px">
+      <article class="card" style="border-top:5px solid var(--a1);display:flex;flex-direction:column;gap:10px"><p style="margin:0;font-size:40px;font-weight:800;color:var(--a1)">01</p><h3 style="margin:0;font-size:18px;font-weight:800">Experience &amp; Activity</h3><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">Bringing people together, making work memorable.</p></article>
+      <article class="card" style="border-top:5px solid var(--a4);display:flex;flex-direction:column;gap:10px"><p style="margin:0;font-size:40px;font-weight:800;color:var(--a4)">02</p><h3 style="margin:0;font-size:18px;font-weight:800">Collective Wellbeing</h3><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">Clear mind, stronger together.</p></article>
+      <article class="card" style="border-top:5px solid var(--a5);display:flex;flex-direction:column;gap:10px"><p style="margin:0;font-size:40px;font-weight:800;color:var(--a5)">03</p><h3 style="margin:0;font-size:18px;font-weight:800">Creative Media</h3><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">Creativity in action, stories that connect.</p></article>
+      <article class="card" style="border-top:5px solid var(--a3);display:flex;flex-direction:column;gap:10px"><p style="margin:0;font-size:40px;font-weight:800;color:var(--a3)">04</p><h3 style="margin:0;font-size:18px;font-weight:800">Talent &amp; Interest</h3><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">Explore your passion, elevate together.</p></article>
+    </div>
+  </section>
+
+  <section class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:24px;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <p class="eyebrow">Nilai inti BUMN</p>
+      <h2 style="margin:0;font-size:28px;font-weight:800">AKHLAK dalam setiap kudos</h2>
+      <p style="margin:0;font-size:15px;color:var(--muted);line-height:1.6">Setiap apresiasi untuk rekan kerja diberikan pada salah satu dari enam nilai ini.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span class="chip" style="background:var(--t1);color:var(--t1i)">Amanah</span>
+      <span class="chip" style="background:var(--t2);color:var(--t2i)">Kompeten</span>
+      <span class="chip" style="background:var(--t3);color:var(--t3i)">Harmonis</span>
+      <span class="chip" style="background:var(--t4);color:var(--t4i)">Loyal</span>
+      <span class="chip" style="background:var(--t5);color:var(--t5i)">Adaptif</span>
+      <span class="chip" style="background:var(--t6);color:var(--t6i)">Kolaboratif</span>
+    </div>
+  </section>
+</main>
+
+<footer style="background:var(--surface);border-top:1px solid var(--line)">
+  <div class="band" aria-hidden="true" style="height:4px"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="wrap" style="padding-top:24px;padding-bottom:24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted)">
+    <span>© 2026 Culture Network Team · Group IT Application Delivery, Bank Mandiri</span>
+    <span>Satu Hati, Satu Mandiri.</span>
+  </div>
+</footer>
+</body>
+</html>
