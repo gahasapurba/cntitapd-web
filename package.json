@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "backup": "node scripts/backup-db.cjs",
-    "restore:storage": "node scripts/restore-storage.cjs"
+    "restore:storage": "node scripts/restore-storage.cjs",
+    "test:rls": "node supabase/tests/rls.test.mjs supabase_schema.sql supabase/migrations/20261127000000_secure_access_and_admin_roles.sql"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
@@ -24,6 +25,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17",
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^6.2.0"
   }
