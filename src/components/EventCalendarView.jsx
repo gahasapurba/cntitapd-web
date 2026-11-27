@@ -31,6 +31,13 @@ function getBadgeTextColor(bgColor) {
   return '#ffffff';
 }
 
+/**
+ * @param {{
+ *   events?: any[], divisions?: any[], forms?: any[], registrationCounts?: any, theme?: string,
+ *   activeTenure?: any, onSelectEvent?: ((evt: any, sameDayEvents?: any[]) => void) | null,
+ *   onEditEvent?: ((evt: any) => void) | null, isAdmin?: boolean
+ * }} props
+ */
 export default function EventCalendarView({
   events = [],
   divisions = [],
