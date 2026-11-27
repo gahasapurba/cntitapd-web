@@ -296,16 +296,6 @@ select option {
   align-items: start;
 }
 
-.gallery-window {
-  position: relative;
-  height: 460px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: #040914;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .admin-form-two-col {
   display: grid;
@@ -371,10 +361,6 @@ select option {
     gap: 20px !important;
   }
 
-  .gallery-window {
-    height: 300px !important;
-  }
-
   .admin-form-two-col {
     grid-template-columns: minmax(0, 1fr) !important;
     width: 100% !important;
@@ -418,11 +404,6 @@ select option {
   .mobile-two-col {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
-  }
-
-  /* Carousel size adjust for vertical mobile screens */
-  .gallery-window {
-    height: 240px !important;
   }
 
   /* Typography adjustments to prevent awkward wraps (old pages only: redesigned

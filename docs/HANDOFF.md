@@ -2,7 +2,7 @@
 
 Dokumen ini merangkum status perombakan website **Culture Network Team (CNT) Group IT Application Delivery, Bank Mandiri** agar pekerjaan bisa dilanjutkan dari perangkat lain (atau sesi AI baru) tanpa kehilangan konteks. **Tidak berisi rahasia** — kredensial disimpan terpisah di luar repo (QuickDrop).
 
-Terakhir diperbarui: 28 November 2026 (Fase 0, 1 & 2 selesai; Fase 3 — redesign — sedang berjalan, 5 dari 11 bagian selesai, lihat 6c).
+Terakhir diperbarui: 28 November 2026 (Fase 0, 1 & 2 selesai; Fase 3 — redesign — sedang berjalan, 6 dari 11 bagian selesai, lihat 6c).
 
 ---
 
@@ -167,8 +167,8 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 | 3 | Acara (`components/events/EventsPage.tsx` + hook `useProgram.jsx`) — commit `62b0f3e` | ✅ (kalender `EventCalendarView` masih gaya lama, label "COMPLETED" masih Inggris) |
 | 4 | Formulir (`dynamic-form/FormsPage.tsx` + sections) — 28 Nov, laptop rumah | ✅ |
 | 5 | Organisasi (`components/organization/`) — 28 Nov | ✅ |
-| 6 | **Galeri** | ⏭️ berikutnya |
-| 7 | Kudos & Aspirasi — dipisah jadi dua halaman (ubah `NAV_ITEMS`) | ⏳ |
+| 6 | Galeri (`components/gallery/`) — 28 Nov | ✅ |
+| 7 | **Kudos & Aspirasi** — dipisah jadi dua halaman (ubah `NAV_ITEMS`) | ⏭️ berikutnya |
 | 8 | Aset | ⏳ |
 | 9 | Statistik pendaftaran / lucky draw | ⏳ |
 | 10 | Admin portal bergaya dashboard | ⏳ |
@@ -177,6 +177,8 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 **Catatan Formulir (28 Nov):** `DynamicFormSection.jsx` dihapus → `FormsPage.tsx` (dua kolom di desktop: formulir + pelacak di kolom utama, daftar formulir di kolom samping yang menempel; di ponsel daftar lebih dulu). Formulir yang ditutup (lewat tenggat / kuota penuh) kini menampilkan pemberitahuan, bukan kolom isian yang tak bisa dikirim. Label tertaut ke setiap kolom, `aria-invalid` + pesan error terhubung, radio dalam `fieldset`, input berkas bisa difokus keyboard, dialog konfirmasi & poster memakai `Dialog` (fokus awal tidak di tombol kirim). Status "Ditolak" ditampilkan sebagai "Belum lolos", "Direview" sebagai "Sedang ditinjau" (nilai di DB tidak berubah). Helper tampilan lama (`inputStyle`, `getStatusBadgeStyle`, `renderPostSubmissionNotes`) dihapus dari hook; `Segmented` pindah ke `src/ui`. Aturan CSS lama yang memaksa ukuran semua `h1`/`h2` di ponsel (`!important` mengalahkan utility) kini hanya berlaku di `.container` (halaman lama). Uji baru `scripts/ui/ui-form-open.mjs` (14 cek, tanpa menulis ke produksi).
 
 **Catatan Organisasi (28 Nov):** `OrganizationSection.jsx` + `CrewMemberCard.jsx` dihapus → `organization/` (`useOrganization.jsx` logika lama apa adanya, `OrgChart.tsx`, `MemberCard.tsx`, `MemberDialog.tsx`, `OrganizationPage.tsx`). Bagan: garis penghubung netral hanya di desktop (ponsel = daftar bertumpuk), divisi 01–04 memakai aksen AKHLAK yang sama dengan Beranda (`src/ui/accents.ts`, satu sumber), baris anggota ringkas (label "Anggota Divisi …" yang berulang disembunyikan, nama tidak dipotong, WA jadi ikon). Saat mencari/filter, bagan disembunyikan (tetap di DOM untuk PDF). Foto digambar sebagai background-image agar crop di PDF sama dengan di layar (html2canvas mengabaikan object-fit). Ekspor PDF: warna latar dari token tema aktif, orientasi A4 mengikuti bentuk bagan (portrait untuk bagan tinggi). Semua aturan CSS `org-*`/`crew-member-card` lama dihapus dari `legacy.css`. Uji `scripts/ui/ui-organization.mjs` (15 cek).
+
+**Catatan Galeri (28 Nov):** `GallerySection.jsx` dihapus → `gallery/` (`useGallery.jsx` logika lama apa adanya, `GalleryPage.tsx`, `Lightbox.tsx`). Penampil: foto + thumbnail (tombol, `aria-current`) di kiri, info album/aksi/tautan dokumentasi di kanan (desktop); geser kiri/kanan di ponsel. Kartu album kini berfoto sampul (lazy), jumlah foto, tanda "Sedang dilihat"; memilih album menggulir ke penampil. Lightbox: portal, fokus ke tombol tutup & terkunci, Esc/panah (dari hook), fokus kembali ke pembuka, kunci scroll. Aksi tidak lagi menumpuk di atas foto. Aturan `.gallery-window` lama dihapus. Uji `scripts/ui/ui-gallery.mjs` (16 cek).
 
 **Cara kerja yang terbukti aman untuk memindah halaman:** pindahkan logika komponen lama apa adanya ke hook (`useXxx.jsx`, return semua nilai), lalu tulis markup baru `.tsx` yang memakai hook itu (`useXxx(props as any) as Record<string, any>`); daftar semua perilaku JSX lama dulu agar tidak ada yang hilang (tombol, banner, keadaan kosong/tutup/penuh, deep link). Hapus file lama setelah build lulus.
 

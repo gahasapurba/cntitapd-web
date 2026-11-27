@@ -8,6 +8,7 @@ node scripts/ui/ui-smoke.mjs       # 15 cek pengunjung
 node scripts/ui/ui-router.mjs      # 20 cek navigasi/URL
 node scripts/ui/ui-form-open.mjs [folder]   # 14 cek formulir TERBUKA (tenggat diundur di memori browser, semua request tulis diblokir, tombol kirim terakhir tidak pernah ditekan)
 node scripts/ui/ui-organization.mjs [folder] # 15 cek Organisasi (bagan, profil, cari/filter, ekspor PDF benar-benar terunduh, ponsel); hanya baca
+node scripts/ui/ui-gallery.mjs [folder]      # 16 cek Galeri (penampil, thumbnail, lightbox keyboard/fokus, pilih album + URL, deep link, album tak ada, sampul lazy di ponsel); hanya baca
 node scripts/ui/look.mjs <folder> "nama|/#event|light|1440" "nama-hp|/#event|dark|390"   # screenshot
 node scripts/ui/look-events.mjs <folder>   # screenshot + uji dialog halaman Acara
 ```
