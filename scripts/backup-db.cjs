@@ -165,10 +165,10 @@ async function runFullBackup() {
       await downloadFile(fileUrl, dest);
       totalDownloadedBytes += Number(fileObj.size || 0);
       const sizeMb = (Number(fileObj.size || 0) / 1024 / 1024).toFixed(2);
-      console.log(`  [${i + 1}/${storageFiles.length}] ✓ ${fileObj.name} (${sizeMb} MB)`);
+      console.log(`  [${i + 1}/${storageFiles.length}] ✓ ${sizeMb} MB`); // nama berkas sengaja tidak dicetak: log Actions repo publik terbuka
     } catch (err) {
       failedStorageCount++;
-      console.error(`  ✗ Gagal download ${fileObj.name}:`, err.message);
+      console.error(`  ✗ Gagal download berkas #${i + 1}:`, err.message);
     }
   }
 

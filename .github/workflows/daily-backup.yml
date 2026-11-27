@@ -56,11 +56,29 @@ jobs:
         run: |
           node scripts/backup-db.cjs
 
-      - name: Upload Full Backup Archive as Secure Artifact
+      # Repo ini publik: artifact Actions bisa diunduh akun GitHub mana pun.
+      # Karena itu backup WAJIB dienkripsi (AES-256 + PBKDF2, passphrase di secret
+      # BACKUP_PASSPHRASE) dan hanya berkas terenkripsi yang diunggah.
+      # Tanpa secret, workflow gagal alih-alih mengunggah data mentah.
+      - name: Encrypt Backup (AES-256)
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          ARCHIVE: supabase-backup-${{ steps.meta.outputs.TAG }}-${{ steps.meta.outputs.TIMESTAMP }}
+        run: |
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Secret BACKUP_PASSPHRASE belum diset. Backup TIDAK diunggah agar data tidak bocor."
+            exit 1
+          fi
+          mkdir -p encrypted
+          tar -czf - backups | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 -salt \
+            -pass env:BACKUP_PASSPHRASE -out "encrypted/$ARCHIVE.tar.gz.enc"
+          rm -rf backups
+          ls -lh encrypted
+
+      - name: Upload Encrypted Backup as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: supabase-backup-${{ steps.meta.outputs.TAG }}-${{ steps.meta.outputs.TIMESTAMP }}
-          path: |
-            backups/*.zip
-            backups/*.json
+          path: encrypted/*.enc
+          if-no-files-found: error
           retention-days: 30

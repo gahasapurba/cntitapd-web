@@ -55,6 +55,7 @@ Setiap kali melakukan perubahan, penambahan fitur, perbaikan bug, pembaruan skem
 3. **Backup Otomatis di GitHub (Cloud Backup, Bebas Beban Disk Lokal)**:
    - **DILARANG menyimpan berkas backup (.zip / .json) di penyimpanan komputer lokal** agar kapasitas disk lokal pengguna tetap bersih dan tidak berkurang.
    - File backup dieksekusi dan disimpan secara aman di **GitHub Actions Cloud Artifacts**.
+   - **Backup dienkripsi** (AES-256 + PBKDF2, `openssl` bawaan macOS) karena repo publik: artifact Actions bisa diunduh akun GitHub mana pun. Passphrase ada di secret `BACKUP_PASSPHRASE` (salinan di `.env` lokal, tidak ikut Git). Tanpa secret, workflow sengaja gagal. Membuka: `BACKUP_PASSPHRASE=... openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 -pass env:BACKUP_PASSPHRASE -in supabase-backup-*.tar.gz.enc | tar -xz`.
    - Setiap kali `supabase_schema.sql` atau `supabase_seed.sql` di-commit & di-push ke GitHub, GitHub Actions otomatis memicu full backup database + storage fisik.
    - Dilengkapi sistem penandaan otomatis (*labeling artifact*):
      - **`supabase-backup-ANTIGRAVITY-...`**: Dijalankan otomatis oleh Antigravity AI pasca perubahan skema/seed.
