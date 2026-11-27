@@ -1,237 +1,67 @@
-import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatWibTimestamp } from '../../../utils/dateUtils';
+import { Button, Card, Chip, Eyebrow, cn } from '../../../ui';
 import { useDynamicFormContext } from '../DynamicFormContext';
 
+const ACCEPTED_PER_PAGE = 8;
+
 export default function AcceptedAnnouncement() {
-  const {
-    acceptedList,
-    acceptedPage,
-    currentForm,
-    forms,
-    isDark,
-    setAcceptedPage
-  } = useDynamicFormContext();
+  const { acceptedList, acceptedPage, currentForm, forms, setAcceptedPage } = useDynamicFormContext();
+  if (!currentForm?.showAnnouncement || acceptedList.length === 0) return null;
+
+  const totalPages = Math.ceil(acceptedList.length / ACCEPTED_PER_PAGE) || 1;
+  const page = Math.min(Math.max(1, acceptedPage), totalPages);
+  const items = acceptedList.slice((page - 1) * ACCEPTED_PER_PAGE, page * ACCEPTED_PER_PAGE);
 
   return (
-    <>
-      {(() => {
-        if (!currentForm?.showAnnouncement || acceptedList.length === 0) return null;
+      <Card as="section" padding="lg" className="flex w-full flex-col gap-5" aria-labelledby="accepted-title">
+        <header className="flex flex-col gap-2">
+          <Eyebrow>Pengumuman resmi</Eyebrow>
+          <h2 id="accepted-title" className="m-0 text-[1.45rem] font-extrabold leading-tight text-ink">
+            Selamat datang, peserta terpilih ({acceptedList.length})
+          </h2>
+          <p className="m-0 text-[0.95rem] leading-relaxed text-muted">
+            Rekan insan IT APD yang dinyatakan <strong className="text-ink">lolos seleksi atau terdaftar</strong> pada program dan rekrutmen Culture Network Team.
+          </p>
+        </header>
 
-        const ACCEPTED_PER_PAGE = 8;
-        const totalAcceptedPages = Math.ceil(acceptedList.length / ACCEPTED_PER_PAGE) || 1;
-        const safeAcceptedPage = Math.min(Math.max(1, acceptedPage), totalAcceptedPages);
-        const paginatedAccepted = acceptedList.slice(
-          (safeAcceptedPage - 1) * ACCEPTED_PER_PAGE,
-          safeAcceptedPage * ACCEPTED_PER_PAGE
-        );
-
-        return (
-          <section style={{ maxWidth: '820px', margin: '0 auto', width: '100%' }}>
-            <div
-              className="glass-panel"
-              style={{
-                padding: '32px',
-                border: '1.5px solid rgba(16, 185, 129, 0.45)',
-                background: isDark
-                  ? 'linear-gradient(145deg, rgba(16, 185, 129, 0.08), rgba(15, 29, 53, 0.9))'
-                  : 'linear-gradient(145deg, #ecfdf5, #ffffff)',
-                borderRadius: 'var(--radius-lg)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '4px 12px',
-                      borderRadius: 'var(--radius-full)',
-                      background: 'rgba(16, 185, 129, 0.16)',
-                      border: '1px solid rgba(16, 185, 129, 0.45)',
-                      color: '#10b981',
-                      fontSize: '0.7rem',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      marginBottom: '6px'
-                    }}
-                  >
-                    🎉 Hall of Welcome • Pengumuman Resmi
-                  </span>
-                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0' }}>
-                    Selamat Datang Peserta & Crew Terpilih ({acceptedList.length})
-                  </h3>
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Daftar rekan-rekan Insan IT APD yang telah resmi dinyatakan <strong>Lolos Seleksi / Terdaftar</strong> pada program dan rekrutmen CNT IT APD.
-                  </p>
-                </div>
+        <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
+          {items.map((sub: any) => (
+            <li key={sub.id} className="flex flex-col gap-2 rounded-2xl border border-line border-l-4 border-l-kolaboratif bg-surface p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Chip tone="success">Diterima</Chip>
+                <span className="text-[0.78rem] text-muted">{formatWibTimestamp(sub.createdAt || sub.submittedAt).exact || sub.submittedAt || sub.createdAt}</span>
               </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                  gap: '14px'
-                }}
-              >
-                {paginatedAccepted.map((sub: any) => {
-                  const { participantName, participantDetail } = sub;
-
-                  return (
-                    <div
-                      key={sub.id}
-                      style={{
-                        padding: '16px 18px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--bg-card)',
-                        border: '1px solid rgba(16, 185, 129, 0.35)',
-                        borderLeft: '4px solid #10b981',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '10px',
-                        boxShadow: 'var(--shadow-card)'
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' }}>
-                          <span
-                            style={{
-                              fontSize: '0.66rem',
-                              fontWeight: 800,
-                              padding: '2px 8px',
-                              borderRadius: 'var(--radius-full)',
-                              background: 'rgba(16, 185, 129, 0.14)',
-                              color: '#10b981'
-                            }}
-                          >
-                            ✓ Diterima
-                          </span>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
-                            {formatWibTimestamp(sub.createdAt || sub.submittedAt).exact || sub.submittedAt || sub.createdAt}
-                          </span>
-                        </div>
-
-                        <div style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '2px' }}>
-                          {participantName}
-                        </div>
-
-                        {participantDetail && (
-                          <div style={{ fontSize: '0.78rem', color: 'var(--mandiri-gold)', fontWeight: 700, marginBottom: '4px' }}>
-                            {participantDetail}
-                          </div>
-                        )}
-
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          📋 {forms.find((f: any) => f.id === sub.formId)?.title || sub.formTitle || 'Formulir'}
-                        </div>
-                      </div>
-
-                      {sub.adminNotes && (
-                        <div
-                          style={{
-                            padding: '8px 10px',
-                            borderRadius: 'var(--radius-sm)',
-                            background: isDark ? 'rgba(16, 185, 129, 0.08)' : '#f0fdf4',
-                            border: '1px dashed rgba(16, 185, 129, 0.35)',
-                            fontSize: '0.75rem',
-                            color: 'var(--text-main)',
-                            lineHeight: 1.45
-                          }}
-                        >
-                          <strong style={{ color: '#10b981', display: 'block', fontSize: '0.68rem', textTransform: 'uppercase' }}>
-                            📌 Info Onboarding:
-                          </strong>
-                          {sub.adminNotes}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Pagination for Hall of Welcome */}
-              {totalAcceptedPages > 1 && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '12px',
-                  paddingTop: '16px',
-                  borderTop: '1px solid rgba(16, 185, 129, 0.25)'
-                }}>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Halaman <strong>{safeAcceptedPage}</strong> dari <strong>{totalAcceptedPages}</strong> ({acceptedList.length} peserta lolos)
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <button
-                      type="button"
-                      disabled={safeAcceptedPage === 1}
-                      onClick={() => setAcceptedPage((prev: any) => Math.max(1, prev - 1))}
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--border-card)',
-                        color: safeAcceptedPage === 1 ? 'var(--text-dim)' : 'var(--text-main)',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: safeAcceptedPage === 1 ? 'not-allowed' : 'pointer',
-                        opacity: safeAcceptedPage === 1 ? 0.45 : 1
-                      }}
-                    >
-                      ← Prev
-                    </button>
-                    {Array.from({ length: totalAcceptedPages }, (_, i) => i + 1).map((pg) => (
-                      <button
-                        key={pg}
-                        type="button"
-                        onClick={() => setAcceptedPage(pg)}
-                        style={{
-                          minWidth: '28px',
-                          height: '28px',
-                          padding: '0 6px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: pg === safeAcceptedPage ? '#10b981' : 'var(--input-bg)',
-                          color: pg === safeAcceptedPage ? '#ffffff' : 'var(--text-main)',
-                          border: pg === safeAcceptedPage ? 'none' : '1px solid var(--border-card)',
-                          fontSize: '0.75rem',
-                          fontWeight: 800,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {pg}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      disabled={safeAcceptedPage === totalAcceptedPages}
-                      onClick={() => setAcceptedPage((prev: any) => Math.min(totalAcceptedPages, prev + 1))}
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--border-card)',
-                        color: safeAcceptedPage === totalAcceptedPages ? 'var(--text-dim)' : 'var(--text-main)',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: safeAcceptedPage === totalAcceptedPages ? 'not-allowed' : 'pointer',
-                        opacity: safeAcceptedPage === totalAcceptedPages ? 0.45 : 1
-                      }}
-                    >
-                      Next →
-                    </button>
-                  </div>
+              <p className="m-0 break-words text-[1rem] font-extrabold text-ink">{sub.participantName}</p>
+              {sub.participantDetail && <p className="m-0 break-words text-[0.86rem] font-bold text-gold-ink">{sub.participantDetail}</p>}
+              <p className="m-0 text-[0.82rem] text-muted">{forms.find((f: any) => f.id === sub.formId)?.title || sub.formTitle || 'Formulir'}</p>
+              {sub.adminNotes && (
+                <div className="rounded-xl bg-kolaboratif-tint px-3 py-2 text-[0.84rem] leading-relaxed text-kolaboratif-ink">
+                  <strong className="block text-[0.74rem] uppercase tracking-[0.06em]">Info onboarding</strong>
+                  {sub.adminNotes}
                 </div>
               )}
+            </li>
+          ))}
+        </ul>
+
+        {totalPages > 1 && (
+          <nav aria-label="Halaman pengumuman" className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+            <p className="m-0 text-[0.86rem] text-muted">Halaman <strong className="text-ink">{page}</strong> dari <strong className="text-ink">{totalPages}</strong> ({acceptedList.length} peserta)</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button size="sm" variant="secondary" disabled={page === 1} onClick={() => setAcceptedPage((prev: number) => Math.max(1, prev - 1))}
+                icon={<ChevronLeft size={14} aria-hidden="true" />} aria-label="Halaman sebelumnya" />
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
+                <Button key={pg} size="sm" variant={pg === page ? 'primary' : 'secondary'} aria-current={pg === page ? 'page' : undefined}
+                  onClick={() => setAcceptedPage(pg)} className={cn('min-w-9 px-2')}>
+                  {pg}
+                </Button>
+              ))}
+              <Button size="sm" variant="secondary" disabled={page === totalPages} onClick={() => setAcceptedPage((prev: number) => Math.min(totalPages, prev + 1))}
+                icon={<ChevronRight size={14} aria-hidden="true" />} aria-label="Halaman berikutnya" />
             </div>
-          </section>
-        );
-      })()}
-    </>
+          </nav>
+        )}
+      </Card>
   );
 }

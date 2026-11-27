@@ -1,142 +1,78 @@
-import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { formatDeadlineWib, getDeadlineStatus } from '../../../utils/dateUtils';
 import { getUnifiedFormQuota } from '../../../utils/quotaUtils';
+import { Chip, cn } from '../../../ui';
 import { useDynamicFormContext } from '../DynamicFormContext';
 
 export default function FormPicker() {
-  const {
-    activeForms,
-    events,
-    isDark,
-    onSelectFormUrl,
-    registrationCounts,
-    selectedFormId,
-    setErrors,
-    setFileData,
-    setFormData,
-    setIsSubmitted,
-    setSelectedFormId
-  } = useDynamicFormContext();
+  const { activeForms, events, onSelectFormUrl, registrationCounts, selectedFormId, setErrors, setFileData, setFormData, setIsSubmitted, setSelectedFormId } = useDynamicFormContext();
+  if (activeForms.length <= 1) return null;
+
+  const choose = (formId: string) => {
+    setSelectedFormId(formId);
+    if (onSelectFormUrl) onSelectFormUrl(formId);
+    setFormData({});
+    setFileData({});
+    setErrors({});
+    setIsSubmitted(false);
+  };
 
   return (
-    <>
-      {activeForms.length > 1 && (
-        <div style={{ maxWidth: '960px', margin: '0 auto', width: '100%' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-dim)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Pilih Formulir yang Ingin Diisi:
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-            {activeForms.map((f: any) => {
-              const isSelected = f.id === selectedFormId;
-              return (
-                <div
-                  key={f.id}
-                  onClick={() => {
-                    setSelectedFormId(f.id);
-                    if (onSelectFormUrl) onSelectFormUrl(f.id);
-                    setFormData({});
-                    setFileData({});
-                    setErrors({});
-                    setIsSubmitted(false);
-                  }}
-                  className="glass-panel glass-panel-hover"
-                  style={{
-                    padding: '20px',
-                    borderRadius: 'var(--radius-md)',
-                    border: isSelected ? '2px solid var(--mandiri-gold)' : '1px solid var(--border-card)',
-                    background: isSelected ? (isDark ? 'rgba(255,184,0,0.08)' : '#fffbeb') : 'var(--bg-card)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    transition: 'all 0.2s ease',
-                    boxShadow: isSelected ? '0 8px 24px rgba(255,184,0,0.2)' : 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <span className="badge-cyan" style={{ fontSize: '0.68rem' }}>
-                        {f.category || 'Formulir'}
-                      </span>
-                      {(() => {
-                        const formQuota = getUnifiedFormQuota(f, events, registrationCounts);
-                        if (!formQuota.isLimited || formQuota.maxQuota <= 0) return null;
-                        const isFull = formQuota.isFull;
-                        return (
-                          <span style={{
-                            fontSize: '0.66rem',
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            background: isFull
-                              ? (isDark ? 'rgba(244, 63, 94, 0.15)' : '#ffe4e6')
-                              : (isDark ? 'rgba(6, 182, 212, 0.15)' : '#e0f2fe'),
-                            color: isFull
-                              ? (isDark ? '#f43f5e' : '#be123c')
-                              : (isDark ? '#06b6d4' : '#0369a1'),
-                            border: `1px solid ${isFull
-                              ? (isDark ? 'rgba(244, 63, 94, 0.4)' : '#fca5a5')
-                              : (isDark ? 'rgba(6, 182, 212, 0.4)' : '#7dd3fc')}`
-                          }}>
-                            {isFull
-                              ? `🔒 ${formQuota.isConnected ? 'Kuota Acara Penuh' : 'Kuota Penuh'} (${formQuota.count}/${formQuota.maxQuota})`
-                              : `👥 ${formQuota.isConnected ? 'Acara' : 'Kuota'}: ${formQuota.count}/${formQuota.maxQuota} Terisi`
-                            }
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    {(() => {
-                      const dl = getDeadlineStatus(f.deadline);
-                      if (dl.isExpired) {
-                        return (
-                          <span className="badge-red" style={{ fontSize: '0.66rem' }}>
-                            Ditutup ({dl.formatted})
-                          </span>
-                        );
-                      }
-                      if (dl.isToday) {
-                        return (
-                          <span className="badge-gold" style={{ fontSize: '0.66rem' }}>
-                            ⚠️ Hari Terakhir!
-                          </span>
-                        );
-                      }
-                      return (
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                          Deadline: {formatDeadlineWib(f.deadline)}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, lineHeight: 1.3 }}>
-                    {f.title}
-                  </h4>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5, flex: 1 }}>
-                    {f.subtitle}
-                  </p>
-                  {(() => {
-                    const isFull = getUnifiedFormQuota(f, events, registrationCounts).isFull;
-                    const isClosed = f.isOpen === false || getDeadlineStatus(f.deadline).isExpired;
-                    const cardLabel = isSelected
-                      ? (isClosed ? '✓ Sedang Ditampilkan (Ditutup)' : '✓ Sedang Ditampilkan')
-                      : isClosed
-                        ? '🔒 Ditutup (Lihat Detail)'
-                        : (isFull ? '🔒 Kuota Penuh (Lihat Detail)' : 'Buka Formulir');
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border-card)', fontSize: '0.78rem', fontWeight: 700, color: isSelected ? 'var(--mandiri-gold)' : ((isFull || isClosed) ? '#f43f5e' : 'var(--text-muted)') }}>
-                        <span>{cardLabel}</span>
-                        <ChevronRight size={14} />
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </>
+    <nav aria-labelledby="form-picker-title" className="flex flex-col gap-3 lg:sticky lg:top-24">
+      <h2 id="form-picker-title" className="m-0 text-[0.78rem] font-bold uppercase tracking-[0.08em] text-muted">Pilih formulir ({activeForms.length})</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        {activeForms.map((f: any) => {
+          const isSelected = f.id === selectedFormId;
+          const quota = getUnifiedFormQuota(f, events, registrationCounts);
+          const deadline = getDeadlineStatus(f.deadline);
+          const isClosed = f.isOpen === false || deadline.isExpired;
+          const footerLabel = isSelected
+            ? (isClosed ? 'Sedang ditampilkan · ditutup' : 'Sedang ditampilkan')
+            : isClosed ? 'Ditutup · lihat detail' : quota.isFull ? 'Kuota penuh · lihat detail' : 'Buka formulir';
+
+          return (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => choose(f.id)}
+              className={cn(
+                'flex cursor-pointer flex-col gap-2.5 rounded-[20px] border bg-surface p-4 text-left [font:inherit] text-ink transition-[transform,border-color] duration-200 hover:-translate-y-0.5',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy',
+                isSelected ? 'border-gold shadow-[inset_0_0_0_1px_var(--gold-fill)]' : 'border-line hover:border-line-strong'
+              )}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <Chip tone="navy">{f.category || 'Formulir'}</Chip>
+                {quota.isLimited && quota.maxQuota > 0 && (
+                  <Chip tone={quota.isFull ? 'danger' : 'neutral'}>
+                    {quota.isFull
+                      ? `${quota.isConnected ? 'Kuota acara penuh' : 'Kuota penuh'} (${quota.count}/${quota.maxQuota})`
+                      : `${quota.isConnected ? 'Acara' : 'Kuota'}: ${quota.count}/${quota.maxQuota} terisi`}
+                  </Chip>
+                )}
+                {deadline.isExpired ? (
+                  <Chip tone="danger">Ditutup</Chip>
+                ) : deadline.isToday ? (
+                  <Chip tone="gold">Hari terakhir</Chip>
+                ) : null}
+              </div>
+              <h3 className="m-0 text-[1.08rem] font-extrabold leading-snug">{f.title}</h3>
+              {f.subtitle && <p className="m-0 flex-1 text-[0.88rem] leading-relaxed text-muted">{f.subtitle}</p>}
+              <p className="m-0 text-[0.82rem] text-muted">
+                {deadline.isExpired ? `Berakhir ${deadline.formatted}` : `Batas: ${formatDeadlineWib(f.deadline)}`}
+              </p>
+              <span className={cn(
+                'mt-auto flex items-center justify-between border-t border-line pt-3 text-[0.85rem] font-bold',
+                isSelected ? 'text-gold-ink' : (isClosed || quota.isFull) ? 'text-loyal-ink' : 'text-muted'
+              )}>
+                {footerLabel}
+                <ChevronRight size={16} aria-hidden="true" />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

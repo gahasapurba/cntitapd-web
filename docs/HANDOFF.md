@@ -2,7 +2,7 @@
 
 Dokumen ini merangkum status perombakan website **Culture Network Team (CNT) Group IT Application Delivery, Bank Mandiri** agar pekerjaan bisa dilanjutkan dari perangkat lain (atau sesi AI baru) tanpa kehilangan konteks. **Tidak berisi rahasia** — kredensial disimpan terpisah di luar repo (QuickDrop).
 
-Terakhir diperbarui: 27 November 2026 malam (Fase 0, 1 & 2 selesai; Fase 3 — redesign — sedang berjalan, lihat 6c).
+Terakhir diperbarui: 28 November 2026 (Fase 0, 1 & 2 selesai; Fase 3 — redesign — sedang berjalan, 4 dari 11 bagian selesai, lihat 6c).
 
 ---
 
@@ -165,14 +165,16 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 | 1 | Beranda (`components/home/HomePage.tsx`) | ✅ |
 | 2 | FAQ halaman sendiri (`components/faq/FaqPage.tsx`) | ✅ |
 | 3 | Acara (`components/events/EventsPage.tsx` + hook `useProgram.jsx`) — commit `62b0f3e` | ✅ (kalender `EventCalendarView` masih gaya lama, label "COMPLETED" masih Inggris) |
-| 4 | **Formulir** (`dynamic-form/` hook + sections) | ⏭️ berikutnya |
-| 5 | Organisasi | ⏳ |
+| 4 | Formulir (`dynamic-form/FormsPage.tsx` + sections) — 28 Nov, laptop rumah | ✅ |
+| 5 | **Organisasi** | ⏭️ berikutnya |
 | 6 | Galeri | ⏳ |
 | 7 | Kudos & Aspirasi — dipisah jadi dua halaman (ubah `NAV_ITEMS`) | ⏳ |
 | 8 | Aset | ⏳ |
 | 9 | Statistik pendaftaran / lucky draw | ⏳ |
 | 10 | Admin portal bergaya dashboard | ⏳ |
 | 11 | Audit aksesibilitas axe WCAG AA = 0 pelanggaran | ⏳ |
+
+**Catatan Formulir (28 Nov):** `DynamicFormSection.jsx` dihapus → `FormsPage.tsx` (dua kolom di desktop: formulir + pelacak di kolom utama, daftar formulir di kolom samping yang menempel; di ponsel daftar lebih dulu). Formulir yang ditutup (lewat tenggat / kuota penuh) kini menampilkan pemberitahuan, bukan kolom isian yang tak bisa dikirim. Label tertaut ke setiap kolom, `aria-invalid` + pesan error terhubung, radio dalam `fieldset`, input berkas bisa difokus keyboard, dialog konfirmasi & poster memakai `Dialog` (fokus awal tidak di tombol kirim). Status "Ditolak" ditampilkan sebagai "Belum lolos", "Direview" sebagai "Sedang ditinjau" (nilai di DB tidak berubah). Helper tampilan lama (`inputStyle`, `getStatusBadgeStyle`, `renderPostSubmissionNotes`) dihapus dari hook; `Segmented` pindah ke `src/ui`. Aturan CSS lama yang memaksa ukuran semua `h1`/`h2` di ponsel (`!important` mengalahkan utility) kini hanya berlaku di `.container` (halaman lama). Uji baru `scripts/ui/ui-form-open.mjs` (14 cek, tanpa menulis ke produksi).
 
 **Cara kerja yang terbukti aman untuk memindah halaman:** pindahkan logika komponen lama apa adanya ke hook (`useXxx.jsx`, return semua nilai), lalu tulis markup baru `.tsx` yang memakai hook itu (`useXxx(props as any) as Record<string, any>`); daftar semua perilaku JSX lama dulu agar tidak ada yang hilang (tombol, banner, keadaan kosong/tutup/penuh, deep link). Hapus file lama setelah build lulus.
 

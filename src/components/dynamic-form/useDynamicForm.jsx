@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TEXT_MAX_LENGTH, TEXTAREA_MAX_LENGTH, MAX_FILE_BYTES, DEFAULT_FILE_ACCEPT, isFileAccepted } from './dynamicFormShared';
 import { useAppNavigate } from '../../lib/appNavigation';
-import { ExternalLink, Share2, Check, MessageCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadMediaToCloud, isSubmissionValueTaken, trackSubmissions, fetchAcceptedSubmissions } from '../../lib/supabase';
 import { getDeadlineStatus } from '../../utils/dateUtils';
@@ -202,119 +201,6 @@ export function useDynamicForm({
     navigator.clipboard?.writeText(subId);
     setCopiedSubId(true);
     setTimeout(() => setCopiedSubId(false), 2500);
-  };
-
-  const renderPostSubmissionNotes = () => {
-    if (!currentForm?.notes || !currentForm.notes.trim()) return null;
-
-    const notesText = currentForm.notes.trim();
-    // Check if there is a WhatsApp group / chat link
-    const waMatch = notesText.match(/(https?:\/\/(?:chat\.whatsapp\.com|wa\.me)\/[^\s]+)/i);
-    const waUrl = waMatch ? waMatch[0] : null;
-
-    return (
-      <div style={{
-        maxWidth: '540px',
-        margin: '0 auto 24px auto',
-        padding: '16px 20px',
-        borderRadius: 'var(--radius-md, 12px)',
-        background: isDark ? 'rgba(37, 211, 102, 0.08)' : 'rgba(37, 211, 102, 0.06)',
-        border: '1.5px solid rgba(37, 211, 102, 0.35)',
-        textAlign: 'left',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            background: '#25D366',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ffffff',
-            flexShrink: 0
-          }}>
-            <MessageCircle size={18} />
-          </div>
-          <div>
-            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              Informasi & Petunjuk Pasca Pendaftaran
-            </h4>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Harap perhatikan catatan penting berikut dari panitia
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          fontSize: '0.85rem',
-          color: 'var(--text-main)',
-          lineHeight: 1.6,
-          whiteSpace: 'pre-line',
-          padding: '12px 14px',
-          background: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.7)',
-          borderRadius: '8px',
-          border: '1px solid rgba(37, 211, 102, 0.2)',
-          marginBottom: waUrl ? '14px' : '0',
-          wordBreak: 'break-word'
-        }}>
-          {notesText}
-        </div>
-
-        {waUrl && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '9px 18px',
-                borderRadius: 'var(--radius-full, 9999px)',
-                background: '#25D366',
-                color: '#ffffff',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                boxShadow: '0 3px 12px rgba(37, 211, 102, 0.35)',
-                transition: 'all 0.2s'
-              }}
-            >
-              <MessageCircle size={16} />
-              <span>Gabung WhatsApp Group Peserta</span>
-              <ExternalLink size={14} />
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard?.writeText(waUrl);
-                setCopiedWagLink(true);
-                setTimeout(() => setCopiedWagLink(false), 2500);
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-full, 9999px)',
-                background: 'rgba(255, 255, 255, 0.08)',
-                color: 'var(--text-main)',
-                border: '1px solid var(--border-card)',
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                cursor: 'pointer'
-              }}
-            >
-              {copiedWagLink ? <Check size={14} color="#25D366" /> : <Share2 size={14} />}
-              <span>{copiedWagLink ? 'Link Tersalin!' : 'Salin Link WA'}</span>
-            </button>
-          </div>
-        )}
-      </div>
-    );
   };
 
   // Handle Input Changes
@@ -574,39 +460,6 @@ export function useDynamicForm({
     return () => { cancelled = true; };
   }, [currentForm?.id, currentForm?.showAnnouncement]);
 
-  const getStatusBadgeStyle = (status) => {
-    switch (status) {
-      case 'Accepted':
-      case 'Diterima':
-      case 'Diterima ✓':
-        return { label: 'Diterima ✓', bg: 'rgba(16, 185, 129, 0.16)', border: '#10b981', color: '#10b981', icon: '🎉' };
-      case 'Interview':
-      case 'Wawancara':
-        return { label: 'Wawancara', bg: 'rgba(168, 85, 247, 0.16)', border: '#a855f7', color: '#a855f7', icon: '🎙️' };
-      case 'Reviewed':
-      case 'Direview':
-        return { label: 'Direview', bg: 'rgba(255, 184, 0, 0.16)', border: 'var(--mandiri-gold)', color: 'var(--mandiri-gold)', icon: '🔎' };
-      case 'Rejected':
-      case 'Ditolak':
-        return { label: 'Ditolak', bg: 'rgba(244, 63, 94, 0.16)', border: '#f43f5e', color: '#f43f5e', icon: '✕' };
-      default:
-        return { label: 'Baru Masuk', bg: 'rgba(56, 189, 248, 0.16)', border: 'var(--neon-cyan)', color: 'var(--neon-cyan)', icon: '📥' };
-    }
-  };
-
-  const inputStyle = (hasError) => ({
-    width: '100%',
-    padding: '11px 14px',
-    borderRadius: 'var(--radius-md)',
-    background: 'var(--input-bg)',
-    border: `1.5px solid ${hasError ? '#f43f5e' : 'var(--input-border)'}`,
-    color: 'var(--text-main)',
-    outline: 'none',
-    fontSize: '0.88rem',
-    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-    boxShadow: hasError ? '0 0 8px rgba(244, 63, 94, 0.25)' : 'none'
-  });
-
   return {
     acceptedList,
     acceptedPage,
@@ -629,7 +482,6 @@ export function useDynamicForm({
     generatingPoster,
     getExactTimestamp,
     getFormDirectUrl,
-    getStatusBadgeStyle,
     handleConfirmSubmit,
     handleCopyFormLink,
     handleCopySubId,
@@ -642,7 +494,6 @@ export function useDynamicForm({
     hasConfiguredIndex,
     honeypotVal,
     initialFormId,
-    inputStyle,
     isConfirmOpen,
     isDark,
     isInitialFormDisabled,
@@ -659,7 +510,6 @@ export function useDynamicForm({
     pendingFiles,
     posterPreview,
     registrationCounts,
-    renderPostSubmissionNotes,
     requestedForm,
     selectedFormId,
     setAcceptedList,

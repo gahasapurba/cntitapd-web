@@ -7,3 +7,4 @@ export { Container, SectionHeader } from './Layout';
 export { Skeleton } from './Skeleton';
 export { EmptyState } from './EmptyState';
 export { Dialog } from './Dialog';
+export { Segmented, type SegmentedOption } from './Segmented';

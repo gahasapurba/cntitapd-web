@@ -6,7 +6,7 @@ import { useProgram } from './useProgram';
 import EventCalendarView from '../EventCalendarView';
 import { formatWibEventRange, isEventPassed, formatDeadlineWib, getDeadlineStatus } from '../../utils/dateUtils';
 import { getUnifiedEventAttendees } from '../../utils/quotaUtils';
-import { Button, Card, Chip, Container, Dialog, EmptyState, SectionHeader, cn } from '../../ui';
+import { Button, Card, Chip, Container, Dialog, EmptyState, SectionHeader, Segmented, cn } from '../../ui';
 
 type AppItem = Record<string, any>;
 const EVENTS_PER_PAGE = 8;
@@ -68,27 +68,6 @@ function googleCalendarUrl(evt: AppItem) {
     location: evt.location || 'Plaza Mandiri'
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-function Segmented({ label, options }: { label: string; options: { key: string; label: React.ReactNode; active: boolean; onClick: () => void }[] }) {
-  return (
-    <div role="group" aria-label={label} className="inline-flex flex-wrap gap-1 rounded-xl border border-line bg-subtle p-1">
-      {options.map((o) => (
-        <button
-          key={o.key}
-          type="button"
-          aria-pressed={o.active}
-          onClick={o.onClick}
-          className={cn(
-            'inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border-0 px-3.5 text-[0.86rem] font-bold whitespace-nowrap',
-            o.active ? 'bg-surface text-ink shadow-card' : 'bg-transparent text-muted hover:text-ink'
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 const fieldClass = 'w-full min-h-11 rounded-xl border border-field-line bg-field px-4 text-[0.95rem] text-ink';

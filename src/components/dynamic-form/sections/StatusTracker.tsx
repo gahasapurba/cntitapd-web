@@ -1,264 +1,107 @@
-import React from 'react';
 import { Search, X } from 'lucide-react';
 import { formatWibTimestamp } from '../../../utils/dateUtils';
+import { Card, Chip, Eyebrow } from '../../../ui';
 import { useDynamicFormContext } from '../DynamicFormContext';
+import { Notice, fieldClass, submissionStatus } from './formUi';
 
 export default function StatusTracker() {
   const {
-    dynamicSearchKeysString,
-    forms,
-    getStatusBadgeStyle,
-    hasConfiguredIndex,
-    isDark,
-    isTracking,
-    matchedSubmissions,
-    setStatusQuery,
-    statusQuery,
-    trackingActiveForms,
-    trimmedStatusQuery
+    dynamicSearchKeysString, forms, hasConfiguredIndex, isTracking, matchedSubmissions, setStatusQuery, statusQuery,
+    trackingActiveForms, trimmedStatusQuery
   } = useDynamicFormContext();
+  if (trackingActiveForms.length === 0) return null;
+
+  const keyHint = hasConfiguredIndex ? `${dynamicSearchKeysString} lengkap atau ID pendaftaran (sub-…)` : 'ID pendaftaran (sub-…)';
+  const tooShort = statusQuery.trim().length > 0 && statusQuery.trim().length < 3;
+  const showResults = trimmedStatusQuery.length >= 3;
 
   return (
-    <>
-      {trackingActiveForms.length > 0 && (
-        <section id="status-tracker-section" style={{ maxWidth: '820px', margin: '0 auto', width: '100%' }}>
-          <div className="glass-panel" style={{
-            padding: '32px',
-            border: '1.5px solid var(--border-card)',
-            borderRadius: 'var(--radius-lg)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '18px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <span className="badge-cyan" style={{ fontSize: '0.68rem', marginBottom: '6px' }}>
-                  Transparansi Seleksi & Registrasi
-                </span>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0' }}>
-                  🔍 Cek Status Pendaftaran & Seleksi Saya
-                </h3>
-                <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Sudah pernah mengisi formulir? Ketik <strong>{hasConfiguredIndex ? `${dynamicSearchKeysString} lengkap atau ID Pendaftaran (sub-...)` : 'ID Pendaftaran (sub-...)'}</strong> Anda untuk melihat progres seleksi & catatan panitia.
-                </p>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '8px',
-                  marginTop: '8px',
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(56, 189, 248, 0.08)',
-                  border: '1px solid rgba(56, 189, 248, 0.25)',
-                  fontSize: '0.74rem',
-                  lineHeight: 1.45,
-                  color: 'var(--neon-cyan)',
-                  width: '100%',
-                  boxSizing: 'border-box'
-                }}>
-                  <span style={{ flexShrink: 0, marginTop: '1px' }}>🔒</span>
-                  <span><strong>Privasi Terjamin:</strong> Sistem menggunakan pencarian eksak (Exact Match) pada {hasConfiguredIndex ? `Indeks Pencarian (${dynamicSearchKeysString}) & ID Unik pendaftaran` : 'ID Pendaftaran (sub-...)'}. Pencarian parsial atau Nama Umum sengaja diblokir demi melindungi privasi seluruh pelamar.</span>
-                </div>
+      <Card as="section" id="status-tracker-section" padding="lg" className="flex w-full scroll-mt-24 flex-col gap-5" aria-labelledby="status-tracker-title">
+        <header className="flex flex-col gap-2">
+          <Eyebrow>Lacak pendaftaran</Eyebrow>
+          <h2 id="status-tracker-title" className="m-0 text-[1.45rem] font-extrabold leading-tight text-ink">Cek status pendaftaran</h2>
+          <p className="m-0 text-[0.95rem] leading-relaxed text-muted">
+            Sudah mengisi formulir? Ketik <strong className="text-ink">{keyHint}</strong> untuk melihat progres seleksi dan catatan panitia.
+          </p>
+        </header>
 
-                {/* Section: Berlaku Untuk & Indeks Pencarian Form */}
-                {trackingActiveForms.length > 0 && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    marginTop: '10px',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: isDark ? 'rgba(255, 184, 0, 0.06)' : 'rgba(255, 184, 0, 0.08)',
-                    border: '1px solid rgba(255, 184, 0, 0.3)',
-                    fontSize: '0.78rem',
-                    lineHeight: 1.5,
-                    width: '100%',
-                    boxSizing: 'border-box'
-                  }}>
-                    <div style={{
-                      fontWeight: 800,
-                      color: 'var(--mandiri-gold)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px'
-                    }}>
-                      <span>📋 Berlaku Untuk :</span>
-                    </div>
+        <Notice tone="info" title="Privasi terjaga">
+          Pencarian harus persis sama dengan {hasConfiguredIndex ? `indeks pencarian (${dynamicSearchKeysString}) atau ID pendaftaran` : 'ID pendaftaran (sub-…)'}.
+          Pencarian sebagian atau dengan nama sengaja tidak didukung untuk melindungi data pendaftar.
+        </Notice>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '4px' }}>
-                      {trackingActiveForms.map((f: any) => {
-                        const searchIndexFields = (f.fields || []).filter((fld: any) => Boolean(fld.isSearchIndex));
-                        const indexLabels = searchIndexFields.map((fld: any) => fld.label || 'Indeks Pencarian');
+        <div className="rounded-2xl border border-line bg-subtle px-4 py-3">
+          <p className="m-0 text-[0.78rem] font-bold uppercase tracking-[0.08em] text-muted">Berlaku untuk</p>
+          <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0 text-[0.9rem]">
+            {trackingActiveForms.map((f: any) => {
+              const labels = (f.fields || []).filter((fld: any) => Boolean(fld.isSearchIndex)).map((fld: any) => fld.label || 'Indeks pencarian');
+              return (
+                <li key={f.id} className="break-words text-ink">
+                  <strong>{f.title}</strong>
+                  <span className="text-muted"> — cari dengan {labels.length > 0 ? `${labels.join(', ')} atau ID pendaftaran` : 'ID pendaftaran (sub-…)'}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
-                        return (
-                          <div key={f.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                            <span style={{ color: 'var(--mandiri-gold)', fontWeight: 800, flexShrink: 0 }}>•</span>
-                            <div style={{ color: 'var(--text-main)', wordBreak: 'break-word', flex: 1 }}>
-                              <strong>Form {f.title}</strong>
-                              {' — '}
-                              <span style={{ color: 'var(--text-muted)' }}>Indeks Pencarian : </span>
-                              <span style={{
-                                color: indexLabels.length > 0 ? 'var(--neon-cyan)' : 'var(--mandiri-gold)',
-                                fontWeight: 700
-                              }}>
-                                {indexLabels.length > 0
-                                  ? `${indexLabels.join(', ')} atau ID Pendaftaran (sub-...)`
-                                  : 'ID Pendaftaran (sub-...)'}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ position: 'relative' }}>
-              <Search size={17} color="var(--text-dim)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                placeholder={hasConfiguredIndex ? `Ketik ${dynamicSearchKeysString} lengkap Anda atau ID Pendaftaran (sub-...)` : 'Ketik ID Pendaftaran Anda (misal: sub-1731...)'}
-                value={statusQuery}
-                onChange={(e) => setStatusQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 38px 12px 42px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--input-bg)',
-                  border: '1.5px solid var(--input-border)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.88rem',
-                  outline: 'none'
-                }}
-              />
-              {statusQuery && (
-                <button
-                  type="button"
-                  onClick={() => setStatusQuery('')}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-
-            {statusQuery.trim().length > 0 && statusQuery.trim().length < 3 && (
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textAlign: 'center', padding: '6px' }}>
-                Ketik minimal 3 karakter {hasConfiguredIndex ? dynamicSearchKeysString : 'ID Pendaftaran'} Anda...
-              </div>
-            )}
-
-            {trimmedStatusQuery.length >= 3 && !isTracking && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {matchedSubmissions.length === 0 ? (
-                  <div style={{
-                    padding: '20px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--input-bg)',
-                    border: '1px dashed var(--border-card)',
-                    textAlign: 'center',
-                    color: 'var(--text-muted)',
-                    fontSize: '0.85rem'
-                  }}>
-                    Tidak ditemukan data pendaftaran dengan kunci <strong>"{statusQuery}"</strong>. Sistem menggunakan pencarian eksak (Exact Match), pastikan Anda memasukkan {hasConfiguredIndex ? `${dynamicSearchKeysString} lengkap atau ID Pendaftaran (sub-...)` : 'ID Pendaftaran (sub-...)'} yang persis sesuai saat mendaftar.
-                  </div>
-                ) : (
-                matchedSubmissions.map((sub: any) => {
-                  const statusText = sub.status || 'Baru Masuk';
-                  const badge = getStatusBadgeStyle(statusText);
-                  const dataEntries = Object.entries(sub.data || {});
-                  const primaryIdentity = dataEntries.slice(0, 3).map(([, v]) => String(v)).filter(Boolean).join(' • ');
-
-                  return (
-                    <div
-                      key={sub.id}
-                      style={{
-                        padding: '18px 20px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--input-bg)',
-                        border: `1.5px solid ${badge.border}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                        <div>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>
-                            ID: {sub.id} • {formatWibTimestamp(sub.createdAt || sub.submittedAt).exact || sub.submittedAt || sub.createdAt}
-                          </span>
-                          <h4 style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-main)', margin: '2px 0 0 0' }}>
-                            {forms.find((f: any) => f.id === sub.formId)?.title || sub.formTitle || 'Formulir'}
-                          </h4>
-                        </div>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 14px',
-                          borderRadius: 'var(--radius-full)',
-                          background: badge.bg,
-                          border: `1px solid ${badge.border}`,
-                          color: badge.color,
-                          fontSize: '0.78rem',
-                          fontWeight: 800
-                        }}>
-                          <span>{badge.icon}</span>
-                          <span>Status: {badge.label}</span>
-                        </span>
-                      </div>
-
-                      {primaryIdentity && (
-                        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                          <strong>Pendaftar:</strong> {primaryIdentity}
-                        </div>
-                      )}
-
-                      {sub.adminNotes ? (
-                        <div style={{
-                          padding: '12px 14px',
-                          borderRadius: 'var(--radius-sm)',
-                          background: isDark ? 'rgba(56, 189, 248, 0.08)' : '#f0f9ff',
-                          borderLeft: '3px solid var(--neon-cyan)',
-                          fontSize: '0.82rem',
-                          color: 'var(--text-main)',
-                          lineHeight: 1.5
-                        }}>
-                          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--neon-cyan)', textTransform: 'uppercase', marginBottom: '2px' }}>
-                            💬 Catatan / Informasi dari Panitia CNT IT APD:
-                          </div>
-                          <div>{sub.adminNotes}</div>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-                          Belum ada catatan tambahan dari panitia. Pantau secara berkala untuk pembaruan jadwal wawancara atau pengumuman seleksi.
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+        <div className="relative">
+          <label htmlFor="status-tracker-input" className="sr-only">Kunci pencarian status pendaftaran</label>
+          <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-dim" aria-hidden="true" />
+          <input
+            id="status-tracker-input"
+            type="text"
+            placeholder={hasConfiguredIndex ? `Ketik ${dynamicSearchKeysString} lengkap atau ID pendaftaran` : 'Ketik ID pendaftaran (misal: sub-1731…)'}
+            value={statusQuery}
+            onChange={(e) => setStatusQuery(e.target.value)}
+            className={fieldClass(false, 'pl-11 pr-12')}
+          />
+          {statusQuery && (
+            <button type="button" onClick={() => setStatusQuery('')} aria-label="Kosongkan pencarian"
+              className="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-muted hover:bg-subtle hover:text-ink">
+              <X size={16} aria-hidden="true" />
+            </button>
           )}
         </div>
-      </section>
-      )}
-    </>
+
+        <div aria-live="polite" className="flex flex-col gap-3">
+          {tooShort && <p className="m-0 text-center text-[0.88rem] text-muted">Ketik minimal 3 karakter {hasConfiguredIndex ? dynamicSearchKeysString : 'ID pendaftaran'}.</p>}
+          {showResults && isTracking && <p className="m-0 text-center text-[0.88rem] text-muted">Mencari…</p>}
+          {showResults && !isTracking && matchedSubmissions.length === 0 && (
+            <p className="m-0 rounded-2xl border border-dashed border-line px-5 py-5 text-center text-[0.9rem] leading-relaxed text-muted">
+              Tidak ada pendaftaran dengan kunci <strong className="text-ink">"{statusQuery}"</strong>. Pastikan Anda mengetik {keyHint} persis seperti saat mendaftar.
+            </p>
+          )}
+          {showResults && !isTracking && matchedSubmissions.map((sub: any) => {
+            const status = submissionStatus(sub.status || 'Baru Masuk');
+            const identity = Object.values(sub.data || {}).slice(0, 3).map((v) => String(v)).filter(Boolean).join(' · ');
+            const submittedAt = formatWibTimestamp(sub.createdAt || sub.submittedAt).exact || sub.submittedAt || sub.createdAt;
+            return (
+              <article key={sub.id} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="m-0 break-all font-mono text-[0.78rem] text-muted">ID {sub.id} · {submittedAt}</p>
+                    <h3 className="m-0 mt-1 text-[1.05rem] font-extrabold text-ink">
+                      {forms.find((f: any) => f.id === sub.formId)?.title || sub.formTitle || 'Formulir'}
+                    </h3>
+                  </div>
+                  <Chip tone={status.tone}>Status: {status.label}</Chip>
+                </div>
+                {identity && <p className="m-0 break-words text-[0.9rem] text-muted"><strong className="text-ink">Pendaftar:</strong> {identity}</p>}
+                {sub.adminNotes ? (
+                  <div className="rounded-xl border-l-4 border-l-amanah bg-subtle px-4 py-3">
+                    <p className="m-0 text-[0.78rem] font-bold uppercase tracking-[0.06em] text-muted">Catatan panitia</p>
+                    <p className="m-0 mt-1 whitespace-pre-line text-[0.92rem] leading-relaxed text-ink">{sub.adminNotes}</p>
+                  </div>
+                ) : (
+                  <p className="m-0 text-[0.86rem] italic text-muted">
+                    Belum ada catatan dari panitia. Cek lagi secara berkala untuk jadwal wawancara atau pengumuman seleksi.
+                  </p>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      </Card>
   );
 }

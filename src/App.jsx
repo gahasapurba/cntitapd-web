@@ -13,7 +13,7 @@ const GallerySection = lazy(() => import('./components/GallerySection'));
 const KudosSection = lazy(() => import('./components/KudosSection'));
 const FaqPage = lazy(() => import('./components/faq/FaqPage'));
 const AssetKitSection = lazy(() => import('./components/AssetKitSection'));
-const DynamicFormSection = lazy(() => import('./components/DynamicFormSection'));
+const FormsPage = lazy(() => import('./components/dynamic-form/FormsPage'));
 const AdminPortal = lazy(() => import('./components/AdminPortal'));
 const EventRegistrationStats = lazy(() => import('./components/EventRegistrationStats'));
 
@@ -129,7 +129,7 @@ const DEFAULT_PAGE_VISIBILITY = {
 };
 
 // Pages already redesigned in Fase 3 set their own width (Container) instead of the legacy .container.
-const FULL_BLEED_TABS = new Set(['home', 'faq', 'event', 'program']);
+const FULL_BLEED_TABS = new Set(['home', 'faq', 'event', 'program', 'form', 'oprec']);
 
 // Helper to consistently sort tenures descending by year (e.g. 2028 -> 2027 -> 2026)
 const sortTenuresDesc = (list = []) => {
@@ -1394,7 +1394,7 @@ export default function App() {
           )}
 
           {(effectiveTab === 'form' || effectiveTab === 'oprec') && (
-            <DynamicFormSection
+            <FormsPage
               forms={forms}
               divisions={divisions}
               departments={departments}

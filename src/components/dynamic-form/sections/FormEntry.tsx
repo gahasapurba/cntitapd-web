@@ -1,760 +1,344 @@
-import React from 'react';
-import { AlertCircle, Check, CheckCircle2, Clock, Loader2, MessageCircle, QrCode, Search, Send, Share2, Upload, X } from 'lucide-react';
+import { AlertCircle, CalendarClock, Check, CheckCircle2, ExternalLink, Lock, MessageCircle, QrCode, Search, Send, Share2, Upload, X } from 'lucide-react';
 import { formatDeadlineWib, getDeadlineStatus } from '../../../utils/dateUtils';
 import { getUnifiedFormQuota } from '../../../utils/quotaUtils';
+import { Button, Card, Chip, Eyebrow, cn } from '../../../ui';
 import { DEFAULT_FILE_ACCEPT, TEXTAREA_MAX_LENGTH, TEXT_MAX_LENGTH } from '../dynamicFormShared';
 import { useDynamicFormContext } from '../DynamicFormContext';
+import { Notice, fieldClass } from './formUi';
+
+/** Instructions the committee wrote for after submitting (e.g. a WhatsApp group link). */
+function PostSubmissionNotes() {
+  const { currentForm, copiedWagLink, setCopiedWagLink } = useDynamicFormContext();
+  const notesText = String(currentForm?.notes || '').trim();
+  if (!notesText) return null;
+  const waUrl = notesText.match(/(https?:\/\/(?:chat\.whatsapp\.com|wa\.me)\/[^\s]+)/i)?.[0] || null;
+
+  return (
+    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 rounded-2xl border border-line bg-subtle p-5 text-left">
+      <div className="flex items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-kolaboratif-tint text-kolaboratif-ink">
+          <MessageCircle size={18} aria-hidden="true" />
+        </span>
+        <div>
+          <p className="m-0 font-bold text-ink">Petunjuk setelah mendaftar</p>
+          <p className="m-0 text-[0.84rem] text-muted">Catatan penting dari panitia</p>
+        </div>
+      </div>
+      <p className="m-0 whitespace-pre-line break-words text-[0.92rem] leading-relaxed text-ink">{notesText}</p>
+      {waUrl && (
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#128c4a] px-5 text-[0.92rem] font-bold text-white no-underline hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
+          >
+            <MessageCircle size={16} aria-hidden="true" />
+            Gabung grup WhatsApp peserta
+            <ExternalLink size={14} aria-hidden="true" />
+          </a>
+          <Button
+            variant="secondary"
+            icon={copiedWagLink ? <Check size={16} aria-hidden="true" /> : <Share2 size={16} aria-hidden="true" />}
+            onClick={() => {
+              navigator.clipboard?.writeText(waUrl);
+              setCopiedWagLink(true);
+              setTimeout(() => setCopiedWagLink(false), 2500);
+            }}
+          >
+            {copiedWagLink ? 'Tautan tersalin' : 'Salin tautan grup'}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubmittedView() {
+  const { copiedSubId, currentForm, handleCopySubId, lastSubmittedId, setFileData, setFormData, setIsSubmitted, setStatusQuery } = useDynamicFormContext();
+  const resetForm = () => { setIsSubmitted(false); setFormData({}); setFileData({}); };
+  const tracked = currentForm?.requiresTracking !== false;
+
+  return (
+    <div className="flex flex-col items-center gap-5 py-4 text-center">
+      <span className="grid size-16 place-items-center rounded-full bg-kolaboratif-tint text-kolaboratif-ink">
+        <CheckCircle2 size={32} aria-hidden="true" />
+      </span>
+      <div className="flex flex-col gap-2">
+        <h2 className="m-0 text-[1.6rem] font-extrabold leading-tight text-ink">
+          {tracked ? 'Formulir berhasil dikirim' : 'Terima kasih, formulir sudah terkirim'}
+        </h2>
+        <p className="m-0 mx-auto max-w-[52ch] text-[0.95rem] leading-relaxed text-muted">
+          Isian untuk <strong className="text-ink">"{currentForm.title}"</strong> sudah tersimpan.
+        </p>
+      </div>
+
+      {tracked ? (
+        <>
+          <div className="flex w-full max-w-[480px] flex-col items-center gap-2 rounded-2xl border border-line bg-subtle p-5">
+            <Eyebrow>ID pendaftaran Anda</Eyebrow>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <span className="break-all font-mono text-[1.25rem] font-extrabold tracking-wide text-ink">{lastSubmittedId}</span>
+              <Button size="sm" variant="secondary" onClick={() => handleCopySubId(lastSubmittedId)}
+                icon={copiedSubId ? <Check size={14} aria-hidden="true" /> : <Share2 size={14} aria-hidden="true" />}>
+                {copiedSubId ? 'Tersalin' : 'Salin ID'}
+              </Button>
+            </div>
+          </div>
+          <Notice tone="warning" title="Simpan ID ini" className="w-full max-w-[560px]">
+            ID pendaftaran dipakai untuk memantau progres seleksi, verifikasi berkas, dan catatan panitia lewat <strong>Cek status pendaftaran</strong> di halaman ini.
+          </Notice>
+          <PostSubmissionNotes />
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="secondary" onClick={resetForm}>Kirim formulir lainnya</Button>
+            {lastSubmittedId && (
+              <Button variant="gold" icon={<Search size={16} aria-hidden="true" />}
+                onClick={() => {
+                  setStatusQuery(lastSubmittedId);
+                  document.getElementById('status-tracker-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}>
+                Cek status pendaftaran
+              </Button>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="m-0 max-w-[52ch] rounded-2xl border border-line bg-subtle px-4 py-3 text-[0.88rem] text-muted">
+            Formulir ini tidak memakai pelacakan status. Panitia akan memproses tanggapan Anda sesuai ketentuan.
+          </p>
+          <PostSubmissionNotes />
+          <Button variant="gold" onClick={resetForm}>Kirim formulir lainnya</Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Options for a select/radio field: fixed list or taken from divisions, departments or events. */
+function fieldOptions(field: any, currentForm: any, divisions: any[], departments: any[], events: any[]): string[] {
+  if (field.source === 'divisions') {
+    const formTenureId = currentForm?.tenureId || currentForm?.tenure_id;
+    const matched = formTenureId ? (divisions || []).filter((d) => d.tenureId === formTenureId) : (divisions || []);
+    return (matched.length > 0 ? matched : (divisions || [])).map((d) => d.name);
+  }
+  if (field.source === 'departments') {
+    return departments && departments.length > 0 ? departments.map((d) => d.name) : (field.options || []);
+  }
+  if (field.source === 'events') {
+    return (events || []).filter((e) => e.isPublic === true).map((e) => `${e.title} (${e.date})`);
+  }
+  return field.options || [];
+}
+
+function FieldLabelText({ field }: { field: any }) {
+  return (
+    <>
+      {field.label}
+      {field.required && <span className="text-loyal-ink" aria-hidden="true"> *</span>}
+      {field.required && <span className="sr-only"> (wajib)</span>}
+      {field.isUnique && (
+        <Chip tone="amanah" className="ml-2 align-middle py-1! text-[0.72rem]" title="Nilai ini tidak boleh sama dengan pendaftar lain">
+          Unik · 1× pendaftaran
+        </Chip>
+      )}
+    </>
+  );
+}
+
+function FormField({ field }: { field: any }) {
+  const {
+    currentForm, departments, divisions, errors, events, fileData, formData, handleFileUpload, handleInputBlur, handleInputChange,
+    setFileData, setFormData, setPendingFiles, uploadingFieldId
+  } = useDynamicFormContext();
+  const hasError = Boolean(errors[field.id]);
+  const inputId = `form-field-${field.id}`;
+  const errorId = `${inputId}-error`;
+  const describedBy = hasError ? errorId : undefined;
+  const options = fieldOptions(field, currentForm, divisions, departments, events);
+  const labelClass = 'mb-2 block text-[0.9rem] font-bold text-ink';
+
+  const removeFile = () => {
+    const drop = (prev: any) => { const copy = { ...prev }; delete copy[field.id]; return copy; };
+    setPendingFiles(drop);
+    setFileData(drop);
+    setFormData(drop);
+  };
+
+  const errorText = hasError && (
+    <p id={errorId} className="m-0 mt-1.5 flex items-center gap-1.5 text-[0.84rem] font-semibold text-loyal-ink">
+      <AlertCircle size={14} aria-hidden="true" />
+      {errors[field.id]}
+    </p>
+  );
+
+  if (field.type === 'radio') {
+    return (
+      <fieldset className="m-0 min-w-0 border-0 p-0" aria-describedby={describedBy}>
+        <legend className={cn(labelClass, 'p-0')}><FieldLabelText field={field} /></legend>
+        <div className="flex flex-col gap-2">
+          {options.map((opt, i) => {
+            const checked = formData[field.id] === opt;
+            return (
+              <label key={i} className={cn(
+                'flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 py-2.5 text-[0.92rem]',
+                checked ? 'border-gold bg-harmonis-tint font-bold text-ink' : hasError ? 'border-loyal bg-field text-muted' : 'border-field-line bg-field text-muted hover:text-ink'
+              )}>
+                <input type="radio" name={`field-${field.id}`} value={opt} checked={checked}
+                  onChange={() => handleInputChange(field.id, opt)} className="m-0 size-[18px] shrink-0 cursor-pointer accent-[#0a3e80]" />
+                {opt}
+              </label>
+            );
+          })}
+        </div>
+        {errorText}
+      </fieldset>
+    );
+  }
+
+  if (field.type === 'file') {
+    const file = fileData[field.id];
+    return (
+      <div>
+        <p className={labelClass} id={`${inputId}-label`}><FieldLabelText field={field} /></p>
+        <div className={cn(
+          'flex items-center gap-3 rounded-xl border border-dashed bg-field px-4 py-3 focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-navy',
+          hasError ? 'border-loyal' : 'border-field-line'
+        )}>
+          <Upload size={18} className="shrink-0 text-gold-ink" aria-hidden="true" />
+          <label className="min-w-0 flex-1 cursor-pointer text-[0.9rem] text-muted">
+            <input type="file" className="sr-only" accept={field.accept || DEFAULT_FILE_ACCEPT}
+              aria-labelledby={`${inputId}-label`} aria-describedby={describedBy} onChange={(e) => handleFileUpload(field, e)} />
+            {uploadingFieldId === field.id ? (
+              <span className="font-bold text-gold-ink">Mengunggah berkas…</span>
+            ) : file ? (
+              <span className="break-words font-bold text-ink">✓ {file.name} ({file.size}) · siap dikirim</span>
+            ) : (
+              <span>Pilih berkas ({field.accept || 'PDF, gambar, dokumen Office, ZIP'} · maks. 20 MB)</span>
+            )}
+          </label>
+          {file && (
+            <button type="button" onClick={removeFile} aria-label="Hapus berkas yang dipilih"
+              className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-loyal-ink hover:bg-loyal-tint">
+              <X size={16} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        {errorText}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <label htmlFor={inputId} className={labelClass}><FieldLabelText field={field} /></label>
+      {(field.type === 'text' || field.type === 'email' || field.type === 'number') && (
+        <input id={inputId} type={field.type} placeholder={field.placeholder || ''} maxLength={TEXT_MAX_LENGTH}
+          value={formData[field.id] || ''} aria-invalid={hasError || undefined} aria-describedby={describedBy}
+          onChange={(e) => handleInputChange(field.id, e.target.value)} onBlur={() => handleInputBlur(field)}
+          className={fieldClass(hasError)} />
+      )}
+      {field.type === 'textarea' && (
+        <textarea id={inputId} rows={4} placeholder={field.placeholder || ''} maxLength={TEXTAREA_MAX_LENGTH}
+          value={formData[field.id] || ''} aria-invalid={hasError || undefined} aria-describedby={describedBy}
+          onChange={(e) => handleInputChange(field.id, e.target.value)} onBlur={() => handleInputBlur(field)}
+          className={fieldClass(hasError, 'resize-y leading-relaxed')} />
+      )}
+      {field.type === 'select' && (
+        <select id={inputId} value={formData[field.id] || ''} aria-invalid={hasError || undefined} aria-describedby={describedBy}
+          onChange={(e) => handleInputChange(field.id, e.target.value)} onBlur={() => handleInputBlur(field)}
+          className={fieldClass(hasError, 'cursor-pointer')}>
+          <option value="">Pilih {String(field.label || '').toLowerCase()}</option>
+          {options.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
+        </select>
+      )}
+      {errorText}
+    </div>
+  );
+}
 
 export default function FormEntry() {
   const {
-    copiedLink,
-    copiedSubId,
-    currentForm,
-    departments,
-    divisions,
-    errors,
-    events,
-    fileData,
-    formData,
-    generatingPoster,
-    handleCopyFormLink,
-    handleCopySubId,
-    handleDownloadQrPoster,
-    handleFileUpload,
-    handleInputBlur,
-    handleInputChange,
-    handleShareFormWa,
-    handleSubmit,
-    honeypotVal,
-    inputStyle,
-    isDark,
-    isSubmitted,
-    lastSubmittedId,
-    registrationCounts,
-    renderPostSubmissionNotes,
-    setFileData,
-    setFormData,
-    setHoneypotVal,
-    setIsSubmitted,
-    setPendingFiles,
-    setStatusQuery,
-    uploadingFieldId
+    copiedLink, currentForm, events, generatingPoster, handleCopyFormLink, handleDownloadQrPoster, handleShareFormWa,
+    handleSubmit, honeypotVal, isSubmitted, registrationCounts, setHoneypotVal
   } = useDynamicFormContext();
+  if (!currentForm) return null;
+
+  const deadline = getDeadlineStatus(currentForm.deadline);
+  const quota = getUnifiedFormQuota(currentForm, events, registrationCounts);
+  const isClosed = deadline.isExpired || quota.isFull;
 
   return (
-    <>
-      {currentForm && (
-        <section style={{ maxWidth: '820px', margin: '0 auto', width: '100%' }}>
-          <div className="glass-panel" style={{
-            padding: '40px',
-            border: '1.5px solid var(--border-card)',
-            boxShadow: 'var(--shadow-card)',
-            borderRadius: 'var(--radius-lg)'
-          }}>
-            {isSubmitted ? (
-              <div style={{ textAlign: 'center', padding: '36px 16px' }}>
-                <div style={{
-                  width: '72px',
-                  height: '72px',
-                  borderRadius: '50%',
-                  background: 'rgba(16, 185, 129, 0.2)',
-                  border: '2px solid #10b981',
-                  color: '#10b981',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 20px auto'
-                }}>
-                  <CheckCircle2 size={36} />
-                </div>
-
-                {currentForm?.requiresTracking !== false ? (
-                  <>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
-                      Formulir Berhasil Dikirim! 🎉
-                    </h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 20px auto', lineHeight: 1.6 }}>
-                      Terima kasih! Isian formulir untuk <strong>"{currentForm.title}"</strong> telah tersimpan aman di database sistem CNT IT APD.
-                    </p>
-
-                    {/* ID Pendaftaran Card with One-Click Copy */}
-                    <div style={{
-                      maxWidth: '480px',
-                      margin: '0 auto 16px auto',
-                      padding: '16px 20px',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'rgba(56, 189, 248, 0.08)',
-                      border: '1.5px solid var(--neon-cyan)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        ID Pendaftaran Anda:
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        <span style={{
-                          fontFamily: 'monospace',
-                          fontSize: '1.25rem',
-                          fontWeight: 900,
-                          color: 'var(--neon-cyan)',
-                          letterSpacing: '1px'
-                        }}>
-                          {lastSubmittedId}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopySubId(lastSubmittedId)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '6px 12px',
-                            borderRadius: 'var(--radius-full)',
-                            background: copiedSubId ? '#10b981' : 'var(--input-bg)',
-                            border: `1px solid ${copiedSubId ? '#10b981' : 'var(--neon-cyan)'}`,
-                            color: copiedSubId ? '#ffffff' : 'var(--neon-cyan)',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                          }}
-                          title="Salin ID Pendaftaran ke Clipboard"
-                        >
-                          {copiedSubId ? <Check size={13} /> : <Share2 size={13} />}
-                          <span>{copiedSubId ? 'Tersalin ✓' : 'Salin ID'}</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Himbauan Penting Card */}
-                    <div style={{
-                      maxWidth: '540px',
-                      margin: '0 auto 24px auto',
-                      padding: '12px 18px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(255, 184, 0, 0.1)',
-                      border: '1.5px solid rgba(255, 184, 0, 0.45)',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '10px',
-                      textAlign: 'left'
-                    }}>
-                      <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: '2px' }}>📌</span>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                        <strong style={{ color: 'var(--mandiri-gold)' }}>Himbauan Penting:</strong>
-                        <div style={{ color: 'var(--text-muted)', marginTop: '2px' }}>
-                          Harap catat atau salin <strong>ID Pendaftaran</strong> di atas! ID ini digunakan untuk memantau progres seleksi, status verifikasi berkas, dan catatan panitia melalui fitur <strong>Cek Status Pendaftaran</strong> pada website ini.
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Post-Submission Notes Card (e.g. WhatsApp Group link) */}
-                    {renderPostSubmissionNotes()}
-
-                    {/* Action Buttons */}
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => {
-                          setIsSubmitted(false);
-                          setFormData({});
-                          setFileData({});
-                        }}
-                        style={{
-                          padding: '10px 22px',
-                          borderRadius: 'var(--radius-full)',
-                          background: 'rgba(255,255,255,0.06)',
-                          color: 'var(--text-main)',
-                          border: '1px solid var(--border-card)',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Kirim Formulir Lainnya
-                      </button>
-                      {lastSubmittedId && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setStatusQuery(lastSubmittedId);
-                            const trackerEl = document.getElementById('status-tracker-section');
-                            if (trackerEl) {
-                              trackerEl.scrollIntoView({ behavior: 'smooth' });
-                            }
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '10px 24px',
-                            borderRadius: 'var(--radius-full)',
-                            background: 'var(--mandiri-gold)',
-                            color: '#040914',
-                            border: 'none',
-                            fontWeight: 800,
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 15px rgba(255,184,0,0.3)'
-                          }}
-                        >
-                          <Search size={15} />
-                          <span>Cek Status Pendaftaran Saya Sekarang</span>
-                        </button>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '10px' }}>
-                      Terima Kasih, Formulir Telah Terkirim! 🎉
-                    </h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '520px', margin: '0 auto 16px auto', lineHeight: 1.6 }}>
-                      Isian formulir untuk <strong>"{currentForm.title}"</strong> telah berhasil kami terima dan tersimpan dengan aman di sistem.
-                    </p>
-                    <div style={{
-                      maxWidth: '460px',
-                      margin: '0 auto 24px auto',
-                      padding: '10px 16px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid var(--border-card)',
-                      fontSize: '0.8rem',
-                      color: 'var(--text-dim)'
-                    }}>
-                      Formulir ini tidak memerlukan pelacakan status mandiri. Tim kami akan memproses tanggapan Anda sesuai ketentuan yang berlaku.
-                    </div>
-
-                    {/* Post-Submission Notes Card (e.g. WhatsApp Group link) */}
-                    {renderPostSubmissionNotes()}
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <button
-                        onClick={() => {
-                          setIsSubmitted(false);
-                          setFormData({});
-                          setFileData({});
-                        }}
-                        style={{
-                          padding: '10px 26px',
-                          borderRadius: 'var(--radius-full)',
-                          background: 'var(--mandiri-gold)',
-                          color: '#040914',
-                          border: 'none',
-                          fontWeight: 800,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Kirim Formulir Lainnya
-                      </button>
-                    </div>
-                  </>
+      <Card as="section" padding="lg" className="w-full" aria-label={currentForm.title}>
+        {isSubmitted ? <SubmittedView /> : (
+          <div className="flex flex-col gap-6">
+            <header className="flex flex-col gap-3">
+              <div><Chip tone="gold">{currentForm.category || 'Pendaftaran resmi'}</Chip></div>
+              <h2 className="m-0 text-[clamp(1.5rem,3vw,1.9rem)] font-extrabold leading-tight text-ink">{currentForm.title}</h2>
+              {currentForm.subtitle && <p className="m-0 text-[0.98rem] leading-relaxed text-muted">{currentForm.subtitle}</p>}
+              <div className="flex flex-wrap items-center gap-2 text-[0.88rem]">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+                  <CalendarClock size={16} className="text-muted" aria-hidden="true" />
+                  Batas akhir: {formatDeadlineWib(currentForm.deadline)}
+                </span>
+                {quota.isLimited && quota.maxQuota > 0 && (
+                  <Chip tone={quota.isFull ? 'danger' : 'neutral'}>
+                    {quota.isConnected ? 'Kuota acara' : 'Kuota'}: {quota.count}/{quota.maxQuota} {quota.isFull ? '· penuh' : `· sisa ${quota.remaining}`}
+                  </Chip>
                 )}
+                {deadline.isToday && <Chip tone="gold">Hari terakhir</Chip>}
+                {deadline.isExpired && <Chip tone="danger">Ditutup</Chip>}
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button size="sm" variant="secondary" onClick={() => handleCopyFormLink(currentForm)}
+                  icon={copiedLink ? <Check size={14} aria-hidden="true" /> : <Share2 size={14} aria-hidden="true" />}>
+                  {copiedLink ? 'Tautan tersalin' : 'Salin tautan'}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => handleShareFormWa(currentForm)} icon={<MessageCircle size={14} aria-hidden="true" />}>
+                  Bagikan ke WhatsApp
+                </Button>
+                <Button size="sm" variant="secondary" loading={generatingPoster} onClick={() => handleDownloadQrPoster(currentForm)}
+                  icon={<QrCode size={14} aria-hidden="true" />} title="Unduh poster QR (PNG) untuk dibagikan atau dicetak">
+                  {generatingPoster ? 'Menyiapkan poster…' : 'Poster QR'}
+                </Button>
+              </div>
+            </header>
+
+            {deadline.isToday && !isClosed && (
+              <Notice tone="warning" title="Hari ini hari terakhir pendaftaran">
+                Batas waktu {deadline.formatted}. Lengkapi dan kirim sebelum ditutup.
+              </Notice>
+            )}
+
+            {isClosed ? (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line bg-subtle px-6 py-8 text-center">
+                <span className="grid size-12 place-items-center rounded-full bg-loyal-tint text-loyal-ink"><Lock size={20} aria-hidden="true" /></span>
+                <p className="m-0 text-[1.05rem] font-bold text-ink">
+                  {deadline.isExpired ? 'Pendaftaran sudah ditutup' : `Pendaftaran ditutup: ${quota.isConnected ? 'kuota acara' : 'kuota'} penuh`}
+                </p>
+                <p className="m-0 max-w-[56ch] text-[0.92rem] leading-relaxed text-muted">
+                  {deadline.isExpired
+                    ? `Batas waktu formulir ini berakhir ${deadline.formatted}, jadi formulir tidak lagi menerima pendaftaran.`
+                    : quota.isConnected
+                      ? `Kuota kegiatan "${quota.connectedEvent?.title}" sudah terisi ${quota.count}/${quota.maxQuota} peserta.`
+                      : `Kuota formulir ini sudah terisi ${quota.count}/${quota.maxQuota} pendaftar.`}
+                  {' '}Sudah mendaftar? Cek status Anda di bawah.
+                </p>
               </div>
             ) : (
-              <>
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                  <span className="badge-gold" style={{ marginBottom: '8px' }}>
-                    {currentForm.category || 'Pendaftaran Resmi'}
-                  </span>
-                  <h2 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 8px 0' }}>
-                    {currentForm.title}
-                  </h2>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', maxWidth: '580px', margin: '0 auto' }}>
-                    {currentForm.subtitle}
-                  </p>
-                  {(() => {
-                    const dl = getDeadlineStatus(currentForm.deadline);
-                    const formQuota = getUnifiedFormQuota(currentForm, events, registrationCounts);
-                    const isCurrentQuotaFull = formQuota.isFull;
-
-                    return (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>
-                            📅 Batas Akhir: {formatDeadlineWib(currentForm.deadline)}
-                          </span>
-                          {formQuota.isLimited && formQuota.maxQuota > 0 && (
-                            <span style={{
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              padding: '2px 9px',
-                              borderRadius: 'var(--radius-full)',
-                              background: isCurrentQuotaFull
-                                ? (isDark ? 'rgba(244, 63, 94, 0.15)' : '#ffe4e6')
-                                : (isDark ? 'rgba(6, 182, 212, 0.15)' : '#e0f2fe'),
-                              color: isCurrentQuotaFull
-                                ? (isDark ? '#f43f5e' : '#be123c')
-                                : (isDark ? '#06b6d4' : '#0369a1'),
-                              border: `1px solid ${isCurrentQuotaFull
-                                ? (isDark ? 'rgba(244, 63, 94, 0.4)' : '#fca5a5')
-                                : (isDark ? 'rgba(6, 182, 212, 0.4)' : '#7dd3fc')}`
-                            }}>
-                              👥 {formQuota.isConnected ? '🎪 Kuota Acara: ' : 'Kuota Pendaftaran: '}
-                              {formQuota.count} / {formQuota.maxQuota} {isCurrentQuotaFull ? '(Kuota Penuh)' : `(Sisa ${formQuota.remaining})`}
-                            </span>
-                          )}
-                          {dl.isToday && (
-                            <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
-                              ⚠️ Hari Terakhir Pendaftaran!
-                            </span>
-                          )}
-                          {dl.isExpired && (
-                            <span className="badge-red" style={{ fontSize: '0.72rem' }}>
-                              Ditutup (Batas Waktu Berakhir)
-                            </span>
-                          )}
-                        </div>
-
-                        {isCurrentQuotaFull && !dl.isExpired && (
-                          <div style={{
-                            margin: '16px auto 0 auto',
-                            maxWidth: '620px',
-                            padding: '12px 18px',
-                            borderRadius: 'var(--radius-md)',
-                            background: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fff1f2',
-                            border: isDark ? '1.5px solid rgba(244, 63, 94, 0.4)' : '1.5px solid #fecdd3',
-                            color: isDark ? '#f43f5e' : '#be123c',
-                            fontSize: '0.86rem',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            justifyContent: 'center',
-                            lineHeight: 1.5
-                          }}>
-                            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-                            <span>
-                              {formQuota.isConnected
-                                ? `Mohon maaf, kuota pendaftaran untuk kegiatan "${formQuota.connectedEvent?.title}" telah penuh (${formQuota.count}/${formQuota.maxQuota} peserta). Pendaftaran formulir resmi telah ditutup.`
-                                : `Mohon maaf, kuota pendaftaran formulir ini telah penuh (${formQuota.count}/${formQuota.maxQuota} responden). Pendaftaran telah resmi ditutup.`
-                              }
-                            </span>
-                          </div>
-                        )}
-
-                        {dl.isExpired && (
-                          <div style={{
-                            margin: '16px auto 0 auto',
-                            maxWidth: '620px',
-                            padding: '12px 18px',
-                            borderRadius: 'var(--radius-md)',
-                            background: 'rgba(244, 63, 94, 0.12)',
-                            border: '1.5px solid rgba(244, 63, 94, 0.4)',
-                            color: '#f43f5e',
-                            fontSize: '0.86rem',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            justifyContent: 'center',
-                            lineHeight: 1.5
-                          }}>
-                            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-                            <span>Batas waktu pendaftaran untuk formulir ini telah berakhir pada {dl.formatted}. Formulir ini sudah tidak menerima pengiriman berkas baru.</span>
-                          </div>
-                        )}
-
-                        {dl.isToday && (
-                          <div style={{
-                            margin: '16px auto 0 auto',
-                            maxWidth: '620px',
-                            padding: '12px 18px',
-                            borderRadius: 'var(--radius-md)',
-                            background: 'rgba(255, 184, 0, 0.14)',
-                            border: '1.5px solid var(--mandiri-gold)',
-                            color: 'var(--mandiri-gold)',
-                            fontSize: '0.86rem',
-                            fontWeight: 800,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            justifyContent: 'center',
-                            lineHeight: 1.5
-                          }}>
-                            <Clock size={18} style={{ flexShrink: 0 }} />
-                            <span>Perhatian: Hari ini adalah hari terakhir pendaftaran ({dl.formatted}). Segera lengkapi dan kirim berkas sebelum pukul 23:59 WIB!</span>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyFormLink(currentForm)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 14px',
-                        borderRadius: 'var(--radius-full)',
-                        background: copiedLink ? 'rgba(16,185,129,0.15)' : 'var(--input-bg)',
-                        border: copiedLink ? '1px solid #10b981' : '1px solid var(--border-card)',
-                        color: copiedLink ? '#10b981' : 'var(--text-muted)',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {copiedLink ? <Check size={13} /> : <Share2 size={13} />}
-                      <span>{copiedLink ? 'Link Formulir Tersalin!' : 'Salin Link'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleShareFormWa(currentForm)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 14px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'rgba(37, 211, 102, 0.12)',
-                        border: '1px solid rgba(37, 211, 102, 0.4)',
-                        color: '#25D366',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <MessageCircle size={13} />
-                      <span>Bagikan ke WhatsApp</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadQrPoster(currentForm)}
-                      disabled={generatingPoster}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 14px',
-                        borderRadius: 'var(--radius-full)',
-                        background: 'rgba(255, 184, 0, 0.12)',
-                        border: '1px solid rgba(255, 184, 0, 0.4)',
-                        color: 'var(--mandiri-gold)',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: generatingPoster ? 'wait' : 'pointer'
-                      }}
-                      title="Unduh Poster QR Resolusi Tinggi (PNG) untuk Dibagikan atau Dicetak"
-                    >
-                      {generatingPoster ? <Loader2 size={13} className="spin" /> : <QrCode size={13} />}
-                      <span>{generatingPoster ? 'Menyiapkan Poster...' : 'Unduh Poster QR (PNG)'}</span>
-                    </button>
-                  </div>
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+                {/* Honeypot against bots: hidden from people and assistive tech */}
+                <div className="pointer-events-none absolute -z-10 h-0 overflow-hidden opacity-0" aria-hidden="true">
+                  <input type="text" name="mandiri_corp_security_check" tabIndex={-1} autoComplete="off" value={honeypotVal} onChange={(e) => setHoneypotVal(e.target.value)} />
                 </div>
-
-                {/* Dynamic Form Generator */}
-                <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Honeypot Anti-Bot Security Field (Hidden from humans) */}
-                  <div style={{ position: 'absolute', opacity: 0, zIndex: -1, pointerEvents: 'none', height: 0, overflow: 'hidden' }} aria-hidden="true">
-                    <input
-                      type="text"
-                      name="mandiri_corp_security_check"
-                      tabIndex={-1}
-                      autoComplete="off"
-                      value={honeypotVal}
-                      onChange={(e) => setHoneypotVal(e.target.value)}
-                    />
-                  </div>
-                  {(currentForm.fields || []).map((field: any) => {
-                    const hasError = !!errors[field.id];
-
-                    // Options logic (database source or static)
-                    let options = field.options || [];
-                    if (field.source === 'divisions') {
-                      const formTenureId = currentForm?.tenureId || currentForm?.tenure_id;
-                      const matchedDivisions = formTenureId
-                        ? (divisions || []).filter((d: any) => d.tenureId === formTenureId)
-                        : (divisions || []);
-                      const finalDivs = matchedDivisions.length > 0 ? matchedDivisions : (divisions || []);
-                      options = finalDivs.map((d: any) => d.name);
-                    } else if (field.source === 'departments') {
-                      options = (departments && departments.length > 0)
-                        ? departments.map((d: any) => d.name)
-                        : (field.options || []);
-                    } else if (field.source === 'events') {
-                      options = (events || []).filter((e: any) => e.isPublic === true).map((e: any) => `${e.title} (${e.date})`);
-                    }
-
-                    return (
-                      <div key={field.id}>
-                        <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px', fontWeight: 600 }}>
-                          {field.label} {field.required && <span style={{ color: '#f43f5e' }}>*</span>}
-                          {field.isUnique && (
-                            <span 
-                              style={{ 
-                                marginLeft: '8px', 
-                                fontSize: '0.68rem', 
-                                fontWeight: 700, 
-                                color: 'var(--neon-cyan)',
-                                background: 'rgba(6, 182, 212, 0.1)',
-                                border: '1px solid rgba(6, 182, 212, 0.35)',
-                                padding: '1px 7px',
-                                borderRadius: 'var(--radius-full)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px'
-                              }}
-                              title="Field ini wajib unik (tidak boleh ada data duplikat antar responden)"
-                            >
-                              🛡️ Unik / 1x Pendaftaran
-                            </span>
-                          )}
-                        </label>
-
-                        {/* TEXT / EMAIL / NUMBER */}
-                        {(field.type === 'text' || field.type === 'email' || field.type === 'number') && (
-                          <input
-                            type={field.type}
-                            placeholder={field.placeholder || ''}
-                            maxLength={TEXT_MAX_LENGTH}
-                            value={formData[field.id] || ''}
-                            onChange={(e) => handleInputChange(field.id, e.target.value)}
-                            onBlur={() => handleInputBlur(field)}
-                            style={inputStyle(hasError)}
-                          />
-                        )}
-
-                        {/* TEXTAREA */}
-                        {field.type === 'textarea' && (
-                          <textarea
-                            rows={4}
-                            placeholder={field.placeholder || ''}
-                            maxLength={TEXTAREA_MAX_LENGTH}
-                            value={formData[field.id] || ''}
-                            onChange={(e) => handleInputChange(field.id, e.target.value)}
-                            onBlur={() => handleInputBlur(field)}
-                            style={{ ...inputStyle(hasError), resize: 'vertical' }}
-                          />
-                        )}
-
-                        {/* SELECT (DYNAMIC DB OPTIONS / MANUAL) */}
-                        {field.type === 'select' && (
-                          <select
-                            value={formData[field.id] || ''}
-                            onChange={(e) => handleInputChange(field.id, e.target.value)}
-                            onBlur={() => handleInputBlur(field)}
-                            style={inputStyle(hasError)}
-                          >
-                            <option value="">-- Pilih {field.label} --</option>
-                            {options.map((opt: any, oIdx: any) => (
-                              <option key={oIdx} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-
-                        {/* MULTIPLE CHOICE / RADIO (PILIHAN GANDA - 1 JAWABAN) */}
-                        {field.type === 'radio' && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '2px' }}>
-                            {options.map((opt: any, oIdx: any) => {
-                              const isSelected = formData[field.id] === opt;
-                              return (
-                                <label
-                                  key={oIdx}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    padding: '11px 16px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    background: isSelected 
-                                      ? (isDark ? 'rgba(255, 184, 0, 0.12)' : '#fffbeb') 
-                                      : 'var(--input-bg)',
-                                    border: `1.5px solid ${isSelected ? 'var(--mandiri-gold)' : (hasError ? '#f43f5e' : 'var(--input-border)')}`,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                >
-                                  <input
-                                    type="radio"
-                                    name={`field-${field.id}`}
-                                    value={opt}
-                                    checked={isSelected}
-                                    onChange={() => handleInputChange(field.id, opt)}
-                                    style={{
-                                      accentColor: 'var(--mandiri-gold)',
-                                      cursor: 'pointer',
-                                      width: '17px',
-                                      height: '17px',
-                                      margin: 0,
-                                      flexShrink: 0
-                                    }}
-                                  />
-                                  <span style={{
-                                    fontSize: '0.88rem',
-                                    color: isSelected ? 'var(--text-main)' : 'var(--text-muted)',
-                                    fontWeight: isSelected ? 700 : 500
-                                  }}>
-                                    {opt}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* FILE UPLOAD WITH PREVIEW */}
-                        {field.type === 'file' && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '12px',
-                              padding: '12px 16px',
-                              borderRadius: 'var(--radius-md)',
-                              background: 'var(--input-bg)',
-                              border: `1.5px dashed ${hasError ? '#f43f5e' : 'var(--input-border)'}`,
-                              cursor: 'pointer'
-                            }}>
-                              <Upload size={18} color="var(--mandiri-gold)" />
-                              <label style={{ cursor: 'pointer', flex: 1, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                <input
-                                  type="file"
-                                  accept={field.accept || DEFAULT_FILE_ACCEPT}
-                                  onChange={(e) => handleFileUpload(field, e)}
-                                  style={{ display: 'none' }}
-                                />
-                                {uploadingFieldId === field.id ? (
-                                  <span style={{ color: 'var(--mandiri-gold)', fontWeight: 700 }}>
-                                    ⏳ Mengunggah berkas ke Cloud Storage...
-                                  </span>
-                                ) : fileData[field.id] ? (
-                                  <span style={{ color: 'var(--neon-cyan)', fontWeight: 700 }}>
-                                    ✓ {fileData[field.id].name} ({fileData[field.id].size}) &bull; Siap dikirim saat klik Kirim
-                                  </span>
-                                ) : (
-                                  <span>Klik untuk memilih berkas ({field.accept || 'PDF, gambar, dokumen Office, ZIP'} • maks. 20 MB)</span>
-                                )}
-                              </label>
-                              {fileData[field.id] && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPendingFiles((prev: any) => {
-                                      const copy = { ...prev };
-                                      delete copy[field.id];
-                                      return copy;
-                                    });
-                                    setFileData((prev: any) => {
-                                      const copy = { ...prev };
-                                      delete copy[field.id];
-                                      return copy;
-                                    });
-                                    setFormData((prev: any) => {
-                                      const copy = { ...prev };
-                                      delete copy[field.id];
-                                      return copy;
-                                    });
-                                  }}
-                                  style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer' }}
-                                  title="Batalkan / Hapus file pilihan"
-                                >
-                                  <X size={16} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Error Warning */}
-                        {hasError && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f43f5e', fontSize: '0.74rem', marginTop: '4px' }}>
-                            <AlertCircle size={12} />
-                            <span>{errors[field.id]}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {getDeadlineStatus(currentForm.deadline).isExpired ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        background: 'var(--input-bg)',
-                        color: 'var(--text-muted)',
-                        padding: '14px',
-                        borderRadius: 'var(--radius-full)',
-                        fontWeight: 700,
-                        fontSize: '0.92rem',
-                        border: '1px solid var(--border-card)',
-                        marginTop: '12px',
-                        cursor: 'not-allowed'
-                      }}
-                    >
-                      <AlertCircle size={18} color="#f43f5e" />
-                      <span>Pendaftaran Ditutup (Batas Waktu Berakhir)</span>
-                    </div>
-                  ) : (() => {
-                    const formQuota = getUnifiedFormQuota(currentForm, events, registrationCounts);
-                    const isQuotaFull = formQuota.isFull;
-                    if (isQuotaFull) {
-                      return (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '10px',
-                            background: isDark ? 'var(--input-bg)' : '#f8fafc',
-                            color: isDark ? 'var(--text-muted)' : '#64748b',
-                            padding: '14px',
-                            borderRadius: 'var(--radius-full)',
-                            fontWeight: 700,
-                            fontSize: '0.92rem',
-                            border: isDark ? '1.5px solid rgba(244, 63, 94, 0.4)' : '1.5px solid #fca5a5',
-                            marginTop: '12px',
-                            cursor: 'not-allowed'
-                          }}
-                        >
-                          <AlertCircle size={18} color={isDark ? '#f43f5e' : '#be123c'} />
-                          <span>Pendaftaran Ditutup ({formQuota.isConnected ? 'Kuota Acara Penuh' : 'Kuota Penuh'}: {formQuota.count}/{formQuota.maxQuota})</span>
-                        </div>
-                      );
-                    }
-                    return (
-                      <button
-                        type="submit"
-                        className="pulse-glow"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '10px',
-                          background: 'var(--mandiri-gold)',
-                          color: '#0a1128',
-                          padding: '15px',
-                          borderRadius: 'var(--radius-full)',
-                          fontWeight: 800,
-                          fontSize: '0.96rem',
-                          border: 'none',
-                          cursor: 'pointer',
-                          marginTop: '12px',
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 15px rgba(255, 184, 0, 0.35)'
-                        }}
-                      >
-                        <Send size={18} />
-                        <span>Kirim Berkas Pendaftaran</span>
-                      </button>
-                    );
-                  })()}
-                </form>
-              </>
+                {(currentForm.fields || []).map((field: any) => <FormField key={field.id} field={field} />)}
+                <Button type="submit" variant="gold" size="lg" className="mt-2 w-full" icon={<Send size={18} aria-hidden="true" />}>
+                  Kirim pendaftaran
+                </Button>
+              </form>
             )}
           </div>
-        </section>
-      )}
-    </>
+        )}
+      </Card>
   );
 }
