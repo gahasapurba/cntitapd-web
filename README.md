@@ -1,4 +1,4 @@
-# 🚀 Culture & Change Agent (CNT) IT APD Web Portal
+# 🚀 Culture Network Team (CNT) IT APD Web Portal
 
 > **Official Culture, Community, and Organizational Hub for IT Application Delivery (APD) — PT Bank Mandiri (Persero) Tbk.**  
 > Production URL: [https://cntitapd.netlify.app](https://cntitapd.netlify.app)
@@ -7,7 +7,7 @@
 
 ## 🌟 Overview
 
-**CNT IT APD** (Culture & Change Agent Network - IT Application Delivery) merupakan inisiatif budaya kerja di lingkungan Direktorat Information Technology Bank Mandiri yang berfokus pada internalisasi nilai-nilai utama **AKHLAK** (Amanah, Kompeten, Harmonis, Loyal, Adaptif, Kolaboratif), peningkatan *employee engagement*, kolaborasi lintas tim, serta akselerasi kapabilitas talenta digital.
+**CNT IT APD** (Culture Network Team - Group IT Application Delivery) merupakan inisiatif budaya kerja di lingkungan Direktorat Information Technology Bank Mandiri yang berfokus pada internalisasi nilai-nilai utama **AKHLAK** (Amanah, Kompeten, Harmonis, Loyal, Adaptif, Kolaboratif), peningkatan *employee engagement*, kolaborasi lintas tim, serta akselerasi kapabilitas talenta digital.
 
 Aplikasi web ini berfungsi sebagai portal informasi interaktif, etalase program kerja, direktori kepengurusan lintas periode, galeri dokumentasi kegiatan, pusat aset branding resmi, serta sarana apresiasi (*Kudos AKHLAK*).
 
@@ -48,12 +48,12 @@ Terbagi ke dalam 4 divisi budaya utama dengan status progres (*Upcoming*, *In Pr
 - Filter kategori pilar dan timestamp pesan secara real-time.
 
 ### 6. 📝 Open Recruitment Portal
-- Formulir pendaftaran calon Change Agent baru per divisi minat.
+- Formulir pendaftaran calon anggota CNT baru per divisi minat.
 - Dilengkapi kuesioner motivasi dan preferensi kontribusi.
 
 ### 7. 🔒 Secure Admin Portal (`/#admin`)
-- Akses terproteksi untuk BPH / Administrator melalui rute khusus `/#admin`.
-- **Zero Plaintext Credentials**: Verifikasi autentikasi berbasis enkripsi satu arah **SHA-256 (Web Crypto API)** di sisi klien tanpa menyimpan teks sandi di source code maupun Git commit history.
+- Login dengan akun **Supabase Auth** (email & password); akses hanya untuk akun yang terdaftar di tabel `admin_profiles`.
+- Dua peran: **super admin** (seluruh data + menu *Kelola Admin*) dan **admin divisi** (pengurus, acara, formulir, pendaftaran & galeri divisinya).
 - Manajemen data real-time: edit visi/misi periode, kelola anggota divisi, buat program kerja baru, kelola galeri & tautan dokumentasi, serta export rekap data recruitment / kudos ke PDF.
 
 ### 8. 🌓 Theme Switcher (Default: Light Mode)
@@ -69,8 +69,8 @@ Terbagi ke dalam 4 divisi budaya utama dengan status progres (*Upcoming*, *In Pr
 | **Frontend Framework** | [React 19](https://react.dev/) + [Vite 6](https://vitejs.dev/) | Performa cepat dengan Hot Module Replacement |
 | **Icons & UI Elements** | [lucide-react](https://lucide.dev/) | Ikon vektor modern dan responsif |
 | **Styling** | Vanilla CSS Design Tokens | Variabel CSS kustom untuk Dark & Light mode tanpa framework CSS yang memberatkan |
-| **Keamanan Kredensial** | Web Crypto API (`crypto.subtle.digest`) | Hashing SHA-256 untuk autentikasi admin |
-| **Database & Backend** | [Supabase](https://supabase.com/) *(Opsional)* + `localStorage` Fallback | Operasional offline-first atau tersinkronisasi cloud |
+| **Autentikasi Admin** | Supabase Auth + `admin_profiles` | Login admin berbasis peran (super admin / admin divisi) |
+| **Database & Backend** | [Supabase](https://supabase.com/) | PostgreSQL dengan Row Level Security per tabel & RPC publik |
 | **Dokumen / Report Export**| `jspdf` & `jspdf-autotable` | Ekspor data pendaftar & kudos ke dokumen PDF formal |
 | **Hosting & CI/CD** | [Netlify](https://www.netlify.com/) | Auto-deploy dengan edge caching & custom headers |
 | **Version Control** | Git (`master` branch) | GitHub Repository (`https://github.com/gahasapurba/cntitapd-web.git`) |
@@ -162,7 +162,7 @@ Untuk menghubungkan aplikasi ke backend Supabase sendiri dari nol:
    VITE_SUPABASE_URL=https://<project-id>.supabase.co
    VITE_SUPABASE_ANON_KEY=<anon-key>
    ```
-*(Catatan: Jika `.env` tidak diisi, portal tetap dapat berjalan dengan mode fallback LocalStorage browser).*
+6. **Keamanan & Akun Admin:** jalankan berkas di `supabase/migrations/` secara berurutan, buat user di **Authentication → Users**, lalu tetapkan sebagai super admin (perintah SQL ada di akhir berkas migration). Uji aturan akses secara lokal dengan `npm run test:rls`.
 
 ### 4. Menjalankan Server Pengembangan
 ```bash
@@ -183,9 +183,10 @@ Hasil build siap rilis akan dihasilkan di folder `dist/`.
 1. **Bebas Kredensial Teks Mentah (Zero Plaintext Secrets)**:
    - Tidak ada kata sandi, private key, atau access token backend yang tersimpan dalam repositori Git.
    - History commit Git telah diaudit dan dibersihkan dari informasi sensitif.
-2. **Proteksi Akses Admin**:
-   - Portal Admin (`/#admin`) dilindungi dengan perbandingan hash kriptografis **SHA-256** standar industri.
-   - Hash username & password dihitung di runtime menggunakan `crypto.subtle.digest('SHA-256', ...)`.
+2. **Proteksi Akses Admin & Data**:
+   - Portal Admin (`/#admin`) memakai Supabase Auth; peran disimpan di `admin_profiles` dan diperiksa oleh Row Level Security di database, bukan di browser.
+   - Pengunjung hanya dapat membaca konten publik. Data pendaftar (NIP, email, WhatsApp, CV), RSVP, hasil undian & isi aspirasi hanya dapat dibaca admin yang berwenang dan tidak disimpan di cache browser.
+   - Pendaftaran formulir, RSVP, kudos, like & aspirasi masuk lewat fungsi database (RPC) yang memeriksa tenggat, kuota, keunikan & panjang isian secara atomik.
 3. **Penyimpanan Berkas Lingkungan**:
    - Berkas `.env`, `.netlify`, `dist/`, dan `node_modules/` telah terdaftar dalam `.gitignore` sehingga tidak akan terunggah ke repositori Git.
 
@@ -195,7 +196,7 @@ Hasil build siap rilis akan dihasilkan di folder `dist/`.
 
 - **Group**: IT Application Delivery (APD)
 - **Direktorat**: Information Technology — PT Bank Mandiri (Persero) Tbk.
-- **Divisi Budaya**: Culture & Change Agent Network (CNT) IT APD
+- **Divisi Budaya**: Culture Network Team (CNT) IT APD
 
 ---
 

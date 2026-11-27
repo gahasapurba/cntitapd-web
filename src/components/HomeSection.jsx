@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 import { getDivisionLead, getDivisionStructure, getMemberLevel } from '../utils/memberQuotaUtils';
-import { getDeadlineStatus, formatWibTimestamp, formatDeadlineWib } from '../utils/dateUtils';
+import { getDeadlineStatus, formatWibTimestamp, formatDeadlineWib, isEventPassed } from '../utils/dateUtils';
 import { getUnifiedEventAttendees } from '../utils/quotaUtils';
 
 export default function HomeSection({ 
@@ -40,8 +40,7 @@ export default function HomeSection({
   setCurrentTab,
   recruitmentInfo,
   forms = [],
-  eventRsvps = [],
-  submissions = [],
+  registrationCounts,
   kudosList = [],
   faqs = [],
   onSubmitFaqQuestion,
@@ -74,7 +73,7 @@ export default function HomeSection({
     setConfirmFaqOpen(true);
   };
 
-  const handleFinalSubmitFaq = () => {
+  const handleFinalSubmitFaq = async () => {
     if (isSubmittingAsk) return;
     setConfirmFaqOpen(false);
     setIsSubmittingAsk(true);
@@ -83,15 +82,22 @@ export default function HomeSection({
     const ts = `${String(now.getDate()).padStart(2, '0')} ${months[now.getMonth()]} ${now.getFullYear()} • ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
 
     if (onSubmitFaqQuestion) {
-      onSubmitFaqQuestion({
-        id: 'faq-user-' + Date.now(),
-        category: askCat || 'Umum',
-        question: askQuestionText.trim(),
-        answer: 'Menunggu jawaban & penjelasan resmi dari Pengurus CNT IT APD.',
-        askedBy: askName.trim() || 'Insan IT APD',
-        createdAt: new Date().toISOString(),
-        isPublished: false
-      });
+      try {
+        await onSubmitFaqQuestion({
+          id: 'faq-user-' + (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`),
+          category: askCat || 'Umum',
+          question: askQuestionText.trim(),
+          answer: 'Menunggu jawaban & penjelasan resmi dari Pengurus Culture Network Team.',
+          askedBy: askName.trim() || 'Insan IT APD',
+          createdAt: new Date().toISOString(),
+          isPublished: false
+        });
+      } catch (err) {
+        console.error(err);
+        setIsSubmittingAsk(false);
+        setAskErrors({ question: 'Pertanyaan gagal dikirim ke server. Silakan periksa koneksi lalu coba lagi.' });
+        return;
+      }
     }
 
     setAskSuccess(true);
@@ -112,6 +118,10 @@ export default function HomeSection({
   const activeDivisions = (divisions || []).filter(d => d.tenureId === activeTenure?.id);
   const activeMembers = (members || []).filter(m => m.tenureId === activeTenure?.id);
   const activeEvents = (events || []).filter(e => e.tenureId === activeTenure?.id && e.isPublic === true);
+  // "Terdekat" hanya memuat acara yang belum selesai, diurutkan dari jadwal paling dekat
+  const upcomingEvents = activeEvents
+    .filter(e => e.status !== 'Completed' && !isEventPassed(e.startDate, e.endDate))
+    .sort((a, b) => String(a.startDate || '9999').localeCompare(String(b.startDate || '9999')));
   const pembina = activeMembers.find(m => m.category === 'pembina');
   const ketua = activeMembers.find(m => m.role === 'Ketua');
   const wakil = activeMembers.find(m => m.role === 'Wakil Ketua');
@@ -985,7 +995,7 @@ export default function HomeSection({
       {(isEventVisible || isKudosVisible) && (
         <section style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '36px' }}>
           {/* 5A. Agenda Kegiatan Terdekat */}
-          {isEventVisible && activeEvents.length > 0 && (
+          {isEventVisible && upcomingEvents.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
@@ -1017,8 +1027,8 @@ export default function HomeSection({
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(275px, 1fr))', gap: '18px' }}>
-                {activeEvents.slice(0, 3).map((evt) => {
-                  const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
+                {upcomingEvents.slice(0, 3).map((evt) => {
+                  const attendeeInfo = getUnifiedEventAttendees(evt, forms, registrationCounts);
                   const attendeeCount = attendeeInfo.count;
                   const attendeeLabel = attendeeInfo.isConnected ? `${attendeeCount} Peserta Terdaftar` : `${attendeeCount} Peserta RSVP`;
                   const statusColor = evt.status === 'Ongoing' ? '#10b981' : evt.status === 'Completed' ? '#64748b' : 'var(--mandiri-gold)';
@@ -1520,6 +1530,7 @@ export default function HomeSection({
                       <input
                         type="text"
                         placeholder="Tuliskan pertanyaan Anda di sini... *"
+                        maxLength={1000}
                         value={askQuestionText}
                         onChange={(e) => {
                           setAskQuestionText(e.target.value);

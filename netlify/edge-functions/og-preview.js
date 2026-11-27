@@ -66,7 +66,7 @@ export default async function handler(request, context) {
   
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="article" />
-  <meta property="og:site_name" content="CNT IT APD Bank Mandiri" />
+  <meta property="og:site_name" content="Culture Network Team · IT APD Bank Mandiri" />
   <meta property="og:title" content="${escapeHtml(gal.title)}" />
   <meta property="og:description" content="${escapeHtml(snippetDesc)}" />
   <meta property="og:image" content="${escapeHtml(firstPhoto)}" />
@@ -135,7 +135,7 @@ export default async function handler(request, context) {
   
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="article" />
-  <meta property="og:site_name" content="CNT IT APD Bank Mandiri" />
+  <meta property="og:site_name" content="Culture Network Team · IT APD Bank Mandiri" />
   <meta property="og:title" content="${escapeHtml(evt.title)}" />
   <meta property="og:description" content="${escapeHtml(snippetDesc)}" />
   <meta property="og:image" content="${escapeHtml(eventImg)}" />
@@ -203,7 +203,7 @@ export default async function handler(request, context) {
   
   <!-- Open Graph / WhatsApp Preview Meta Tags -->
   <meta property="og:type" content="article" />
-  <meta property="og:site_name" content="CNT IT APD Bank Mandiri" />
+  <meta property="og:site_name" content="Culture Network Team · IT APD Bank Mandiri" />
   <meta property="og:title" content="${escapeHtml(frm.title)}" />
   <meta property="og:description" content="${escapeHtml(snippetDesc)}" />
   <meta property="og:image" content="${escapeHtml(formImg)}" />

@@ -50,6 +50,8 @@ import {
   Grid
 } from 'lucide-react';
 import EventCalendarView from './EventCalendarView';
+import AdminAccountsPanel from './AdminAccountsPanel';
+import { AKHLAK_VALUES, DEFAULT_AKHLAK_VALUE } from '../utils/akhlak';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { soundFx } from '../utils/audio';
 import { getPublicBaseUrl } from '../utils/urlUtils';
@@ -91,17 +93,14 @@ function formatWaPhone(raw = '') {
   return digits;
 }
 
-// Client-side SHA-256 hash helper using Web Crypto API
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+const SYNC_BADGE = {
+  syncing: { label: 'Menyinkronkan Cloud...', color: 'var(--mandiri-gold)', background: 'rgba(255, 184, 0, 0.15)' },
+  synced: { label: 'Cloud Sync Aktif (Multi-Device)', color: '#10b981', background: 'rgba(16, 185, 129, 0.15)' },
+  error: { label: 'Sebagian data gagal dimuat dari Cloud', color: '#dc2626', background: 'rgba(220, 38, 38, 0.12)' }
+};
 
-// Stored SHA-256 hashes (No plaintext credentials in code/repository)
-const ADMIN_USER_HASH = '84d50274d92ff024110ab51d81dbe6dc7936eacf67ca813516982befb2fffdf0';
-const ADMIN_PASS_HASH = 'f341ad38cdc4d5bbf4678c1452ba532ae2ca6e43590d48f27fe60d09bbb35679';
+// Tabs a division admin may open; super admins see every tab plus account management.
+const DIVISION_ADMIN_TABS = ['members', 'events', 'forms', 'submissions', 'gallery'];
 
 export default function AdminPortal({ 
   onBack, 
@@ -189,17 +188,17 @@ export default function AdminPortal({
   onResetDefault,
   onRestoreBackup,
   theme = 'dark',
-  luckyDraws = []
+  luckyDraws = [],
+  registrationCounts,
+  adminSession = { status: 'loading', profile: null },
+  onAdminLogin,
+  onAdminLogout
 }) {
   const isDark = theme === 'dark';
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      return sessionStorage.getItem('cnt_admin_auth_session') === 'authenticated_v2';
-    } catch (e) {
-      return false;
-    }
-  });
-  const [username, setUsername] = useState('');
+  const isAuthenticated = adminSession.status === 'admin';
+  const adminProfile = adminSession.profile;
+  const isSuperAdmin = adminProfile?.role === 'super_admin';
+  const [loginEmail, setLoginEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -250,6 +249,13 @@ export default function AdminPortal({
       sessionStorage.setItem('cnt_admin_active_tab', tabId);
     } catch (e) {}
   };
+
+  // Division admins are kept on the tabs their role can manage.
+  useEffect(() => {
+    if (isAuthenticated && !isSuperAdmin && !DIVISION_ADMIN_TABS.includes(activeTab)) {
+      setActiveTab(DIVISION_ADMIN_TABS[0]);
+    }
+  }, [isAuthenticated, isSuperAdmin, activeTab]);
 
   // Dynamic Role & Organization Management States
   const [isOrgRolesOpen, setIsOrgRolesOpen] = useState(false);
@@ -766,12 +772,12 @@ export default function AdminPortal({
     showToast(`Event "${savedTitle}" berhasil ditambahkan & disinkronkan!`);
   };
 
-  // Secure SHA-256 Authentication (Zero plaintext in code)
+  // Supabase Auth sign-in; access is granted only to accounts listed in admin_profiles
   const handleLogin = async (e) => {
     e.preventDefault();
     if (isLoggingIn) return;
     const errs = {};
-    if (!username.trim()) errs.loginUsername = 'Username wajib diisi';
+    if (!/\S+@\S+\.\S+/.test(loginEmail.trim())) errs.loginEmail = 'Email admin wajib diisi dengan format yang valid';
     if (!password) errs.loginPassword = 'Password wajib diisi';
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
@@ -780,27 +786,13 @@ export default function AdminPortal({
     setLoginError('');
     setIsLoggingIn(true);
     try {
-      // Natural verification pause so the user perceives credential verification
-      await new Promise((resolve) => setTimeout(resolve, 850));
-
-      const uHash = await sha256(username.trim());
-      const pHash = await sha256(password);
-
-      if (uHash === ADMIN_USER_HASH && pHash === ADMIN_PASS_HASH) {
-        setIsAuthenticated(true);
-        try {
-          sessionStorage.setItem('cnt_admin_auth_session', 'authenticated_v2');
-        } catch (e) {}
-        setLoginError('');
-        setFormErrors({});
-        showToast('Berhasil masuk! Selamat datang di Admin Portal', 'success');
-      } else {
-        setLoginError('Username atau password salah');
-        showToast('Verifikasi gagal: Username atau password salah', 'error');
-      }
+      await onAdminLogin(loginEmail, password);
+      setPassword('');
+      setFormErrors({});
+      showToast('Berhasil masuk! Selamat datang di Admin Portal', 'success');
     } catch (err) {
-      setLoginError('Gagal memverifikasi kredensial');
-      showToast('Gagal memverifikasi kredensial', 'error');
+      setLoginError(err.message || 'Gagal memverifikasi kredensial');
+      showToast(err.message || 'Gagal memverifikasi kredensial', 'error');
     } finally {
       setIsLoggingIn(false);
     }
@@ -1723,30 +1715,31 @@ export default function AdminPortal({
           <form onSubmit={handleLogin} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Username <span style={{ color: '#f43f5e' }}>*</span>
+                Email Admin <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
-                type="text"
-                placeholder="Masukkan Username"
-                value={username}
+                type="email"
+                autoComplete="username"
+                placeholder="nama@bankmandiri.co.id"
+                value={loginEmail}
                 disabled={isLoggingIn}
                 onChange={(e) => {
-                  setUsername(e.target.value);
-                  clearFieldError('loginUsername');
+                  setLoginEmail(e.target.value);
+                  clearFieldError('loginEmail');
                 }}
                 style={{
                   width: '100%',
                   padding: '11px 14px',
                   borderRadius: 'var(--radius-md)',
                   background: 'var(--input-bg)',
-                  border: `1.5px solid ${formErrors.loginUsername ? '#f43f5e' : 'var(--border-card)'}`,
+                  border: `1.5px solid ${formErrors.loginEmail ? '#f43f5e' : 'var(--border-card)'}`,
                   color: 'var(--text-main)',
                   outline: 'none',
                   fontSize: '0.9rem',
                   opacity: isLoggingIn ? 0.7 : 1
                 }}
               />
-              {renderFieldError('loginUsername')}
+              {renderFieldError('loginEmail')}
             </div>
 
             <div>
@@ -1914,14 +1907,14 @@ export default function AdminPortal({
               borderRadius: 'var(--radius-full)',
               fontSize: '0.73rem',
               fontWeight: 800,
-              background: syncStatus === 'syncing' ? 'rgba(255, 184, 0, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-              border: `1px solid ${syncStatus === 'syncing' ? 'var(--mandiri-gold)' : '#10b981'}`,
-              color: syncStatus === 'syncing' ? 'var(--mandiri-gold)' : '#10b981'
+              background: SYNC_BADGE[syncStatus].background,
+              border: `1px solid ${SYNC_BADGE[syncStatus].color}`,
+              color: SYNC_BADGE[syncStatus].color
             }}
-            title="Seluruh perubahan otomatis disimpan di Cloud Database & LocalStorage agar tersinkronisasi di semua perangkat"
+            title="Seluruh perubahan otomatis disimpan di Cloud Database agar tersinkronisasi di semua perangkat"
           >
             <Globe size={13} />
-            <span>{syncStatus === 'syncing' ? 'Menyinkronkan Cloud...' : 'Cloud Sync Aktif (Multi-Device)'}</span>
+            <span>{SYNC_BADGE[syncStatus].label}</span>
           </span>
         </div>
 
@@ -1968,6 +1961,9 @@ export default function AdminPortal({
                 submissions,
                 brandAssets,
                 eventRsvps,
+                luckyDraws,
+                tenureRoles,
+                roleQuotas,
                 faqs,
                 pageVisibility,
                 announcementBar
@@ -2076,11 +2072,12 @@ export default function AdminPortal({
           )}
 
           <button
-            onClick={() => {
+            onClick={async () => {
               try {
-                sessionStorage.removeItem('cnt_admin_auth_session');
-              } catch (e) {}
-              setIsAuthenticated(false);
+                await onAdminLogout();
+              } catch (err) {
+                showToast(err.message || 'Gagal keluar dari sesi admin', 'error');
+              }
             }}
             style={{
               display: 'flex',
@@ -2278,7 +2275,8 @@ export default function AdminPortal({
           { id: 'departments', label: `Kelola Departemen (${departments.length})`, icon: Building2 },
           { id: 'divisions', label: `Kelola Divisi (${divisions.length})`, icon: Layers },
           { id: 'tenure', label: `Periode Kepengurusan (${tenures.length})`, icon: Calendar },
-        ].map((tab) => {
+          { id: 'admins', label: 'Kelola Admin', icon: Shield },
+        ].filter(tab => (isSuperAdmin ? true : DIVISION_ADMIN_TABS.includes(tab.id))).map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -2305,6 +2303,10 @@ export default function AdminPortal({
           );
         })}
       </div>
+
+      {activeTab === 'admins' && isSuperAdmin && (
+        <AdminAccountsPanel divisions={divisions} currentUserId={adminProfile?.userId} showToast={showToast} />
+      )}
 
       {/* TAB CONTENT: VISIBILITAS HALAMAN & NAVBAR (VIEW / HIDE) */}
       {activeTab === 'visibility' && (() => {
@@ -4732,8 +4734,7 @@ export default function AdminPortal({
                       events={filteredAdminEvents}
                       divisions={divisions}
                       forms={forms}
-                      eventRsvps={eventRsvps}
-                      submissions={submissions}
+                      registrationCounts={registrationCounts}
                       theme={theme}
                       activeTenure={eventTenureFilter !== 'all' ? tenures.find(t => t.id === eventTenureFilter) : activeTenure}
                       onSelectEvent={(evt) => setEditingItem({ type: 'event', item: { ...evt } })}
@@ -4767,7 +4768,7 @@ export default function AdminPortal({
                     {paginatedAdminEvents.map((evt) => {
                       const divObj = divisions.find(d => d.id === evt.divisionId);
                       const divColor = divObj?.color || 'var(--mandiri-gold)';
-                      const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
+                      const attendeeInfo = getUnifiedEventAttendees(evt, forms, registrationCounts);
                       const isDraft = evt.isPublic !== true;
 
                       return (
@@ -9498,11 +9499,9 @@ export default function AdminPortal({
                         }}
                       >
                         <option value="all">Semua Kategori Nilai</option>
-                        <option value="Kolaboratif">Kolaboratif</option>
-                        <option value="Inovatif">Inovatif</option>
-                        <option value="Harmonis">Harmonis</option>
-                        <option value="Integritas">Integritas</option>
-                        <option value="Dedikasi">Dedikasi</option>
+                        {AKHLAK_VALUES.map(v => (
+                          <option key={v.value} value={v.value}>{v.value}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -12223,15 +12222,13 @@ export default function AdminPortal({
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori Nilai Budaya</label>
                   <select
-                    value={editingItem.item.category || 'Kolaboratif'}
+                    value={editingItem.item.category || DEFAULT_AKHLAK_VALUE}
                     onChange={(e) => setEditingItem({ ...editingItem, item: { ...editingItem.item, category: e.target.value } })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)', fontSize: '0.86rem' }}
                   >
-                    <option value="Kolaboratif">Kolaboratif (Sinergi & Kerjasama Tim)</option>
-                    <option value="Inovatif">Inovatif & Solutif (Excellence & Agility)</option>
-                    <option value="Harmonis">Harmonis (Saling Peduli & Menghargai)</option>
-                    <option value="Integritas">Integritas (Komitmen & Tanggung Jawab)</option>
-                    <option value="Dedikasi">Dedikasi (Customer Centric & Prima)</option>
+                    {AKHLAK_VALUES.map(v => (
+                      <option key={v.value} value={v.value}>{v.value} ({v.description})</option>
+                    ))}
                   </select>
                 </div>
                 <div>

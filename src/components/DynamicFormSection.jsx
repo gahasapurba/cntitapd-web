@@ -24,19 +24,37 @@ import {
   Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { uploadMediaToCloud } from '../lib/supabase';
+import { uploadMediaToCloud, isSubmissionValueTaken, trackSubmissions, fetchAcceptedSubmissions } from '../lib/supabase';
 import { getDeadlineStatus, formatDeadlineWib, formatWibDateTime, formatWibTimestamp } from '../utils/dateUtils';
 import { generateFormQrPoster } from '../utils/qrPosterGenerator';
 import { getPublicBaseUrl } from '../utils/urlUtils';
 import { getUnifiedFormQuota } from '../utils/quotaUtils';
+
+// Limits for public registration input. The storage bucket rejects files above 20 MB.
+const TEXT_MAX_LENGTH = 200;
+const TEXTAREA_MAX_LENGTH = 2000;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const DEFAULT_FILE_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip';
+
+// Checks a file against an accept list such as ".pdf,.png" or "image/*".
+function isFileAccepted(file, accept) {
+  const rules = String(accept || DEFAULT_FILE_ACCEPT).split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
+  const name = file.name.toLowerCase();
+  const type = (file.type || '').toLowerCase();
+  return rules.some((rule) => {
+    if (rule === '*/*') return true;
+    if (rule.startsWith('.')) return name.endsWith(rule);
+    if (rule.endsWith('/*')) return type.startsWith(rule.slice(0, -1));
+    return type === rule;
+  });
+}
 
 export default function DynamicFormSection({ 
   forms = [], 
   divisions = [], 
   departments = [],
   events = [], 
-  eventRsvps = [],
-  submissions = [],
+  registrationCounts,
   onSubmitSubmission, 
   theme,
   initialFormId = null,
@@ -104,6 +122,8 @@ export default function DynamicFormSection({
   const [fileData, setFileData] = useState({}); // { [fieldId]: { name, size, type, dataUrl } }
   const [pendingFiles, setPendingFiles] = useState({}); // { [fieldId]: File }
   const [errors, setErrors] = useState({});
+  // Unique fields whose current value is already registered: { [fieldId]: normalizedValue }
+  const [uniqueConflicts, setUniqueConflicts] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(() => {
     if (typeof window !== 'undefined') {
       const sp = new URLSearchParams(window.location.search);
@@ -343,34 +363,42 @@ export default function DynamicFormSection({
     }
   };
 
-  // Instant Unique Check on Blur
-  const handleInputBlur = (field) => {
+  // Instant Unique Check on Blur (server-side lookup; the value is never compared against downloaded data)
+  const normalizeUniqueValue = (val) => String(val ?? '').trim().toLowerCase();
+  const duplicateMessage = (field, val) =>
+    `${field.label} "${val}" sudah pernah terdaftar sebelumnya. Field ini bersifat unik dan tidak menerima data duplikat.`;
+  const handleInputBlur = async (field) => {
     if (!field || !field.isUnique || !currentForm) return;
     const val = formData[field.id];
-    if (val && String(val).trim()) {
-      const inputValNorm = String(val).trim().toLowerCase();
-      const duplicateSub = (submissions || []).find(s => {
-        if (s.formId !== currentForm.id) return false;
-        const ans = s.data?.[field.id] ?? s[field.id] ?? s.answers?.[field.id];
-        if (ans === undefined || ans === null) return false;
-        return String(ans).trim().toLowerCase() === inputValNorm;
+    const normalized = normalizeUniqueValue(val);
+    if (!normalized) return;
+    try {
+      const taken = await isSubmissionValueTaken(currentForm.id, field.id, String(val));
+      setUniqueConflicts(prev => {
+        const next = { ...prev };
+        if (taken) next[field.id] = normalized;
+        else delete next[field.id];
+        return next;
       });
-      if (duplicateSub) {
-        setErrors(prev => ({
-          ...prev,
-          [field.id]: `${field.label} "${val}" sudah pernah terdaftar sebelumnya. Field ini bersifat unik dan tidak menerima data duplikat.`
-        }));
-      }
+      if (taken) setErrors(prev => ({ ...prev, [field.id]: duplicateMessage(field, val) }));
+    } catch (err) {
+      console.error(err);
     }
   };
 
   // Handle File Selection - Deferred upload on Submit only (never prematurely on file pick)
-  const handleFileUpload = (fieldId, e) => {
+  const handleFileUpload = (field, e) => {
+    const fieldId = field.id;
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
-    if (file.size > 25 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, [fieldId]: 'Ukuran file maksimal 25MB' }));
+    if (file.size > MAX_FILE_BYTES) {
+      setErrors(prev => ({ ...prev, [fieldId]: 'Ukuran file maksimal 20 MB' }));
+      return;
+    }
+    if (!isFileAccepted(file, field.accept)) {
+      setErrors(prev => ({ ...prev, [fieldId]: `Tipe berkas tidak didukung. Gunakan: ${field.accept || DEFAULT_FILE_ACCEPT}` }));
       return;
     }
 
@@ -402,26 +430,27 @@ export default function DynamicFormSection({
           newErrors[field.id] = (field.type === 'select' || field.type === 'radio') 
             ? `${field.label} wajib dipilih` 
             : `${field.label} wajib diisi`;
-        } else if (field.type === 'email' && !/\S+@\S+\.\S+/.test(val)) {
-          newErrors[field.id] = 'Format email tidak valid';
         } else if (field.type === 'textarea' && val.trim().length < 10) {
           newErrors[field.id] = `${field.label} minimal 10 karakter`;
         }
       }
 
-      // Validasi Unique: Cek apakah nilai sudah pernah didaftarkan pada pengisian sebelumnya
-      if (!newErrors[field.id] && field.isUnique && val && String(val).trim()) {
-        const inputValNorm = String(val).trim().toLowerCase();
-        const duplicateSub = (submissions || []).find(s => {
-          if (s.formId !== currentForm.id) return false;
-          const ans = s.data?.[field.id] ?? s[field.id] ?? s.answers?.[field.id];
-          if (ans === undefined || ans === null) return false;
-          return String(ans).trim().toLowerCase() === inputValNorm;
-        });
-
-        if (duplicateSub) {
-          newErrors[field.id] = `${field.label} "${val}" sudah pernah terdaftar sebelumnya. Field ini bersifat unik dan tidak menerima data duplikat.`;
+      // Format & length checks apply to every filled field, required or not
+      const textVal = typeof val === 'string' ? val.trim() : '';
+      if (!newErrors[field.id] && textVal) {
+        const maxLength = field.type === 'textarea' ? TEXTAREA_MAX_LENGTH : TEXT_MAX_LENGTH;
+        if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(textVal)) {
+          newErrors[field.id] = 'Format email tidak valid';
+        } else if (field.type === 'number' && !/^-?\d+([.,]\d+)?$/.test(textVal)) {
+          newErrors[field.id] = `${field.label} harus berupa angka`;
+        } else if (field.type !== 'file' && textVal.length > maxLength) {
+          newErrors[field.id] = `${field.label} maksimal ${maxLength} karakter`;
         }
+      }
+
+      // Validasi Unique: nilai yang sudah ditandai terdaftar saat field ditinggalkan (onBlur)
+      if (!newErrors[field.id] && field.isUnique && uniqueConflicts[field.id] && uniqueConflicts[field.id] === normalizeUniqueValue(val)) {
+        newErrors[field.id] = duplicateMessage(field, val);
       }
     });
 
@@ -447,7 +476,7 @@ export default function DynamicFormSection({
       alert('Batas waktu pendaftaran formulir ini telah berakhir.');
       return;
     }
-    const formQuota = getUnifiedFormQuota(currentForm, events, forms, eventRsvps, submissions);
+    const formQuota = getUnifiedFormQuota(currentForm, events, registrationCounts);
     if (formQuota.isFull) {
       alert(`Maaf, pendaftaran formulir ini telah ditutup karena kuota ${formQuota.isConnected ? 'acara (' + formQuota.connectedEvent?.title + ')' : 'pendaftaran'} telah terpenuhi (${formQuota.count}/${formQuota.maxQuota} peserta).`);
       return;
@@ -458,36 +487,11 @@ export default function DynamicFormSection({
 
   const handleConfirmSubmit = async () => {
     if (isSubmitting) return;
-    const formQuota = getUnifiedFormQuota(currentForm, events, forms, eventRsvps, submissions);
+    const formQuota = getUnifiedFormQuota(currentForm, events, registrationCounts);
     if (formQuota.isFull) {
       setIsConfirmOpen(false);
       alert(`Maaf, pendaftaran formulir ini telah ditutup karena kuota ${formQuota.isConnected ? 'acara (' + formQuota.connectedEvent?.title + ')' : 'pendaftaran'} telah terpenuhi (${formQuota.count}/${formQuota.maxQuota} peserta).`);
       return;
-    }
-
-    // Re-verifikasi validasi unique sebelum commit data
-    for (const field of (currentForm?.fields || [])) {
-      if (field.isUnique) {
-        const val = formData[field.id];
-        if (val && String(val).trim()) {
-          const inputValNorm = String(val).trim().toLowerCase();
-          const duplicateSub = (submissions || []).find(s => {
-            if (s.formId !== currentForm.id) return false;
-            const ans = s.data?.[field.id] ?? s[field.id] ?? s.answers?.[field.id];
-            if (ans === undefined || ans === null) return false;
-            return String(ans).trim().toLowerCase() === inputValNorm;
-          });
-          if (duplicateSub) {
-            setIsConfirmOpen(false);
-            setErrors(prev => ({
-              ...prev,
-              [field.id]: `${field.label} "${val}" sudah pernah terdaftar sebelumnya. Field ini bersifat unik dan tidak menerima data duplikat.`
-            }));
-            alert(`⚠️ Pendaftaran Ditolak:\n\n${field.label} "${val}" sudah pernah didaftarkan pada formulir ini sebelumnya.\nHarap gunakan data yang belum pernah didaftarkan.`);
-            return;
-          }
-        }
-      }
     }
 
     setIsSubmitting(true);
@@ -515,21 +519,24 @@ export default function DynamicFormSection({
     }
     setUploadingFieldId(null);
 
-    const newSubId = 'sub-' + Date.now();
-    const submission = {
-      id: newSubId,
-      formId: currentForm.id,
-      formTitle: currentForm.title,
-      createdAt: new Date().toISOString(),
-      submittedAt: new Date().toISOString(),
-      status: 'Submitted',
-      adminNotes: '',
-      data: { ...formData },
-      files: uploadedFiles
-    };
-
-    if (onSubmitSubmission) {
-      onSubmitSubmission(submission);
+    let newSubId;
+    try {
+      newSubId = await onSubmitSubmission({ formId: currentForm.id, data: { ...formData }, files: uploadedFiles });
+    } catch (err) {
+      console.error(err);
+      setIsSubmitting(false);
+      setIsConfirmOpen(false);
+      if (err.code === 'FORM_DUPLICATE' && err.detail) {
+        const field = (currentForm.fields || []).find(f => f.id === err.detail);
+        if (field) {
+          setUniqueConflicts(prev => ({ ...prev, [field.id]: normalizeUniqueValue(formData[field.id]) }));
+          setErrors(prev => ({ ...prev, [field.id]: duplicateMessage(field, formData[field.id]) }));
+        }
+      }
+      alert(err.code
+        ? `Pendaftaran ditolak: ${err.message}`
+        : 'Pendaftaran gagal dikirim ke server. Data Anda belum tersimpan, silakan periksa koneksi lalu coba lagi.');
+      return;
     }
 
     confetti({
@@ -566,58 +573,44 @@ export default function DynamicFormSection({
     ? dynamicIndexLabels.join(' / ') 
     : 'ID Pendaftaran (sub-...)';
 
-  // Filtered submissions for Self-Service Status Tracker (strictly EXACT matching Index Keys & Registration ID only)
+  // Self-Service Status Tracker: exact match on registration ID or configured index fields, resolved by the server
   const trimmedStatusQuery = statusQuery.trim().toLowerCase();
-  const cleanStatusQuery = trimmedStatusQuery.replace(/\s+/g, '');
-  const digitsStatusQuery = cleanStatusQuery.replace(/\D/g, '');
-
-  const isExactFieldMatch = (rawVal) => {
-    if (!rawVal) return false;
-    const strVal = String(rawVal).trim().toLowerCase();
-    // 1. Direct trimmed string exact match
-    if (strVal === trimmedStatusQuery) return true;
-    // 2. Whitespace-insensitive exact match (e.g. "2402 1234" vs "24021234")
-    if (strVal.replace(/\s+/g, '') === cleanStatusQuery) return true;
-    // 3. For numeric IDs like NIP / Phone numbers, match exact normalized digits (min 4 digits)
-    if (digitsStatusQuery.length >= 4) {
-      const digitsVal = strVal.replace(/\D/g, '');
-      if (digitsVal === digitsStatusQuery) return true;
+  const [matchedSubmissions, setMatchedSubmissions] = useState([]);
+  const [isTracking, setIsTracking] = useState(false);
+  useEffect(() => {
+    if (trimmedStatusQuery.length < 3) {
+      setMatchedSubmissions([]);
+      setIsTracking(false);
+      return undefined;
     }
-    return false;
-  };
+    let cancelled = false;
+    setIsTracking(true);
+    const timer = setTimeout(() => {
+      trackSubmissions(trimmedStatusQuery)
+        .then((list) => { if (!cancelled) setMatchedSubmissions(list); })
+        .catch((err) => {
+          console.error(err);
+          if (!cancelled) setMatchedSubmissions([]);
+        })
+        .finally(() => { if (!cancelled) setIsTracking(false); });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [trimmedStatusQuery]);
 
-  const matchedSubmissions = trimmedStatusQuery.length >= 3
-    ? submissions.filter((sub) => {
-        // 1. Identify the parent form schema for this submission
-        const parentForm = forms.find((f) => f.id === sub.formId);
-        // Exclude submissions from forms that do not require tracking
-        if (parentForm && parentForm.requiresTracking === false) {
-          return false;
-        }
-
-        // 2. Exact match on unique Registration ID (sub.id)
-        const subIdLower = (sub.id || '').trim().toLowerCase();
-        if (subIdLower === trimmedStatusQuery || subIdLower.replace(/\s+/g, '') === cleanStatusQuery) {
-          return true;
-        }
-
-        const formFields = parentForm?.fields || [];
-
-        // 3. Find field IDs designated as search index keys
-        const indexFieldIds = formFields
-          .filter((fld) => fld.isSearchIndex === true)
-          .map((fld) => fld.id);
-
-        if (indexFieldIds.length > 0) {
-          // Strictly ONLY check designated index fields (e.g. NIP) using EXACT match
-          return indexFieldIds.some((fid) => isExactFieldMatch(sub.data?.[fid]));
-        }
-
-        // 4. Default: Jika tidak ada field yang dicentang sebagai indeks pencarian,
-        // HANYA DAPAT DI-TRACK MELALUI ID PENDAFTARAN (yang sudah dicek di langkah 2).
-        return false;
-      })
-    : [];
+  // Announcement of accepted participants for the selected form (names and short detail only)
+  const [acceptedList, setAcceptedList] = useState([]);
+  useEffect(() => {
+    setAcceptedList([]);
+    if (!currentForm?.id || !currentForm.showAnnouncement) return undefined;
+    let cancelled = false;
+    fetchAcceptedSubmissions(currentForm.id)
+      .then((list) => { if (!cancelled) setAcceptedList(list); })
+      .catch((err) => console.error(err));
+    return () => { cancelled = true; };
+  }, [currentForm?.id, currentForm?.showAnnouncement]);
 
   const getStatusBadgeStyle = (status) => {
     switch (status) {
@@ -875,7 +868,7 @@ export default function DynamicFormSection({
                         {f.category || 'Formulir'}
                       </span>
                       {(() => {
-                        const formQuota = getUnifiedFormQuota(f, events, forms, eventRsvps, submissions);
+                        const formQuota = getUnifiedFormQuota(f, events, registrationCounts);
                         if (!formQuota.isLimited || formQuota.maxQuota <= 0) return null;
                         const isFull = formQuota.isFull;
                         return (
@@ -932,11 +925,16 @@ export default function DynamicFormSection({
                     {f.subtitle}
                   </p>
                   {(() => {
-                    const fSubs = submissions.filter(s => s.formId === f.id);
-                    const isFull = f.isLimited && f.maxQuota > 0 && fSubs.length >= f.maxQuota;
+                    const isFull = getUnifiedFormQuota(f, events, registrationCounts).isFull;
+                    const isClosed = f.isOpen === false || getDeadlineStatus(f.deadline).isExpired;
+                    const cardLabel = isSelected
+                      ? (isClosed ? '✓ Sedang Ditampilkan (Ditutup)' : '✓ Sedang Ditampilkan')
+                      : isClosed
+                        ? '🔒 Ditutup (Lihat Detail)'
+                        : (isFull ? '🔒 Kuota Penuh (Lihat Detail)' : 'Buka Formulir');
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border-card)', fontSize: '0.78rem', fontWeight: 700, color: isSelected ? 'var(--mandiri-gold)' : (isFull ? '#f43f5e' : 'var(--text-muted)') }}>
-                        <span>{isSelected ? '✓ Sedang Dibuka' : (isFull ? '🔒 Kuota Penuh (Lihat Detail)' : 'Buka Formulir')}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border-card)', fontSize: '0.78rem', fontWeight: 700, color: isSelected ? 'var(--mandiri-gold)' : ((isFull || isClosed) ? '#f43f5e' : 'var(--text-muted)') }}>
+                        <span>{cardLabel}</span>
                         <ChevronRight size={14} />
                       </div>
                     );
@@ -1172,7 +1170,7 @@ export default function DynamicFormSection({
                   </p>
                   {(() => {
                     const dl = getDeadlineStatus(currentForm.deadline);
-                    const formQuota = getUnifiedFormQuota(currentForm, events, forms, eventRsvps, submissions);
+                    const formQuota = getUnifiedFormQuota(currentForm, events, registrationCounts);
                     const isCurrentQuotaFull = formQuota.isFull;
 
                     return (
@@ -1418,6 +1416,7 @@ export default function DynamicFormSection({
                           <input
                             type={field.type}
                             placeholder={field.placeholder || ''}
+                            maxLength={TEXT_MAX_LENGTH}
                             value={formData[field.id] || ''}
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
                             onBlur={() => handleInputBlur(field)}
@@ -1430,6 +1429,7 @@ export default function DynamicFormSection({
                           <textarea
                             rows={4}
                             placeholder={field.placeholder || ''}
+                            maxLength={TEXTAREA_MAX_LENGTH}
                             value={formData[field.id] || ''}
                             onChange={(e) => handleInputChange(field.id, e.target.value)}
                             onBlur={() => handleInputBlur(field)}
@@ -1521,8 +1521,8 @@ export default function DynamicFormSection({
                               <label style={{ cursor: 'pointer', flex: 1, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                 <input
                                   type="file"
-                                  accept={field.accept || '*/*,.zip,.rar,.7z,.pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx'}
-                                  onChange={(e) => handleFileUpload(field.id, e)}
+                                  accept={field.accept || DEFAULT_FILE_ACCEPT}
+                                  onChange={(e) => handleFileUpload(field, e)}
                                   style={{ display: 'none' }}
                                 />
                                 {uploadingFieldId === field.id ? (
@@ -1534,7 +1534,7 @@ export default function DynamicFormSection({
                                     ✓ {fileData[field.id].name} ({fileData[field.id].size}) &bull; Siap dikirim saat klik Kirim
                                   </span>
                                 ) : (
-                                  <span>Klik untuk memilih berkas ({field.accept || 'ZIP, PDF, PNG, JPG, Dokumen max 25MB'})</span>
+                                  <span>Klik untuk memilih berkas ({field.accept || 'PDF, gambar, dokumen Office, ZIP'} • maks. 20 MB)</span>
                                 )}
                               </label>
                               {fileData[field.id] && (
@@ -1600,7 +1600,7 @@ export default function DynamicFormSection({
                       <span>Pendaftaran Ditutup (Batas Waktu Berakhir)</span>
                     </div>
                   ) : (() => {
-                    const formQuota = getUnifiedFormQuota(currentForm, events, forms, eventRsvps, submissions);
+                    const formQuota = getUnifiedFormQuota(currentForm, events, registrationCounts);
                     const isQuotaFull = formQuota.isFull;
                     if (isQuotaFull) {
                       return (
@@ -1972,7 +1972,7 @@ export default function DynamicFormSection({
               </div>
             )}
 
-            {trimmedStatusQuery.length >= 3 && (
+            {trimmedStatusQuery.length >= 3 && !isTracking && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {matchedSubmissions.length === 0 ? (
                   <div style={{
@@ -2070,11 +2070,7 @@ export default function DynamicFormSection({
 
       {/* 5. PENGUMUMAN PESERTA / CREW TERPILIH (HALL OF WELCOME & ONBOARDING BOARD) */}
       {(() => {
-        if (!currentForm?.showAnnouncement) return null;
-        const acceptedList = (submissions || []).filter(
-          (s) => s.status === 'Accepted' || s.status === 'Diterima'
-        );
-        if (acceptedList.length === 0) return null;
+        if (!currentForm?.showAnnouncement || acceptedList.length === 0) return null;
 
         const ACCEPTED_PER_PAGE = 8;
         const totalAcceptedPages = Math.ceil(acceptedList.length / ACCEPTED_PER_PAGE) || 1;
@@ -2137,11 +2133,7 @@ export default function DynamicFormSection({
                 }}
               >
                 {paginatedAccepted.map((sub) => {
-                  const entries = Object.entries(sub.data || {});
-                  const nameEntry = entries.find(([k]) => /nama|name|squad|tim/i.test(k));
-                  const unitEntry = entries.find(([k]) => /unit|department|dept|divisi|pilihan|cabor/i.test(k) && k !== nameEntry?.[0]);
-                  const participantName = nameEntry ? String(nameEntry[1]) : (entries[0] ? String(entries[0][1]) : 'Peserta Terpilih');
-                  const participantDetail = unitEntry ? String(unitEntry[1]) : (entries[1] ? String(entries[1][1]) : '');
+                  const { participantName, participantDetail } = sub;
 
                   return (
                     <div

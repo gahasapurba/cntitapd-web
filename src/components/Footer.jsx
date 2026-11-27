@@ -1,6 +1,8 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
 
+const CURRENT_YEAR_WIB = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric' }).format(new Date());
+
 export default function Footer({ theme }) {
   const isDark = theme === 'dark';
 
@@ -80,7 +82,7 @@ export default function Footer({ theme }) {
           gap: '12px'
         }}>
           <div>
-            © 2027 Culture Network Team Group IT APD. Satu Hati, Satu Mandiri.
+            © {CURRENT_YEAR_WIB} Culture Network Team Group IT APD. Satu Hati, Satu Mandiri.
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>

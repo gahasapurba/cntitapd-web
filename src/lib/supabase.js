@@ -33,6 +33,7 @@ export function saveLocalCache(key, value) {
 
 // ============================================================================
 // ROW MAPPERS: Web State (camelCase) <-> Dedicated Supabase Tables (snake_case)
+// Kolom mengikuti skema produksi (lihat supabase_schema.sql).
 // ============================================================================
 
 const TABLE_MAP = {
@@ -53,435 +54,6 @@ const TABLE_MAP = {
   luckyDraws: 'lucky_draws'
 };
 
-let isGalleryDivisionIdChecked = false;
-let isGalleryDivisionIdSupported = false;
-let isGalleryDivisionColSupported = false;
-
-export async function checkGalleryDivisionIdColumn() {
-  if (isGalleryDivisionIdChecked) return isGalleryDivisionIdSupported;
-  try {
-    const { error: idErr } = await supabase.from('galleries').select('division_id').limit(1);
-    isGalleryDivisionIdSupported = !idErr;
-    const { error: divErr } = await supabase.from('galleries').select('division').limit(1);
-    isGalleryDivisionColSupported = !divErr;
-    isGalleryDivisionIdChecked = true;
-  } catch (e) {
-    isGalleryDivisionIdSupported = false;
-  }
-  return isGalleryDivisionIdSupported;
-}
-
-let isGalleryEventIdChecked = false;
-let isGalleryEventIdSupported = false;
-
-export async function checkGalleryEventIdColumn() {
-  if (isGalleryEventIdChecked) return isGalleryEventIdSupported;
-  try {
-    const { error } = await supabase.from('galleries').select('event_id').limit(1);
-    isGalleryEventIdSupported = !error;
-    isGalleryEventIdChecked = true;
-  } catch (e) {
-    isGalleryEventIdSupported = false;
-  }
-  return isGalleryEventIdSupported;
-}
-
-let isFormsTrackingColChecked = false;
-let isFormsTrackingColSupported = false;
-
-export async function checkFormsTrackingColumn() {
-  if (isFormsTrackingColChecked) return isFormsTrackingColSupported;
-  try {
-    const { error } = await supabase.from('forms').select('requires_tracking').limit(1);
-    isFormsTrackingColSupported = !error;
-    isFormsTrackingColChecked = true;
-  } catch (e) {
-    isFormsTrackingColSupported = false;
-  }
-  return isFormsTrackingColSupported;
-}
-
-let isFormsTenureColChecked = false;
-let isFormsTenureColSupported = false;
-
-export async function checkFormsTenureColumn() {
-  if (isFormsTenureColChecked) return isFormsTenureColSupported;
-  try {
-    const { error } = await supabase.from('forms').select('tenure_id').limit(1);
-    isFormsTenureColSupported = !error;
-    isFormsTenureColChecked = true;
-  } catch (e) {
-    isFormsTenureColSupported = false;
-  }
-  return isFormsTenureColSupported;
-}
-
-let isFormsAnnouncementColChecked = false;
-let formsAnnouncementColName = null; // 'is_show_accepted' | 'show_announcement' | null
-
-export async function checkFormsAnnouncementColumn() {
-  if (isFormsAnnouncementColChecked) return formsAnnouncementColName;
-  try {
-    const { error: err1 } = await supabase.from('forms').select('is_show_accepted').limit(1);
-    if (!err1) {
-      formsAnnouncementColName = 'is_show_accepted';
-      isFormsAnnouncementColChecked = true;
-      return formsAnnouncementColName;
-    }
-    const { error: err2 } = await supabase.from('forms').select('show_announcement').limit(1);
-    if (!err2) {
-      formsAnnouncementColName = 'show_announcement';
-      isFormsAnnouncementColChecked = true;
-      return formsAnnouncementColName;
-    }
-  } catch (e) {
-    formsAnnouncementColName = null;
-  }
-  isFormsAnnouncementColChecked = true;
-  return formsAnnouncementColName;
-}
-
-let isFormsLimitedColChecked = false;
-let isFormsLimitedColSupported = false;
-let isFormsMaxQuotaColChecked = false;
-let isFormsMaxQuotaColSupported = false;
-
-let isFormsEventConnectedColChecked = false;
-let isFormsEventConnectedColSupported = false;
-let isFormsEventIdColChecked = false;
-let isFormsEventIdColSupported = false;
-let isFormsLuckyDrawColChecked = false;
-let isFormsLuckyDrawColSupported = false;
-
-let isFormsNotesColChecked = false;
-let isFormsNotesColSupported = false;
-
-export async function checkFormsNotesColumn() {
-  if (isFormsNotesColChecked) return isFormsNotesColSupported;
-  try {
-    const { error } = await supabase.from('forms').select('notes').limit(1);
-    isFormsNotesColSupported = !error;
-    isFormsNotesColChecked = true;
-  } catch (e) {
-    isFormsNotesColSupported = false;
-  }
-  return isFormsNotesColSupported;
-}
-
-export async function checkFormsLuckyDrawColumn() {
-  if (isFormsLuckyDrawColChecked) return isFormsLuckyDrawColSupported;
-  try {
-    const { error } = await supabase.from('forms').select('is_lucky_draw').limit(1);
-    isFormsLuckyDrawColSupported = !error;
-    isFormsLuckyDrawColChecked = true;
-  } catch (e) {
-    isFormsLuckyDrawColSupported = false;
-  }
-  return isFormsLuckyDrawColSupported;
-}
-
-export async function checkFormsEventColumns() {
-  if (isFormsEventConnectedColChecked && isFormsEventIdColChecked) {
-    return { isEventConnectedSupported: isFormsEventConnectedColSupported, isEventIdSupported: isFormsEventIdColSupported };
-  }
-  try {
-    const { error: err1 } = await supabase.from('forms').select('is_event_connected').limit(1);
-    isFormsEventConnectedColSupported = !err1;
-    isFormsEventConnectedColChecked = true;
-  } catch (e) {
-    isFormsEventConnectedColSupported = false;
-  }
-  try {
-    const { error: err2 } = await supabase.from('forms').select('event_id').limit(1);
-    isFormsEventIdColSupported = !err2;
-    isFormsEventIdColChecked = true;
-  } catch (e) {
-    isFormsEventIdColSupported = false;
-  }
-  return { isEventConnectedSupported: isFormsEventConnectedColSupported, isEventIdSupported: isFormsEventIdColSupported };
-}
-
-export async function checkFormsQuotaColumns() {
-  if (isFormsLimitedColChecked && isFormsMaxQuotaColChecked) {
-    return { isLimitedSupported: isFormsLimitedColSupported, isMaxQuotaSupported: isFormsMaxQuotaColSupported };
-  }
-  try {
-    const { error: errLim } = await supabase.from('forms').select('is_limited').limit(1);
-    isFormsLimitedColSupported = !errLim;
-    isFormsLimitedColChecked = true;
-  } catch (e) {
-    isFormsLimitedColSupported = false;
-  }
-  try {
-    const { error: errQuota } = await supabase.from('forms').select('max_quota').limit(1);
-    isFormsMaxQuotaColSupported = !errQuota;
-    isFormsMaxQuotaColChecked = true;
-  } catch (e) {
-    isFormsMaxQuotaColSupported = false;
-  }
-  return { isLimitedSupported: isFormsLimitedColSupported, isMaxQuotaSupported: isFormsMaxQuotaColSupported };
-}
-
-let isDepartmentsTableChecked = false;
-let isDepartmentsTableSupported = false;
-
-export async function checkDepartmentsTable() {
-  try {
-    const { error } = await supabase.from('departments').select('id').limit(1);
-    isDepartmentsTableSupported = !error;
-    isDepartmentsTableChecked = true;
-  } catch (e) {
-    isDepartmentsTableSupported = false;
-  }
-  return isDepartmentsTableSupported;
-}
-
-let isTenureRolesTableChecked = false;
-let isTenureRolesTableSupported = false;
-
-let isMembersRoleIdChecked = false;
-let isMembersRoleIdSupported = false;
-
-export async function checkMembersRoleIdColumn() {
-  if (isMembersRoleIdChecked) return isMembersRoleIdSupported;
-  try {
-    const { error } = await supabase.from('members').select('role_id').limit(1);
-    isMembersRoleIdSupported = !error;
-    isMembersRoleIdChecked = true;
-  } catch (e) {
-    isMembersRoleIdSupported = false;
-  }
-  return isMembersRoleIdSupported;
-}
-
-let isLegacyMemberColsChecked = false;
-let isLegacyMemberColsSupported = true;
-
-export async function checkLegacyMemberColumns() {
-  if (isLegacyMemberColsChecked) return isLegacyMemberColsSupported;
-  try {
-    const { error } = await supabase.from('members').select('category, role, title').limit(1);
-    isLegacyMemberColsSupported = !error;
-    isLegacyMemberColsChecked = true;
-  } catch (e) {
-    isLegacyMemberColsSupported = false;
-  }
-  return isLegacyMemberColsSupported;
-}
-
-export async function checkTenureRolesTable() {
-  try {
-    const { error } = await supabase.from('tenure_roles').select('id').limit(1);
-    isTenureRolesTableSupported = !error;
-    isTenureRolesTableChecked = true;
-  } catch (e) {
-    isTenureRolesTableSupported = false;
-  }
-  return isTenureRolesTableSupported;
-}
-
-let isLuckyDrawsTableChecked = false;
-let isLuckyDrawsTableSupported = false;
-
-export async function checkLuckyDrawsTable() {
-  if (isLuckyDrawsTableChecked) return isLuckyDrawsTableSupported;
-  try {
-    const { error } = await supabase.from('lucky_draws').select('id').limit(1);
-    isLuckyDrawsTableSupported = !error;
-    isLuckyDrawsTableChecked = true;
-  } catch (e) {
-    isLuckyDrawsTableSupported = false;
-  }
-  return isLuckyDrawsTableSupported;
-}
-
-let isLuckyDrawsLegacyColsChecked = false;
-let isLuckyDrawsLegacyColsSupported = true;
-
-export async function checkLuckyDrawsLegacyColumns() {
-  if (isLuckyDrawsLegacyColsChecked) return isLuckyDrawsLegacyColsSupported;
-  try {
-    const { error } = await supabase.from('lucky_draws').select('winner_name').limit(1);
-    isLuckyDrawsLegacyColsSupported = !error;
-    isLuckyDrawsLegacyColsChecked = true;
-  } catch (e) {
-    isLuckyDrawsLegacyColsSupported = false;
-  }
-  return isLuckyDrawsLegacyColsSupported;
-}
-
-const supportedUpdatedAtTables = new Set(['brand_assets', 'event_rsvps', 'faqs', 'tenure_roles', 'lucky_draws']);
-
-export async function checkTableUpdatedAtColumn(tableName) {
-  if (!tableName) return false;
-  if (supportedUpdatedAtTables.has(tableName)) return true;
-  try {
-    const { error } = await supabase.from(tableName).select('updated_at').limit(1);
-    if (!error) {
-      supportedUpdatedAtTables.add(tableName);
-      return true;
-    }
-  } catch (e) {
-    // Ignore and fallback
-  }
-  return false;
-}
-
-let isRsvpsDepartmentColChecked = true;
-let isRsvpsDepartmentColSupported = true;
-let isRsvpsDepartmentIdColChecked = false;
-let isRsvpsDepartmentIdColSupported = false;
-
-export async function checkRsvpsDepartmentColumn() {
-  try {
-    const { error: errDept } = await supabase.from('event_rsvps').select('department').limit(1);
-    isRsvpsDepartmentColSupported = !errDept;
-    isRsvpsDepartmentColChecked = true;
-  } catch (e) {
-    isRsvpsDepartmentColSupported = true;
-  }
-
-  try {
-    const { error: errId } = await supabase.from('event_rsvps').select('department_id').limit(1);
-    isRsvpsDepartmentIdColSupported = !errId;
-    isRsvpsDepartmentIdColChecked = true;
-  } catch (e) {
-    isRsvpsDepartmentIdColSupported = false;
-  }
-
-  return {
-    isDepartmentColSupported: isRsvpsDepartmentColSupported,
-    isDepartmentIdColSupported: isRsvpsDepartmentIdColSupported
-  };
-}
-
-let isDivisionsSlugColChecked = false;
-let isDivisionsSlugColSupported = false;
-let isDivisionsMemberIdColChecked = false;
-let isDivisionsMemberIdColSupported = false;
-let isDivisionsLeadNameColChecked = false;
-let isDivisionsLeadNameColSupported = true;
-
-export async function checkDivisionsSchema() {
-  try {
-    const { error: errSlug } = await supabase.from('divisions').select('slug').limit(1);
-    isDivisionsSlugColSupported = !errSlug;
-    isDivisionsSlugColChecked = true;
-  } catch (e) {
-    isDivisionsSlugColSupported = false;
-  }
-
-  try {
-    const { error: errMemberId } = await supabase.from('divisions').select('member_id').limit(1);
-    isDivisionsMemberIdColSupported = !errMemberId;
-    isDivisionsMemberIdColChecked = true;
-  } catch (e) {
-    isDivisionsMemberIdColSupported = false;
-  }
-
-  try {
-    const { error: errLeadName } = await supabase.from('divisions').select('lead_name').limit(1);
-    isDivisionsLeadNameColSupported = !errLeadName;
-    isDivisionsLeadNameColChecked = true;
-  } catch (e) {
-    isDivisionsLeadNameColSupported = false;
-  }
-
-  return {
-    isSlugSupported: isDivisionsSlugColSupported,
-    isMemberIdSupported: isDivisionsMemberIdColSupported,
-    isLeadNameSupported: isDivisionsLeadNameColSupported
-  };
-}
-
-export async function checkDivisionsSlugColumn() {
-  return checkDivisionsSchema().then(m => m.isSlugSupported);
-}
-
-let isEventsSchemaChecked = false;
-let eventsSchemaMeta = {
-  hasDate: true,
-  categoryCol: 'badge', // 'kategori' | 'category' | 'badge'
-  pesertaCol: 'kpi',    // 'peserta' | 'kpi'
-  hasDivisionName: false,
-  hasIsLimited: false,
-  hasMaxQuota: false,
-  hasIsPublic: false
-};
-
-export async function detectEventsSchema() {
-  if (isEventsSchemaChecked) return eventsSchemaMeta;
-  try {
-    const { data, error } = await supabase.from('events').select('*').limit(1);
-    if (!error && data) {
-      const cols = data[0] ? Object.keys(data[0]) : [];
-      if (cols.length > 0) {
-        eventsSchemaMeta.hasDate = cols.includes('date');
-        eventsSchemaMeta.hasDivisionName = cols.includes('division_name');
-        eventsSchemaMeta.hasIsLimited = cols.includes('is_limited');
-        eventsSchemaMeta.hasMaxQuota = cols.includes('max_quota');
-        eventsSchemaMeta.hasIsPublic = cols.includes('is_public');
-        if (cols.includes('kategori')) {
-          eventsSchemaMeta.categoryCol = 'kategori';
-        } else if (cols.includes('category')) {
-          eventsSchemaMeta.categoryCol = 'category';
-        } else {
-          eventsSchemaMeta.categoryCol = 'badge';
-        }
-        if (cols.includes('peserta')) {
-          eventsSchemaMeta.pesertaCol = 'peserta';
-        } else {
-          eventsSchemaMeta.pesertaCol = 'kpi';
-        }
-        isEventsSchemaChecked = true;
-        return eventsSchemaMeta;
-      }
-    }
-  } catch (e) {
-    // fallback
-  }
-
-  try {
-    const [dateRes, divNameRes, katRes, catRes, pesRes, limRes, quoRes, pubRes] = await Promise.all([
-      supabase.from('events').select('date').limit(1),
-      supabase.from('events').select('division_name').limit(1),
-      supabase.from('events').select('kategori').limit(1),
-      supabase.from('events').select('category').limit(1),
-      supabase.from('events').select('peserta').limit(1),
-      supabase.from('events').select('is_limited').limit(1),
-      supabase.from('events').select('max_quota').limit(1),
-      supabase.from('events').select('is_public').limit(1)
-    ]);
-    eventsSchemaMeta.hasDate = !dateRes.error;
-    eventsSchemaMeta.hasDivisionName = !divNameRes.error;
-    eventsSchemaMeta.hasIsLimited = !limRes.error;
-    eventsSchemaMeta.hasMaxQuota = !quoRes.error;
-    eventsSchemaMeta.hasIsPublic = !pubRes.error;
-    if (!katRes.error) {
-      eventsSchemaMeta.categoryCol = 'kategori';
-    } else if (!catRes.error) {
-      eventsSchemaMeta.categoryCol = 'category';
-    } else {
-      eventsSchemaMeta.categoryCol = 'badge';
-    }
-    eventsSchemaMeta.pesertaCol = !pesRes.error ? 'peserta' : 'kpi';
-    isEventsSchemaChecked = true;
-  } catch (e) {
-    // keep default
-  }
-  return eventsSchemaMeta;
-}
-
-export async function checkEventDivisionNameColumn() {
-  const meta = await detectEventsSchema();
-  return meta.hasDivisionName;
-}
-
-export async function checkEventCategoryColumn() {
-  const meta = await detectEventsSchema();
-  return meta.categoryCol !== 'badge';
-}
-
 export const rowMappers = {
   tenures: {
     toDb: (item, idx = 0) => ({
@@ -494,10 +66,11 @@ export const rowMappers = {
       visi: item.visi || '',
       misi: Array.isArray(item.misi) ? item.misi : [],
       is_active: Boolean(item.isActive),
-      sort_order: idx
+      sort_order: Number(item.sortOrder ?? idx)
     }),
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       code: row.code,
       title: row.title,
       themeTagline: row.theme_tagline,
@@ -522,21 +95,13 @@ export const rowMappers = {
         description: item.description || '',
         focus_areas: Array.isArray(item.focusAreas) ? item.focusAreas : [],
         is_recruiting: Boolean(item.isRecruiting),
-        sort_order: idx
+        sort_order: Number(item.sortOrder ?? idx)
       };
-      if (isDivisionsMemberIdColSupported) {
-        row.member_id = item.memberId || null;
-      }
-      if (isDivisionsLeadNameColSupported) {
-        row.lead_name = item.leadName || '';
-      }
-      if (isDivisionsSlugColSupported) {
-        row.slug = item.slug || (item.name ? item.name.toLowerCase().replace(/\s+/g, '-') : '');
-      }
       return row;
     },
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       tenureId: row.tenure_id,
       name: row.name,
       slug: row.slug || (row.name ? row.name.toLowerCase().replace(/\s+/g, '-') : ''),
@@ -607,20 +172,14 @@ export const rowMappers = {
         whatsapp: item.whatsapp || '',
         motto: item.motto || '',
         responsibilities: Array.isArray(item.responsibilities) ? item.responsibilities : [],
-        sort_order: idx
+        sort_order: Number(item.sortOrder ?? idx)
       };
-      if (isMembersRoleIdSupported) {
-        row.role_id = item.roleId || null;
-      }
-      if (isLegacyMemberColsSupported) {
-        row.category = item.category || 'anggota';
-        row.role = item.role || '';
-        row.title = item.title || '';
-      }
+      row.role_id = item.roleId || null;
       return row;
     },
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       tenureId: row.tenure_id,
       divisionId: row.division_id || undefined,
       roleId: row.role_id || '',
@@ -653,29 +212,18 @@ export const rowMappers = {
         description: item.description || '',
         total_rab: Number(item.totalRab || 0),
         status: item.status || 'Upcoming',
-        sort_order: idx
+        sort_order: Number(item.sortOrder ?? idx)
       };
-      if (eventsSchemaMeta.hasDate) {
-        row.date = item.date || item.startDate || '';
-      }
-      if (eventsSchemaMeta.hasDivisionName && item.divisionName) {
-        row.division_name = item.divisionName;
-      }
-      if (eventsSchemaMeta.hasIsLimited) {
-        row.is_limited = Boolean(item.isLimited);
-      }
-      if (eventsSchemaMeta.hasMaxQuota) {
-        row.max_quota = Number(item.maxQuota || item.quota || 0);
-      }
-      if (eventsSchemaMeta.hasIsPublic) {
-        row.is_public = Boolean(item.isPublic);
-      }
-      row[eventsSchemaMeta.categoryCol] = catVal;
-      row[eventsSchemaMeta.pesertaCol] = pesertaVal;
+      row.is_limited = Boolean(item.isLimited);
+      row.max_quota = Number(item.maxQuota || item.quota || 0);
+      row.is_public = Boolean(item.isPublic);
+      row.category = catVal;
+      row.peserta = pesertaVal;
       return row;
     },
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       tenureId: row.tenure_id,
       divisionId: row.division_id,
       divisionName: row.division_name,
@@ -710,21 +258,15 @@ export const rowMappers = {
         description: item.description || '',
         photos: Array.isArray(item.photos) ? item.photos : [],
         doc_links: Array.isArray(item.docLinks) ? item.docLinks : [],
-        sort_order: idx
+        sort_order: Number(item.sortOrder ?? idx)
       };
-      if (isGalleryDivisionIdSupported) {
-        row.division_id = item.divisionId || null;
-      }
-      if (isGalleryDivisionColSupported) {
-        row.division = item.divisionName || item.division || '';
-      }
-      if (isGalleryEventIdSupported) {
-        row.event_id = item.eventId || null;
-      }
+      row.division_id = item.divisionId || null;
+      row.event_id = item.eventId || null;
       return row;
     },
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       tenureId: row.tenure_id,
       divisionId: row.division_id || undefined,
       eventId: row.event_id || undefined,
@@ -749,10 +291,11 @@ export const rowMappers = {
       message: item.message || '',
       likes: Number(item.likes ?? 1),
       created_at: item.createdAt || item.created_at || new Date().toISOString(),
-      sort_order: idx
+      sort_order: Number(item.sortOrder ?? idx)
     }),
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       sender: row.sender,
       recipient: row.recipient,
       category: row.category || 'Kolaboratif',
@@ -774,10 +317,11 @@ export const rowMappers = {
       status: item.status || 'Menunggu Review',
       admin_reply: item.adminReply || '',
       is_public: item.isPublic !== false,
-      sort_order: idx
+      sort_order: Number(item.sortOrder ?? idx)
     }),
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       sender: row.sender || 'Anonim',
       title: row.title || row.description || '',
       category: row.category || 'Kegiatan & Event',
@@ -823,38 +367,21 @@ export const rowMappers = {
         title: item.title || '',
         subtitle: item.subtitle || '',
         category: item.category || 'Kegiatan & Event',
-        deadline: item.deadline ? toDatetimeLocalSecondsValue(item.deadline) : '',
+        // Kolom TIMESTAMPTZ menyimpan digit jam WIB apa adanya (lihat form_deadline_wib di migration)
+        deadline: item.deadline ? toDatetimeLocalSecondsValue(item.deadline) : null,
         is_open: item.isOpen !== false,
         fields: rawFields,
-        sort_order: idx
+        sort_order: Number(item.sortOrder ?? idx)
       };
-      if (isFormsTrackingColSupported) {
-        row.requires_tracking = item.requiresTracking !== false;
-      }
-      if (isFormsTenureColSupported) {
-        row.tenure_id = item.tenureId || item.tenure_id || null;
-      }
-      if (formsAnnouncementColName) {
-        row[formsAnnouncementColName] = showAnnouncementVal;
-      }
-      if (isFormsLimitedColSupported) {
-        row.is_limited = isLimitedVal;
-      }
-      if (isFormsMaxQuotaColSupported) {
-        row.max_quota = maxQuotaVal;
-      }
-      if (isFormsEventConnectedColSupported) {
-        row.is_event_connected = isEventConnectedVal;
-      }
-      if (isFormsEventIdColSupported) {
-        row.event_id = eventIdVal || null;
-      }
-      if (isFormsLuckyDrawColSupported) {
-        row.is_lucky_draw = isLuckyDrawVal;
-      }
-      if (isFormsNotesColSupported) {
-        row.notes = item.notes !== undefined && item.notes !== null ? item.notes : null;
-      }
+      row.requires_tracking = item.requiresTracking !== false;
+      row.tenure_id = item.tenureId || item.tenure_id || null;
+      row.is_show_accepted = showAnnouncementVal;
+      row.is_limited = isLimitedVal;
+      row.max_quota = maxQuotaVal;
+      row.is_event_connected = isEventConnectedVal;
+      row.event_id = eventIdVal || null;
+      row.is_lucky_draw = isLuckyDrawVal;
+      row.notes = item.notes !== undefined && item.notes !== null ? item.notes : null;
       return row;
     },
     fromDb: (row) => {
@@ -921,6 +448,7 @@ export const rowMappers = {
 
       return {
         id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
         title: row.title,
         subtitle: row.subtitle || row.description || '',
         category: row.category,
@@ -953,6 +481,7 @@ export const rowMappers = {
     }),
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       formId: row.form_id,
       formTitle: row.form_title || '',
       submittedAt: row.created_at || row.submitted_at || '',
@@ -976,10 +505,11 @@ export const rowMappers = {
       file_type: item.fileType || 'PNG / ZIP',
       file_size: item.fileSize || '',
       badge: item.badge || 'Official Asset',
-      sort_order: idx
+      sort_order: Number(item.sortOrder ?? idx)
     }),
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       title: row.title,
       category: row.category || 'Logo & Brand',
       description: row.description || '',
@@ -1002,18 +532,14 @@ export const rowMappers = {
         attendee_name: item.attendeeName || '',
         attendance_mode: item.attendanceMode || 'Hadir Onsite',
         notes: item.notes || '',
-        sort_order: idx
+        sort_order: Number(item.sortOrder ?? idx)
       };
-      if (isRsvpsDepartmentIdColSupported) {
-        row.department_id = deptVal || null;
-      }
-      if (isRsvpsDepartmentColSupported) {
-        row.department = deptVal;
-      }
+      row.department_id = deptVal || null;
       return row;
     },
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       eventId: row.event_id || '',
       attendeeName: row.attendee_name || '',
       departmentId: row.department_id || row.department || row.squad_unit || '',
@@ -1035,10 +561,11 @@ export const rowMappers = {
       category: item.category || 'Umum',
       asked_by: item.askedBy || 'Admin CNT',
       is_published: item.isPublished !== false,
-      sort_order: idx
+      sort_order: Number(item.sortOrder ?? idx)
     }),
     fromDb: (row) => ({
       id: row.id,
+      sortOrder: Number(row.sort_order ?? 0),
       question: row.question || '',
       answer: row.answer || '',
       category: row.category || 'Umum',
@@ -1056,485 +583,538 @@ export const rowMappers = {
         id: String(item.id),
         event_id: item.eventId || '',
         submission_id: item.submissionId || '',
-        form_id: item.formId || '',
+        form_id: item.formId || null,
         prize_name: item.prizeTitle || item.prizeName || 'Doorprize Utama',
         drawn_at: item.drawnAt || new Date().toISOString(),
-        sort_order: idx
+        sort_order: Number(item.sortOrder ?? idx)
       };
-      // Only attach redundant legacy columns if they still exist in the database table
-      if (isLuckyDrawsLegacyColsSupported) {
-        row.winner_name = item.winnerName || '';
-        row.winner_unit = item.winnerDepartment || item.winnerUnit || '';
-        row.winner_phone = item.winnerIdentifier || item.winnerPhone || '';
-      }
+      row.details = {
+        winnerName: item.winnerName || '',
+        winnerDepartment: item.winnerDepartment || item.winnerUnit || '',
+        winnerIdentifier: item.winnerIdentifier || item.winnerPhone || '',
+        drawNumber: Number(item.drawNumber || 0),
+        source: item.source || '',
+        drawnFieldLabel: item.drawnFieldLabel || '',
+        drawnFieldValue: item.drawnFieldValue || ''
+      };
       return row;
     },
-    fromDb: (row) => ({
-      id: row.id,
-      eventId: row.event_id || '',
-      submissionId: row.submission_id || '',
-      formId: row.form_id || '',
-      winnerName: row.winner_name || '',
-      winnerUnit: row.winner_unit || '',
-      winnerDepartment: row.winner_unit || '',
-      winnerPhone: row.winner_phone || '',
-      winnerIdentifier: row.winner_phone || '',
-      prizeName: row.prize_name || 'Doorprize Utama',
-      prizeTitle: row.prize_name || 'Doorprize Utama',
-      drawnAt: row.drawn_at || row.created_at || ''
-    })
+    fromDb: (row) => {
+      const details = row.details || {};
+      return {
+        id: row.id,
+        eventId: row.event_id || '',
+        submissionId: row.submission_id || '',
+        formId: row.form_id || '',
+        winnerName: details.winnerName || row.winner_name || '',
+        winnerUnit: details.winnerDepartment || row.winner_unit || '',
+        winnerDepartment: details.winnerDepartment || row.winner_unit || '',
+        winnerPhone: details.winnerIdentifier || row.winner_phone || '',
+        winnerIdentifier: details.winnerIdentifier || row.winner_phone || '',
+        drawNumber: Number(details.drawNumber || 0),
+        source: details.source || '',
+        drawnFieldLabel: details.drawnFieldLabel || '',
+        drawnFieldValue: details.drawnFieldValue || '',
+        prizeName: row.prize_name || 'Doorprize Utama',
+        prizeTitle: row.prize_name || 'Doorprize Utama',
+        drawnAt: row.drawn_at || row.created_at || '',
+        sortOrder: Number(row.sort_order || 0)
+      };
+    }
   }
 };
+// ============================================================================
+// DATA FETCHING
+// ============================================================================
 
-/**
- * Fetch all dedicated tables from Supabase and sync to LocalStorage cache
- */
-export async function fetchAllCloudState() {
-  try {
-    await Promise.all([
-      checkGalleryDivisionIdColumn(),
-      checkGalleryEventIdColumn(),
-      detectEventsSchema(),
-      checkFormsTrackingColumn(),
-      checkFormsTenureColumn(),
-      checkFormsAnnouncementColumn(),
-      checkFormsQuotaColumns(),
-      checkFormsEventColumns(),
-      checkFormsLuckyDrawColumn(),
-      checkRsvpsDepartmentColumn(),
-      checkDivisionsSchema(),
-      checkDepartmentsTable(),
-      checkTenureRolesTable(),
-      checkLuckyDrawsTable(),
-      checkLuckyDrawsLegacyColumns(),
-      checkMembersRoleIdColumn(),
-      checkLegacyMemberColumns()
-    ]);
-    const [
-      tenuresRes,
-      divisionsRes,
-      membersRes,
-      eventsRes,
-      galleriesRes,
-      kudosRes,
-      aspirasiRes,
-      formsRes,
-      submissionsRes,
-      brandAssetsRes,
-      eventRsvpsRes,
-      faqsRes,
-      departmentsRes,
-      tenureRolesRes,
-      luckyDrawsRes,
-      settingsRes
-    ] = await Promise.all([
-      supabase.from('tenures').select('*').order('sort_order', { ascending: true }),
-      supabase.from('divisions').select('*').order('sort_order', { ascending: true }),
-      supabase.from('members').select('*').order('sort_order', { ascending: true }),
-      supabase.from('events').select('*').order('sort_order', { ascending: true }),
-      supabase.from('galleries').select('*').order('sort_order', { ascending: true }),
-      supabase.from('kudos').select('*').order('created_at', { ascending: false }),
-      supabase.from('aspirasi').select('*').order('created_at', { ascending: false }),
-      supabase.from('forms').select('*').order('sort_order', { ascending: true }),
-      supabase.from('submissions').select('*').order('created_at', { ascending: false }),
-      supabase.from('brand_assets').select('*').order('sort_order', { ascending: true }),
-      supabase.from('event_rsvps').select('*').order('created_at', { ascending: false }),
-      supabase.from('faqs').select('*').order('sort_order', { ascending: true }),
-      isDepartmentsTableSupported ? supabase.from('departments').select('*').order('sort_order', { ascending: true }) : Promise.resolve({ data: null, error: null }),
-      isTenureRolesTableSupported ? supabase.from('tenure_roles').select('*').order('sort_order', { ascending: true }) : Promise.resolve({ data: null, error: null }),
-      isLuckyDrawsTableSupported ? supabase.from('lucky_draws').select('*').order('drawn_at', { ascending: false }) : Promise.resolve({ data: null, error: null }),
-      supabase.from('page_settings').select('*')
-    ]);
+// Data pribadi pendaftar & isi aspirasi: hanya dibaca admin berwenang dan tidak pernah
+// disimpan di cache browser.
+const PRIVATE_KEYS = ['submissions', 'eventRsvps', 'luckyDraws', 'aspirasiList'];
+PRIVATE_KEYS.forEach((key) => {
+  try { localStorage.removeItem(LOCAL_PREFIX + key); } catch (e) { /* storage unavailable */ }
+});
 
-    const result = {};
+const FETCH_ORDER = {
+  tenures: 'sort_order',
+  divisions: 'sort_order',
+  departments: 'sort_order',
+  members: 'sort_order',
+  events: 'sort_order',
+  galleries: 'sort_order',
+  kudosList: 'created_at',
+  aspirasiList: 'created_at',
+  forms: 'sort_order',
+  submissions: 'created_at',
+  brandAssets: 'sort_order',
+  eventRsvps: 'created_at',
+  faqs: 'sort_order',
+  tenureRoles: 'sort_order',
+  luckyDraws: 'drawn_at'
+};
+const DESCENDING_ORDER = new Set(['created_at', 'drawn_at']);
 
-    if (!tenuresRes.error && Array.isArray(tenuresRes.data) && tenuresRes.data.length > 0) {
-      result.tenures = tenuresRes.data.map(rowMappers.tenures.fromDb);
-      saveLocalCache('tenures', result.tenures);
-    }
-    if (!divisionsRes.error && Array.isArray(divisionsRes.data) && divisionsRes.data.length > 0) {
-      result.divisions = divisionsRes.data.map(rowMappers.divisions.fromDb);
-      saveLocalCache('divisions', result.divisions);
-    }
-    if (!membersRes.error && Array.isArray(membersRes.data) && membersRes.data.length > 0) {
-      result.members = membersRes.data.map(rowMappers.members.fromDb);
-      saveLocalCache('members', result.members);
-    }
-    if (!eventsRes.error && Array.isArray(eventsRes.data)) {
-      result.events = eventsRes.data.map(rowMappers.events.fromDb);
-      saveLocalCache('events', result.events);
-    }
-    if (!galleriesRes.error && Array.isArray(galleriesRes.data)) {
-      result.galleries = galleriesRes.data.map(rowMappers.galleries.fromDb);
-      saveLocalCache('galleries', result.galleries);
-    }
-    if (!kudosRes.error && Array.isArray(kudosRes.data)) {
-      result.kudosList = kudosRes.data.map(rowMappers.kudosList.fromDb);
-      saveLocalCache('kudosList', result.kudosList);
-    }
-    if (!aspirasiRes.error && Array.isArray(aspirasiRes.data)) {
-      result.aspirasiList = aspirasiRes.data.map(rowMappers.aspirasiList.fromDb);
-      saveLocalCache('aspirasiList', result.aspirasiList);
-    }
-    if (!formsRes.error && Array.isArray(formsRes.data)) {
-      result.forms = formsRes.data.map(rowMappers.forms.fromDb);
-      saveLocalCache('forms', result.forms);
-    }
-    if (!submissionsRes.error && Array.isArray(submissionsRes.data)) {
-      result.submissions = submissionsRes.data.map(rowMappers.submissions.fromDb);
-      saveLocalCache('submissions', result.submissions);
-    }
-    if (!brandAssetsRes.error && Array.isArray(brandAssetsRes.data)) {
-      result.brandAssets = brandAssetsRes.data.map(rowMappers.brandAssets.fromDb);
-      saveLocalCache('brandAssets', result.brandAssets);
-    }
-    if (!eventRsvpsRes.error && Array.isArray(eventRsvpsRes.data)) {
-      result.eventRsvps = eventRsvpsRes.data.map(rowMappers.eventRsvps.fromDb);
-      saveLocalCache('eventRsvps', result.eventRsvps);
-    }
-    if (!faqsRes.error && Array.isArray(faqsRes.data)) {
-      result.faqs = faqsRes.data.map(rowMappers.faqs.fromDb);
-      saveLocalCache('faqs', result.faqs);
-    }
-    if (departmentsRes && !departmentsRes.error && Array.isArray(departmentsRes.data)) {
-      result.departments = departmentsRes.data.map(rowMappers.departments.fromDb);
-      saveLocalCache('departments', result.departments);
-    }
-    if (tenureRolesRes && !tenureRolesRes.error && Array.isArray(tenureRolesRes.data) && tenureRolesRes.data.length > 0) {
-      result.tenureRoles = tenureRolesRes.data.map(rowMappers.tenureRoles.fromDb);
-      saveLocalCache('tenureRoles', result.tenureRoles);
-    }
-    if (luckyDrawsRes && !luckyDrawsRes.error && Array.isArray(luckyDrawsRes.data)) {
-      result.luckyDraws = luckyDrawsRes.data.map(rowMappers.luckyDraws.fromDb);
-      saveLocalCache('luckyDraws', result.luckyDraws);
-    }
-    if (!settingsRes.error && Array.isArray(settingsRes.data)) {
-      for (const row of settingsRes.data) {
-        if (row.key === 'page_visibility' && row.value) {
-          const valWithUpdated = {
-            ...row.value,
-            _updatedAt: row.updated_at
-          };
-          result.pageVisibility = valWithUpdated;
-          saveLocalCache('pageVisibility', valWithUpdated);
-        }
-        if (row.key === 'active_tenure_id' && row.value?.id) {
-          result.activeTenureId = row.value.id;
-          saveLocalCache('activeTenureId', row.value.id);
-        }
-        if (row.key === 'announcement_bar' && row.value) {
-          const valWithUpdated = {
-            ...row.value,
-            _updatedAt: row.updated_at
-          };
-          result.announcementBar = valWithUpdated;
-          saveLocalCache('announcementBar', valWithUpdated);
-        }
-        if (row.key === 'role_quotas' && row.value) {
-          result.roleQuotas = row.value;
-          saveLocalCache('roleQuotas', row.value);
+const SETTING_KEYS = {
+  pageVisibility: 'page_visibility',
+  activeTenureId: 'active_tenure_id',
+  announcementBar: 'announcement_bar',
+  roleQuotas: 'role_quotas'
+};
+
+function enrichMembersAndDivisions(result) {
+  // Lengkapi pengurus dengan kategori, jabatan & divisi dari tenure_roles
+  if (Array.isArray(result.members)) {
+    const rList = result.tenureRoles || [];
+    const dList = result.divisions || [];
+    result.members = result.members.map(m => {
+      const roleObj = rList.find(r => r.id === m.roleId) ||
+        rList.find(r => String(r.name || '').toLowerCase() === String(m.role || '').toLowerCase());
+      const divObj = dList.find(d => d.id === m.divisionId);
+      const level = roleObj ? Number(roleObj.level) : 5;
+      const cat = roleObj ? getCategoryFromLevel(level) : (m.category || 'anggota');
+
+      let roleName = m.role || '';
+      let titleName = m.title || '';
+
+      if (roleObj) {
+        const rName = roleObj.name || '';
+        const dName = divObj?.name || '';
+        if (roleObj.requiresDivision && divObj && dName) {
+          roleName = rName.toLowerCase().includes(dName.toLowerCase())
+            ? rName
+            : `${rName} ${dName}`;
+          titleName = dName;
+        } else {
+          roleName = roleName || rName;
+          titleName = divObj?.name || (titleName && titleName.toLowerCase() !== roleName.toLowerCase() ? titleName : '');
         }
       }
-    }
 
-    // Enrich and reconcile members with role_id, divisions, and category
-    if (result.members && Array.isArray(result.members)) {
-      const rList = result.tenureRoles || [];
-      const dList = result.divisions || [];
-      result.members = result.members.map(m => {
-        const roleObj = rList.find(r => r.id === m.roleId) ||
-          rList.find(r => String(r.name || '').toLowerCase() === String(m.role || '').toLowerCase());
-        const divObj = dList.find(d => d.id === m.divisionId);
-        const level = roleObj ? Number(roleObj.level) : 5;
-        const cat = roleObj ? getCategoryFromLevel(level) : (m.category || 'anggota');
-
-        let roleName = m.role || '';
-        let titleName = m.title || '';
-
-        if (roleObj) {
-          const rName = roleObj.name || '';
-          const dName = divObj?.name || '';
-          if (roleObj.requiresDivision && divObj && dName) {
-            roleName = rName.toLowerCase().includes(dName.toLowerCase())
-              ? rName
-              : `${rName} ${dName}`;
-            titleName = dName;
-          } else {
-            roleName = roleName || rName;
-            titleName = divObj?.name || (titleName && titleName.toLowerCase() !== roleName.toLowerCase() ? titleName : '');
-          }
-        }
-
-        return {
-          ...m,
-          roleId: roleObj?.id || m.roleId || '',
-          category: cat,
-          role: roleName || 'Anggota',
-          title: titleName || ''
-        };
-      });
-      saveLocalCache('members', result.members);
-    }
-
-    // Reconcile divisions with lead resolved directly from DB roles & members
-    if (result.divisions && Array.isArray(result.divisions)) {
-      const memList = result.members || [];
-      const rList = result.tenureRoles || [];
-      result.divisions = result.divisions.map(d => {
-        const divMems = memList.filter(m => m.divisionId === d.id);
-        let bestLead = null;
-        if (divMems.length > 0) {
-          const mapped = divMems.map(m => {
-            const roleObj = rList.find(r => r.id === m.roleId) ||
-              rList.find(r => String(r.name || '').toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
-            const level = roleObj ? Number(roleObj.level) : 5;
-            const sortOrder = roleObj ? Number(roleObj.sortOrder ?? 0) : 999;
-            return { member: m, level, sortOrder };
-          });
-          mapped.sort((a, b) => (a.level - b.level) || (a.sortOrder - b.sortOrder));
-          bestLead = mapped[0]?.member || null;
-        }
-        return {
-          ...d,
-          memberId: bestLead ? bestLead.id : (d.memberId || null),
-          leadName: bestLead ? bestLead.name : (d.leadName || '')
-        };
-      });
-      saveLocalCache('divisions', result.divisions);
-    }
-
-    return result;
-  } catch (e) {
-    return null;
-  }
-}
-
-export async function pushRoleQuotas(quotas) {
-  try {
-    saveLocalCache('roleQuotas', quotas);
-    await supabase.from('page_settings').upsert({
-      key: 'role_quotas',
-      value: quotas,
-      updated_at: new Date().toISOString()
+      return {
+        ...m,
+        roleId: roleObj?.id || m.roleId || '',
+        category: cat,
+        role: roleName || 'Anggota',
+        title: titleName || ''
+      };
     });
-    return true;
-  } catch (e) {
-    console.error('Failed to push role quotas:', e);
-    return false;
   }
-}
 
-/**
- * Synchronize a collection or setting directly to its dedicated Supabase table
- */
-export async function pushCloudState(key, value) {
-  saveLocalCache(key, value);
-
-  try {
-    // Handle global settings in `public.page_settings`
-    if (key === 'pageVisibility') {
-      const cleanValue = { ...value };
-      delete cleanValue._updatedAt;
-      await supabase.from('page_settings').upsert({
-        key: 'page_visibility',
-        value: cleanValue,
-        updated_at: new Date().toISOString()
-      });
-      return true;
-    }
-
-    if (key === 'activeTenureId') {
-      await supabase.from('page_settings').upsert({
-        key: 'active_tenure_id',
-        value: { id: value },
-        updated_at: new Date().toISOString()
-      });
-      return true;
-    }
-
-    if (key === 'announcementBar') {
-      const cleanValue = { ...value };
-      delete cleanValue._updatedAt;
-      await supabase.from('page_settings').upsert({
-        key: 'announcement_bar',
-        value: cleanValue,
-        updated_at: new Date().toISOString()
-      });
-      return true;
-    }
-
-    if (key === 'luckyDraws') {
-      const isTableOk = await checkLuckyDrawsTable();
-      if (!isTableOk) return false;
-      await checkLuckyDrawsLegacyColumns();
-      const rows = (Array.isArray(value) ? value : []).map(rowMappers.luckyDraws.toDb);
-      if (rows.length === 0) {
-        await supabase.from('lucky_draws').delete().neq('id', '___dummy___');
-      } else {
-        const ids = rows.map(r => r.id);
-        await supabase.from('lucky_draws').delete().not('id', 'in', `(${ids.map(id => `"${id}"`).join(',')})`);
-        await supabase.from('lucky_draws').upsert(rows);
-      }
-      return true;
-    }
-
-    const tableName = TABLE_MAP[key];
-    const mapper = rowMappers[key];
-    if (!tableName || !mapper || !Array.isArray(value)) {
-      return false;
-    }
-
-    if (key === 'divisions') {
-      await checkDivisionsSchema();
-    }
-    if (key === 'members') {
-      await checkMembersRoleIdColumn();
-      await checkLegacyMemberColumns();
-    }
-    if (key === 'galleries') {
-      await checkGalleryDivisionIdColumn();
-      await checkGalleryEventIdColumn();
-    }
-    if (key === 'events') {
-      await detectEventsSchema();
-    }
-    if (key === 'forms') {
-      await checkFormsTrackingColumn();
-      await checkFormsTenureColumn();
-      await checkFormsAnnouncementColumn();
-      await checkFormsQuotaColumns();
-      await checkFormsEventColumns();
-      await checkFormsLuckyDrawColumn();
-      await checkFormsNotesColumn();
-    }
-    if (key === 'eventRsvps') {
-      await checkRsvpsDepartmentColumn();
-    }
-    if (key === 'departments') {
-      const supported = await checkDepartmentsTable();
-      if (!supported) return true;
-    }
-    if (key === 'tenureRoles') {
-      const supported = await checkTenureRolesTable();
-      if (!supported) {
-        // Fallback sync to page_settings.role_quotas
-        const grouped = {};
-        (value || []).forEach(r => {
-          const tId = r.tenureId || 'default';
-          if (!grouped[tId]) grouped[tId] = { roles: [] };
-          grouped[tId].roles.push(r);
+  // Ketua divisi ditentukan dari level jabatan pengurus di divisi tersebut
+  if (Array.isArray(result.divisions)) {
+    const memList = result.members || [];
+    const rList = result.tenureRoles || [];
+    result.divisions = result.divisions.map(d => {
+      const divMems = memList.filter(m => m.divisionId === d.id);
+      let bestLead = null;
+      if (divMems.length > 0) {
+        const mapped = divMems.map(m => {
+          const roleObj = rList.find(r => r.id === m.roleId) ||
+            rList.find(r => String(r.name || '').toLowerCase().trim() === String(m.role || '').toLowerCase().trim());
+          const level = roleObj ? Number(roleObj.level) : 5;
+          const sortOrder = roleObj ? Number(roleObj.sortOrder ?? 0) : 999;
+          return { member: m, level, sortOrder };
         });
-        await pushRoleQuotas(grouped);
-        return true;
+        mapped.sort((a, b) => (a.level - b.level) || (a.sortOrder - b.sortOrder));
+        bestLead = mapped[0]?.member || null;
       }
-    }
-
-    // Automatically sort tenures descending by code (e.g. 2028 -> 2027 -> 2026) so sort_order aligns chronologically
-    let preparedValue = value;
-    if (key === 'tenures') {
-      preparedValue = [...value].sort((a, b) => {
-        const numA = parseInt(a.code || a.id?.replace(/\D/g, '') || '0', 10);
-        const numB = parseInt(b.code || b.id?.replace(/\D/g, '') || '0', 10);
-        if (numB !== numA) return numB - numA;
-        return (b.title || '').localeCompare(a.title || '');
-      });
-    }
-
-    const hasUpdatedAt = await checkTableUpdatedAtColumn(tableName);
-    const dbRows = preparedValue.map((item, idx) => {
-      const row = mapper.toDb(item, idx);
-      if (hasUpdatedAt && row.updated_at === undefined) {
-        // Strictly preserve each individual item's updatedAt timestamp.
-        // NEVER fallback to new Date() here to prevent untouched items from having their last-update timestamp changed during batch synchronization.
-        const existingTimestamp = item.updatedAt || item.createdAt;
-        if (existingTimestamp) {
-          row.updated_at = existingTimestamp;
-        }
-      }
-      return row;
+      return {
+        ...d,
+        memberId: bestLead ? bestLead.id : (d.memberId || null),
+        leadName: bestLead ? bestLead.name : (d.leadName || '')
+      };
     });
-    const currentIds = dbRows.map((r) => r.id);
-
-    // Fetch existing IDs in table to remove deleted rows
-    const { data: existingRows } = await supabase.from(tableName).select('id');
-    if (Array.isArray(existingRows)) {
-      const idsToDelete = existingRows
-        .map((r) => r.id)
-        .filter((id) => !currentIds.includes(id));
-
-      if (idsToDelete.length > 0) {
-        await supabase.from(tableName).delete().in('id', idsToDelete);
-      }
-    }
-
-    // Upsert all current rows into their dedicated table
-    if (dbRows.length > 0) {
-      const { error } = await supabase.from(tableName).upsert(dbRows, { onConflict: 'id' });
-      if (error) {
-        console.error('pushCloudState error on', tableName, error);
-        return false;
-      }
-    }
-
-    return true;
-  } catch (e) {
-    console.error('pushCloudState exception on', key, e);
-    return false;
   }
 }
 
 /**
- * Atomic single-row insert into a dedicated table (`submissions`, `kudos`, `aspirasi`)
- * and return the refreshed list from Supabase
+ * Memuat seluruh tabel publik, ditambah tabel pribadi bila admin sedang login.
+ * Pengunjung menerima jumlah pendaftar (agregat) & aspirasi publik lewat RPC.
+ * Hanya data yang berhasil dimuat yang ada di hasil, sehingga kegagalan request
+ * tidak pernah disangka sebagai tabel kosong.
  */
-export async function mergeAndPushCloudList(key, newItem, currentLocalList = []) {
-  const tableName = TABLE_MAP[key];
-  const mapper = rowMappers[key];
+export async function fetchAllCloudState({ includePrivate = false } = {}) {
+  const keys = Object.keys(FETCH_ORDER).filter((key) => includePrivate || !PRIVATE_KEYS.includes(key));
+  const [settingsRes, countsRes, publicAspirasiRes, ...tableResults] = await Promise.all([
+    supabase.from('page_settings').select('*'),
+    includePrivate ? Promise.resolve(null) : supabase.rpc('get_registration_counts'),
+    supabase.rpc('get_public_aspirasi'),
+    ...keys.map((key) => {
+      const column = FETCH_ORDER[key];
+      let query = supabase.from(TABLE_MAP[key]).select('*').order(column, { ascending: !DESCENDING_ORDER.has(column) });
+      if (column === 'sort_order') query = query.order('created_at', { ascending: true });
+      return query;
+    })
+  ]);
 
-  const optimisticList = [newItem, ...currentLocalList.filter((i) => i.id !== newItem.id)];
-  saveLocalCache(key, optimisticList);
+  const result = {};
+  const failed = [];
 
-  if (!tableName || !mapper) return optimisticList;
-
-  if (key === 'eventRsvps') {
-    await checkRsvpsDepartmentColumn();
-  }
-  if (key === 'forms') {
-    await checkFormsTrackingColumn();
-    await checkFormsTenureColumn();
-    await checkFormsAnnouncementColumn();
-    await checkFormsQuotaColumns();
-    await checkFormsEventColumns();
-    await checkFormsLuckyDrawColumn();
-    await checkFormsNotesColumn();
-  }
-
-  try {
-    const hasUpdatedAt = await checkTableUpdatedAtColumn(tableName);
-    const dbRow = mapper.toDb(newItem, 0);
-    if (hasUpdatedAt && dbRow.updated_at === undefined) {
-      dbRow.updated_at = new Date().toISOString();
+  tableResults.forEach((res, idx) => {
+    const key = keys[idx];
+    if (res.error || !Array.isArray(res.data)) {
+      failed.push(key);
+      return;
     }
-    const { error: upsertErr } = await supabase.from(tableName).upsert(dbRow, { onConflict: 'id' });
-    if (upsertErr) {
-      console.error(`[mergeAndPushCloudList] Error upserting ${key}:`, upsertErr);
-    }
+    result[key] = res.data.map(rowMappers[key].fromDb);
+  });
 
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!error && Array.isArray(data)) {
-      const mapped = data.map(mapper.fromDb);
-      saveLocalCache(key, mapped);
-      return mapped;
+  if (countsRes) {
+    if (countsRes.error || !Array.isArray(countsRes.data)) {
+      failed.push('registrationCounts');
+    } else {
+      const counts = { forms: {}, events: {} };
+      countsRes.data.forEach(({ kind, ref_id: refId, total }) => {
+        if (kind === 'form') counts.forms[refId] = total;
+        if (kind === 'event') counts.events[refId] = total;
+      });
+      result.registrationCounts = counts;
     }
-  } catch (e) {
-    // fallback to optimistic list
   }
-  return optimisticList;
+
+  // Super admin membaca seluruh aspirasi; pengunjung & admin divisi melihat aspirasi publik saja.
+  if (publicAspirasiRes.error || !Array.isArray(publicAspirasiRes.data)) {
+    if (!result.aspirasiList) failed.push('publicAspirasi');
+  } else if (!result.aspirasiList || result.aspirasiList.length === 0) {
+    result.aspirasiList = publicAspirasiRes.data.map((row) => ({ ...rowMappers.aspirasiList.fromDb(row), isPublic: true }));
+  }
+
+  if (settingsRes.error || !Array.isArray(settingsRes.data)) {
+    failed.push('pageSettings');
+  } else {
+    for (const row of settingsRes.data) {
+      if (!row.value) continue;
+      if (row.key === SETTING_KEYS.pageVisibility) {
+        result.pageVisibility = { ...row.value, _updatedAt: row.updated_at };
+      } else if (row.key === SETTING_KEYS.activeTenureId && row.value.id) {
+        result.activeTenureId = row.value.id;
+      } else if (row.key === SETTING_KEYS.announcementBar) {
+        result.announcementBar = { ...row.value, _updatedAt: row.updated_at };
+      } else if (row.key === SETTING_KEYS.roleQuotas) {
+        result.roleQuotas = row.value;
+      }
+    }
+  }
+
+  enrichMembersAndDivisions(result);
+
+  Object.keys(result).forEach((key) => {
+    if (!PRIVATE_KEYS.includes(key) && key !== 'registrationCounts') saveLocalCache(key, result[key]);
+  });
+
+  if (failed.length > 0) {
+    console.error('Gagal memuat sebagian data dari Supabase:', failed.join(', '));
+  }
+  result.failed = failed;
+  return result;
 }
+
+// ============================================================================
+// ROW-LEVEL WRITES
+// Setiap penulisan menyasar baris tertentu dan melempar error bila Supabase menolak,
+// sehingga pemanggil dapat membatalkan perubahan atau memberi tahu pengguna.
+// ============================================================================
+
+const WRITE_CHUNK_SIZE = 200;
+const DELETE_CHUNK_SIZE = 100;
+
+function tableFor(key) {
+  const table = TABLE_MAP[key];
+  if (!table) throw new Error(`Tabel untuk "${key}" tidak dikenal`);
+  return table;
+}
+
+function assertOk(response, action) {
+  if (response.error) {
+    throw new Error(`${action}: ${response.error.message}`);
+  }
+}
+
+function chunk(list, size) {
+  const chunks = [];
+  for (let i = 0; i < list.length; i += size) chunks.push(list.slice(i, i + size));
+  return chunks;
+}
+
+/** Urutan berikutnya untuk item baru (di akhir daftar, atau di awal bila position = 'start'). */
+export function nextSortOrder(list = [], position = 'end') {
+  const orders = (Array.isArray(list) ? list : []).map((item) => Number(item?.sortOrder ?? 0));
+  if (orders.length === 0) return 0;
+  return position === 'start' ? Math.min(...orders) - 1 : Math.max(...orders) + 1;
+}
+
+/** Membuat atau memperbarui satu baris berdasarkan id. */
+export async function saveRow(key, item) {
+  const table = tableFor(key);
+  assertOk(
+    await supabase.from(table).upsert(rowMappers[key].toDb(item), { onConflict: 'id' }),
+    `Gagal menyimpan data ${table}`
+  );
+}
+
+/** Membuat atau memperbarui beberapa baris. Tidak pernah menghapus baris yang tidak ada di daftar. */
+export async function saveRows(key, items) {
+  if (!Array.isArray(items) || items.length === 0) return;
+  const table = tableFor(key);
+  for (const part of chunk(items, WRITE_CHUNK_SIZE)) {
+    assertOk(
+      await supabase.from(table).upsert(part.map((item) => rowMappers[key].toDb(item)), { onConflict: 'id' }),
+      `Gagal menyimpan data ${table}`
+    );
+  }
+}
+
+export async function deleteRow(key, id) {
+  const table = tableFor(key);
+  assertOk(await supabase.from(table).delete().eq('id', String(id)), `Gagal menghapus data ${table}`);
+}
+
+export async function deleteRows(key, ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return;
+  const table = tableFor(key);
+  for (const part of chunk(ids.map(String), DELETE_CHUNK_SIZE)) {
+    assertOk(await supabase.from(table).delete().in('id', part), `Gagal menghapus data ${table}`);
+  }
+}
+
+export async function deleteRowsWhere(key, column, value) {
+  const table = tableFor(key);
+  assertOk(await supabase.from(table).delete().eq(column, value), `Gagal menghapus data ${table}`);
+}
+
+export async function saveSetting(key, value) {
+  const settingKey = SETTING_KEYS[key];
+  if (!settingKey) throw new Error(`Pengaturan "${key}" tidak dikenal`);
+  let storedValue = key === 'activeTenureId' ? { id: value } : value;
+  if (storedValue && typeof storedValue === 'object' && '_updatedAt' in storedValue) {
+    storedValue = { ...storedValue };
+    delete storedValue._updatedAt;
+  }
+  assertOk(
+    await supabase.from('page_settings').upsert({ key: settingKey, value: storedValue, updated_at: new Date().toISOString() }),
+    `Gagal menyimpan pengaturan ${settingKey}`
+  );
+  saveLocalCache(key, value);
+}
+
+// ============================================================================
+// PUBLIC RPC (pendaftaran & kiriman publik lewat fungsi database yang memeriksa
+// tenggat, kuota, keunikan & panjang isian secara atomik)
+// ============================================================================
+
+const RPC_ERROR_MESSAGES = {
+  FORM_NOT_FOUND: 'Formulir tidak ditemukan atau sudah dihapus.',
+  FORM_CLOSED: 'Formulir ini sedang ditutup.',
+  FORM_DEADLINE_PASSED: 'Batas waktu pendaftaran formulir ini telah berakhir.',
+  FORM_QUOTA_FULL: 'Maaf, kuota pendaftaran formulir ini telah terpenuhi.',
+  FORM_DUPLICATE: 'Data pada isian unik sudah pernah didaftarkan sebelumnya.',
+  EVENT_NOT_FOUND: 'Acara tidak ditemukan atau tidak dibuka untuk umum.',
+  RSVP_QUOTA_FULL: 'Maaf, kuota kehadiran acara ini telah terpenuhi.',
+  KUDOS_NOT_FOUND: 'Kudos tidak ditemukan atau sudah dihapus.',
+  INVALID_CATEGORY: 'Pilih salah satu dari 6 nilai AKHLAK.',
+  INVALID_PAYLOAD: 'Data yang dikirim tidak valid. Periksa kembali panjang isian.',
+  PAYLOAD_TOO_LARGE: 'Data yang dikirim terlalu besar.',
+  NOT_AUTHORIZED: 'Anda tidak memiliki izin untuk tindakan ini.',
+  USER_NOT_FOUND: 'Email belum terdaftar di Supabase Authentication. Buat akunnya terlebih dahulu.',
+  CANNOT_DEMOTE_SELF: 'Anda tidak dapat menurunkan peran akun Anda sendiri.',
+  CANNOT_REVOKE_SELF: 'Anda tidak dapat mencabut akses akun Anda sendiri.'
+};
+
+/** Error dari RPC, membawa kode mesin & pesan untuk pengguna. */
+export class RpcError extends Error {
+  constructor(code, detail, rawMessage) {
+    const isKnown = Object.prototype.hasOwnProperty.call(RPC_ERROR_MESSAGES, code);
+    super(isKnown ? RPC_ERROR_MESSAGES[code] : (rawMessage || 'Terjadi kesalahan pada server.'));
+    // Hanya penolakan aturan bisnis yang memiliki kode; kegagalan jaringan/izin tidak.
+    this.code = isKnown ? code : null;
+    this.detail = detail;
+  }
+}
+
+async function callRpc(name, params) {
+  const { data, error } = await supabase.rpc(name, params);
+  if (error) {
+    const [code, detail] = String(error.message || '').split(':');
+    throw new RpcError(code, detail, error.message);
+  }
+  return data;
+}
+
+/** Mengirim formulir publik. Mengembalikan id pendaftaran dari database. */
+export function submitFormRegistration(formId, data, files = {}) {
+  return callRpc('submit_form', { p_form_id: formId, p_data: data, p_files: files });
+}
+
+/** Mengirim RSVP publik. Mengembalikan id RSVP dari database. */
+export function submitEventRsvp(eventId, attendeeName, attendanceMode, notes = '', departmentId = null) {
+  return callRpc('submit_rsvp', {
+    p_event_id: eventId,
+    p_attendee_name: attendeeName,
+    p_attendance_mode: attendanceMode,
+    p_notes: notes,
+    p_department_id: departmentId || null
+  });
+}
+
+export async function fetchEventAttendees(eventId) {
+  const rows = await callRpc('get_event_attendees', { p_event_id: eventId });
+  return (rows || []).map((row) => ({
+    id: row.id,
+    eventId,
+    attendeeName: row.attendee_name,
+    departmentId: row.department_id || '',
+    department: row.department_id || '',
+    attendanceMode: row.attendance_mode,
+    createdAt: row.created_at,
+    submittedAt: row.created_at
+  }));
+}
+
+export function isSubmissionValueTaken(formId, fieldId, value) {
+  return callRpc('is_submission_value_taken', { p_form_id: formId, p_field_id: fieldId, p_value: value });
+}
+
+export async function trackSubmissions(query) {
+  const rows = await callRpc('track_submissions', { p_query: query });
+  return (rows || []).map((row) => ({
+    id: row.id,
+    formId: row.form_id,
+    status: row.status,
+    adminNotes: row.admin_notes || '',
+    data: row.data || {},
+    files: {},
+    createdAt: row.created_at,
+    submittedAt: row.created_at
+  }));
+}
+
+export async function fetchAcceptedSubmissions(formId) {
+  const rows = await callRpc('get_accepted_submissions', { p_form_id: formId });
+  return (rows || []).map((row) => ({
+    id: row.id,
+    formId: row.form_id,
+    createdAt: row.created_at,
+    submittedAt: row.created_at,
+    adminNotes: row.admin_notes || '',
+    participantName: row.participant_name,
+    participantDetail: row.participant_detail
+  }));
+}
+
+export function submitKudos({ sender, recipient, category, message }) {
+  return callRpc('submit_kudos', {
+    p_sender: sender || '',
+    p_recipient: recipient || '',
+    p_category: category,
+    p_message: message || ''
+  });
+}
+
+const DEVICE_ID_KEY = 'cnt_device_id';
+
+/** Id acak per perangkat untuk membatasi satu like per kudos (bukan data pribadi). */
+export function getDeviceId() {
+  try {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id || id.length < 8) {
+      id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `dev-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+  } catch (e) {
+    return `dev-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+}
+
+/** Like / batal like. Mengembalikan { liked, likes } dari database. */
+export async function toggleKudosLike(kudosId) {
+  const rows = await callRpc('toggle_kudos_like', { p_kudos_id: kudosId, p_device_id: getDeviceId() });
+  const row = Array.isArray(rows) ? rows[0] : rows;
+  return { liked: Boolean(row?.liked), likes: Number(row?.likes ?? 1) };
+}
+
+export function submitAspirasi({ sender, title, category, description, isPublic = true }) {
+  return callRpc('submit_aspirasi', {
+    p_sender: sender || '',
+    p_title: title || '',
+    p_category: category || '',
+    p_description: description || '',
+    p_is_public: isPublic !== false
+  });
+}
+
+/** Pertanyaan FAQ dari pengunjung (belum terbit sampai dijawab admin). */
+export async function submitPublicFaqQuestion(item) {
+  const row = rowMappers.faqs.toDb({ ...item, isPublished: false });
+  assertOk(await supabase.from('faqs').insert(row), 'Gagal mengirim pertanyaan');
+}
+
+// ============================================================================
+// ADMIN AUTHENTICATION (Supabase Auth + peran di admin_profiles)
+// ============================================================================
+
+function mapAdminProfile(row) {
+  return {
+    userId: row.user_id,
+    email: row.email,
+    displayName: row.display_name || '',
+    role: row.role,
+    divisionId: row.division_id || null
+  };
+}
+
+/** Profil admin untuk user yang login, atau null bila user bukan admin. */
+export async function fetchAdminProfile(userId) {
+  const { data, error } = await supabase.from('admin_profiles').select('*').eq('user_id', userId).maybeSingle();
+  if (error) throw new Error(`Gagal memuat profil admin: ${error.message}`);
+  return data ? mapAdminProfile(data) : null;
+}
+
+export async function signInAdmin(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email: String(email || '').trim(), password });
+  if (error) {
+    throw new Error(error.message === 'Invalid login credentials' ? 'Email atau password salah' : error.message);
+  }
+  const profile = await fetchAdminProfile(data.user.id);
+  if (!profile) {
+    await supabase.auth.signOut();
+    throw new Error('Akun ini belum memiliki akses admin. Hubungi super admin.');
+  }
+  return profile;
+}
+
+export async function signOutAdmin() {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw new Error(error.message);
+}
+
+export async function listAdminProfiles() {
+  const { data, error } = await supabase.from('admin_profiles').select('*').order('created_at', { ascending: true });
+  if (error) throw new Error(`Gagal memuat daftar admin: ${error.message}`);
+  return data.map(mapAdminProfile);
+}
+
+export function assignAdminRole(email, role, divisionId, displayName = '') {
+  return callRpc('assign_admin_role', {
+    p_email: email,
+    p_role: role,
+    p_division_id: divisionId || null,
+    p_display_name: displayName
+  });
+}
+
+export function revokeAdminRole(userId) {
+  return callRpc('revoke_admin_role', { p_user_id: userId });
+}
+
+// ============================================================================
+// MEDIA STORAGE (bucket cnt-media)
+// ============================================================================
+
+const MEDIA_BUCKET = 'cnt-media';
+export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+export const SUBMISSION_FILE_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar'];
 
 /**
  * Resolve correct MIME type by file extension or browser type
@@ -1568,86 +1148,75 @@ export function getFileMimeType(file) {
   return file.type || 'application/octet-stream';
 }
 
+function uniqueSuffix() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 /**
- * Upload a File/Blob to Supabase Storage bucket `cnt-media` and return its public CDN URL.
- * Mengikuti arsitektur quick-drop (upsert: false) dengan fallback multi-tier:
- * 1. Direct Supabase Storage upload
- * 2. Same-origin reverse proxy (/storage-proxy) jika direct access diblokir CORS/VPN
- * 3. Base64 dataURL untuk file < 5MB agar data selalu tersimpan ke Supabase
+ * Mengunggah berkas ke bucket `cnt-media` dan mengembalikan URL publiknya.
+ * Bila akses langsung ke Supabase diblokir jaringan kantor, dicoba lewat reverse proxy
+ * same-origin Netlify (/storage-proxy) dengan token sesi yang sama.
  */
 export async function uploadMediaToCloud(file, folder = 'uploads') {
   if (!file) throw new Error('File tidak valid atau tidak ditemukan');
+  if (file.size > MAX_UPLOAD_BYTES) throw new Error('Ukuran berkas melebihi batas 20 MB.');
 
   const originalName = file.name || 'file';
   const parts = originalName.split('.');
   const ext = parts.length > 1 ? parts.pop() : '';
   const baseName = parts.join('.').replace(/[^a-zA-Z0-9_-]/g, '_').slice(-40) || 'file';
   const cleanExt = (ext || 'dat').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const fileName = `${Date.now()}_${baseName}.${cleanExt}`;
-  const path = `${folder}/${fileName}`;
+  if (folder === 'submissions' && !SUBMISSION_FILE_EXTENSIONS.includes(cleanExt)) {
+    throw new Error(`Format berkas .${cleanExt} tidak didukung. Gunakan: ${SUBMISSION_FILE_EXTENSIONS.join(', ')}.`);
+  }
+  const path = `${folder}/${uniqueSuffix()}_${baseName}.${cleanExt}`;
+  const contentType = getFileMimeType(file);
 
-  // 1. Direct Supabase SDK upload (sama persis dengan arsitektur quick-drop: upsert: false tanpa override header)
+  let directError = null;
   try {
-    const { data: uploadData, error: uploadErr } = await supabase.storage
-      .from('cnt-media')
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (!uploadErr && uploadData) {
-      const { data: pubData } = supabase.storage.from('cnt-media').getPublicUrl(path);
-      if (pubData?.publicUrl) {
-        return pubData.publicUrl;
-      }
+    const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType
+    });
+    if (!error) {
+      return supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path).data.publicUrl;
     }
-
-    if (uploadErr) {
-      console.warn('Direct Supabase upload failed, falling back to same-origin reverse proxy...', uploadErr);
+    directError = error;
+    // Penolakan izin/ukuran dari server tidak akan berubah lewat proxy
+    const status = Number(error.statusCode || error.status || 0);
+    if (status === 400 || status === 403 || status === 413) {
+      throw new Error(`Gagal mengunggah berkas: ${error.message}`);
     }
   } catch (err) {
-    console.warn('Direct upload exception, trying same-origin proxy...', err);
+    if (String(err?.message || '').startsWith('Gagal mengunggah')) throw err;
+    directError = err;
   }
 
-  // 2. Fallback: Same-Origin Reverse Proxy Netlify (/storage-proxy)
-  // Menembus blokir jaringan kantor/VPN dan bypass pemeriksaan CORS browser
-  try {
-    const proxyUrl = `/storage-proxy/object/cnt-media/${path}`;
-    const proxyRes = await fetch(proxyUrl, {
-      method: 'POST',
-      headers: {
-        apikey: supabaseAnonKey,
-        Authorization: `Bearer ${supabaseAnonKey}`
-      },
-      body: file
-    });
-
-    if (proxyRes.ok) {
-      const { data: pubData } = supabase.storage.from('cnt-media').getPublicUrl(path);
-      return pubData?.publicUrl || `/storage-proxy/object/public/cnt-media/${path}`;
-    }
-  } catch (proxyErr) {
-    console.warn('Proxy upload failed:', proxyErr);
+  console.warn('Unggah langsung gagal, mencoba lewat proxy same-origin...', directError);
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token || supabaseAnonKey;
+  const proxyRes = await fetch(`/storage-proxy/object/${MEDIA_BUCKET}/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${token}`,
+      'Content-Type': contentType,
+      'x-upsert': 'false'
+    },
+    body: file
+  });
+  if (!proxyRes.ok) {
+    throw new Error('Gagal mengunggah berkas. Periksa koneksi lalu coba lagi.');
   }
-
-  // 3. Fallback: Base64 dataURL untuk file < 5MB (menjamin data tetap masuk ke database Supabase)
-  if (file.size < 5 * 1024 * 1024) {
-    console.info('Menggunakan Base64 dataURL fallback untuk memastikan data tersimpan...');
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve('');
-      reader.readAsDataURL(file);
-    });
-  }
-
-  throw new Error('Gagal mengunggah berkas. Pastikan ukuran berkas di bawah batas kapasitas.');
+  return supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 /**
  * Extract bucket-relative path from a Supabase Storage public CDN URL
  */
-export function extractStoragePath(url, bucketName = 'cnt-media') {
+export function extractStoragePath(url, bucketName = MEDIA_BUCKET) {
   if (!url || typeof url !== 'string') return null;
   const markers = [
     `/storage/v1/object/public/${bucketName}/`,
@@ -1663,18 +1232,14 @@ export function extractStoragePath(url, bucketName = 'cnt-media') {
   return null;
 }
 
-/**
- * Delete a file from Supabase Storage bucket `cnt-media` given its public CDN URL.
- * Silently ignores local assets (/assets/...) or external links.
- */
-export async function deleteMediaFromCloud(url, bucketName = 'cnt-media') {
+/** Menghapus berkas (best effort). Mengembalikan false bila berkas tidak dapat dihapus. */
+export async function deleteMediaFromCloud(url, bucketName = MEDIA_BUCKET) {
   const path = extractStoragePath(url, bucketName);
   if (!path) return false;
-
-  try {
-    const { error } = await supabase.storage.from(bucketName).remove([path]);
-    return !error;
-  } catch (e) {
+  const { error } = await supabase.storage.from(bucketName).remove([path]);
+  if (error) {
+    console.error('Gagal menghapus berkas media:', error.message);
     return false;
   }
+  return true;
 }

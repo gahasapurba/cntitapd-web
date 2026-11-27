@@ -35,8 +35,7 @@ export default function EventCalendarView({
   events = [],
   divisions = [],
   forms = [],
-  eventRsvps = [],
-  submissions = [],
+  registrationCounts,
   theme = 'dark',
   activeTenure = null,
   onSelectEvent = null,
@@ -861,7 +860,7 @@ export default function EventCalendarView({
                           </span>
                         )}
                         {(() => {
-                          const attendeeInfo = getUnifiedEventAttendees(evt, forms, eventRsvps, submissions);
+                          const attendeeInfo = getUnifiedEventAttendees(evt, forms, registrationCounts);
                           if (attendeeInfo.isLimited && attendeeInfo.maxQuota > 0) {
                             return (
                               <span className={attendeeInfo.isFull ? "badge-red" : "badge-gold"} style={{ fontSize: '0.64rem' }}>

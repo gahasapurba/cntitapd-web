@@ -21,11 +21,12 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { formatWibTimestamp } from '../utils/dateUtils';
+import { AKHLAK_VALUES, DEFAULT_AKHLAK_VALUE } from '../utils/akhlak';
 
 export default function KudosSection({
   kudosList = [],
   onAddKudos,
-  onUpdateKudos,
+  onToggleKudosLike,
   aspirasiList = [],
   onAddAspirasi
 }) {
@@ -49,7 +50,7 @@ export default function KudosSection({
   // Form State Kudos
   const [sender, setSender] = useState('');
   const [recipient, setRecipient] = useState('');
-  const [category, setCategory] = useState('Kolaboratif');
+  const [category, setCategory] = useState(DEFAULT_AKHLAK_VALUE);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [kudosErrors, setKudosErrors] = useState({});
@@ -71,19 +72,24 @@ export default function KudosSection({
   const [previewCardModal, setPreviewCardModal] = useState(null);
   const [downloadingKudosId, setDownloadingKudosId] = useState(null);
 
-  const handleToggleLike = (kudosItem) => {
+  const [likingKudosId, setLikingKudosId] = useState(null);
+  const handleToggleLike = async (kudosItem) => {
     const kudosId = kudosItem.id;
-    const alreadyLiked = Boolean(likedMap[kudosId]);
-    const nextLikedMap = { ...likedMap, [kudosId]: !alreadyLiked };
-    setLikedMap(nextLikedMap);
+    if (!onToggleKudosLike || likingKudosId === kudosId) return;
+    setLikingKudosId(kudosId);
     try {
-      localStorage.setItem('cnt_liked_kudos', JSON.stringify(nextLikedMap));
-    } catch (e) { }
-
-    if (onUpdateKudos) {
-      const currentLikes = kudosItem.likes || 1;
-      const updatedLikes = alreadyLiked ? Math.max(1, currentLikes - 1) : currentLikes + 1;
-      onUpdateKudos({ ...kudosItem, likes: updatedLikes });
+      // The database keeps one like per device and returns the authoritative count
+      const { liked } = await onToggleKudosLike(kudosId);
+      const nextLikedMap = { ...likedMap, [kudosId]: liked };
+      setLikedMap(nextLikedMap);
+      try {
+        localStorage.setItem('cnt_liked_kudos', JSON.stringify(nextLikedMap));
+      } catch (e) { /* storage unavailable */ }
+    } catch (err) {
+      console.error(err);
+      alert(err.code ? err.message : 'Gagal menyimpan apresiasi. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setLikingKudosId(null);
     }
   };
 
@@ -270,33 +276,24 @@ export default function KudosSection({
     setConfirmModalOpen(true);
   };
 
-  const getExactTimestamp = () => {
-    const now = new Date();
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    const dayName = days[now.getDay()];
-    const dateNum = String(now.getDate()).padStart(2, '0');
-    const monthName = months[now.getMonth()];
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    return `${dayName}, ${dateNum} ${monthName} ${year} • ${hours}:${minutes} WIB`;
-  };
-
-  const handleFinalSubmitKudos = () => {
+  const handleFinalSubmitKudos = async () => {
     if (isSubmittingKudos) return;
     setIsSubmittingKudos(true);
 
-    const nowIso = new Date().toISOString();
-    onAddKudos({
-      id: 'kd-' + Date.now(),
-      sender: sender.trim() || 'Anonim',
-      recipient: recipient.trim(),
-      category,
-      message: message.trim(),
-      likes: 1,
-      createdAt: nowIso
-    });
+    try {
+      await onAddKudos({
+        sender: sender.trim(),
+        recipient: recipient.trim(),
+        category,
+        message: message.trim()
+      });
+    } catch (err) {
+      console.error(err);
+      setIsSubmittingKudos(false);
+      setConfirmModalOpen(false);
+      setKudosErrors({ message: err.code ? err.message : 'Kudos gagal dikirim ke server. Silakan periksa koneksi lalu coba lagi.' });
+      return;
+    }
 
     confetti({
       particleCount: 80,
@@ -330,22 +327,26 @@ export default function KudosSection({
     setConfirmAspirasiOpen(true);
   };
 
-  const handleFinalSubmitAspirasi = () => {
+  const handleFinalSubmitAspirasi = async () => {
     if (isSubmittingAspirasi) return;
     setIsSubmittingAspirasi(true);
 
     if (onAddAspirasi) {
-      onAddAspirasi({
-        id: 'asp-' + Date.now(),
-        title: ideaTitle.trim(),
-        category: ideaCategory,
-        description: ideaDesc.trim(),
-        sender: ideaSender.trim() || 'Anonim',
-        status: 'Menunggu Review',
-        adminReply: '',
-        isPublic: true,
-        submittedAt: getExactTimestamp()
-      });
+      try {
+        await onAddAspirasi({
+          title: ideaTitle.trim(),
+          category: ideaCategory,
+          description: ideaDesc.trim(),
+          sender: ideaSender.trim(),
+          isPublic: true
+        });
+      } catch (err) {
+        console.error(err);
+        setIsSubmittingAspirasi(false);
+        setConfirmAspirasiOpen(false);
+        setIdeaErrors({ ideaDesc: err.code ? err.message : 'Aspirasi gagal dikirim ke server. Silakan periksa koneksi lalu coba lagi.' });
+        return;
+      }
     }
 
     confetti({
@@ -458,24 +459,18 @@ export default function KudosSection({
           {/* TOP CULTURE CHAMPIONS LEADERBOARD & VALUE DISTRIBUTION */}
           {kudosList.length > 0 && (() => {
             const recipientStats = {};
-            const categoryStats = {
-              Kolaboratif: 0,
-              Inovatif: 0,
-              Harmonis: 0,
-              Integritas: 0,
-              Dedikasi: 0
-            };
+            const categoryStats = Object.fromEntries(AKHLAK_VALUES.map(v => [v.value, 0]));
 
             kudosList.forEach((k) => {
               const rec = (k.recipient || '').trim();
               if (rec) {
                 if (!recipientStats[rec]) {
-                  recipientStats[rec] = { name: rec, count: 0, totalLikes: 0, topCategory: k.category || 'Kolaboratif' };
+                  recipientStats[rec] = { name: rec, count: 0, totalLikes: 0, topCategory: k.category || DEFAULT_AKHLAK_VALUE };
                 }
                 recipientStats[rec].count += 1;
                 recipientStats[rec].totalLikes += Number(k.likes || 1);
               }
-              const cat = k.category || 'Kolaboratif';
+              const cat = k.category || DEFAULT_AKHLAK_VALUE;
               categoryStats[cat] = (categoryStats[cat] || 0) + 1;
             });
 
@@ -625,6 +620,7 @@ export default function KudosSection({
                   <input
                     type="text"
                     placeholder="Contoh: Dimas (Departemen Wealth)"
+                    maxLength={120}
                     value={sender}
                     onChange={(e) => {
                       setSender(e.target.value);
@@ -647,6 +643,7 @@ export default function KudosSection({
                   <input
                     type="text"
                     placeholder="Contoh: Sarah (QA Lead) / Tim Backend Core"
+                    maxLength={120}
                     value={recipient}
                     onChange={(e) => {
                       setRecipient(e.target.value);
@@ -671,11 +668,9 @@ export default function KudosSection({
                     onChange={(e) => setCategory(e.target.value)}
                     style={inputStyle(false)}
                   >
-                    <option value="Kolaboratif">Kolaboratif (Sinergi & Kerjasama Tim)</option>
-                    <option value="Inovatif">Inovatif & Solutif (Excellence & Agility)</option>
-                    <option value="Harmonis">Harmonis (Saling Peduli & Menghargai)</option>
-                    <option value="Integritas">Integritas (Komitmen & Tanggung Jawab)</option>
-                    <option value="Dedikasi">Dedikasi (Customer Centric & Prima)</option>
+                    {AKHLAK_VALUES.map(v => (
+                      <option key={v.value} value={v.value}>{v.value} ({v.description})</option>
+                    ))}
                   </select>
                 </div>
 
@@ -686,6 +681,7 @@ export default function KudosSection({
                   <textarea
                     rows={4}
                     placeholder="Tuliskan ucapan terima kasih atau apresiasi terbaikmu..."
+                    maxLength={1000}
                     value={message}
                     onChange={(e) => {
                       setMessage(e.target.value);
@@ -799,11 +795,9 @@ export default function KudosSection({
                     }}
                   >
                     <option value="all">Semua Kategori ({kudosList.length})</option>
-                    <option value="Kolaboratif">Kolaboratif</option>
-                    <option value="Inovatif">Inovatif</option>
-                    <option value="Harmonis">Harmonis</option>
-                    <option value="Integritas">Integritas</option>
-                    <option value="Dedikasi">Dedikasi</option>
+                    {AKHLAK_VALUES.map(v => (
+                      <option key={v.value} value={v.value}>{v.value}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1252,7 +1246,8 @@ export default function KudosSection({
                     <input
                       type="text"
                       placeholder="Kosongkan jika ingin Anonim"
-                      value={ideaSender}
+                      maxLength={120}
+                    value={ideaSender}
                       onChange={(e) => setIdeaSender(e.target.value)}
                       style={inputStyle(false)}
                     />
@@ -1282,6 +1277,7 @@ export default function KudosSection({
                   <input
                     type="text"
                     placeholder="Contoh: Sesi Coffee Talk dengan Group Head / Turnamen Mini Soccer Lintas Departemen"
+                    maxLength={200}
                     value={ideaTitle}
                     onChange={(e) => {
                       setIdeaTitle(e.target.value);
@@ -1304,6 +1300,7 @@ export default function KudosSection({
                   <textarea
                     rows={4}
                     placeholder="Jelaskan detail ide dan kenapa program ini akan bermanfaat bagi insan IT APD..."
+                    maxLength={3000}
                     value={ideaDesc}
                     onChange={(e) => {
                       setIdeaDesc(e.target.value);
