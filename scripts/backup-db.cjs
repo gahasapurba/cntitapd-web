@@ -40,7 +40,9 @@ if (!token) {
 const tables = [
   'tenures', 'tenure_roles', 'departments', 'divisions', 'members',
   'events', 'galleries', 'kudos', 'aspirasi', 'forms', 'submissions',
-  'lucky_draws', 'event_rsvps', 'faqs', 'brand_assets', 'page_settings'
+  'lucky_draws', 'event_rsvps', 'faqs', 'brand_assets', 'page_settings',
+  // Fase 1: peran admin (merujuk auth.users) & like kudos per perangkat
+  'admin_profiles', 'kudos_likes'
 ];
 
 async function downloadFile(url, destPath) {
