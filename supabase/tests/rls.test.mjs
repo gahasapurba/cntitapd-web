@@ -1,5 +1,5 @@
 // Uji RLS & RPC migration Fase 1 di Postgres WASM (PGlite), tanpa menyentuh produksi.
-// Menjalankan supabase_schema.sql + drift produksi + migration dua kali, lalu menguji akses
+// Menjalankan supabase_schema.sql + policy terbuka lama + migration dua kali, lalu menguji akses
 // sebagai anon, user biasa, admin divisi, dan super admin. Jalankan: npm run test:rls
 import { PGlite } from '@electric-sql/pglite';
 import fs from 'node:fs';
@@ -35,14 +35,16 @@ GRANT USAGE ON SEQUENCE storage.objects_id_seq TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated;
 `);
 
-// Current schema file, then production drift (deadline TIMESTAMPTZ, smallint role levels)
+// Schema file, then the pre-Fase 1 open policies, then the migration (twice)
 await db.exec(fs.readFileSync(schemaPath, 'utf8').replace(/NOTIFY pgrst.*$/m, ''));
 await db.exec(`
-ALTER TABLE public.forms ALTER COLUMN deadline TYPE TIMESTAMPTZ USING nullif(deadline,'')::timestamptz;
+-- Kondisi produksi sebelum Fase 1: hak akses & policy terbuka untuk semua orang
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+CREATE POLICY "Public full access submissions" ON public.submissions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Access cnt-media" ON storage.objects FOR ALL TO anon, authenticated USING (bucket_id = 'cnt-media') WITH CHECK (bucket_id = 'cnt-media');
 CREATE POLICY "Allow public all access on departments" ON public.departments FOR ALL USING (true);
 CREATE POLICY "Allow public select lucky_draws" ON public.lucky_draws FOR SELECT USING (true);
-INSERT INTO public.tenures (id, code, title) VALUES ('tenure-2027','2027','2027');
+INSERT INTO public.tenures (id, code, title) VALUES ('tenure-2026','2026','2026'), ('tenure-2027','2027','2027');
 INSERT INTO public.divisions (id, name) VALUES ('div-exp','Experience'), ('div-cm','Creative Media');
 INSERT INTO public.departments (id, name) VALUES ('dept-1','Dept 1');
 INSERT INTO public.events (id, title, division_id, is_public, is_limited, max_quota) VALUES
