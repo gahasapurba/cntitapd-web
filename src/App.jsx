@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import { Lock, EyeOff, Sun, Moon, Search, X, Users, Calendar, Image as ImageIcon, ClipboardList, Download, ChevronRight } from 'lucide-react';
 import { getInitialTheme, getSavedTheme, saveTheme, watchSystemTheme } from './lib/theme';
-import Navbar from './components/Navbar';
+import SiteHeader from './components/layout/SiteHeader';
 import HomeSection from './components/HomeSection';
-import Footer from './components/Footer';
+import SiteFooter from './components/layout/SiteFooter';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminOnlyNotice from './components/AdminOnlyNotice';
 
@@ -1038,7 +1038,7 @@ export default function App() {
 
       {/* Responsive Navbar (Can be toggled View / Hide) */}
       {isNavbarVisible && (
-        <Navbar
+        <SiteHeader
           currentTab={effectiveTab}
           setCurrentTab={setCurrentTab}
           tenures={tenures}
@@ -1956,7 +1956,7 @@ export default function App() {
       })()}
 
       {/* Clean Footer */}
-      <Footer theme={theme} />
+      <SiteFooter theme={theme} />
     </div>
     </AppNavigationContext.Provider>
   );
