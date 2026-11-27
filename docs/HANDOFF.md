@@ -182,7 +182,7 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 
 **Catatan:** hanya ada 1 acara (Townhall 17 Nov, sudah lewat) sehingga filter bawaan "Mendatang & berjalan" kosong — perilaku sama dengan versi lama. Perbaikan zona waktu WIB (bapekkris `f745aca`) masih belum dibawa.
 
-> **⚠️ Terbuka (28 Nov 2026, 02.20 WIB):** `SUPABASE_MGMT_TOKEN` di `.env` ditolak Management API (401 "Invalid access token"; `.env` tidak berubah sejak 27 Nov, jadi token dicabut/kedaluwarsa). Database sehat (REST anon 200, jumlah baris tabel publik sama dengan baseline). Backup harian memakai secret GitHub `SUPABASE_MGMT_TOKEN`; bila nilainya sama, backup terjadwal akan gagal. Perlu: buat token baru (Supabase → Account → Access Tokens), perbarui `.env` di kedua laptop, secret GitHub (`gh secret set SUPABASE_MGMT_TOKEN`), dan drop QuickDrop; lalu `gh workflow run daily-backup.yml` + verifikasi artefak `-database`.
+> **✅ Selesai (28 Nov 2026, 02.25 WIB):** `SUPABASE_MGMT_TOKEN` lama dicabut (401). Token baru dibuat dari **akun Supabase pemilik project CNT** (berbeda dari akun bapekkris & quick-drop), dipasang di `.env` laptop rumah dan secret GitHub; backup manual 02.23 WIB sukses dan didekripsi (95 baris = 94 data + 1 admin). Laptop kantor: ambil token baru dari drop QuickDrop "TOKEN SUPABASE BARU".
 
 ## 7. Fase berikutnya (ringkas)
 
