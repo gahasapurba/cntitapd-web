@@ -2,7 +2,7 @@
 
 Dokumen ini merangkum status perombakan website **Culture Network Team (CNT) Group IT Application Delivery, Bank Mandiri** agar pekerjaan bisa dilanjutkan dari perangkat lain (atau sesi AI baru) tanpa kehilangan konteks. **Tidak berisi rahasia** — kredensial disimpan terpisah di luar repo (QuickDrop).
 
-Terakhir diperbarui: 27 November 2026 sore (Fase 0 selesai; Fase 1 diterapkan di produksi — tinggal akun super admin pertama, lihat bagian 6a).
+Terakhir diperbarui: 27 November 2026 (Fase 0, 1 & 2 selesai; berikutnya Fase 3 — redesign).
 
 ---
 
@@ -12,7 +12,7 @@ Terakhir diperbarui: 27 November 2026 sore (Fase 0 selesai; Fase 1 diterapkan di
 2. Pastikan `.env` ada di root repo (tidak ikut Git) dengan empat variabel:
    `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_MGMT_TOKEN`, `BACKUP_PASSPHRASE`.
 3. `npm install` lalu `npm run build`.
-4. Untuk AI (Claude Code): baca dokumen ini dan `.agent/rules/standar-kerja.md`, lalu lanjutkan dari bagian **6a. Status Fase 1** (sisa langkah), kemudian **7. Fase 2**.
+4. Untuk AI (Claude Code): baca dokumen ini dan `.agent/rules/standar-kerja.md`, lalu lanjutkan dari bagian **7. Fase 3** (status Fase 1 & 2 di bagian 6a–6b).
 5. Uji aturan akses database secara lokal (tanpa menyentuh produksi): `npm run test:rls` (50 uji, Postgres WASM/PGlite).
 
 ---
@@ -128,6 +128,21 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 6. Minta OK pemilik → terapkan migration ke produksi → bandingkan jumlah baris dengan baseline → uji RLS lewat REST sebagai anon / super admin / admin divisi (akun uji sementara, hapus setelahnya) → uji UI Playwright → perbarui `supabase_schema.sql` & seed → push.
 
 ---
+
+## 6b. Status Fase 2 — Arsitektur ✅ SELESAI (27 Nov 2026)
+
+- **TypeScript** (`tsconfig` strict + allowJs, `npm run typecheck`, build menjalankan `tsc`). Tipe tabel di `src/types/database.ts`; regenerate setiap ada perubahan skema:
+  `curl -s "https://api.supabase.com/v1/projects/xarcxbfgeoetyhpqsick/types/typescript" -H "Authorization: Bearer $TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).types))' > src/types/database.ts`
+  `src/lib/supabase.ts` & seluruh `src/utils/*` sudah `.ts` (output esbuild identik dengan JS lama).
+- **React Router** (`src/lib/appNavigation.tsx`): Back/Forward berfungsi, format link lama tetap (`/?event=`, `/?form=`, `/?gallery=`, `/?stats=`, `/admin`; `?galeri=` lama ikut didukung).
+- **TanStack Query** (`src/lib/queries.ts`): satu query per tabel, realtime hanya memuat ulang tabel yang berubah; polling 60 dtk (berhenti saat tab tersembunyi), staleTime 30 dtk. Muat awal 14 request (dulu: semua tabel setiap 60 dtk + setiap perubahan). Aspirasi: super admin dari tabel, lainnya lewat RPC publik.
+- **Pecah komponen**: `AdminPortal.jsx` 16.210 → ±2.250 baris (`src/admin/tabs/*`, `modals/*`, `modals/edit/*Fields.tsx`, state dibagikan lewat `AdminPortalContext`); `EventRegistrationStats` → `registration-stats/` (hook + 11 section); `DynamicFormSection` → `dynamic-form/` (hook + 8 section). Hook masih `.jsx`; section `.tsx` dengan nilai context `any` — ditipekan saat redesign Fase 3.
+- **zod + react-hook-form**: `src/admin/validation/schemas.ts`; `AdminLoginForm.tsx`, `AdminAccountsPanel.tsx`.
+- **Vitest** (`npm test`, 24 uji: kesetaraan skema vs kode lama ±39.000 input + skema URL). `npm run test:rls` tetap terpisah.
+- Verifikasi tiap langkah: tampilan teks 14 tab admin + 11 dialog edit, halaman formulir & statistik, pesan validasi — identik dengan versi sebelumnya (sesi admin tiruan khusus browser uji, semua penulisan diblokir).
+- Bug lama yang ikut ditemukan & diperbaiki: pemilih field diagram statistik memanggil `setOptionFilter` yang tidak pernah ada (ReferenceError); dua hook sempat kehilangan import konstanta saat dipindah (tertangkap pemindai sebelum commit).
+- Belum diuji di produksi dengan login admin sungguhan (butuh password pemilik): login, simpan/hapus data di tab admin, lucky draw.
+- Catatan: CNT belum punya perbaikan zona waktu WIB untuk tenggat/“hari ini” di browser (bapekkris `f745aca`); layak dibawa di Fase 3/4.
 
 ## 7. Fase berikutnya (ringkas)
 
