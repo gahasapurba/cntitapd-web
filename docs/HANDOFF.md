@@ -141,7 +141,8 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 - **Vitest** (`npm test`, 24 uji: kesetaraan skema vs kode lama ±39.000 input + skema URL). `npm run test:rls` tetap terpisah.
 - Verifikasi tiap langkah: tampilan teks 14 tab admin + 11 dialog edit, halaman formulir & statistik, pesan validasi — identik dengan versi sebelumnya (sesi admin tiruan khusus browser uji, semua penulisan diblokir).
 - Bug lama yang ikut ditemukan & diperbaiki: pemilih field diagram statistik memanggil `setOptionFilter` yang tidak pernah ada (ReferenceError); dua hook sempat kehilangan import konstanta saat dipindah (tertangkap pemindai sebelum commit).
-- Belum diuji di produksi dengan login admin sungguhan (butuh password pemilik): login, simpan/hapus data di tab admin, lucky draw.
+- Uji dengan login super admin sungguhan (localhost → Supabase produksi, 27 Nov): login, 16 pendaftar terlihat, Kelola Admin, aspirasi, statistik acara, tambah+hapus FAQ uji, logout — lulus. Bug lama ikut diperbaiki: form tambah FAQ mewajibkan kategori tanpa kolom kategori (FAQ tak pernah bisa disimpan).
+- **Insiden 27 Nov:** skrip uji awal mengklik tombol "Hapus" yang salah dan menghapus `faq-1`; dipulihkan persis dari backup terenkripsi 07:57 UTC dalam beberapa menit (isi seluruh tabel diverifikasi identik dengan backup). Aturan uji sejak itu: backup dulu, hapus hanya baris uji bertanda "UJI OTOMATIS …", konfirmasi hanya bila dialog menyebut baris uji itu, bandingkan jumlah baris sebelum/sesudah.
 - Catatan: CNT belum punya perbaikan zona waktu WIB untuk tenggat/“hari ini” di browser (bapekkris `f745aca`); layak dibawa di Fase 3/4.
 
 ## 7. Fase berikutnya (ringkas)
