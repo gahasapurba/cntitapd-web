@@ -87,7 +87,7 @@ Policy aktif: semua tabel `FOR ALL` untuk `public` ("Public full access …"), d
 - Backup kini juga menyimpan `admin_profiles` & `kudos_likes` (backup 07:36 UTC diverifikasi, 94 baris).
 
 **Sisa langkah Fase 1:**
-1. Pemilik membuat user di Supabase → Authentication → Users **project `xarcxbfgeoetyhpqsick`**, lalu memberi tahu emailnya (27 Nov: `auth.users` project ini masih 0 — akun kemungkinan dibuat di project lain). AI menetapkan `super_admin` (SQL di akhir file migration). **Sampai itu dilakukan, belum ada yang bisa login ke Admin Portal** (login SHA-256 lama sudah dihapus).
+1. ~~Akun super admin pertama~~ — selesai 27 Nov: akun `gahasapurba.tech@gmail.com` disalin dari project Bapekkris (`zkvjudumhhnwxchhakjl`) atas permintaan pemilik, **password sama dengan Bapekkris**, lalu ditetapkan `super_admin`. Catatan: kedua project kini terpisah — mengganti password di satu project tidak mengubah yang lain.
 2. Uji produksi sebagai super admin & admin divisi (login UI, simpan/hapus data uji, Kelola Admin). Uji REST dengan akun uji sementara via service_role ditolak oleh izin otomatis Claude Code di laptop kantor — minta izin pemilik atau uji lewat akun nyata.
 3. ~~Hapus drop Quick Drop "LANGKAH LANJUT DI LAPTOP KANTOR"~~ — sudah dihapus 27 Nov (drop passphrase tetap).
 
