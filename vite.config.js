@@ -13,6 +13,10 @@ export default defineConfig({
       }
     }
   },
+  test: {
+    // Unit tests only; supabase/tests/rls.test.mjs is a standalone script (npm run test:rls)
+    include: ['src/**/*.test.{js,ts,jsx,tsx}']
+  },
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {

@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ShieldCheck, Trash2, UserPlus, Loader2 } from 'lucide-react';
-import { listAdminProfiles, assignAdminRole, revokeAdminRole } from '../lib/supabase';
+import { listAdminProfiles, assignAdminRole, revokeAdminRole, type AdminProfile, type AppItem } from '../lib/supabase';
+import { adminAccountSchema, type AdminAccountValues } from './validation/schemas';
 
-const ROLE_LABELS = {
+const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
   division_admin: 'Admin Divisi'
 };
 
-const inputStyle = {
+const inputStyle: CSSProperties = {
   width: '100%',
   padding: '10px 12px',
   borderRadius: 'var(--radius-md)',
@@ -21,22 +24,38 @@ const inputStyle = {
  * Super admin panel to grant or revoke admin access. Accounts themselves are created in
  * Supabase Authentication; this panel attaches a role (and division for division admins).
  */
-export default function AdminAccountsPanel({ divisions = [], currentUserId, showToast }) {
-  const [admins, setAdmins] = useState([]);
+interface AdminAccountsPanelProps {
+  divisions?: AppItem[];
+  currentUserId?: string;
+  showToast?: (message: string, type?: string) => void;
+}
+
+export default function AdminAccountsPanel({ divisions = [], currentUserId, showToast }: AdminAccountsPanelProps) {
+  const [admins, setAdmins] = useState<AdminProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [email, setEmail] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState('division_admin');
-  const [divisionId, setDivisionId] = useState('');
+  // Server-side failure (validation messages come from the form below).
   const [error, setError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    watch,
+    resetField,
+    formState: { errors, isSubmitting: isSaving }
+  } = useForm<AdminAccountValues>({
+    resolver: zodResolver(adminAccountSchema),
+    defaultValues: { email: '', displayName: '', role: 'division_admin', divisionId: '' },
+    // Like before: a message stays until the form is submitted again.
+    reValidateMode: 'onSubmit'
+  });
+  const role = watch('role');
+  const validationError = errors.email?.message || errors.divisionId?.message || '';
 
   const loadAdmins = useCallback(async () => {
     setIsLoading(true);
     try {
       setAdmins(await listAdminProfiles());
     } catch (err) {
-      setError(err.message);
+      setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -46,41 +65,32 @@ export default function AdminAccountsPanel({ divisions = [], currentUserId, show
     loadAdmins();
   }, [loadAdmins]);
 
-  const divisionName = (id) => divisions.find(d => d.id === id)?.name || '-';
+  const divisionName = (id: string | null) => divisions.find(d => d.id === id)?.name || '-';
 
-  const handleAssign = async (e) => {
-    e.preventDefault();
-    setError('');
-    if (!/\S+@\S+\.\S+/.test(email.trim())) {
-      setError('Masukkan email akun yang valid.');
-      return;
-    }
-    if (role === 'division_admin' && !divisionId) {
-      setError('Pilih divisi untuk Admin Divisi.');
-      return;
-    }
-    setIsSaving(true);
-    try {
-      await assignAdminRole(email.trim(), role, role === 'division_admin' ? divisionId : null, displayName.trim());
-      showToast?.(`Akses ${ROLE_LABELS[role]} diberikan ke ${email.trim()}`);
-      setEmail('');
-      setDisplayName('');
-      await loadAdmins();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const handleAssign = handleSubmit(
+    async ({ email, displayName, role: selectedRole, divisionId }) => {
+      setError('');
+      try {
+        await assignAdminRole(email.trim(), selectedRole, selectedRole === 'division_admin' ? divisionId : null, displayName.trim());
+        showToast?.(`Akses ${ROLE_LABELS[selectedRole]} diberikan ke ${email.trim()}`);
+        resetField('email');
+        resetField('displayName');
+        await loadAdmins();
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    },
+    () => setError('')
+  );
 
-  const handleRevoke = async (admin) => {
+  const handleRevoke = async (admin: AdminProfile) => {
     if (!window.confirm(`Cabut akses admin untuk ${admin.email}?`)) return;
     try {
       await revokeAdminRole(admin.userId);
       showToast?.(`Akses admin ${admin.email} dicabut`);
       await loadAdmins();
     } catch (err) {
-      showToast?.(err.message, 'error');
+      showToast?.((err as Error).message, 'error');
     }
   };
 
@@ -98,15 +108,15 @@ export default function AdminAccountsPanel({ divisions = [], currentUserId, show
         <form onSubmit={handleAssign} noValidate style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Email akun
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@bankmandiri.co.id" style={inputStyle} autoComplete="off" />
+            <input type="email" {...register('email')} placeholder="nama@bankmandiri.co.id" style={inputStyle} autoComplete="off" />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Nama tampilan
-            <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Opsional" style={inputStyle} />
+            <input type="text" {...register('displayName')} placeholder="Opsional" style={inputStyle} />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Peran
-            <select value={role} onChange={(e) => setRole(e.target.value)} style={inputStyle}>
+            <select {...register('role')} style={inputStyle}>
               <option value="division_admin">{ROLE_LABELS.division_admin}</option>
               <option value="super_admin">{ROLE_LABELS.super_admin}</option>
             </select>
@@ -114,7 +124,7 @@ export default function AdminAccountsPanel({ divisions = [], currentUserId, show
           {role === 'division_admin' && (
             <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               Divisi
-              <select value={divisionId} onChange={(e) => setDivisionId(e.target.value)} style={inputStyle}>
+              <select {...register('divisionId')} style={inputStyle}>
                 <option value="">Pilih divisi</option>
                 {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
@@ -135,7 +145,7 @@ export default function AdminAccountsPanel({ divisions = [], currentUserId, show
             </button>
           </div>
         </form>
-        {error && <div role="alert" style={{ color: '#dc2626', fontSize: '0.84rem' }}>{error}</div>}
+        {(validationError || error) && <div role="alert" style={{ color: '#dc2626', fontSize: '0.84rem' }}>{validationError || error}</div>}
       </div>
 
       <div className="glass-panel" style={{ padding: '22px', borderRadius: 'var(--radius-lg)' }}>

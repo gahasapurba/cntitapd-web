@@ -5,6 +5,7 @@ import { LEVEL_OPTIONS, formatLevelOptionLabel, getCategoryFromLevel, getTenureR
 import { buildFlexibleDate, formatDeadlineWib, formatToIndonesianDate, formatWibDateTime, formatWibEventRange, parseFlexibleDate, toDatetimeLocalSecondsValue, toDatetimeLocalValue } from '../../utils/dateUtils';
 import { soundFx } from '../../utils/audio';
 import { uploadMediaToCloud } from '../../lib/supabase';
+import { editItemError } from '../validation/schemas';
 import { useAdminPortal } from '../AdminPortalContext';
 import MemberFields from './edit/MemberFields';
 import DivisionFields from './edit/DivisionFields';
@@ -253,55 +254,14 @@ export default function EditItemModal() {
                 onClick={async () => {
                   setEditModalError('');
                   const it = editingItem.item || {};
-                  if ((editingItem.type === 'member' || editingItem.type === 'division' || editingItem.type === 'department' || editingItem.type === 'role') && !(it.name || '').trim()) {
-                    setEditModalError('Nama wajib diisi sebelum menyimpan perubahan');
-                    showToast('Nama wajib diisi sebelum menyimpan perubahan', 'error');
+                  // Field checks of every item type (src/admin/validation/schemas.ts), before any upload
+                  const fieldError = editItemError(editingItem.type, it);
+                  if (fieldError) {
+                    setEditModalError(fieldError);
+                    showToast(fieldError, 'error');
                     return;
-                  }
-                  if ((editingItem.type === 'gallery' || editingItem.type === 'tenure' || editingItem.type === 'form' || editingItem.type === 'event' || editingItem.type === 'brand_asset') && !(it.title || '').trim()) {
-                    setEditModalError('Judul wajib diisi sebelum menyimpan perubahan');
-                    showToast('Judul wajib diisi sebelum menyimpan perubahan', 'error');
-                    return;
-                  }
-                  if (editingItem.type === 'tenure' && !(it.code || '').trim()) {
-                    setEditModalError('Kode tahun periode wajib diisi');
-                    showToast('Kode tahun periode wajib diisi', 'error');
-                    return;
-                  }
-                  if (editingItem.type === 'faq') {
-                    if (!(it.category || '').trim()) {
-                      setEditModalError('Kategori topik FAQ wajib dipilih');
-                      showToast('Kategori topik FAQ wajib dipilih', 'error');
-                      return;
-                    }
-                    if (!(it.question || '').trim() || !(it.answer || '').trim()) {
-                      setEditModalError('Pertanyaan dan jawaban FAQ wajib diisi');
-                      showToast('Pertanyaan dan jawaban FAQ wajib diisi', 'error');
-                      return;
-                    }
                   }
                   if (editingItem.type === 'form') {
-                    if (!(it.category || '').trim()) {
-                      setEditModalError('Kategori formulir wajib dipilih');
-                      showToast('Kategori formulir wajib dipilih', 'error');
-                      return;
-                    }
-                    if (!(it.deadline || '').trim()) {
-                      setEditModalError('Batas Akhir / Deadline Pendaftaran wajib ditentukan');
-                      showToast('Batas Akhir / Deadline Pendaftaran wajib ditentukan', 'error');
-                      return;
-                    }
-                    if (it.isLimited && (!it.maxQuota || parseInt(it.maxQuota, 10) <= 0)) {
-                      setEditModalError('Maksimal kuota responden harus lebih dari 0 jika kuota dibatasi');
-                      showToast('Maksimal kuota responden harus lebih dari 0 jika kuota dibatasi', 'error');
-                      return;
-                    }
-                    if (it.isEventConnected && !it.eventId) {
-                      setEditModalError('Silakan pilih Acara / Event yang terhubung');
-                      showToast('Silakan pilih Acara / Event yang terhubung', 'error');
-                      return;
-                    }
-
                     // Validasi Integritas Unik: Periksa apakah ada field isUnique yang memiliki data duplikat di riwayat pengisian responden
                     const formFields = it.fields || [];
                     const uniqueFields = formFields.filter((f: any) => f.isUnique);
@@ -326,11 +286,6 @@ export default function EditItemModal() {
                         }
                       }
                     }
-                  }
-                  if (editingItem.type === 'kudos' && (!(it.sender || '').trim() || !(it.recipient || '').trim() || !(it.message || '').trim())) {
-                    setEditModalError('Pengirim, penerima, dan pesan apresiasi wajib diisi');
-                    showToast('Pengirim, penerima, dan pesan apresiasi wajib diisi', 'error');
-                    return;
                   }
 
                   if (editingItem.type === 'member' && onUpdateMember) {
@@ -437,16 +392,6 @@ export default function EditItemModal() {
                     onUpdateDivision({ ...cleanItem, leadName: finalLeadName, focusAreas: finalFocus });
                   }
                   if (editingItem.type === 'gallery' && onUpdateGallery) {
-                    if (!editingItem.item.divisionId && !editingItem.item.division) {
-                      setEditModalError('Divisi penyelenggara wajib dipilih untuk galeri');
-                      showToast('Divisi penyelenggara wajib dipilih untuk galeri', 'error');
-                      return;
-                    }
-                    if (!(editingItem.item.description || '').trim()) {
-                      setEditModalError('Deskripsi kegiatan wajib diisi untuk galeri');
-                      showToast('Deskripsi kegiatan wajib diisi untuk galeri', 'error');
-                      return;
-                    }
                     let finalPhotos = Array.isArray(editingItem.item.photos) ? [...editingItem.item.photos] : [];
                     if (editingItem.pendingPhotos && editingItem.pendingPhotos.length > 0) {
                       setIsUploadingMedia(true);
@@ -537,49 +482,6 @@ export default function EditItemModal() {
                   }
                   if (editingItem.type === 'event' && onUpdateEvent) {
                     const catVal = (editingItem.item.kategori || editingItem.item.category || editingItem.item.badge || '').trim();
-                    if (!catVal) {
-                      setEditModalError('Kategori program/kegiatan wajib dipilih');
-                      showToast('Kategori program/kegiatan wajib dipilih', 'error');
-                      return;
-                    }
-                    if (!editingItem.item.divisionId) {
-                      setEditModalError('Divisi penyelenggara wajib dipilih untuk Event');
-                      showToast('Divisi penyelenggara wajib dipilih untuk Event', 'error');
-                      return;
-                    }
-                    if (!editingItem.item.startDate) {
-                      setEditModalError('Tanggal & Jam Mulai event wajib diisi');
-                      showToast('Tanggal & Jam Mulai event wajib diisi', 'error');
-                      return;
-                    }
-                    if (!editingItem.item.endDate) {
-                      setEditModalError('Tanggal & Jam Berakhir event wajib diisi');
-                      showToast('Tanggal & Jam Berakhir event wajib diisi', 'error');
-                      return;
-                    }
-                    if (toDatetimeLocalValue(editingItem.item.startDate) > toDatetimeLocalValue(editingItem.item.endDate)) {
-                      setEditModalError('Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir');
-                      showToast('Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir', 'error');
-                      return;
-                    }
-                    if (!(editingItem.item.description || '').trim()) {
-                      setEditModalError('Deskripsi kegiatan event wajib diisi');
-                      showToast('Deskripsi kegiatan event wajib diisi', 'error');
-                      return;
-                    }
-                    if (editingItem.item.isLimited) {
-                      const mq = Number(editingItem.item.maxQuota || 0);
-                      if (!mq || mq <= 0) {
-                        setEditModalError('Batas maksimal kuota wajib diisi angka lebih dari 0');
-                        showToast('Batas maksimal kuota wajib diisi angka lebih dari 0', 'error');
-                        return;
-                      }
-                    }
-                    if (editingItem.item.totalRab === '' || editingItem.item.totalRab === undefined || editingItem.item.totalRab === null || isNaN(Number(editingItem.item.totalRab)) || Number(editingItem.item.totalRab) < 0) {
-                      setEditModalError('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)');
-                      showToast('Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)', 'error');
-                      return;
-                    }
                     const pesertaVal = (editingItem.item.peserta || editingItem.item.kpi || '').trim();
                     const calculatedDate = formatWibEventRange(editingItem.item.startDate, editingItem.item.endDate);
                     onUpdateEvent({
@@ -597,18 +499,6 @@ export default function EditItemModal() {
                     });
                   }
                   if (editingItem.type === 'brand_asset' && onUpdateBrandAsset) {
-                    const assetCat = (editingItem.item.category || '').trim();
-                    if (!assetCat) {
-                      setEditModalError('Kategori katalog asset wajib dipilih');
-                      showToast('Kategori katalog asset wajib dipilih', 'error');
-                      return;
-                    }
-                    const assetFType = (editingItem.item.fileType || '').trim();
-                    if (!assetFType) {
-                      setEditModalError('Format file asset wajib diisi');
-                      showToast('Format file asset wajib diisi', 'error');
-                      return;
-                    }
                     let finalFileUrl = editingItem.item.fileUrl || '';
                     let finalPreviewUrl = editingItem.item.previewUrl || '';
                     if (editingItem.pendingFile) {

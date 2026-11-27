@@ -50,7 +50,8 @@ import {
   Grid
 } from 'lucide-react';
 import EventCalendarView from './EventCalendarView';
-import AdminAccountsPanel from './AdminAccountsPanel';
+import AdminAccountsPanel from '../admin/AdminAccountsPanel';
+import AdminLoginForm from '../admin/AdminLoginForm';
 import { AKHLAK_VALUES, DEFAULT_AKHLAK_VALUE } from '../utils/akhlak';
 import { uploadMediaToCloud } from '../lib/supabase';
 import { soundFx } from '../utils/audio';
@@ -86,6 +87,19 @@ import {
   getDivisionStructure
 } from '../utils/memberQuotaUtils';
 import { AdminPortalContext } from '../admin/AdminPortalContext';
+import {
+  collectFieldErrors,
+  brandAssetCreateSchema,
+  departmentCreateSchema,
+  divisionCreateSchema,
+  eventCreateSchema,
+  faqCreateSchema,
+  galleryCreateSchema,
+  memberCreateSchema,
+  roleCreateSchema,
+  tenureCreateSchema,
+  ROLE_NAME_DUPLICATE
+} from '../admin/validation/schemas';
 import { DIVISION_ADMIN_TABS, SYNC_BADGE, formatWaPhone } from '../admin/adminShared';
 import AdminHeaderBar from './../admin/AdminHeaderBar';
 import AdminSummaryBar from './../admin/AdminSummaryBar';
@@ -208,11 +222,6 @@ export default function AdminPortal({
   const isAuthenticated = adminSession.status === 'admin';
   const adminProfile = adminSession.profile;
   const isSuperAdmin = adminProfile?.role === 'super_admin';
-  const [loginEmail, setLoginEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [showExecutiveReportModal, setShowExecutiveReportModal] = useState(false);
 
@@ -667,10 +676,7 @@ export default function AdminPortal({
 
   const handleCreateFaq = (e) => {
     e.preventDefault();
-    const errs = {};
-    if (!faqCategory.trim()) errs.faqCategory = 'Kategori Topik FAQ wajib dipilih / diisi';
-    if (!faqQuestion.trim()) errs.faqQuestion = 'Pertanyaan FAQ wajib diisi';
-    if (!faqAnswer.trim()) errs.faqAnswer = 'Jawaban / penjelasan FAQ wajib diisi';
+    const errs = collectFieldErrors(faqCreateSchema, { faqCategory, faqQuestion, faqAnswer });
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
       showToast('Mohon lengkapi seluruh kolom wajib pada form FAQ', 'error');
@@ -695,37 +701,12 @@ export default function AdminPortal({
 
   const handleCreateEvent = (e) => {
     e.preventDefault();
-    const errs = {};
-    if (!eventTitle.trim()) errs.eventTitle = 'Nama Event wajib diisi';
-    if (!eventCategory.trim()) errs.eventCategory = 'Kategori Kegiatan wajib dipilih';
-    if (!eventStartDate) errs.eventStartDate = 'Tanggal & Jam Mulai wajib dipilih';
-    if (!eventEndDate) errs.eventEndDate = 'Tanggal & Jam Berakhir wajib dipilih';
-    if (eventStartDate && eventEndDate) {
-      const normStart = toDatetimeLocalValue(eventStartDate);
-      const normEnd = toDatetimeLocalValue(eventEndDate);
-      if (normStart && normEnd && normStart > normEnd) {
-        errs.eventStartDate = 'Tanggal & Jam Mulai tidak boleh melebihi Tanggal & Jam Berakhir';
-        errs.eventEndDate = 'Tanggal & Jam Berakhir tidak boleh kurang dari Tanggal & Jam Mulai';
-      }
-    }
-    if (!eventDesc.trim()) errs.eventDesc = 'Deskripsi Event wajib diisi';
-    if (eventRab === '' || eventRab === undefined || eventRab === null || isNaN(Number(eventRab)) || Number(eventRab) < 0) {
-      errs.eventRab = 'Estimasi Total RAB wajib diisi dengan nominal angka yang valid (>= 0)';
-    }
-    if (eventIsLimited) {
-      if (!eventMaxQuota || isNaN(Number(eventMaxQuota)) || Number(eventMaxQuota) <= 0) {
-        errs.eventMaxQuota = 'Batas maksimal kuota wajib diisi angka lebih dari 0';
-      }
-    }
-
     const targetEventTenureId = eventTenureId || activeTenure?.id || '';
     const availableDivsForEvent = divisions.filter(d => d.tenureId === targetEventTenureId);
-
-    if (availableDivsForEvent.length === 0) {
-      errs.eventDivId = 'Divisi masih kosong pada periode ini. Silakan buat divisi baru terlebih dahulu di tab Divisi.';
-    } else if (!eventDivId || !availableDivsForEvent.some(d => d.id === eventDivId)) {
-      errs.eventDivId = 'Divisi penyelenggara wajib dipilih';
-    }
+    const errs = collectFieldErrors(
+      eventCreateSchema({ divisionIds: availableDivsForEvent.map(d => d.id) }),
+      { eventTitle, eventCategory, eventStartDate, eventEndDate, eventDesc, eventRab, eventIsLimited, eventMaxQuota, eventDivId }
+    );
 
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
@@ -782,30 +763,10 @@ export default function AdminPortal({
     showToast(`Event "${savedTitle}" berhasil ditambahkan & disinkronkan!`);
   };
 
-  // Supabase Auth sign-in; access is granted only to accounts listed in admin_profiles
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (isLoggingIn) return;
-    const errs = {};
-    if (!/\S+@\S+\.\S+/.test(loginEmail.trim())) errs.loginEmail = 'Email admin wajib diisi dengan format yang valid';
-    if (!password) errs.loginPassword = 'Password wajib diisi';
-    if (Object.keys(errs).length > 0) {
-      setFormErrors((prev) => ({ ...prev, ...errs }));
-      return;
-    }
-    setLoginError('');
-    setIsLoggingIn(true);
-    try {
-      await onAdminLogin(loginEmail, password);
-      setPassword('');
-      setFormErrors({});
-      showToast('Berhasil masuk! Selamat datang di Admin Portal', 'success');
-    } catch (err) {
-      setLoginError(err.message || 'Gagal memverifikasi kredensial');
-      showToast(err.message || 'Gagal memverifikasi kredensial', 'error');
-    } finally {
-      setIsLoggingIn(false);
-    }
+  // Supabase Auth sign-in (form: src/admin/AdminLoginForm.tsx); access requires an admin_profiles row
+  const handleLogin = async (email, password) => {
+    await onAdminLogin(email, password);
+    setFormErrors({});
   };
 
   // Select photo for Member (New or Edit) - Deferred upload on Save only
@@ -829,30 +790,19 @@ export default function AdminPortal({
 
   const handleCreateMember = async (e) => {
     e.preventDefault();
-    const errs = {};
-    if (!memName.trim()) errs.memName = 'Nama Lengkap pengurus/anggota wajib diisi';
-
     const targetTenureId = memTenureId || activeTenure?.id || '';
     const availableRoles = getTenureRoles(targetTenureId, roleQuotas, tenureRoles);
-    if (availableRoles.length === 0) {
-      errs.memRole = 'Role kepengurusan masih kosong pada periode ini. Silakan buat role baru terlebih dahulu di menu Kelola Role & Jabatan.';
-    }
     const selectedRole = availableRoles.find(r => r.id === memRoleId) || 
       availableRoles.find(r => r.name.toLowerCase() === (memRole || '').toLowerCase()) ||
       null;
-
-    if (!selectedRole && availableRoles.length > 0) {
-      errs.memRole = 'Jabatan / Role wajib dipilih';
-    }
-
-    if (selectedRole?.requiresDivision) {
-      const availableDivsForMember = divisions.filter(d => d.tenureId === targetTenureId);
-      if (availableDivsForMember.length === 0) {
-        errs.memDivisionId = 'Divisi masih kosong pada periode ini. Silakan buat divisi terlebih dahulu.';
-      } else if (!memDivisionId || !availableDivsForMember.some(d => d.id === memDivisionId)) {
-        errs.memDivisionId = `Divisi wajib dipilih untuk jabatan "${selectedRole.name}"`;
-      }
-    }
+    const errs = collectFieldErrors(
+      memberCreateSchema({
+        roleCount: availableRoles.length,
+        selectedRole,
+        divisionIds: divisions.filter(d => d.tenureId === targetTenureId).map(d => d.id)
+      }),
+      { memName, memDivisionId }
+    );
 
     // Validasi kuota dinamis
     const quotaCheck = validateMemberQuota(
@@ -1030,8 +980,9 @@ export default function AdminPortal({
 
   const handleCreateDivision = (e) => {
     e.preventDefault();
-    if (!newDivName.trim()) {
-      setFormErrors((prev) => ({ ...prev, newDivName: 'Nama Divisi wajib diisi' }));
+    const divisionErrors = collectFieldErrors(divisionCreateSchema, { newDivName });
+    if (divisionErrors.newDivName) {
+      setFormErrors((prev) => ({ ...prev, ...divisionErrors }));
       showToast('Mohon isi Nama Divisi terlebih dahulu', 'error');
       return;
     }
@@ -1059,18 +1010,16 @@ export default function AdminPortal({
 
   const handleCreateRole = (e) => {
     e.preventDefault();
-    if (!newRoleName.trim()) {
-      setFormErrors((prev) => ({ ...prev, newRoleName: 'Nama Jabatan / Role wajib diisi' }));
-      showToast('Mohon isi Nama Jabatan terlebih dahulu', 'error');
-      return;
-    }
     const targetTenureId = newRoleTenureId || activeTenure?.id || tenures[0]?.id || '';
-    const isDuplicate = (tenureRoles || []).some(
-      (r) => r.tenureId === targetTenureId && r.name.toLowerCase().trim() === newRoleName.toLowerCase().trim()
+    const roleErrors = collectFieldErrors(
+      roleCreateSchema({
+        takenNames: (tenureRoles || []).filter((r) => r.tenureId === targetTenureId).map((r) => r.name.toLowerCase().trim())
+      }),
+      { newRoleName }
     );
-    if (isDuplicate) {
-      setFormErrors((prev) => ({ ...prev, newRoleName: 'Role dengan nama ini sudah terdaftar pada periode tersebut' }));
-      showToast('Role dengan nama ini sudah terdaftar pada periode tersebut', 'error');
+    if (roleErrors.newRoleName) {
+      setFormErrors((prev) => ({ ...prev, ...roleErrors }));
+      showToast(roleErrors.newRoleName === ROLE_NAME_DUPLICATE ? ROLE_NAME_DUPLICATE : 'Mohon isi Nama Jabatan terlebih dahulu', 'error');
       return;
     }
 
@@ -1100,17 +1049,13 @@ export default function AdminPortal({
 
   const handleCreateDepartment = (e) => {
     e.preventDefault();
-    if (!newDeptName.trim()) {
-      setFormErrors((prev) => ({ ...prev, newDeptName: 'Nama Departemen wajib diisi' }));
-      showToast('Mohon isi Nama Departemen terlebih dahulu', 'error');
-      return;
-    }
-    const isDuplicate = departments.some(
-      (d) => d.name.toLowerCase().trim() === newDeptName.toLowerCase().trim()
+    const deptErrors = collectFieldErrors(
+      departmentCreateSchema({ takenNames: departments.map((d) => d.name.toLowerCase().trim()) }),
+      { newDeptName }
     );
-    if (isDuplicate) {
-      setFormErrors((prev) => ({ ...prev, newDeptName: 'Nama Departemen sudah terdaftar' }));
-      showToast('Departemen dengan nama ini sudah terdaftar', 'error');
+    if (deptErrors.newDeptName) {
+      setFormErrors((prev) => ({ ...prev, ...deptErrors }));
+      showToast(newDeptName.trim() ? 'Departemen dengan nama ini sudah terdaftar' : 'Mohon isi Nama Departemen terlebih dahulu', 'error');
       return;
     }
 
@@ -1157,13 +1102,7 @@ export default function AdminPortal({
 
   const handleCreateTenure = (e) => {
     e.preventDefault();
-    const errors = {};
-    if (!newTenureCode.trim()) {
-      errors.newTenureCode = 'Kode Tahun Kepengurusan wajib diisi';
-    }
-    if (!newTenureTitle.trim()) {
-      errors.newTenureTitle = 'Nama Periode Kepengurusan wajib diisi';
-    }
+    const errors = collectFieldErrors(tenureCreateSchema, { newTenureCode, newTenureTitle });
     if (Object.keys(errors).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errors }));
       showToast('Mohon lengkapi field wajib (Kode Tahun & Nama Periode)', 'error');
@@ -1283,25 +1222,15 @@ export default function AdminPortal({
 
   const handleCreateBrandAsset = async (e) => {
     e.preventDefault();
-    const errs = {};
-    if (!assetTitle.trim()) errs.assetTitle = 'Judul Asset / Template wajib diisi';
-    if (!assetCategory.trim()) errs.assetCategory = 'Kategori Asset wajib dipilih';
-    if (!assetFileType.trim()) errs.assetFileType = 'Format File Asset wajib diisi';
-    if (!pendingAssetFile && !pendingPreviewFile && !assetFileUrl.trim() && !assetPreviewUrl.trim()) {
-      errs.assetFileUrl = 'File atau URL Download wajib dipilih / diisi';
-    }
-    if (assetFileUrl.trim() && !pendingAssetFile) {
-      const isValidUrl = /^https?:\/\/.+/i.test(assetFileUrl.trim()) || assetFileUrl.trim().startsWith('/');
-      if (!isValidUrl) {
-        errs.assetFileUrl = 'URL file harus berupa tautan web yang valid (diawali http:// atau https://)';
-      }
-    }
-    if (assetPreviewUrl.trim() && !pendingPreviewFile) {
-      const isValidUrl = /^https?:\/\/.+/i.test(assetPreviewUrl.trim()) || assetPreviewUrl.trim().startsWith('/');
-      if (!isValidUrl) {
-        errs.assetPreviewUrl = 'URL preview harus berupa tautan web yang valid (diawali http:// atau https://)';
-      }
-    }
+    const errs = collectFieldErrors(brandAssetCreateSchema, {
+      assetTitle,
+      assetCategory,
+      assetFileType,
+      assetFileUrl,
+      assetPreviewUrl,
+      hasPendingAssetFile: Boolean(pendingAssetFile),
+      hasPendingPreviewFile: Boolean(pendingPreviewFile)
+    });
     if (Object.keys(errs).length > 0) {
       setFormErrors(prev => ({ ...prev, ...errs }));
       showToast('Mohon lengkapi seluruh kolom wajib pada form Asset', 'error');
@@ -1500,18 +1429,9 @@ export default function AdminPortal({
 
   const handleCreateGallery = async (e) => {
     e.preventDefault();
-    const errs = {};
-    if (!galTitle.trim()) errs.galTitle = 'Judul Kegiatan wajib diisi';
-    if (!galDesc.trim()) errs.galDesc = 'Deskripsi Singkat Acara wajib diisi';
-
     const targetGalTenureId = galTenureId || activeTenure?.id || '';
     const availableDivsForGal = divisions.filter(d => d.tenureId === targetGalTenureId);
     const selectedDiv = availableDivsForGal.find(d => d.id === galDivisionId || d.name === galDivision);
-    if (availableDivsForGal.length === 0) {
-      errs.galDivision = 'Divisi masih kosong pada periode ini. Silakan buat divisi baru terlebih dahulu di tab Divisi.';
-    } else if (!selectedDiv) {
-      errs.galDivision = 'Divisi penyelenggara wajib dipilih';
-    }
 
     // Parse image URLs from text input
     const urlPhotos = galPhotos.trim() 
@@ -1521,9 +1441,10 @@ export default function AdminPortal({
     const hasUpload = pendingGalFiles.length > 0;
     const hasUrls = urlPhotos.length > 0;
 
-    if (!hasUpload && !hasUrls) {
-      errs.galPhotos = 'Wajib memilih salah satu: unggah file foto dari komputer ATAU masukkan tautan foto yang valid';
-    }
+    const errs = collectFieldErrors(
+      galleryCreateSchema({ divisionCount: availableDivsForGal.length, hasSelectedDivision: Boolean(selectedDiv) }),
+      { galTitle, galDesc, photoUrlCount: urlPhotos.length, pendingFileCount: pendingGalFiles.length }
+    );
 
     if (Object.keys(errs).length > 0) {
       setFormErrors((prev) => ({ ...prev, ...errs }));
@@ -1707,134 +1628,7 @@ export default function AdminPortal({
             </p>
           </div>
 
-          {loginError && (
-            <div style={{
-              background: 'rgba(244, 63, 94, 0.15)',
-              border: '1px solid #f43f5e',
-              color: '#f43f5e',
-              padding: '10px 14px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.82rem',
-              marginBottom: '16px',
-              textAlign: 'center'
-            }}>
-              {loginError}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Email Admin <span style={{ color: '#f43f5e' }}>*</span>
-              </label>
-              <input
-                type="email"
-                autoComplete="username"
-                placeholder="nama@bankmandiri.co.id"
-                value={loginEmail}
-                disabled={isLoggingIn}
-                onChange={(e) => {
-                  setLoginEmail(e.target.value);
-                  clearFieldError('loginEmail');
-                }}
-                style={{
-                  width: '100%',
-                  padding: '11px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--input-bg)',
-                  border: `1.5px solid ${formErrors.loginEmail ? '#f43f5e' : 'var(--border-card)'}`,
-                  color: 'var(--text-main)',
-                  outline: 'none',
-                  fontSize: '0.9rem',
-                  opacity: isLoggingIn ? 0.7 : 1
-                }}
-              />
-              {renderFieldError('loginEmail')}
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                Password <span style={{ color: '#f43f5e' }}>*</span>
-              </label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Masukkan Password"
-                  value={password}
-                  disabled={isLoggingIn}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    clearFieldError('loginPassword');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '11px 44px 11px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--input-bg)',
-                    border: `1.5px solid ${formErrors.loginPassword ? '#f43f5e' : 'var(--border-card)'}`,
-                    color: 'var(--text-main)',
-                    outline: 'none',
-                    fontSize: '0.9rem',
-                    opacity: isLoggingIn ? 0.7 : 1
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '4px'
-                  }}
-                  title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {renderFieldError('loginPassword')}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoggingIn}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                background: isLoggingIn ? 'rgba(255, 184, 0, 0.75)' : 'var(--mandiri-gold)',
-                color: '#040914',
-                padding: '13px',
-                borderRadius: 'var(--radius-full)',
-                fontWeight: 800,
-                fontSize: '0.95rem',
-                border: 'none',
-                cursor: isLoggingIn ? 'not-allowed' : 'pointer',
-                marginTop: '8px',
-                transition: 'all 0.2s ease',
-                opacity: isLoggingIn ? 0.85 : 1
-              }}
-            >
-              {isLoggingIn ? (
-                <>
-                  <Loader2 size={18} className="spin" />
-                  <span>Memverifikasi Kredensial...</span>
-                </>
-              ) : (
-                <>
-                  <KeyRound size={17} />
-                  <span>Masuk ke Dashboard</span>
-                </>
-              )}
-            </button>
-          </form>
+          <AdminLoginForm onLogin={handleLogin} showToast={showToast} />
         </div>
       </div>
     );
