@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-const REPO = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
+import { fileURLToPath } from 'node:url';
+const REPO = fileURLToPath(new URL('../..', import.meta.url)).replace(/\/$/, ''); // decode: path boleh berisi spasi
 const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const require = createRequire(REPO + '/');
 const puppeteer = require('puppeteer-core');
