@@ -24,6 +24,7 @@ export const NAV_ITEMS = [
   { id: 'event', label: 'Acara' },
   { id: 'galeri', label: 'Galeri' },
   { id: 'kudos', label: 'Kudos & Aspirasi' },
+  { id: 'faq', label: 'FAQ' },
   { id: 'assets', label: 'Aset' }
 ] as const;
 

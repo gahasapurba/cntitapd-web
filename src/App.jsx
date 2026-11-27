@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense, laz
 import { Lock, EyeOff, Sun, Moon, Search, X, Users, Calendar, Image as ImageIcon, ClipboardList, Download, ChevronRight } from 'lucide-react';
 import { getInitialTheme, getSavedTheme, saveTheme, watchSystemTheme } from './lib/theme';
 import SiteHeader from './components/layout/SiteHeader';
-import HomeSection from './components/HomeSection';
+import HomePage from './components/home/HomePage';
 import SiteFooter from './components/layout/SiteFooter';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminOnlyNotice from './components/AdminOnlyNotice';
@@ -11,6 +11,7 @@ const OrganizationSection = lazy(() => import('./components/OrganizationSection'
 const ProgramSection = lazy(() => import('./components/ProgramSection'));
 const GallerySection = lazy(() => import('./components/GallerySection'));
 const KudosSection = lazy(() => import('./components/KudosSection'));
+const FaqPage = lazy(() => import('./components/faq/FaqPage'));
 const AssetKitSection = lazy(() => import('./components/AssetKitSection'));
 const DynamicFormSection = lazy(() => import('./components/DynamicFormSection'));
 const AdminPortal = lazy(() => import('./components/AdminPortal'));
@@ -121,10 +122,14 @@ const DEFAULT_PAGE_VISIBILITY = {
   program: true,
   galeri: true,
   kudos: true,
+  faq: true,
   assets: true,
   form: true,
   oprec: true
 };
+
+// Pages already redesigned in Fase 3 set their own width (Container) instead of the legacy .container.
+const FULL_BLEED_TABS = new Set(['home', 'faq']);
 
 // Helper to consistently sort tenures descending by year (e.g. 2028 -> 2027 -> 2026)
 const sortTenuresDesc = (list = []) => {
@@ -1214,7 +1219,7 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className="container" style={{ flex: 1, position: 'relative' }}>
+      <main className={FULL_BLEED_TABS.has(effectiveTab) ? undefined : 'container'} style={{ flex: 1, position: 'relative' }}>
         {effectiveTab === 'all-hidden' && (
           <div style={{ maxWidth: '620px', margin: '60px auto 80px auto', textAlign: 'center', padding: '0 16px' }}>
             <div className="glass-panel" style={{
@@ -1265,18 +1270,15 @@ export default function App() {
 
         <ErrorBoundary onResetTab={() => setCurrentTab('home')}>
           {effectiveTab === 'home' && (
-            <HomeSection
+            <HomePage
               activeTenure={activeTenure}
               divisions={divisions}
               events={events}
               members={members}
               setCurrentTab={setCurrentTab}
               forms={forms}
-              registrationCounts={registrationCounts}
               kudosList={kudosList}
-              faqs={faqs}
-              onSubmitFaqQuestion={handleSubmitPublicFaq}
-              theme={theme}
+              aspirasiList={aspirasiList}
               pageVisibility={pageVisibility}
               tenureRoles={tenureRoles}
             />
@@ -1378,6 +1380,10 @@ export default function App() {
               onAddAspirasi={handleAddAspirasi}
               theme={theme}
             />
+          )}
+
+          {effectiveTab === 'faq' && (
+            <FaqPage faqs={faqs} onSubmitFaqQuestion={handleSubmitPublicFaq} />
           )}
 
           {effectiveTab === 'assets' && (
@@ -1915,7 +1921,7 @@ export default function App() {
                             key={fq.id}
                             type="button"
                             onClick={() => {
-                              setCurrentTab('home');
+                              setCurrentTab('faq');
                               setIsQuickSearchOpen(false);
                             }}
                             style={{

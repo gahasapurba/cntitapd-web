@@ -10,7 +10,7 @@ import { useLocation, useNavigate } from 'react-router';
  *   /admin  (or /#admin)        the admin portal
  */
 
-export const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'assets', 'form'] as const;
+export const PUBLIC_PAGE_IDS = ['home', 'organisasi', 'event', 'galeri', 'kudos', 'faq', 'assets', 'form'] as const;
 export const VALID_TABS: readonly string[] = [...PUBLIC_PAGE_IDS, 'program', 'oprec', 'admin', 'event-stats'];
 
 export interface LocationLike {

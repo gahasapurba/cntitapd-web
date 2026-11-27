@@ -23,6 +23,7 @@ export default function VisibilityTab() {
           { id: 'galeri', label: 'Galeri Kegiatan', desc: 'Halaman dokumentasi foto carousel kegiatan & tautan folder dokumentasi' },
           { id: 'kudos', label: 'Kudos & Aspirasi', desc: 'Halaman papan apresiasi & pengiriman pesan terima kasih serta ide aspirasi antar insan IT APD' },
           { id: 'assets', label: 'Asset', desc: 'Halaman transformasi logo & pengunduhan paket asset resmi CNT IT APD' },
+          { id: 'faq', label: 'Pertanyaan Umum (FAQ)', desc: 'Halaman tanya jawab & formulir kirim pertanyaan dari pengunjung' },
           { id: 'form', label: 'Registrasi & Formulir', desc: 'Halaman pusat pendaftaran event, open recruitment & survei dinamis' },
         ];
 
