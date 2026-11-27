@@ -6,3 +6,4 @@ export { AkhlakBand } from './AkhlakBand';
 export { Container, SectionHeader } from './Layout';
 export { Skeleton } from './Skeleton';
 export { EmptyState } from './EmptyState';
+export { Dialog } from './Dialog';
