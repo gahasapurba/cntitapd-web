@@ -1,17 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { formatWibEventRange, toDatetimeLocalSecondsValue, toDatetimeLocalValue } from '../utils/dateUtils.js';
 import { getCategoryFromLevel } from '../utils/memberQuotaUtils.js';
+import type { Database, Json, Tables } from '../types/database';
 
-const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || 'https://xarcxbfgeoetyhpqsick.supabase.co';
-const supabaseAnonKey =
+const supabaseUrl: string = import.meta.env?.VITE_SUPABASE_URL || 'https://xarcxbfgeoetyhpqsick.supabase.co';
+const supabaseAnonKey: string =
   import.meta.env?.VITE_SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhhcmN4YmZnZW9ldHlocHFzaWNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2MTM1MjMsImV4cCI6MjEwOTE4OTUyM30.xQzKu3bL9Pzp3OeL6s2s9sEtTBQukr1y0XQSf21bzWI';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+
+/**
+ * Untyped view of the same client, used only where the table name is chosen at runtime
+ * (generic row writes). Typed access should go through `supabase`.
+ */
+const dynamicDb = supabase as unknown as SupabaseClient;
+
+/**
+ * Item shape held in web state (camelCase). Components are still JavaScript, so this stays
+ * loose until the state itself is typed (TanStack Query step).
+ */
+export type AppItem = Record<string, any>;
+
+type DbFunctions = Database['public']['Functions'];
 
 const LOCAL_PREFIX = 'cnt_it_apd_v2_';
 
-export function loadLocalCache(key, fallbackValue) {
+export function loadLocalCache<T>(key: string, fallbackValue: T): T {
   try {
     const raw = localStorage.getItem(LOCAL_PREFIX + key);
     if (raw !== null && raw !== undefined) {
@@ -23,7 +38,7 @@ export function loadLocalCache(key, fallbackValue) {
   return fallbackValue;
 }
 
-export function saveLocalCache(key, value) {
+export function saveLocalCache(key: string, value: unknown): void {
   try {
     localStorage.setItem(LOCAL_PREFIX + key, JSON.stringify(value));
   } catch (e) {
@@ -52,11 +67,35 @@ const TABLE_MAP = {
   faqs: 'faqs',
   tenureRoles: 'tenure_roles',
   luckyDraws: 'lucky_draws'
-};
+} as const satisfies Record<string, keyof Database['public']['Tables']>;
 
-export const rowMappers = {
+export type TableKey = keyof typeof TABLE_MAP;
+type TableName<K extends TableKey> = (typeof TABLE_MAP)[K];
+
+/**
+ * Database row as returned by Supabase. The intersection keeps the generated column types while
+ * tolerating the fallbacks for retired column names that some mappers still read.
+ */
+type DbRow<K extends TableKey> = Tables<TableName<K>> & Record<string, any>;
+
+interface LuckyDrawDetails {
+  winnerName?: string;
+  winnerIdentifier?: string;
+  winnerDepartment?: string;
+  drawNumber?: number;
+  source?: string;
+  drawnFieldLabel?: string;
+  drawnFieldValue?: string;
+}
+
+interface RowMapper<K extends TableKey> {
+  toDb: (item: AppItem, idx?: number) => Record<string, unknown>;
+  fromDb: (row: DbRow<K>) => AppItem;
+}
+
+export const rowMappers: { [K in TableKey]: RowMapper<K> } = {
   tenures: {
-    toDb: (item, idx = 0) => ({
+    toDb: (item: AppItem, idx = 0) => ({
       id: String(item.id),
       code: item.code || '',
       title: item.title || '',
@@ -68,7 +107,7 @@ export const rowMappers = {
       is_active: Boolean(item.isActive),
       sort_order: Number(item.sortOrder ?? idx)
     }),
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'tenures'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       code: row.code,
@@ -85,8 +124,8 @@ export const rowMappers = {
   },
 
   divisions: {
-    toDb: (item, idx = 0) => {
-      const row = {
+    toDb: (item: AppItem, idx = 0) => {
+      const row: Record<string, unknown> = {
         id: String(item.id),
         tenure_id: item.tenureId || null,
         name: item.name || '',
@@ -99,7 +138,7 @@ export const rowMappers = {
       };
       return row;
     },
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'divisions'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       tenureId: row.tenure_id,
@@ -118,7 +157,7 @@ export const rowMappers = {
   },
 
   tenureRoles: {
-    toDb: (item, idx = 0) => ({
+    toDb: (item: AppItem, idx = 0) => ({
       id: String(item.id),
       tenure_id: item.tenureId || 'tenure-2027',
       name: item.name || '',
@@ -127,7 +166,7 @@ export const rowMappers = {
       requires_division: Boolean(item.requiresDivision),
       sort_order: Number(item.sortOrder ?? idx)
     }),
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'tenureRoles'>) => ({
       id: row.id,
       tenureId: row.tenure_id || '',
       name: row.name || '',
@@ -142,14 +181,14 @@ export const rowMappers = {
   },
 
   departments: {
-    toDb: (item, idx = 0) => ({
+    toDb: (item: AppItem, idx = 0) => ({
       id: String(item.id),
       name: item.name || '',
       code: item.code || '',
       description: item.description || '',
       sort_order: Number(item.sortOrder ?? idx)
     }),
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'departments'>) => ({
       id: row.id,
       name: row.name || '',
       code: row.code || '',
@@ -161,8 +200,8 @@ export const rowMappers = {
   },
 
   members: {
-    toDb: (item, idx = 0) => {
-      const row = {
+    toDb: (item: AppItem, idx = 0) => {
+      const row: Record<string, unknown> = {
         id: String(item.id),
         tenure_id: item.tenureId || null,
         division_id: item.divisionId || null,
@@ -177,7 +216,7 @@ export const rowMappers = {
       row.role_id = item.roleId || null;
       return row;
     },
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'members'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       tenureId: row.tenure_id,
@@ -198,10 +237,10 @@ export const rowMappers = {
   },
 
   events: {
-    toDb: (item, idx = 0) => {
+    toDb: (item: AppItem, idx = 0) => {
       const catVal = item.kategori || item.category || item.badge || '';
       const pesertaVal = item.peserta || item.kpi || '';
-      const row = {
+      const row: Record<string, unknown> = {
         id: String(item.id),
         tenure_id: item.tenureId || null,
         division_id: item.divisionId || null,
@@ -221,7 +260,7 @@ export const rowMappers = {
       row.peserta = pesertaVal;
       return row;
     },
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'events'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       tenureId: row.tenure_id,
@@ -249,8 +288,8 @@ export const rowMappers = {
   },
 
   galleries: {
-    toDb: (item, idx = 0) => {
-      const row = {
+    toDb: (item: AppItem, idx = 0) => {
+      const row: Record<string, unknown> = {
         id: String(item.id),
         tenure_id: item.tenureId || null,
         title: item.title || '',
@@ -264,7 +303,7 @@ export const rowMappers = {
       row.event_id = item.eventId || null;
       return row;
     },
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'galleries'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       tenureId: row.tenure_id,
@@ -283,7 +322,7 @@ export const rowMappers = {
   },
 
   kudosList: {
-    toDb: (item, idx = 0) => ({
+    toDb: (item: AppItem, idx = 0) => ({
       id: String(item.id),
       sender: item.sender || 'Anonim',
       recipient: item.recipient || '',
@@ -293,7 +332,7 @@ export const rowMappers = {
       created_at: item.createdAt || item.created_at || new Date().toISOString(),
       sort_order: Number(item.sortOrder ?? idx)
     }),
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'kudosList'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       sender: row.sender,
@@ -307,7 +346,7 @@ export const rowMappers = {
   },
 
   aspirasiList: {
-    toDb: (item, idx = 0) => ({
+    toDb: (item: AppItem, idx = 0) => ({
       id: String(item.id),
       sender: item.sender || 'Anonim',
       title: item.title || item.description || '',
@@ -319,7 +358,7 @@ export const rowMappers = {
       is_public: item.isPublic !== false,
       sort_order: Number(item.sortOrder ?? idx)
     }),
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'aspirasiList'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       sender: row.sender || 'Anonim',
@@ -336,7 +375,7 @@ export const rowMappers = {
   },
 
   forms: {
-    toDb: (item, idx = 0) => {
+    toDb: (item: AppItem, idx = 0) => {
       const rawFields = Array.isArray(item.fields) ? [...item.fields] : [];
       const showAnnouncementVal = item.showAnnouncement === true;
       const isLimitedVal = item.isLimited === true;
@@ -362,7 +401,7 @@ export const rowMappers = {
         };
       }
 
-      const row = {
+      const row: Record<string, unknown> = {
         id: String(item.id),
         title: item.title || '',
         subtitle: item.subtitle || '',
@@ -384,8 +423,8 @@ export const rowMappers = {
       row.notes = item.notes !== undefined && item.notes !== null ? item.notes : null;
       return row;
     },
-    fromDb: (row) => {
-      const rawFields = Array.isArray(row.fields) ? row.fields : [];
+    fromDb: (row: DbRow<'forms'>) => {
+      const rawFields = (Array.isArray(row.fields) ? row.fields : []) as AppItem[];
       let isTracking = true;
       if (row.requires_tracking !== undefined && row.requires_tracking !== null) {
         isTracking = row.requires_tracking !== false;
@@ -411,7 +450,7 @@ export const rowMappers = {
 
       let maxQuota = 0;
       if (row.max_quota !== undefined && row.max_quota !== null) {
-        maxQuota = Math.max(0, parseInt(row.max_quota, 10) || 0);
+        maxQuota = Math.max(0, parseInt(String(row.max_quota), 10) || 0);
       } else if (rawFields.length > 0 && rawFields[0]?._maxQuota !== undefined) {
         maxQuota = Math.max(0, parseInt(rawFields[0]._maxQuota, 10) || 0);
       }
@@ -471,7 +510,7 @@ export const rowMappers = {
   },
 
   submissions: {
-    toDb: (item) => ({
+    toDb: (item: AppItem) => ({
       id: String(item.id),
       form_id: item.formId || null,
       status: item.status || 'Submitted',
@@ -479,7 +518,7 @@ export const rowMappers = {
       data: item.data || {},
       files: item.files || {}
     }),
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'submissions'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       formId: row.form_id,
@@ -495,7 +534,7 @@ export const rowMappers = {
   },
 
   brandAssets: {
-    toDb: (item, idx = 0) => ({
+    toDb: (item: AppItem, idx = 0) => ({
       id: String(item.id),
       title: item.title || '',
       category: item.category || 'Logo & Brand',
@@ -507,7 +546,7 @@ export const rowMappers = {
       badge: item.badge || 'Official Asset',
       sort_order: Number(item.sortOrder ?? idx)
     }),
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'brandAssets'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       title: row.title,
@@ -524,9 +563,9 @@ export const rowMappers = {
   },
 
   eventRsvps: {
-    toDb: (item, idx = 0) => {
+    toDb: (item: AppItem, idx = 0) => {
       const deptVal = item.departmentId || item.department || item.squadUnit || item.departemen || '';
-      const row = {
+      const row: Record<string, unknown> = {
         id: String(item.id),
         event_id: item.eventId || null,
         attendee_name: item.attendeeName || '',
@@ -537,7 +576,7 @@ export const rowMappers = {
       row.department_id = deptVal || null;
       return row;
     },
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'eventRsvps'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       eventId: row.event_id || '',
@@ -554,7 +593,7 @@ export const rowMappers = {
   },
 
   faqs: {
-    toDb: (item, idx = 0) => ({
+    toDb: (item: AppItem, idx = 0) => ({
       id: String(item.id),
       question: item.question || '',
       answer: item.answer || '',
@@ -563,7 +602,7 @@ export const rowMappers = {
       is_published: item.isPublished !== false,
       sort_order: Number(item.sortOrder ?? idx)
     }),
-    fromDb: (row) => ({
+    fromDb: (row: DbRow<'faqs'>) => ({
       id: row.id,
       sortOrder: Number(row.sort_order ?? 0),
       question: row.question || '',
@@ -578,8 +617,8 @@ export const rowMappers = {
   },
 
   luckyDraws: {
-    toDb: (item, idx = 0) => {
-      const row = {
+    toDb: (item: AppItem, idx = 0) => {
+      const row: Record<string, unknown> = {
         id: String(item.id),
         event_id: item.eventId || '',
         submission_id: item.submissionId || '',
@@ -599,8 +638,8 @@ export const rowMappers = {
       };
       return row;
     },
-    fromDb: (row) => {
-      const details = row.details || {};
+    fromDb: (row: DbRow<'luckyDraws'>) => {
+      const details = (row.details || {}) as LuckyDrawDetails;
       return {
         id: row.id,
         eventId: row.event_id || '',
@@ -629,12 +668,12 @@ export const rowMappers = {
 
 // Data pribadi pendaftar & isi aspirasi: hanya dibaca admin berwenang dan tidak pernah
 // disimpan di cache browser.
-const PRIVATE_KEYS = ['submissions', 'eventRsvps', 'luckyDraws', 'aspirasiList'];
+const PRIVATE_KEYS: readonly TableKey[] = ['submissions', 'eventRsvps', 'luckyDraws', 'aspirasiList'];
 PRIVATE_KEYS.forEach((key) => {
   try { localStorage.removeItem(LOCAL_PREFIX + key); } catch (e) { /* storage unavailable */ }
 });
 
-const FETCH_ORDER = {
+const FETCH_ORDER: Record<TableKey, string> = {
   tenures: 'sort_order',
   divisions: 'sort_order',
   departments: 'sort_order',
@@ -658,9 +697,25 @@ const SETTING_KEYS = {
   activeTenureId: 'active_tenure_id',
   announcementBar: 'announcement_bar',
   roleQuotas: 'role_quotas'
+} as const;
+
+export type SettingKey = keyof typeof SETTING_KEYS;
+
+export interface RegistrationCounts {
+  forms: Record<string, number>;
+  events: Record<string, number>;
+}
+
+export type CloudState = Partial<Record<TableKey, AppItem[]>> & {
+  registrationCounts?: RegistrationCounts;
+  pageVisibility?: AppItem;
+  activeTenureId?: string;
+  announcementBar?: AppItem;
+  roleQuotas?: AppItem;
+  failed: string[];
 };
 
-function enrichMembersAndDivisions(result) {
+function enrichMembersAndDivisions(result: CloudState): void {
   // Lengkapi pengurus dengan kategori, jabatan & divisi dari tenure_roles
   if (Array.isArray(result.members)) {
     const rList = result.tenureRoles || [];
@@ -732,22 +787,22 @@ function enrichMembersAndDivisions(result) {
  * Hanya data yang berhasil dimuat yang ada di hasil, sehingga kegagalan request
  * tidak pernah disangka sebagai tabel kosong.
  */
-export async function fetchAllCloudState({ includePrivate = false } = {}) {
-  const keys = Object.keys(FETCH_ORDER).filter((key) => includePrivate || !PRIVATE_KEYS.includes(key));
+export async function fetchAllCloudState({ includePrivate = false } = {}): Promise<CloudState> {
+  const keys = (Object.keys(FETCH_ORDER) as TableKey[]).filter((key) => includePrivate || !PRIVATE_KEYS.includes(key));
   const [settingsRes, countsRes, publicAspirasiRes, ...tableResults] = await Promise.all([
     supabase.from('page_settings').select('*'),
     includePrivate ? Promise.resolve(null) : supabase.rpc('get_registration_counts'),
     supabase.rpc('get_public_aspirasi'),
     ...keys.map((key) => {
       const column = FETCH_ORDER[key];
-      let query = supabase.from(TABLE_MAP[key]).select('*').order(column, { ascending: !DESCENDING_ORDER.has(column) });
+      let query = dynamicDb.from(TABLE_MAP[key]).select('*').order(column, { ascending: !DESCENDING_ORDER.has(column) });
       if (column === 'sort_order') query = query.order('created_at', { ascending: true });
       return query;
     })
   ]);
 
-  const result = {};
-  const failed = [];
+  const result: CloudState = { failed: [] };
+  const failed: string[] = result.failed;
 
   tableResults.forEach((res, idx) => {
     const key = keys[idx];
@@ -755,14 +810,14 @@ export async function fetchAllCloudState({ includePrivate = false } = {}) {
       failed.push(key);
       return;
     }
-    result[key] = res.data.map(rowMappers[key].fromDb);
+    result[key] = res.data.map((row: AppItem) => (rowMappers[key].fromDb as (r: AppItem) => AppItem)(row));
   });
 
   if (countsRes) {
     if (countsRes.error || !Array.isArray(countsRes.data)) {
       failed.push('registrationCounts');
     } else {
-      const counts = { forms: {}, events: {} };
+      const counts: RegistrationCounts = { forms: {}, events: {} };
       countsRes.data.forEach(({ kind, ref_id: refId, total }) => {
         if (kind === 'form') counts.forms[refId] = total;
         if (kind === 'event') counts.events[refId] = total;
@@ -775,36 +830,37 @@ export async function fetchAllCloudState({ includePrivate = false } = {}) {
   if (publicAspirasiRes.error || !Array.isArray(publicAspirasiRes.data)) {
     if (!result.aspirasiList) failed.push('publicAspirasi');
   } else if (!result.aspirasiList || result.aspirasiList.length === 0) {
-    result.aspirasiList = publicAspirasiRes.data.map((row) => ({ ...rowMappers.aspirasiList.fromDb(row), isPublic: true }));
+    result.aspirasiList = publicAspirasiRes.data.map((row) => ({ ...rowMappers.aspirasiList.fromDb(row as DbRow<'aspirasiList'>), isPublic: true }));
   }
 
   if (settingsRes.error || !Array.isArray(settingsRes.data)) {
     failed.push('pageSettings');
   } else {
     for (const row of settingsRes.data) {
-      if (!row.value) continue;
+      const value = row.value as AppItem | null;
+      if (!value) continue;
       if (row.key === SETTING_KEYS.pageVisibility) {
-        result.pageVisibility = { ...row.value, _updatedAt: row.updated_at };
-      } else if (row.key === SETTING_KEYS.activeTenureId && row.value.id) {
-        result.activeTenureId = row.value.id;
+        result.pageVisibility = { ...value, _updatedAt: row.updated_at };
+      } else if (row.key === SETTING_KEYS.activeTenureId && value.id) {
+        result.activeTenureId = String(value.id);
       } else if (row.key === SETTING_KEYS.announcementBar) {
-        result.announcementBar = { ...row.value, _updatedAt: row.updated_at };
+        result.announcementBar = { ...value, _updatedAt: row.updated_at };
       } else if (row.key === SETTING_KEYS.roleQuotas) {
-        result.roleQuotas = row.value;
+        result.roleQuotas = value;
       }
     }
   }
 
   enrichMembersAndDivisions(result);
 
-  Object.keys(result).forEach((key) => {
-    if (!PRIVATE_KEYS.includes(key) && key !== 'registrationCounts') saveLocalCache(key, result[key]);
+  (Object.keys(result) as (keyof CloudState)[]).forEach((key) => {
+    if (key === 'failed' || key === 'registrationCounts') return;
+    if (!PRIVATE_KEYS.includes(key as TableKey)) saveLocalCache(key, result[key]);
   });
 
   if (failed.length > 0) {
     console.error('Gagal memuat sebagian data dari Supabase:', failed.join(', '));
   }
-  result.failed = failed;
   return result;
 }
 
@@ -817,80 +873,80 @@ export async function fetchAllCloudState({ includePrivate = false } = {}) {
 const WRITE_CHUNK_SIZE = 200;
 const DELETE_CHUNK_SIZE = 100;
 
-function tableFor(key) {
+function tableFor(key: TableKey): string {
   const table = TABLE_MAP[key];
   if (!table) throw new Error(`Tabel untuk "${key}" tidak dikenal`);
   return table;
 }
 
-function assertOk(response, action) {
+function assertOk(response: { error: { message: string } | null }, action: string): void {
   if (response.error) {
     throw new Error(`${action}: ${response.error.message}`);
   }
 }
 
-function chunk(list, size) {
-  const chunks = [];
+function chunk<T>(list: T[], size: number): T[][] {
+  const chunks: T[][] = [];
   for (let i = 0; i < list.length; i += size) chunks.push(list.slice(i, i + size));
   return chunks;
 }
 
 /** Urutan berikutnya untuk item baru (di akhir daftar, atau di awal bila position = 'start'). */
-export function nextSortOrder(list = [], position = 'end') {
+export function nextSortOrder(list: AppItem[] = [], position: 'start' | 'end' = 'end'): number {
   const orders = (Array.isArray(list) ? list : []).map((item) => Number(item?.sortOrder ?? 0));
   if (orders.length === 0) return 0;
   return position === 'start' ? Math.min(...orders) - 1 : Math.max(...orders) + 1;
 }
 
 /** Membuat atau memperbarui satu baris berdasarkan id. */
-export async function saveRow(key, item) {
+export async function saveRow(key: TableKey, item: AppItem): Promise<void> {
   const table = tableFor(key);
   assertOk(
-    await supabase.from(table).upsert(rowMappers[key].toDb(item), { onConflict: 'id' }),
+    await dynamicDb.from(table).upsert(rowMappers[key].toDb(item), { onConflict: 'id' }),
     `Gagal menyimpan data ${table}`
   );
 }
 
 /** Membuat atau memperbarui beberapa baris. Tidak pernah menghapus baris yang tidak ada di daftar. */
-export async function saveRows(key, items) {
+export async function saveRows(key: TableKey, items: AppItem[]): Promise<void> {
   if (!Array.isArray(items) || items.length === 0) return;
   const table = tableFor(key);
   for (const part of chunk(items, WRITE_CHUNK_SIZE)) {
     assertOk(
-      await supabase.from(table).upsert(part.map((item) => rowMappers[key].toDb(item)), { onConflict: 'id' }),
+      await dynamicDb.from(table).upsert(part.map((item) => rowMappers[key].toDb(item)), { onConflict: 'id' }),
       `Gagal menyimpan data ${table}`
     );
   }
 }
 
-export async function deleteRow(key, id) {
+export async function deleteRow(key: TableKey, id: string | number): Promise<void> {
   const table = tableFor(key);
-  assertOk(await supabase.from(table).delete().eq('id', String(id)), `Gagal menghapus data ${table}`);
+  assertOk(await dynamicDb.from(table).delete().eq('id', String(id)), `Gagal menghapus data ${table}`);
 }
 
-export async function deleteRows(key, ids) {
+export async function deleteRows(key: TableKey, ids: (string | number)[]): Promise<void> {
   if (!Array.isArray(ids) || ids.length === 0) return;
   const table = tableFor(key);
   for (const part of chunk(ids.map(String), DELETE_CHUNK_SIZE)) {
-    assertOk(await supabase.from(table).delete().in('id', part), `Gagal menghapus data ${table}`);
+    assertOk(await dynamicDb.from(table).delete().in('id', part), `Gagal menghapus data ${table}`);
   }
 }
 
-export async function deleteRowsWhere(key, column, value) {
+export async function deleteRowsWhere(key: TableKey, column: string, value: unknown): Promise<void> {
   const table = tableFor(key);
-  assertOk(await supabase.from(table).delete().eq(column, value), `Gagal menghapus data ${table}`);
+  assertOk(await dynamicDb.from(table).delete().eq(column, value), `Gagal menghapus data ${table}`);
 }
 
-export async function saveSetting(key, value) {
+export async function saveSetting(key: SettingKey, value: unknown): Promise<void> {
   const settingKey = SETTING_KEYS[key];
   if (!settingKey) throw new Error(`Pengaturan "${key}" tidak dikenal`);
-  let storedValue = key === 'activeTenureId' ? { id: value } : value;
+  let storedValue = (key === 'activeTenureId' ? { id: value } : value) as AppItem;
   if (storedValue && typeof storedValue === 'object' && '_updatedAt' in storedValue) {
     storedValue = { ...storedValue };
     delete storedValue._updatedAt;
   }
   assertOk(
-    await supabase.from('page_settings').upsert({ key: settingKey, value: storedValue, updated_at: new Date().toISOString() }),
+    await supabase.from('page_settings').upsert({ key: settingKey, value: storedValue as Json, updated_at: new Date().toISOString() }),
     `Gagal menyimpan pengaturan ${settingKey}`
   );
   saveLocalCache(key, value);
@@ -901,7 +957,7 @@ export async function saveSetting(key, value) {
 // tenggat, kuota, keunikan & panjang isian secara atomik)
 // ============================================================================
 
-const RPC_ERROR_MESSAGES = {
+const RPC_ERROR_MESSAGES: Record<string, string> = {
   FORM_NOT_FOUND: 'Formulir tidak ditemukan atau sudah dihapus.',
   FORM_CLOSED: 'Formulir ini sedang ditutup.',
   FORM_DEADLINE_PASSED: 'Batas waktu pendaftaran formulir ini telah berakhir.',
@@ -921,7 +977,10 @@ const RPC_ERROR_MESSAGES = {
 
 /** Error dari RPC, membawa kode mesin & pesan untuk pengguna. */
 export class RpcError extends Error {
-  constructor(code, detail, rawMessage) {
+  code: string | null;
+  detail: string | undefined;
+
+  constructor(code: string, detail?: string, rawMessage?: string) {
     const isKnown = Object.prototype.hasOwnProperty.call(RPC_ERROR_MESSAGES, code);
     super(isKnown ? RPC_ERROR_MESSAGES[code] : (rawMessage || 'Terjadi kesalahan pada server.'));
     // Hanya penolakan aturan bisnis yang memiliki kode; kegagalan jaringan/izin tidak.
@@ -930,32 +989,36 @@ export class RpcError extends Error {
   }
 }
 
-async function callRpc(name, params) {
-  const { data, error } = await supabase.rpc(name, params);
+async function callRpc<F extends keyof DbFunctions>(
+  name: F,
+  params: DbFunctions[F]['Args']
+): Promise<DbFunctions[F]['Returns']> {
+  // The generic overloads of `rpc` do not narrow on a union name, so call through the untyped view.
+  const { data, error } = await dynamicDb.rpc(name as string, params as Record<string, unknown>);
   if (error) {
     const [code, detail] = String(error.message || '').split(':');
     throw new RpcError(code, detail, error.message);
   }
-  return data;
+  return data as DbFunctions[F]['Returns'];
 }
 
 /** Mengirim formulir publik. Mengembalikan id pendaftaran dari database. */
-export function submitFormRegistration(formId, data, files = {}) {
+export function submitFormRegistration(formId: string, data: Json, files: Json = {}) {
   return callRpc('submit_form', { p_form_id: formId, p_data: data, p_files: files });
 }
 
 /** Mengirim RSVP publik. Mengembalikan id RSVP dari database. */
-export function submitEventRsvp(eventId, attendeeName, attendanceMode, notes = '', departmentId = null) {
+export function submitEventRsvp(eventId: string, attendeeName: string, attendanceMode: string, notes = '', departmentId: string | null = null) {
   return callRpc('submit_rsvp', {
     p_event_id: eventId,
     p_attendee_name: attendeeName,
     p_attendance_mode: attendanceMode,
     p_notes: notes,
-    p_department_id: departmentId || null
+    p_department_id: departmentId || undefined
   });
 }
 
-export async function fetchEventAttendees(eventId) {
+export async function fetchEventAttendees(eventId: string) {
   const rows = await callRpc('get_event_attendees', { p_event_id: eventId });
   return (rows || []).map((row) => ({
     id: row.id,
@@ -969,11 +1032,11 @@ export async function fetchEventAttendees(eventId) {
   }));
 }
 
-export function isSubmissionValueTaken(formId, fieldId, value) {
+export function isSubmissionValueTaken(formId: string, fieldId: string, value: string) {
   return callRpc('is_submission_value_taken', { p_form_id: formId, p_field_id: fieldId, p_value: value });
 }
 
-export async function trackSubmissions(query) {
+export async function trackSubmissions(query: string) {
   const rows = await callRpc('track_submissions', { p_query: query });
   return (rows || []).map((row) => ({
     id: row.id,
@@ -987,7 +1050,7 @@ export async function trackSubmissions(query) {
   }));
 }
 
-export async function fetchAcceptedSubmissions(formId) {
+export async function fetchAcceptedSubmissions(formId: string) {
   const rows = await callRpc('get_accepted_submissions', { p_form_id: formId });
   return (rows || []).map((row) => ({
     id: row.id,
@@ -1000,7 +1063,14 @@ export async function fetchAcceptedSubmissions(formId) {
   }));
 }
 
-export function submitKudos({ sender, recipient, category, message }) {
+export interface KudosInput {
+  sender?: string;
+  recipient: string;
+  category: string;
+  message: string;
+}
+
+export function submitKudos({ sender, recipient, category, message }: KudosInput) {
   return callRpc('submit_kudos', {
     p_sender: sender || '',
     p_recipient: recipient || '',
@@ -1012,7 +1082,7 @@ export function submitKudos({ sender, recipient, category, message }) {
 const DEVICE_ID_KEY = 'cnt_device_id';
 
 /** Id acak per perangkat untuk membatasi satu like per kudos (bukan data pribadi). */
-export function getDeviceId() {
+export function getDeviceId(): string {
   try {
     let id = localStorage.getItem(DEVICE_ID_KEY);
     if (!id || id.length < 8) {
@@ -1028,13 +1098,21 @@ export function getDeviceId() {
 }
 
 /** Like / batal like. Mengembalikan { liked, likes } dari database. */
-export async function toggleKudosLike(kudosId) {
+export async function toggleKudosLike(kudosId: string): Promise<{ liked: boolean; likes: number }> {
   const rows = await callRpc('toggle_kudos_like', { p_kudos_id: kudosId, p_device_id: getDeviceId() });
   const row = Array.isArray(rows) ? rows[0] : rows;
   return { liked: Boolean(row?.liked), likes: Number(row?.likes ?? 1) };
 }
 
-export function submitAspirasi({ sender, title, category, description, isPublic = true }) {
+export interface AspirasiInput {
+  sender?: string;
+  title?: string;
+  category?: string;
+  description: string;
+  isPublic?: boolean;
+}
+
+export function submitAspirasi({ sender, title, category, description, isPublic = true }: AspirasiInput) {
   return callRpc('submit_aspirasi', {
     p_sender: sender || '',
     p_title: title || '',
@@ -1045,16 +1123,24 @@ export function submitAspirasi({ sender, title, category, description, isPublic 
 }
 
 /** Pertanyaan FAQ dari pengunjung (belum terbit sampai dijawab admin). */
-export async function submitPublicFaqQuestion(item) {
+export async function submitPublicFaqQuestion(item: AppItem): Promise<void> {
   const row = rowMappers.faqs.toDb({ ...item, isPublished: false });
-  assertOk(await supabase.from('faqs').insert(row), 'Gagal mengirim pertanyaan');
+  assertOk(await dynamicDb.from('faqs').insert(row), 'Gagal mengirim pertanyaan');
 }
 
 // ============================================================================
 // ADMIN AUTHENTICATION (Supabase Auth + peran di admin_profiles)
 // ============================================================================
 
-function mapAdminProfile(row) {
+export interface AdminProfile {
+  userId: string;
+  email: string;
+  displayName: string;
+  role: string;
+  divisionId: string | null;
+}
+
+function mapAdminProfile(row: Tables<'admin_profiles'>): AdminProfile {
   return {
     userId: row.user_id,
     email: row.email,
@@ -1065,13 +1151,13 @@ function mapAdminProfile(row) {
 }
 
 /** Profil admin untuk user yang login, atau null bila user bukan admin. */
-export async function fetchAdminProfile(userId) {
+export async function fetchAdminProfile(userId: string): Promise<AdminProfile | null> {
   const { data, error } = await supabase.from('admin_profiles').select('*').eq('user_id', userId).maybeSingle();
   if (error) throw new Error(`Gagal memuat profil admin: ${error.message}`);
   return data ? mapAdminProfile(data) : null;
 }
 
-export async function signInAdmin(email, password) {
+export async function signInAdmin(email: string, password: string): Promise<AdminProfile> {
   const { data, error } = await supabase.auth.signInWithPassword({ email: String(email || '').trim(), password });
   if (error) {
     throw new Error(error.message === 'Invalid login credentials' ? 'Email atau password salah' : error.message);
@@ -1084,27 +1170,27 @@ export async function signInAdmin(email, password) {
   return profile;
 }
 
-export async function signOutAdmin() {
+export async function signOutAdmin(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) throw new Error(error.message);
 }
 
-export async function listAdminProfiles() {
+export async function listAdminProfiles(): Promise<AdminProfile[]> {
   const { data, error } = await supabase.from('admin_profiles').select('*').order('created_at', { ascending: true });
   if (error) throw new Error(`Gagal memuat daftar admin: ${error.message}`);
   return data.map(mapAdminProfile);
 }
 
-export function assignAdminRole(email, role, divisionId, displayName = '') {
+export function assignAdminRole(email: string, role: string, divisionId?: string | null, displayName = '') {
   return callRpc('assign_admin_role', {
     p_email: email,
     p_role: role,
-    p_division_id: divisionId || null,
+    p_division_id: divisionId || undefined,
     p_display_name: displayName
   });
 }
 
-export function revokeAdminRole(userId) {
+export function revokeAdminRole(userId: string) {
   return callRpc('revoke_admin_role', { p_user_id: userId });
 }
 
@@ -1120,10 +1206,10 @@ export const SUBMISSION_FILE_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 
  * Resolve correct MIME type by file extension or browser type
  * Ensures ZIP, RAR, PDF, Office, and media formats upload properly
  */
-export function getFileMimeType(file) {
+export function getFileMimeType(file: File | null | undefined): string {
   if (!file) return 'application/octet-stream';
   const ext = (file.name || '').split('.').pop()?.toLowerCase();
-  const mimeMap = {
+  const mimeMap: Record<string, string> = {
     zip: 'application/zip',
     rar: 'application/x-rar-compressed',
     '7z': 'application/x-7z-compressed',
@@ -1158,7 +1244,7 @@ function uniqueSuffix() {
  * Bila akses langsung ke Supabase diblokir jaringan kantor, dicoba lewat reverse proxy
  * same-origin Netlify (/storage-proxy) dengan token sesi yang sama.
  */
-export async function uploadMediaToCloud(file, folder = 'uploads') {
+export async function uploadMediaToCloud(file: File, folder = 'uploads'): Promise<string> {
   if (!file) throw new Error('File tidak valid atau tidak ditemukan');
   if (file.size > MAX_UPLOAD_BYTES) throw new Error('Ukuran berkas melebihi batas 20 MB.');
 
@@ -1173,7 +1259,7 @@ export async function uploadMediaToCloud(file, folder = 'uploads') {
   const path = `${folder}/${uniqueSuffix()}_${baseName}.${cleanExt}`;
   const contentType = getFileMimeType(file);
 
-  let directError = null;
+  let directError: unknown = null;
   try {
     const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
       cacheControl: '3600',
@@ -1185,12 +1271,12 @@ export async function uploadMediaToCloud(file, folder = 'uploads') {
     }
     directError = error;
     // Penolakan izin/ukuran dari server tidak akan berubah lewat proxy
-    const status = Number(error.statusCode || error.status || 0);
+    const status = Number((error as { statusCode?: string | number; status?: number }).statusCode || (error as { status?: number }).status || 0);
     if (status === 400 || status === 403 || status === 413) {
       throw new Error(`Gagal mengunggah berkas: ${error.message}`);
     }
   } catch (err) {
-    if (String(err?.message || '').startsWith('Gagal mengunggah')) throw err;
+    if (err instanceof Error && err.message.startsWith('Gagal mengunggah')) throw err;
     directError = err;
   }
 
@@ -1216,7 +1302,7 @@ export async function uploadMediaToCloud(file, folder = 'uploads') {
 /**
  * Extract bucket-relative path from a Supabase Storage public CDN URL
  */
-export function extractStoragePath(url, bucketName = MEDIA_BUCKET) {
+export function extractStoragePath(url: string | null | undefined, bucketName: string = MEDIA_BUCKET): string | null {
   if (!url || typeof url !== 'string') return null;
   const markers = [
     `/storage/v1/object/public/${bucketName}/`,
@@ -1233,7 +1319,7 @@ export function extractStoragePath(url, bucketName = MEDIA_BUCKET) {
 }
 
 /** Menghapus berkas (best effort). Mengembalikan false bila berkas tidak dapat dihapus. */
-export async function deleteMediaFromCloud(url, bucketName = MEDIA_BUCKET) {
+export async function deleteMediaFromCloud(url: string | null | undefined, bucketName: string = MEDIA_BUCKET): Promise<boolean> {
   const path = extractStoragePath(url, bucketName);
   if (!path) return false;
   const { error } = await supabase.storage.from(bucketName).remove([path]);
