@@ -60,6 +60,8 @@ jobs:
       # Karena itu backup WAJIB dienkripsi (AES-256 + PBKDF2, passphrase di secret
       # BACKUP_PASSPHRASE) dan hanya berkas terenkripsi yang diunggah.
       # Tanpa secret, workflow gagal alih-alih mengunggah data mentah.
+      # Dua artifact: database (kecil, cepat diunduh untuk restore data) dan
+      # arsip lengkap (database + storage). Salinan *_latest tidak ikut diunggah.
       - name: Encrypt Backup (AES-256)
         env:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
@@ -69,16 +71,32 @@ jobs:
             echo "::error::Secret BACKUP_PASSPHRASE belum diset. Backup TIDAK diunggah agar data tidak bocor."
             exit 1
           fi
-          mkdir -p encrypted
-          tar -czf - backups | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 -salt \
-            -pass env:BACKUP_PASSPHRASE -out "encrypted/$ARCHIVE.tar.gz.enc"
+          DB_JSON=$(ls backups/database_*.json | head -1)
+          FULL_ZIP=$(ls backups/supabase_backup_*.zip | head -1)
+          if [ ! -f "$DB_JSON" ] || [ ! -f "$FULL_ZIP" ]; then
+            echo "::error::Berkas backup tidak lengkap."
+            exit 1
+          fi
+          enc() { openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 -salt -pass env:BACKUP_PASSPHRASE -in "$1" -out "$2"; }
+          mkdir -p encrypted/db encrypted/full
+          enc "$DB_JSON" "encrypted/db/$ARCHIVE-database.json.enc"
+          enc "$FULL_ZIP" "encrypted/full/$ARCHIVE-full.zip.enc"
           rm -rf backups
-          ls -lh encrypted
+          ls -lh encrypted/*
 
-      - name: Upload Encrypted Backup as Artifact
+      - name: Upload Encrypted Database Backup
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-backup-${{ steps.meta.outputs.TAG }}-${{ steps.meta.outputs.TIMESTAMP }}
-          path: encrypted/*.enc
+          name: supabase-backup-${{ steps.meta.outputs.TAG }}-${{ steps.meta.outputs.TIMESTAMP }}-database
+          path: encrypted/db/*.enc
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Encrypted Full Backup (Database + Storage)
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ steps.meta.outputs.TAG }}-${{ steps.meta.outputs.TIMESTAMP }}-full
+          path: encrypted/full/*.enc
+          if-no-files-found: error
+          compression-level: 0
           retention-days: 30
