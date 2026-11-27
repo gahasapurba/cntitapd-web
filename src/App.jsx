@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import { Lock, EyeOff, Sun, Moon, Search, X, Users, Calendar, Image as ImageIcon, ClipboardList, Download, ChevronRight } from 'lucide-react';
-import StarfieldBackground from './components/StarfieldBackground';
+import { getInitialTheme, getSavedTheme, saveTheme, watchSystemTheme } from './lib/theme';
 import Navbar from './components/Navbar';
 import HomeSection from './components/HomeSection';
 import Footer from './components/Footer';
@@ -179,18 +179,23 @@ export default function App() {
   const setPageVisibilityState = (nextVisibility) => updatePageSettings({ pageVisibility: nextVisibility });
 
   // Default theme is LIGHT THEME as requested
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('cnt_theme') || 'light';
-  });
+  // Follows the OS setting until the visitor picks a theme (src/lib/theme.ts)
+  const [theme, setTheme] = useState(getInitialTheme);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('cnt_theme', theme);
   }, [theme]);
 
+  useEffect(() => watchSystemTheme((systemTheme) => {
+    if (!getSavedTheme()) setTheme(systemTheme);
+  }), []);
+
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    const next = theme === 'dark' ? 'light' : 'dark';
+    saveTheme(next);
+    setTheme(next);
   };
+
 
   // Supabase Auth session of an admin: 'loading' | 'signedOut' | 'admin'
   const [adminSession, setAdminSession] = useState({ status: 'loading', profile: null });
@@ -1030,8 +1035,6 @@ export default function App() {
   return (
     <AppNavigationContext.Provider value={navigateTo}>
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
-      {/* Background Canvas */}
-      <StarfieldBackground theme={theme} />
 
       {/* Responsive Navbar (Can be toggled View / Hide) */}
       {isNavbarVisible && (

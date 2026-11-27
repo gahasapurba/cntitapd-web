@@ -1,0 +1,145 @@
+/*
+ * Design tokens — Culture Network Team, concept "B + aksen C" (Fase 3).
+ * Cool grey-blue ground, white cards, Mandiri navy hero, gold as accent fill, the six AKHLAK
+ * colours as a band and as tinted chips. One type family: Plus Jakarta Sans.
+ *
+ * Colours are plain hex/rgba on purpose: the org-chart PDF export (html2canvas) cannot parse
+ * color-mix()/oklch(). Text tokens meet WCAG AA (>= 4.5:1) on the backgrounds they are used on
+ * unless noted.
+ */
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* AKHLAK band colours (decorative fills; text uses the --akhlak-*-ink tokens) */
+  --akhlak-amanah: #2f6fd6;
+  --akhlak-kompeten: #14a38b;
+  --akhlak-harmonis: #f4b400;
+  --akhlak-loyal: #e5484d;
+  --akhlak-adaptif: #8b5cf6;
+  --akhlak-kolaboratif: #22a55b;
+
+  color-scheme: light;
+}
+
+/* LIGHT (default when the OS has no preference) */
+[data-theme='light'] {
+  --bg-page: #f3f5f9;
+  --bg-nav: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #ffffff;
+  --bg-subtle: #f7f9fc;
+  --border-card: #e2e7ef;
+  --border-card-hover: #0a3e80;
+
+  --text-main: #0f1b2d;             /* 16.5:1 on page */
+  --text-muted: #4a5870;            /* 6.9:1 */
+  --text-dim: #5b677d;              /* 5.2:1 */
+
+  --mandiri-blue: #0a3e80;          /* white text 10.6:1; as text 9.7:1 */
+  --hero-bg: #0a3e80;
+  --hero-text: #ffffff;
+  --hero-muted: #d3def0;            /* 8.4:1 on hero */
+  --hero-tile: rgba(255, 255, 255, 0.1);
+
+  /* Gold: legacy code uses --mandiri-gold both as text and as a button fill, so it holds a
+     compromise until each page is redesigned. New components use --gold-fill / --gold-ink. */
+  --mandiri-gold: #9a6700;          /* 4.9:1 as text on white */
+  --mandiri-gold-hover: #7f5500;
+  --gold-fill: #ffc83d;             /* dark text on it: --gold-on 13:1 */
+  --gold-on: #1a1300;
+  --gold-ink: #8a5a00;              /* 5.6:1 on white */
+
+  --neon-cyan: #0b63a8;             /* "info" blue, 5.9:1 */
+  --neon-purple: #6d28d9;
+  --neon-emerald: #15803d;
+  --neon-rose: #be123c;
+
+  --badge-bg: #e8eef8;
+  --badge-text: #0a3e80;
+  --badge-border: #c9d6ea;
+
+  --input-bg: #ffffff;
+  --input-border: #cfd7e3;
+
+  --akhlak-amanah-tint: #dbeafe;      --akhlak-amanah-ink: #1e3a8a;
+  --akhlak-kompeten-tint: #ccfbf1;    --akhlak-kompeten-ink: #115e59;
+  --akhlak-harmonis-tint: #fef3c7;    --akhlak-harmonis-ink: #92400e;
+  --akhlak-loyal-tint: #fee2e2;       --akhlak-loyal-ink: #991b1b;
+  --akhlak-adaptif-tint: #ede9fe;     --akhlak-adaptif-ink: #5b21b6;
+  --akhlak-kolaboratif-tint: #dcfce7; --akhlak-kolaboratif-ink: #166534;
+
+  --shadow-card: 0 1px 2px rgba(15, 27, 45, 0.04), 0 8px 24px -14px rgba(15, 27, 45, 0.16);
+  --shadow-glow: 0 0 0 1px rgba(10, 62, 128, 0.08);
+
+  color-scheme: light;
+}
+
+/* DARK */
+[data-theme='dark'] {
+  --bg-page: #0a101c;
+  --bg-nav: #121b2c;
+  --bg-card: #121b2c;
+  --bg-card-hover: #172235;
+  --bg-subtle: #172235;
+  --border-card: #25324a;
+  --border-card-hover: #ffc83d;
+
+  --text-main: #e9eef6;             /* 15.6:1 on page */
+  --text-muted: #a6b2c6;            /* 8.4:1 */
+  --text-dim: #8c99af;              /* 6.0:1 */
+
+  --mandiri-blue: #2f6fd6;          /* white text 4.7:1 */
+  --hero-bg: #12315f;
+  --hero-text: #ffffff;
+  --hero-muted: #c6d3e8;
+  --hero-tile: rgba(255, 255, 255, 0.08);
+
+  --mandiri-gold: #ffc83d;
+  --mandiri-gold-hover: #ffd76b;
+  --gold-fill: #ffc83d;
+  --gold-on: #1a1300;
+  --gold-ink: #ffc83d;
+
+  --neon-cyan: #7cc4f2;
+  --neon-purple: #c4b5fd;
+  --neon-emerald: #4ade80;
+  --neon-rose: #fb7185;
+
+  --badge-bg: #1c2a44;
+  --badge-text: #8db8ff;
+  --badge-border: #2c3d5d;
+
+  --input-bg: #0f1828;
+  --input-border: #2c3a55;
+
+  --akhlak-amanah-tint: #172b4d;      --akhlak-amanah-ink: #93c5fd;
+  --akhlak-kompeten-tint: #0d3b36;    --akhlak-kompeten-ink: #5eead4;
+  --akhlak-harmonis-tint: #3a2a08;    --akhlak-harmonis-ink: #fcd34d;
+  --akhlak-loyal-tint: #3d1616;       --akhlak-loyal-ink: #fca5a5;
+  --akhlak-adaptif-tint: #2a1f4d;     --akhlak-adaptif-ink: #c4b5fd;
+  --akhlak-kolaboratif-tint: #123222; --akhlak-kolaboratif-ink: #86efac;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -18px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 0 1px rgba(255, 200, 61, 0.18);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
